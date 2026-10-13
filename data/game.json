@@ -23,6 +23,9 @@
     "countPerWave": 3,
     "spawnInterval": 0.5,
     "intermission": 3,
-    "maxAlive": 150
+    "maxAlive": 150,
+    "speedScalePerWave": 0.05,
+    "healthScalePerWave": 0.1,
+    "maxSpeedScale": 1.8
   }
 }

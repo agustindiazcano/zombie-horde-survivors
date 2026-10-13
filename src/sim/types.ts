@@ -20,6 +20,8 @@ export interface Zombie {
   prev: Vec2;
   facing: number;
   health: number;
+  /** Chase speed, fixed at spawn from the wave's difficulty scaling. */
+  speed: number;
   state: ZombieState;
   attackTimer: number;
   deathTimer: number;

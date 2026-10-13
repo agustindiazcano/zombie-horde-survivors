@@ -1,15 +1,19 @@
-import { resolveStatic } from './collision';
+import { rayAabb, resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import type { GameState, Zombie } from './types';
 import type { Vec2 } from './vec';
 
 export function spawnZombie(state: GameState, config: GameConfig, pos: Vec2): Zombie {
+  const wavesPlayed = Math.max(0, state.wave - 1);
+  const wc = config.waves;
+  const speedScale = Math.min(1 + wc.speedScalePerWave * wavesPlayed, wc.maxSpeedScale);
   const zombie: Zombie = {
     id: state.nextZombieId++,
     pos: { ...pos },
     prev: { ...pos },
     facing: 0,
-    health: config.zombie.health,
+    health: config.zombie.health * (1 + wc.healthScalePerWave * wavesPlayed),
+    speed: config.zombie.speed * speedScale,
     state: 'walk',
     attackTimer: 0,
     deathTimer: 0,
@@ -54,8 +58,12 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
 
     if (d > zc.attackRange) {
       z.state = 'walk';
-      z.pos.x += (dx / d) * zc.speed * dt;
-      z.pos.z += (dz / d) * zc.speed * dt;
+      const target = steerTarget(z.pos, player.pos, d, config);
+      const tx = target.x - z.pos.x;
+      const tz = target.z - z.pos.z;
+      const td = Math.hypot(tx, tz) || 1;
+      z.pos.x += (tx / td) * z.speed * dt;
+      z.pos.z += (tz / td) * z.speed * dt;
       resolveStatic(z.pos, zc.radius, config.arena);
       continue;
     }
@@ -120,4 +128,44 @@ function separateZombies(state: GameState, config: GameConfig): void {
   for (const z of zombies) {
     if (z.state !== 'death') resolveStatic(z.pos, config.zombie.radius, config.arena);
   }
+}
+
+const LOOKAHEAD = 3;
+const CORNER_MARGIN = 0.35;
+const scratch: Vec2 = { x: 0, z: 0 };
+
+/**
+ * Where a chasing zombie should head. Normally the player; if an obstacle blocks the
+ * straight path within LOOKAHEAD, the corner of that obstacle giving the shortest detour.
+ */
+function steerTarget(from: Vec2, to: Vec2, distance: number, config: GameConfig): Vec2 {
+  const r = config.zombie.radius;
+  const dir = { x: (to.x - from.x) / distance, z: (to.z - from.z) / distance };
+  let blocker: (typeof config.arena.obstacles)[number] | null = null;
+  let nearest = Math.min(distance, LOOKAHEAD);
+  for (const box of config.arena.obstacles) {
+    const t = rayAabb(from, dir, { ...box, halfW: box.halfW + r, halfD: box.halfD + r });
+    if (t !== null && t < nearest) {
+      nearest = t;
+      blocker = box;
+    }
+  }
+  if (!blocker) return to;
+
+  const hw = blocker.halfW + r + CORNER_MARGIN;
+  const hd = blocker.halfD + r + CORNER_MARGIN;
+  let best = Infinity;
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const cx = blocker.x + sx * hw;
+      const cz = blocker.z + sz * hd;
+      const cost = Math.hypot(cx - from.x, cz - from.z) + Math.hypot(to.x - cx, to.z - cz);
+      if (cost < best) {
+        best = cost;
+        scratch.x = cx;
+        scratch.z = cz;
+      }
+    }
+  }
+  return scratch;
 }
