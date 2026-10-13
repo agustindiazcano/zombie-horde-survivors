@@ -38,6 +38,13 @@
   background: #e0533d;
 }
 
+.hud__damage {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(200, 20, 10, 0.75) 100%);
+}
+
 .hud__stats {
   position: absolute;
   top: 16px;

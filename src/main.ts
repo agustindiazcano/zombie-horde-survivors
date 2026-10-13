@@ -24,6 +24,7 @@ async function main(): Promise<void> {
     (dt) => {
       step(state, config, input.read(renderer.screenToGround), dt);
       renderer.onStep(state);
+      hud.onStep(state);
     },
     (alpha, frameDt) => {
       renderer.render(state, alpha, frameDt);
