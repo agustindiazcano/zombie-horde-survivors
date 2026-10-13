@@ -20,13 +20,23 @@ async function main(): Promise<void> {
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyM') sfx.toggleMute();
   });
+  let paused = false;
   const hud = new Hud(document.body, config, () => {
     state = createGame(config, Date.now());
     hud.reset();
   });
+  const setPaused = (value: boolean) => {
+    paused = value && state.status === 'playing';
+    hud.setPaused(paused);
+  };
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyP' || e.code === 'Escape') setPaused(!paused);
+  });
+  window.addEventListener('blur', () => setPaused(true));
 
   startLoop(
     (dt) => {
+      if (paused) return;
       step(state, config, input.read(renderer.screenToGround), dt);
       renderer.onStep(state);
       hud.onStep(state);
