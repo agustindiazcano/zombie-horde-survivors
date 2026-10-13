@@ -73,6 +73,8 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     }
   }
 
+  separateZombies(state, config);
+
   // Drop zombies whose death animation has finished (in place, no allocation).
   let kept = 0;
   for (const z of state.zombies) {
@@ -80,4 +82,42 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     state.zombies[kept++] = z;
   }
   state.zombies.length = kept;
+}
+
+/**
+ * Pushes overlapping living zombies apart so a horde doesn't collapse into one stack.
+ * Plain O(n^2) pair check: cheap enough for the intended few-hundred zombie cap.
+ */
+function separateZombies(state: GameState, config: GameConfig): void {
+  const zombies = state.zombies;
+  const minDist = config.zombie.radius * 2;
+  for (let i = 0; i < zombies.length; i++) {
+    const a = zombies[i]!;
+    if (a.state === 'death') continue;
+    for (let j = i + 1; j < zombies.length; j++) {
+      const b = zombies[j]!;
+      if (b.state === 'death') continue;
+      let dx = b.pos.x - a.pos.x;
+      let dz = b.pos.z - a.pos.z;
+      const d2 = dx * dx + dz * dz;
+      if (d2 >= minDist * minDist) continue;
+      let d = Math.sqrt(d2);
+      if (d < 1e-6) {
+        // Exactly stacked: separate along +x so the result stays deterministic.
+        dx = 1;
+        dz = 0;
+        d = 1;
+      }
+      const push = (minDist - Math.sqrt(d2)) / 2;
+      const nx = dx / d;
+      const nz = dz / d;
+      a.pos.x -= nx * push;
+      a.pos.z -= nz * push;
+      b.pos.x += nx * push;
+      b.pos.z += nz * push;
+    }
+  }
+  for (const z of zombies) {
+    if (z.state !== 'death') resolveStatic(z.pos, config.zombie.radius, config.arena);
+  }
 }
