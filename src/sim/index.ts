@@ -4,3 +4,7 @@ export * from './vec';
 export * from './rng';
 export * from './config';
 export * from './collision';
+export * from './types';
+export { createGame, step } from './game';
+export { spawnZombie } from './zombies';
+export { waveSize } from './waves';
