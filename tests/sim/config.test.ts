@@ -15,7 +15,8 @@ describe('game config schema', () => {
   });
 
   it('rejects a missing section', () => {
-    const { weapon: _weapon, ...bad } = data;
+    const bad: Record<string, unknown> = { ...data };
+    delete bad.weapon;
     expect(() => parseConfig(bad)).toThrow();
   });
 
