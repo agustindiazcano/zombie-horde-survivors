@@ -17,4 +17,23 @@ npm run lint && npm run format:check && npm run typecheck
 - `src/sim` — pure simulation (no Three.js imports; enforced by ESLint and a test).
 - `src/render` — Three.js rendering.
 
-Controls and asset credits will be added as those features land.
+## Controls
+
+| Input             | Action                        |
+| ----------------- | ----------------------------- |
+| W / A / S / D     | Move (relative to the screen) |
+| Mouse             | Aim                           |
+| Left click (hold) | Fire                          |
+
+## Assets
+
+Every third-party asset is listed in `assets.toml` (name, author, source, license, path).
+Allowed licenses: CC0-1.0, CC-BY-3.0, CC-BY-4.0. `npm run check:assets` enforces this and CI runs it.
+Run `npm run credits` to regenerate the section below.
+
+## Credits
+
+<!-- credits:start -->
+
+_No third-party assets yet; characters are primitive placeholders._
+<!-- credits:end -->
