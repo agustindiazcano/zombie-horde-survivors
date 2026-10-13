@@ -1,5 +1,6 @@
 import characters from '../data/characters.json';
 import data from '../data/game.json';
+import { Sfx } from './audio';
 import { Hud } from './hud';
 import { InputController } from './input';
 import { startLoop } from './loop';
@@ -15,6 +16,10 @@ async function main(): Promise<void> {
   let state = createGame(config, Date.now());
   const renderer = new GameRenderer(document.body, config, factories);
   const input = new InputController(renderer.domElement);
+  const sfx = new Sfx();
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyM') sfx.toggleMute();
+  });
   const hud = new Hud(document.body, config, () => {
     state = createGame(config, Date.now());
     hud.reset();
@@ -25,6 +30,7 @@ async function main(): Promise<void> {
       step(state, config, input.read(renderer.screenToGround), dt);
       renderer.onStep(state);
       hud.onStep(state);
+      sfx.onStep(state);
     },
     (alpha, frameDt) => {
       renderer.render(state, alpha, frameDt);
