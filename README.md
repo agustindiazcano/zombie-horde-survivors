@@ -35,5 +35,7 @@ Run `npm run credits` to regenerate the section below.
 
 <!-- credits:start -->
 
-_No third-party assets yet; characters are primitive placeholders._
+- **Rogue (KayKit Character Pack: Adventurers) - used as the soldier** by Kay Lousberg — [CC0-1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0)
+- **Skeleton Minion (KayKit Character Pack: Skeletons) - used as the zombie** by Kay Lousberg — [CC0-1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0)
+
 <!-- credits:end -->
