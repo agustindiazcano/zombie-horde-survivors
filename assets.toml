@@ -3,11 +3,32 @@
 # `path` is relative to the repository root and must exist.
 
 [[asset]]
-name = "Rogue (KayKit Character Pack: Adventurers) - used as the soldier"
-author = "Kay Lousberg"
-source = "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0"
+name = "Soldier_Male (Quaternius Ultimate Animated Character Pack)"
+author = "Quaternius"
+source = "https://quaternius.com/packs/ultimatedanimatedcharacter.html"
 license = "CC0-1.0"
-path = "public/models/soldier.glb"
+path = "public/models/soldier-quaternius-male.glb"
+
+[[asset]]
+name = "Soldier_Female (Quaternius Ultimate Animated Character Pack)"
+author = "Quaternius"
+source = "https://quaternius.com/packs/ultimatedanimatedcharacter.html"
+license = "CC0-1.0"
+path = "public/models/soldier-quaternius-female.glb"
+
+[[asset]]
+name = "Character_Soldier (Quaternius Toon Shooter Game Kit)"
+author = "Quaternius"
+source = "https://quaternius.com/"
+license = "CC0-1.0"
+path = "public/models/soldier-quaternius-toon.glb"
+
+[[asset]]
+name = "Character Soldier (Kenney Mini Arena)"
+author = "Kenney"
+source = "https://kenney.nl/assets/mini-arena"
+license = "CC0-1.0"
+path = "public/models/soldier-kenney.glb"
 
 [[asset]]
 name = "Skeleton Minion (KayKit Character Pack: Skeletons) - used as the zombie"
