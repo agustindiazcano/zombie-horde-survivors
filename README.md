@@ -19,14 +19,32 @@ npm run lint && npm run format:check && npm run typecheck
 
 ## Controls
 
-| Input             | Action                        |
+You command a squad of soldiers. The game starts in **direct control** of one soldier; press **Y** to switch to **RTS mode**.
+
+| Direct control    | Action                        |
 | ----------------- | ----------------------------- |
 | W / A / S / D     | Move (relative to the screen) |
 | Mouse             | Aim                           |
 | Left click (hold) | Fire                          |
-| R (game over)     | Restart                       |
-| M                 | Mute / unmute                 |
-| P / Esc           | Pause / resume                |
+| Y                 | Back to RTS mode              |
+
+| RTS mode          | Action                                            |
+| ----------------- | ------------------------------------------------- |
+| W / A / S / D     | Pan the camera                                    |
+| Left click / drag | Select soldier / box select (Shift adds)          |
+| Right click       | Send selected soldiers to that point              |
+| F                 | Selected soldiers follow the controlled one       |
+| E                 | Select all                                        |
+| 1-9               | Select soldier by number                          |
+| Y                 | Take direct control of the first selected soldier |
+
+Uncontrolled soldiers shoot the nearest zombie in sight on their own and follow the controlled soldier unless you gave them a move order.
+
+| Anywhere | Action              |
+| -------- | ------------------- |
+| R        | Restart (game over) |
+| M        | Mute / unmute       |
+| P / Esc  | Pause / resume      |
 
 ## Assets
 
