@@ -1,0 +1,276 @@
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  font-family: system-ui, sans-serif;
+  color: #f2f4f7;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.hud__health {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  width: min(280px, 50vw);
+}
+
+.hud__health-label {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.hud__bar {
+  height: 14px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hud__bar-fill {
+  height: 100%;
+  width: 100%;
+  background: #4caf50;
+  transition: width 0.1s linear;
+}
+
+.hud__bar-fill--low {
+  background: #e0533d;
+}
+
+.hud__damage {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(200, 20, 10, 0.75) 100%);
+}
+
+.hud__stats {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 24px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.hud__banner {
+  position: absolute;
+  top: 25%;
+  width: 100%;
+  text-align: center;
+  font-size: 40px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.6s ease-out;
+}
+
+.hud__banner--visible {
+  opacity: 1;
+  transition: none;
+}
+
+.hud__countdown {
+  position: absolute;
+  top: 56px;
+  width: 100%;
+  text-align: center;
+  font-size: 16px;
+  opacity: 0.85;
+}
+
+.hud__pause {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 18px;
+}
+
+.hud__pause h1 {
+  margin: 0;
+  font-size: 48px;
+}
+
+.hud__pause--visible {
+  display: flex;
+}
+
+.hud__gameover {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(10, 0, 0, 0.7);
+  pointer-events: auto;
+}
+
+.hud__gameover--visible {
+  display: flex;
+}
+
+.hud__gameover h1 {
+  margin: 0;
+  font-size: 56px;
+  color: #e0533d;
+}
+
+.hud__gameover p {
+  margin: 0;
+  font-size: 20px;
+}
+
+.hud__gameover button {
+  margin-top: 12px;
+  padding: 10px 28px;
+  font-size: 18px;
+  cursor: pointer;
+  border: 0;
+  border-radius: 4px;
+  background: #f2f4f7;
+  color: #111;
+}
+
+.hud__hint {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  max-width: 320px;
+  text-align: right;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.squad {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.squad__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 52px;
+  padding: 6px 4px;
+  font:
+    600 14px system-ui,
+    sans-serif;
+  color: #f2f4f7;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.squad__chip--selected {
+  border-color: #5cff7a;
+}
+
+.squad__chip--controlled {
+  border-color: #ffd24a;
+  box-shadow: 0 0 8px #ffd24a;
+}
+
+.squad__chip--dead {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.squad__bar {
+  display: block;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.squad__fill {
+  display: block;
+  height: 100%;
+  background: #4caf50;
+}
+
+.selection-box {
+  position: fixed;
+  display: none;
+  border: 1px solid #5cff7a;
+  background: rgba(92, 255, 122, 0.12);
+  pointer-events: none;
+}
+
+.hud__gold {
+  color: #ffc83d;
+}
+
+.hud__level {
+  color: #3de0c8;
+}
+
+.hud__xp {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  width: min(360px, 60vw);
+  height: 6px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hud__xp-fill {
+  height: 100%;
+  width: 0;
+  background: #3de0c8;
+  transition: width 0.2s ease-out;
+}
+
+.hud__crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  display: none;
+  transform: translate(-50%, -50%);
+}
+
+.hud__crosshair--visible {
+  display: block;
+}
+
+.hud__crosshair::before,
+.hud__crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+}
+
+.hud__crosshair::before {
+  top: 10px;
+  left: 0;
+  width: 22px;
+  height: 2px;
+}
+
+.hud__crosshair::after {
+  left: 10px;
+  top: 0;
+  width: 2px;
+  height: 22px;
+}

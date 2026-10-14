@@ -1,0 +1,13 @@
+Soldier models (soldier-quaternius-*.glb)
+
+soldier-quaternius-male.glb      Soldier_Male      Quaternius - Ultimate Animated Character Pack
+soldier-quaternius-female.glb    Soldier_Female    Quaternius - Ultimate Animated Character Pack
+soldier-quaternius-bluemale.glb  BlueSoldier_Male  Quaternius - Ultimate Animated Character Pack
+soldier-quaternius-toon.glb      Character_Soldier Quaternius - Toon Shooter Game Kit
+
+License: Creative Commons Zero (CC0 1.0)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Source: https://quaternius.com/
+Attribution is not required. The files were downloaded from the CC0 re-host at
+cdn.cinevva.com; the license was confirmed on the original Quaternius pages.

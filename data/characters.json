@@ -1,0 +1,127 @@
+{
+  "soldiers": [
+    {
+      "model": "models/soldier-quaternius-male.glb",
+      "scale": 0.95,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "run": "Run",
+        "death": "Death"
+      },
+      "once": ["death"]
+    },
+    {
+      "model": "models/soldier-quaternius-female.glb",
+      "scale": 0.97,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "run": "Run",
+        "death": "Death"
+      },
+      "once": ["death"]
+    },
+    {
+      "model": "models/soldier-quaternius-bluemale.glb",
+      "scale": 0.95,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "run": "Run",
+        "death": "Death"
+      },
+      "once": ["death"]
+    },
+    {
+      "model": "models/soldier-quaternius-toon.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "run": "Run_Gun",
+        "death": "Death"
+      },
+      "once": ["death"]
+    }
+  ],
+  "enemies": {
+    "zombie": {
+      "model": "models/enemy-zombie.glb",
+      "scale": 1.4,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Walk",
+        "attack": "Idle_Attack",
+        "death": "Death"
+      },
+      "once": ["death"],
+      "barHeight": 2.1
+    },
+    "skeleton": {
+      "model": "models/enemy-skeleton.glb",
+      "scale": 0.8,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Walking_D_Skeletons",
+        "attack": "1H_Melee_Attack_Chop",
+        "death": "Death_A"
+      },
+      "once": ["death"],
+      "barHeight": 2.2
+    },
+    "alien": {
+      "model": "models/enemy-alien.glb",
+      "scale": 0.55,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "AlienArmature|Alien_Run",
+        "attack": "AlienArmature|Alien_Punch",
+        "death": "AlienArmature|Alien_Death"
+      },
+      "once": ["death"],
+      "barHeight": 2.1
+    },
+    "hound": {
+      "model": "models/enemy-hound.glb",
+      "scale": 0.45,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Gallop",
+        "attack": "Attack",
+        "death": "Death"
+      },
+      "once": ["death"],
+      "barHeight": 1.7
+    },
+    "brute": {
+      "model": "models/enemy-brute.glb",
+      "scale": 0.8,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "CharacterArmature|Walk",
+        "attack": "CharacterArmature|Punch",
+        "death": "CharacterArmature|Death"
+      },
+      "once": ["death"],
+      "barHeight": 3.0
+    },
+    "worm": {
+      "model": "models/enemy-worm.glb",
+      "scale": 3.5,
+      "yawOffset": 0,
+      "clips": {},
+      "once": [],
+      "procedural": "wiggle",
+      "barHeight": 2.2
+    }
+  },
+  "drone": {
+    "model": "models/drone.glb",
+    "scale": 0.22,
+    "yawOffset": 0,
+    "clips": {},
+    "once": [],
+    "procedural": "hover"
+  }
+}
