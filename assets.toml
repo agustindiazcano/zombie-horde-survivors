@@ -1,10 +1,17 @@
 # Manifest of every third-party asset used by the game.
 # Allowed licenses: CC0-1.0, CC-BY-3.0, CC-BY-4.0 (enforced by `npm run check:assets`, also in CI).
 # `path` is relative to the repository root and must exist.
-#
-# [[asset]]
-# name = "Example Model"
-# author = "Some Author"
-# source = "https://example.com/page"
-# license = "CC0-1.0"
-# path = "public/models/example.glb"
+
+[[asset]]
+name = "Rogue (KayKit Character Pack: Adventurers) - used as the soldier"
+author = "Kay Lousberg"
+source = "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0"
+license = "CC0-1.0"
+path = "public/models/soldier.glb"
+
+[[asset]]
+name = "Skeleton Minion (KayKit Character Pack: Skeletons) - used as the zombie"
+author = "Kay Lousberg"
+source = "https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0"
+license = "CC0-1.0"
+path = "public/models/zombie.glb"

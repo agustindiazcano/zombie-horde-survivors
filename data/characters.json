@@ -1,16 +1,20 @@
 {
   "player": {
-    "model": null,
-    "scale": 1,
+    "model": "models/soldier.glb",
+    "scale": 0.8,
     "yawOffset": 0,
-    "clips": { "idle": "Idle", "run": "Run" },
+    "clips": { "idle": "Idle", "run": "Running_A" },
     "once": []
   },
   "zombie": {
-    "model": null,
-    "scale": 1,
+    "model": "models/zombie.glb",
+    "scale": 0.8,
     "yawOffset": 0,
-    "clips": { "walk": "Walk", "attack": "Attack", "death": "Death" },
+    "clips": {
+      "walk": "Walking_D_Skeletons",
+      "attack": "1H_Melee_Attack_Chop",
+      "death": "Death_A"
+    },
     "once": ["death"]
   }
 }
