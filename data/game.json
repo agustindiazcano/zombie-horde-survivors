@@ -1,6 +1,6 @@
 {
   "arena": {
-    "halfSize": 20,
+    "halfSize": 30,
     "obstacles": [
       {
         "x": 5,
@@ -18,6 +18,36 @@
         "x": 0,
         "z": -8,
         "halfW": 3,
+        "halfD": 1
+      },
+      {
+        "x": 15,
+        "z": -12,
+        "halfW": 2,
+        "halfD": 2
+      },
+      {
+        "x": -16,
+        "z": -14,
+        "halfW": 1,
+        "halfD": 4
+      },
+      {
+        "x": 18,
+        "z": 14,
+        "halfW": 3,
+        "halfD": 1
+      },
+      {
+        "x": -14,
+        "z": 18,
+        "halfW": 2,
+        "halfD": 2
+      },
+      {
+        "x": 2,
+        "z": 20,
+        "halfW": 4,
         "halfD": 1
       }
     ]
