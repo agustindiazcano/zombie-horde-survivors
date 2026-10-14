@@ -47,6 +47,7 @@ async function main(): Promise<void> {
   const sfx = new Sfx();
   const fps = new FpsCounter(document.body);
   window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyL' && !menu.isOpen) renderer.setDark(!renderer.isDark);
     if (e.code === 'F3') {
       e.preventDefault();
       fps.toggle();

@@ -66,7 +66,12 @@ const PERSON_SHAKE_SCALE = 0.12;
 /** How fast a model's drawn heading catches up with the simulated one (1/s). */
 const TURN_VISUAL_RATE = 22;
 
-/** Dusk lighting: dimmed moonlight and ambient, with each soldier carrying a flashlight. */
+/** Normal lighting (the default): bright, flashlights off. */
+const DAY_AMBIENT = 1.2;
+const DAY_SUN = 2.2;
+const DAY_BACKGROUND = 0x14171c;
+
+/** Dusk lighting (toggle with setDark): dimmed moonlight and ambient, flashlights on. */
 const AMBIENT_INTENSITY = 0.75;
 const MOON_INTENSITY = 1.1;
 const NIGHT_BACKGROUND = 0x10141a;
@@ -108,6 +113,10 @@ export class GameRenderer {
   private userZoomTarget = 1;
   /** Camera style. Third/first person only make sense while a soldier is controlled. */
   viewMode: ViewMode = 'top';
+  /** Dark mode: dim lights plus flashlights. Off by default. */
+  private dark = false;
+  private hemi = new THREE.HemisphereLight();
+  private readonly sun = new THREE.DirectionalLight(0xffffff, DAY_SUN);
   private lookPitch = 0;
   /** Drawn heading per soldier, easing towards the simulated facing. */
   private readonly visYaw = new Map<number, number>();
@@ -153,7 +162,7 @@ export class GameRenderer {
     this.renderer.shadowMap.enabled = true;
     container.appendChild(this.renderer.domElement);
 
-    this.scene.background = new THREE.Color(NIGHT_BACKGROUND);
+    this.scene.background = new THREE.Color(DAY_BACKGROUND);
     this.scene.add(buildArena(config.arena));
     this.addLights(config.arena.halfSize);
 
@@ -513,6 +522,21 @@ export class GameRenderer {
     }
   }
 
+  get isDark(): boolean {
+    return this.dark;
+  }
+
+  /** Switches between normal lighting and the dark mode with a flashlight per soldier. */
+  setDark(dark: boolean): void {
+    this.dark = dark;
+    this.hemi.color.set(dark ? 0x8fa6d8 : 0xbfd4ff);
+    this.hemi.groundColor.set(dark ? 0x1a1d24 : 0x30343a);
+    this.hemi.intensity = dark ? AMBIENT_INTENSITY : DAY_AMBIENT;
+    this.sun.color.set(dark ? 0x9db4ff : 0xffffff);
+    this.sun.intensity = dark ? MOON_INTENSITY : DAY_SUN;
+    (this.scene.background as THREE.Color).set(dark ? NIGHT_BACKGROUND : DAY_BACKGROUND);
+  }
+
   /** A warm spotlight held at chest height, pointing at the ground ahead of the soldier. */
   private createFlashlight(): { group: THREE.Group; light: THREE.SpotLight } {
     const light = new THREE.SpotLight(
@@ -541,12 +565,14 @@ export class GameRenderer {
     lamp.group.position.set(unit.position.x, 0, unit.position.z);
     lamp.group.rotation.y = heading;
     // Dimming to zero (not hiding) keeps the light count, and so the shaders, unchanged.
-    lamp.light.intensity = on ? FLASHLIGHT_INTENSITY : 0;
+    lamp.light.intensity = on && this.dark ? FLASHLIGHT_INTENSITY : 0;
   }
 
   private addLights(halfSize: number): void {
-    this.scene.add(new THREE.HemisphereLight(0x8fa6d8, 0x1a1d24, AMBIENT_INTENSITY));
-    const sun = new THREE.DirectionalLight(0x9db4ff, MOON_INTENSITY);
+    this.hemi = new THREE.HemisphereLight(0xbfd4ff, 0x30343a, DAY_AMBIENT);
+    this.scene.add(this.hemi);
+    const sun = this.sun;
+    sun.intensity = DAY_SUN;
     sun.position.set(12, 24, 8);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);

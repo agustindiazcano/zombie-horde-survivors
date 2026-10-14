@@ -79,6 +79,7 @@ When you take control with **Y**, only the units that were selected follow you. 
 | ------- | -------------------------------------------------------------- |
 | P / Esc | Pause / resume (the pause screen lists your bonuses and stats) |
 | M       | Mute / unmute                                                  |
+| L       | Dark mode: dim lights and a flashlight per soldier             |
 | F3      | Show / hide the FPS counter                                    |
 | R       | Restart (on the game over screen)                              |
 
