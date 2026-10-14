@@ -3,11 +3,15 @@ import { getSoldier, levelInfo, weaponDef, type GameConfig, type GameState } fro
 
 const BANNER_MS = 1800;
 const LOW_HEALTH = 0.3;
-const BEST_KEY = 'zombie-shooter.best-kills';
+const BEST_KEY = 'zombie-horde-survivors.best-kills';
+/** Key used before the game was renamed; still read so saved scores aren't lost. */
+const LEGACY_BEST_KEY = 'zombie-shooter.best-kills';
 
 function loadBest(): number {
   try {
-    return Number(localStorage.getItem(BEST_KEY)) || 0;
+    return (
+      Number(localStorage.getItem(BEST_KEY)) || Number(localStorage.getItem(LEGACY_BEST_KEY)) || 0
+    );
   } catch {
     return 0;
   }
