@@ -4,6 +4,7 @@ interface Bars {
   hp: HTMLElement;
   xp: HTMLElement;
   stamina: HTMLElement;
+  armor: HTMLElement;
   chip: HTMLElement;
 }
 
@@ -46,6 +47,7 @@ export class SquadPanel {
       const drone = s.kind === 'drone';
       const info = levelInfo(s.xp, this.config);
       b.hp.style.width = `${(s.health / maxHealth) * 100}%`;
+      b.armor.style.width = `${(s.armor / this.config.player.maxArmor) * 100}%`;
       b.xp.style.width = `${(info.into / info.needed) * 100}%`;
       b.stamina.style.width = drone
         ? '100%'
@@ -71,17 +73,19 @@ export class SquadPanel {
       const label = document.createElement('span');
       label.textContent = s.kind === 'drone' ? `${s.id} ◈` : String(s.id);
       chip.appendChild(label);
-      const hp = this.bar(chip, 'squad__fill');
-      const xp = this.bar(chip, 'squad__fill squad__fill--xp');
-      const stamina = this.bar(chip, 'squad__fill squad__fill--stamina');
-      this.bars.set(s.id, { hp, xp, stamina, chip });
+      // Health is the important one: a tall bar. The rest are thin.
+      const hp = this.bar(chip, 'squad__fill', false);
+      const armor = this.bar(chip, 'squad__fill squad__fill--armor', true);
+      const stamina = this.bar(chip, 'squad__fill squad__fill--stamina', true);
+      const xp = this.bar(chip, 'squad__fill squad__fill--xp', true);
+      this.bars.set(s.id, { hp, xp, stamina, armor, chip });
       this.root.appendChild(chip);
     }
   }
 
-  private bar(chip: HTMLElement, fillClass: string): HTMLElement {
+  private bar(chip: HTMLElement, fillClass: string, thin: boolean): HTMLElement {
     const bar = document.createElement('span');
-    bar.className = 'squad__bar';
+    bar.className = thin ? 'squad__bar squad__bar--thin' : 'squad__bar';
     const fill = document.createElement('span');
     fill.className = fillClass;
     bar.appendChild(fill);

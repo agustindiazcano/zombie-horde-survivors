@@ -104,6 +104,7 @@ export function buyItem(
     if (!fallen) return 'No fallen soldier to bring back';
     fallen.dead = false;
     fallen.health = maxHealthOf(state, config) / 2;
+    fallen.armor = 0;
     fallen.order = { type: 'follow' };
     fallen.fireCooldown = 0;
     if (anchor) {

@@ -37,6 +37,7 @@ export function createSquad(config: GameConfig): Soldier[] {
       kills: 0,
       stamina: config.stance.staminaMax,
       winded: false,
+      armor: 0,
     };
   });
   for (let i = 0; i < config.drone.count; i++) {
@@ -60,6 +61,7 @@ export function createSquad(config: GameConfig): Soldier[] {
       kills: 0,
       stamina: config.stance.staminaMax,
       winded: false,
+      armor: 0,
     });
   }
   return soldiers;
@@ -122,7 +124,9 @@ export function hurtSoldier(
   zombieId: number,
 ): void {
   if (soldier.dead) return;
-  soldier.health = Math.max(0, soldier.health - amount);
+  const soaked = Math.min(soldier.armor, amount);
+  soldier.armor -= soaked;
+  soldier.health = Math.max(0, soldier.health - (amount - soaked));
   state.events.push({ type: 'soldierHurt', soldierId: soldier.id, damage: amount, zombieId });
   if (soldier.health > 0) return;
   soldier.dead = true;

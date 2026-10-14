@@ -38,6 +38,8 @@ export interface Soldier {
   /** Sprint energy (0 to `stance.staminaMax`); `winded` blocks sprinting until it recovers. */
   stamina: number;
   winded: boolean;
+  /** Absorbs damage before health does (0 to `player.maxArmor`); units start with none. */
+  armor: number;
 }
 
 export interface Zombie {

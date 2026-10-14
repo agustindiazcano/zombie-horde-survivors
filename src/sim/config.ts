@@ -70,7 +70,15 @@ export const GameConfigSchema = z
   .object({
     arena: z.object({ halfSize: positive, obstacles: z.array(obstacle) }).strict(),
     /** Stats shared by every soldier. */
-    player: z.object({ speed: positive, maxHealth: positive, radius: positive }).strict(),
+    player: z
+      .object({
+        speed: positive,
+        maxHealth: positive,
+        /** Capacity of the armor bar; units start with none and armor soaks damage before health. */
+        maxArmor: positive,
+        radius: positive,
+      })
+      .strict(),
     squad: z
       .object({
         /** Soldiers at the start of a game. */

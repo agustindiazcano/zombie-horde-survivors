@@ -164,7 +164,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   width: 52px;
   padding: 6px 4px;
   font:
@@ -194,8 +194,12 @@
 .squad__bar {
   display: block;
   width: 100%;
-  height: 4px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.2);
+}
+
+.squad__bar--thin {
+  height: 3px;
 }
 
 .squad__fill {
@@ -285,4 +289,8 @@
 
 .squad__chip--winded {
   border-color: #e0533d;
+}
+
+.squad__fill--armor {
+  background: #9fb3c8;
 }

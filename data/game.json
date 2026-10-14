@@ -156,6 +156,7 @@
   "player": {
     "speed": 6,
     "maxHealth": 100,
+    "maxArmor": 50,
     "radius": 0.4
   },
   "weapon": {
