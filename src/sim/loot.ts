@@ -1,5 +1,6 @@
 import type { GameConfig } from './config';
 import type { GameState, Zombie } from './types';
+import { grantLevels } from './upgrades';
 
 export interface LevelInfo {
   level: number;
@@ -51,7 +52,7 @@ export function dropLoot(state: GameState, config: GameConfig, zombie: Zombie): 
 
 /** Ages pickups and lets any living unit (soldier or drone) collect those it stands on. */
 export function updatePickups(state: GameState, config: GameConfig, dt: number): void {
-  const radius = config.loot.collectRadius;
+  const radius = config.loot.collectRadius * state.mods.pickupRadius;
   const kept = [];
   for (const p of state.pickups) {
     p.age += dt;
@@ -77,7 +78,10 @@ export function updatePickups(state: GameState, config: GameConfig, dt: number):
       const before = levelInfo(state.xp, config).level;
       state.xp += p.amount;
       const after = levelInfo(state.xp, config).level;
-      if (after > before) state.events.push({ type: 'levelUp', level: after });
+      if (after > before) {
+        state.events.push({ type: 'levelUp', level: after });
+        grantLevels(state, config, after - before);
+      }
     }
   }
   state.pickups = kept;

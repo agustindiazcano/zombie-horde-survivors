@@ -95,12 +95,12 @@
   },
   "waves": {
     "baseCount": 8,
-    "countPerWave": 4,
+    "countPerWave": 6,
     "spawnInterval": 0.5,
-    "intermission": 3,
+    "intermission": 8,
     "maxAlive": 150,
     "speedScalePerWave": 0.05,
-    "healthScalePerWave": 0.1,
+    "healthScalePerWave": 0.15,
     "maxSpeedScale": 1.8,
     "baseWeight": 5
   },
@@ -175,5 +175,120 @@
   },
   "gore": {
     "explodeChance": 0.5
+  },
+  "perks": {
+    "choices": 3,
+    "list": [
+      {
+        "id": "firepower",
+        "name": "Firepower",
+        "description": "+12% damage for the whole squad",
+        "stat": "damage",
+        "amount": 0.12,
+        "maxStacks": 8
+      },
+      {
+        "id": "rapid_fire",
+        "name": "Rapid fire",
+        "description": "+10% fire rate",
+        "stat": "fireRate",
+        "amount": 0.1,
+        "maxStacks": 8
+      },
+      {
+        "id": "fleet_foot",
+        "name": "Fleet foot",
+        "description": "+8% movement speed",
+        "stat": "speed",
+        "amount": 0.08,
+        "maxStacks": 5
+      },
+      {
+        "id": "tough",
+        "name": "Tough",
+        "description": "+20% max health (and heals the difference)",
+        "stat": "maxHealth",
+        "amount": 0.2,
+        "maxStacks": 6
+      },
+      {
+        "id": "regen",
+        "name": "Field medic",
+        "description": "Soldiers regenerate +0.6 health per second",
+        "stat": "regen",
+        "amount": 0.6,
+        "maxStacks": 5
+      },
+      {
+        "id": "magnet",
+        "name": "Magnet",
+        "description": "+40% loot pickup radius",
+        "stat": "pickupRadius",
+        "amount": 0.4,
+        "maxStacks": 4
+      }
+    ]
+  },
+  "shop": {
+    "items": [
+      {
+        "id": "heal",
+        "name": "Field kit",
+        "description": "Heal every living soldier to full health",
+        "kind": "heal",
+        "cost": 30
+      },
+      {
+        "id": "revive",
+        "name": "Reinforcement",
+        "description": "Bring back a fallen soldier at half health",
+        "kind": "revive",
+        "cost": 100,
+        "costGrowth": 1.4
+      },
+      {
+        "id": "pistol",
+        "name": "Pistol",
+        "description": "Adds a pistol to the selected unit's backpack",
+        "kind": "weapon",
+        "target": "pistol",
+        "cost": 40
+      },
+      {
+        "id": "heavy_mg",
+        "name": "Heavy machine gun",
+        "description": "Adds a heavy MG to the selected unit's backpack",
+        "kind": "weapon",
+        "target": "heavy_mg",
+        "cost": 140
+      },
+      {
+        "id": "up_damage",
+        "name": "Ammo upgrade",
+        "description": "One free Firepower stack",
+        "kind": "perk",
+        "target": "firepower",
+        "cost": 70,
+        "costGrowth": 1.5
+      },
+      {
+        "id": "up_health",
+        "name": "Body armor",
+        "description": "One free Tough stack",
+        "kind": "perk",
+        "target": "tough",
+        "cost": 70,
+        "costGrowth": 1.5
+      },
+      {
+        "id": "up_speed",
+        "name": "Running shoes",
+        "description": "One free Fleet foot stack",
+        "kind": "perk",
+        "target": "fleet_foot",
+        "cost": 60,
+        "costGrowth": 1.5
+      }
+    ]
   }
 }

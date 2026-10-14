@@ -19,6 +19,34 @@ const weaponDef = z
   })
   .strict();
 
+/** What a perk improves for the whole squad. `amount` is a fraction per stack, except regen (HP/s). */
+const perkStat = z.enum(['damage', 'fireRate', 'speed', 'maxHealth', 'regen', 'pickupRadius']);
+
+const perk = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    description: z.string().min(1),
+    stat: perkStat,
+    amount: positive,
+    maxStacks: z.number().int().positive(),
+  })
+  .strict();
+
+const shopItem = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    description: z.string().min(1),
+    kind: z.enum(['heal', 'revive', 'weapon', 'perk']),
+    /** Weapon id for 'weapon', perk id for 'perk'. */
+    target: z.string().optional(),
+    cost: z.number().int().positive(),
+    /** The price is multiplied by this after each purchase. */
+    costGrowth: z.number().min(1).optional(),
+  })
+  .strict();
+
 /** Enemy variants, as multipliers on the base `zombie` stats. */
 const enemyType = z
   .object({
@@ -96,6 +124,10 @@ export const GameConfigSchema = z
         growth: z.number().min(1),
       })
       .strict(),
+    /** Level-up perks: each level offers `choices` random perks to pick one from. */
+    perks: z.object({ choices: z.number().int().positive(), list: z.array(perk).min(1) }).strict(),
+    /** Between-wave shop, paid with gold. */
+    shop: z.object({ items: z.array(shopItem) }).strict(),
     gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
     /** Droppable weapons by id. 'rifle' (the `weapon` section) and the drone cannon are built in. */
@@ -148,6 +180,24 @@ export const GameConfigSchema = z
   .superRefine((cfg, ctx) => {
     if (cfg.drops.maxItems < cfg.drops.minItems) {
       ctx.addIssue({ code: 'custom', message: 'drops.maxItems must be >= drops.minItems' });
+    }
+    const perkIds = new Set(cfg.perks.list.map((p) => p.id));
+    if (perkIds.size !== cfg.perks.list.length) {
+      ctx.addIssue({ code: 'custom', message: 'perks.list ids must be unique' });
+    }
+    for (const item of cfg.shop.items) {
+      if (item.kind === 'perk' && !(item.target && perkIds.has(item.target))) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `shop item "${item.id}" needs a valid perk target`,
+        });
+      }
+      if (item.kind === 'weapon' && !(item.target && item.target in cfg.weapons)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `shop item "${item.id}" needs a valid weapon target`,
+        });
+      }
     }
     for (const entry of cfg.drops.table) {
       if (entry.weapon !== 'rifle' && !(entry.weapon in cfg.weapons)) {

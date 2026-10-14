@@ -24,5 +24,6 @@ export {
   takeFromCrate,
 } from './inventory';
 export { weaponDef, type WeaponDef } from './stats';
+export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';
 export { levelInfo, type LevelInfo } from './loot';
 export { waveSize } from './waves';
