@@ -31,6 +31,11 @@ export const GameConfigSchema = z
         spawnInterval: nonNegative,
         intermission: nonNegative,
         maxAlive: z.number().int().positive(),
+        /** Zombie speed/health grow by this fraction of the base value per wave after the first. */
+        speedScalePerWave: nonNegative,
+        healthScalePerWave: nonNegative,
+        /** Upper bound for the speed multiplier so late waves stay dodgeable. */
+        maxSpeedScale: z.number().min(1),
       })
       .strict(),
   })
