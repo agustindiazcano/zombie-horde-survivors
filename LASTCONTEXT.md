@@ -4,7 +4,7 @@ Only what is still open: read this first in every session. When an item here is 
 
 ## Where things stand
 
-- **`main`** is at the merge of PR #30 (`8d69396`) and has everything built so far. The only open work is the branch carrying these three files (`docs/claude-pending-lastcontext`). No other PR is open.
+- **`main`** is at the merge of PR #31 (`f5104a9`) and has everything built so far, including `CLAUDE.md`, `PENDING.md`, `LASTCONTEXT.md` and `docs/worklog/`. The only open work is the docs update that refreshed these two files (branch `docs/update-context`); no other PR or feature branch is open.
 - **The game is live** at https://agustindiazcano.github.io/zombie-horde-survivors/ (GitHub Pages, redeployed by `.github/workflows/pages.yml` on every push to `main`; the last deploy succeeded). The user tests locally at http://127.0.0.1:5173/ with the dev server, which serves whatever branch is checked out.
 - **Nothing has been seen in a browser by Claude.** Lighting, boss eyes, radar, menus, the squad screen, drag and drop and the settings presets are all untested visually, and the balance comes from headless simulations of a passive squad. Expect the user to report visual and feel problems; tune with the constants named in the code (see PENDING §0–1).
 - Last verified on `main`: lint, format check, typecheck, the 48 tests, build and the asset check all pass.
@@ -24,6 +24,7 @@ Only what is still open: read this first in every session. When an item here is 
 - **Arena:** 80×80 with extra cover; the intermission is 8 s so there is time to shop.
 - **Deploy:** GitHub Pages now; Vercel was considered and dropped for the moment; the repo is public.
 - **Workflow:** branch per task, the user merges PRs and says "anda a main y pull"; Claude opens a PR only when asked.
+- **Project docs:** `CLAUDE.md` (rules and reference), `PENDING.md` (open work by priority) and `LASTCONTEXT.md` (current state), in the format the user uses in their other projects; finished items move to `docs/worklog/`.
 
 ## Open items (details in PENDING.md)
 
