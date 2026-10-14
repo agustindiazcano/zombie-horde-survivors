@@ -66,11 +66,11 @@ const PERSON_SHAKE_SCALE = 0.12;
 /** How fast a model's drawn heading catches up with the simulated one (1/s). */
 const TURN_VISUAL_RATE = 22;
 
-/** Night lighting: dim moonlight and ambient, with each soldier carrying a flashlight. */
-const AMBIENT_INTENSITY = 0.22;
-const MOON_INTENSITY = 0.35;
-const NIGHT_BACKGROUND = 0x05070a;
-const FLASHLIGHT_INTENSITY = 90;
+/** Dusk lighting: dimmed moonlight and ambient, with each soldier carrying a flashlight. */
+const AMBIENT_INTENSITY = 0.75;
+const MOON_INTENSITY = 1.1;
+const NIGHT_BACKGROUND = 0x10141a;
+const FLASHLIGHT_INTENSITY = 160;
 const FLASHLIGHT_RANGE = 24;
 const FLASHLIGHT_ANGLE = 0.5;
 const FLASHLIGHT_HEIGHT = 1.3;
