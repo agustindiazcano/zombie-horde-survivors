@@ -45,7 +45,7 @@ export function fireWeapon(
   }
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
-    const t = rayCircle(origin, dir, z.pos, config.zombie.radius);
+    const t = rayCircle(origin, dir, z.pos, z.radius);
     if (t !== null && t < nearest) {
       nearest = t;
       target = z;

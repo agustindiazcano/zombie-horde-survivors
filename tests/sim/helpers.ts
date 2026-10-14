@@ -19,6 +19,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     arena: { ...base.arena, obstacles: [] },
     squad: { ...base.squad, count: 1 },
     drone: { ...base.drone, count: 0 },
+    enemies: {},
     inventory: { ...base.inventory },
     weapons: { ...base.weapons },
     drops: { ...base.drops, chance: 0, table: [...base.drops.table] },

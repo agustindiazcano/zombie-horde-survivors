@@ -33,9 +33,14 @@ export interface Zombie {
   pos: Vec2;
   prev: Vec2;
   facing: number;
+  /** Enemy variant id ('zombie', 'alien', ...). Picks the model and the stats below. */
+  type: string;
   health: number;
   /** Chase speed, fixed at spawn from the wave's difficulty scaling. */
   speed: number;
+  radius: number;
+  damage: number;
+  attackRange: number;
   state: ZombieState;
   attackTimer: number;
   deathTimer: number;

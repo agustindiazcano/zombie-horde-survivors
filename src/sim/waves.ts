@@ -12,8 +12,25 @@ function livingZombies(state: GameState): number {
   return n;
 }
 
+/** Picks an enemy variant among those unlocked at the current wave (weighted). */
+function pickEnemyType(state: GameState, config: GameConfig): string {
+  const options = Object.entries(config.enemies).filter(([, e]) => state.wave >= e.minWave);
+  if (options.length === 0) return 'zombie';
+  const total = config.waves.baseWeight + options.reduce((sum, [, e]) => sum + e.weight, 0);
+  let roll = nextFloat(state.rng) * total;
+  roll -= config.waves.baseWeight;
+  if (roll < 0) return 'zombie';
+  for (const [id, e] of options) {
+    roll -= e.weight;
+    if (roll < 0) return id;
+  }
+  return options[options.length - 1]![0];
+}
+
 function spawnAtEdge(state: GameState, config: GameConfig): void {
-  const lim = config.arena.halfSize - config.zombie.radius;
+  const type = pickEnemyType(state, config);
+  const radius = config.zombie.radius * (config.enemies[type]?.radiusScale ?? 1);
+  const lim = config.arena.halfSize - radius;
   const side = Math.floor(nextFloat(state.rng) * 4);
   const t = (nextFloat(state.rng) * 2 - 1) * lim;
   const pos =
@@ -24,7 +41,7 @@ function spawnAtEdge(state: GameState, config: GameConfig): void {
         : side === 2
           ? { x: lim, z: t }
           : { x: -lim, z: t };
-  spawnZombie(state, config, pos);
+  spawnZombie(state, config, pos, type);
 }
 
 export function updateWaves(state: GameState, config: GameConfig, dt: number): void {
