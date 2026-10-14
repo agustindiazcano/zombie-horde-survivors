@@ -1,7 +1,7 @@
 import { resolveStatic } from './collision';
 import { isDrone, speedOf, weaponOf } from './stats';
 import type { GameConfig } from './config';
-import type { GameState, Input, Soldier, Zombie } from './types';
+import type { GameState, Input, Soldier, Stance, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
 import { dirFromAngle, type Vec2 } from './vec';
 
@@ -35,6 +35,8 @@ export function createSquad(config: GameConfig): Soldier[] {
       backpack: [],
       xp: 0,
       kills: 0,
+      stamina: config.stance.staminaMax,
+      winded: false,
     };
   });
   for (let i = 0; i < config.drone.count; i++) {
@@ -56,6 +58,8 @@ export function createSquad(config: GameConfig): Soldier[] {
       backpack: [],
       xp: 0,
       kills: 0,
+      stamina: config.stance.staminaMax,
+      winded: false,
     });
   }
   return soldiers;
@@ -144,11 +148,28 @@ export function updateSoldiers(
       const max = config.player.maxHealth * state.mods.maxHealth;
       s.health = Math.min(max, s.health + state.mods.regen * dt);
     }
-    if (s.id === state.controlledId) updateControlled(state, config, s, input, dt);
-    else updateAi(state, config, s, leader, dt);
+    // The squad's sprint order only works for a unit that still has breath.
+    const stance = state.stance === 'sprint' && (s.winded || isDrone(s)) ? 'normal' : state.stance;
+    if (s.id === state.controlledId) updateControlled(state, config, s, input, stance, dt);
+    else updateAi(state, config, s, leader, stance, dt);
+    updateStamina(config, s, stance, dt);
     updateJump(config, s, dt);
   }
   separateSoldiers(state, config);
+}
+
+/** Sprinting while moving drains stamina; otherwise it refills. Running dry winds the unit. */
+function updateStamina(config: GameConfig, s: Soldier, stance: Stance, dt: number): void {
+  if (isDrone(s)) return;
+  const { staminaMax, staminaDrain, staminaRegen, staminaResume } = config.stance;
+  const moved = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > 1e-6;
+  if (stance === 'sprint' && moved) {
+    s.stamina = Math.max(0, s.stamina - staminaDrain * dt);
+    if (s.stamina === 0) s.winded = true;
+    return;
+  }
+  s.stamina = Math.min(staminaMax, s.stamina + staminaRegen * dt);
+  if (s.winded && s.stamina >= staminaResume) s.winded = false;
 }
 
 /** Vertical motion of a jump; runs for every unit so a jump always finishes. */
@@ -167,13 +188,14 @@ function updateControlled(
   config: GameConfig,
   s: Soldier,
   input: Input,
+  stance: Stance,
   dt: number,
 ): void {
   const { move, aim } = input;
   // Normalize only above unit length so analog input keeps its magnitude.
   const l = Math.hypot(move.x, move.z);
   const k = l > 1 ? 1 / l : 1;
-  const speed = speedOf(config, s, state.mods, state.stance);
+  const speed = speedOf(config, s, state.mods, stance);
   s.pos.x += move.x * k * speed * dt;
   s.pos.z += move.z * k * speed * dt;
   resolveUnit(s, config);
@@ -192,11 +214,12 @@ function updateAi(
   config: GameConfig,
   s: Soldier,
   leader: Soldier | undefined,
+  stance: Stance,
   dt: number,
 ): void {
   // Movement destination from the current order.
   let dest: Vec2 | null = null;
-  let speed = speedOf(config, s, state.mods, state.stance);
+  let speed = speedOf(config, s, state.mods, stance);
   if (s.order.type === 'move') {
     dest = { x: s.order.x, z: s.order.z };
     if (Math.hypot(dest.x - s.pos.x, dest.z - s.pos.z) < ARRIVE_DISTANCE) {

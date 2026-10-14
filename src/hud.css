@@ -194,7 +194,7 @@
 .squad__bar {
   display: block;
   width: 100%;
-  height: 6px;
+  height: 4px;
   background: rgba(255, 255, 255, 0.2);
 }
 
@@ -273,4 +273,16 @@
   top: 0;
   width: 2px;
   height: 22px;
+}
+
+.squad__fill--xp {
+  background: #3d9be0;
+}
+
+.squad__fill--stamina {
+  background: #f5a623;
+}
+
+.squad__chip--winded {
+  border-color: #e0533d;
 }

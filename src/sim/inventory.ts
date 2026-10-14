@@ -92,6 +92,16 @@ export function moveItem(state: GameState, config: GameConfig, from: Slot, to: S
   return true;
 }
 
+/** Puts the equipped weapon into the backpack, leaving the unit unarmed. */
+export function unequipWeapon(state: GameState, config: GameConfig, soldierId: number): boolean {
+  const s = unit(state, soldierId);
+  if (!s || s.dead || s.weapon === null || backpackFull(config, s)) return false;
+  if (!fits(s, 0, s.weapon)) return false;
+  s.backpack.push(s.weapon);
+  s.weapon = null;
+  return true;
+}
+
 /** Swaps a backpack weapon with the equipped one. */
 export function equipFromBackpack(state: GameState, soldierId: number, index: number): boolean {
   const s = unit(state, soldierId);

@@ -35,6 +35,9 @@ export interface Soldier {
   /** This unit's own experience (grows when it kills) and enemies it has killed. */
   xp: number;
   kills: number;
+  /** Sprint energy (0 to `stance.staminaMax`); `winded` blocks sprinting until it recovers. */
+  stamina: number;
+  winded: boolean;
 }
 
 export interface Zombie {

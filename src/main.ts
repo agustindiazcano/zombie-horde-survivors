@@ -130,7 +130,7 @@ async function main(): Promise<void> {
     ui.close();
     shop.close();
   });
-  const squad = new SquadPanel(document.body, (id, additive) => {
+  const squad = new SquadPanel(document.body, config, (id, additive) => {
     // Clicking an icon while playing hands direct control to that unit; in RTS mode it selects.
     if (mobile || state.controlledId !== null) setLeader(id);
     else rts.toggle(id, additive);

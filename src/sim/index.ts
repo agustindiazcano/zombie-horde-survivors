@@ -23,6 +23,7 @@ export {
   nearestCrate,
   stashInCrate,
   takeFromCrate,
+  unequipWeapon,
 } from './inventory';
 export { weaponDef, type WeaponDef } from './stats';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';

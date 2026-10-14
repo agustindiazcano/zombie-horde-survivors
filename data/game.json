@@ -242,6 +242,10 @@
     "crouchSpreadScale": 0.4,
     "crouchDamageScale": 1.1,
     "sprintSpeedScale": 1.6,
+    "staminaMax": 100,
+    "staminaDrain": 22,
+    "staminaRegen": 14,
+    "staminaResume": 30,
     "jumpSpeed": 6.5,
     "gravity": 20
   },

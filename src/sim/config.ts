@@ -106,6 +106,12 @@ export const GameConfigSchema = z
         crouchSpreadScale: nonNegative,
         crouchDamageScale: positive,
         sprintSpeedScale: positive,
+        /** Sprinting drains stamina per second; it refills when not sprinting. */
+        staminaMax: positive,
+        staminaDrain: positive,
+        staminaRegen: positive,
+        /** After running dry a unit cannot sprint again until it has recovered this much. */
+        staminaResume: positive,
         /** Initial upward speed of a jump and the downward pull on it. */
         jumpSpeed: positive,
         gravity: positive,
