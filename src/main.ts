@@ -13,7 +13,9 @@ import { RtsController } from './rts';
 import {
   controlSoldier,
   createGame,
+  maxHealthOf,
   nearestCrate,
+  shopAvailable,
   orderFollow,
   orderHold,
   parseConfig,
@@ -21,14 +23,15 @@ import {
   type Input,
 } from './sim';
 import { SquadPanel } from './squadPanel';
+import { PerkPicker, Shop } from './upgradesUi';
 
 /** Camera pan speed in RTS mode (world units per second). */
 const PAN_SPEED = 22;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: inventory · E: open crate · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: inventory · E: open crate · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
-  'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: inventory · Wheel: zoom · Right-drag: rotate/tilt';
+  'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: inventory · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
 async function main(): Promise<void> {
   const config = parseConfig(data);
@@ -41,18 +44,23 @@ async function main(): Promise<void> {
   const sfx = new Sfx();
   const ui = new InventoryUi(document.body, config, () => state);
   const cratePrompt = new CratePrompt();
+  const perks = new PerkPicker(document.body, config, () => state);
+  const shop = new Shop(document.body, config, () => state);
+  /** Any full-screen menu: the game is frozen and keyboard shortcuts are off. */
+  const modalOpen = () => ui.isOpen || perks.isOpen || shop.isOpen;
   const rts = new RtsController(
     renderer.domElement,
     renderer,
     config,
     () => state,
-    () => state.controlledId === null && state.status === 'playing' && !paused && !ui.isOpen,
+    () => state.controlledId === null && state.status === 'playing' && !paused && !modalOpen(),
   );
   const hud = new Hud(document.body, config, () => {
     state = createGame(config, Date.now());
     hud.reset();
     rts.set([]);
     ui.close();
+    shop.close();
   });
   const squad = new SquadPanel(document.body, (id, additive) => {
     if (state.controlledId === null) rts.toggle(id, additive);
@@ -110,7 +118,7 @@ async function main(): Promise<void> {
     if (!document.pointerLockElement && renderer.viewMode !== 'top') setView('top');
   });
 
-  const playable = () => !paused && state.status === 'playing';
+  const playable = () => !paused && state.status === 'playing' && !perks.isOpen;
 
   /** The unit the inventory opens on: controlled, else first selected, else first alive. */
   const inventoryFocus = () =>
@@ -123,22 +131,27 @@ async function main(): Promise<void> {
   };
 
   window.addEventListener('keydown', (e) => {
+    if (perks.onKey(e.code)) return;
     if (e.code === 'KeyM') sfx.toggleMute();
     else if (e.code === 'Escape' && ui.isOpen) ui.close();
-    else if (e.code === 'KeyP' || e.code === 'Escape') setPaused(!paused);
+    else if (e.code === 'Escape' && shop.isOpen) shop.close();
+    else if (e.code === 'KeyB') {
+      if (shop.isOpen) shop.close();
+      else if (playable() && !ui.isOpen && shopAvailable(state)) shop.show(inventoryFocus());
+    } else if (e.code === 'KeyP' || e.code === 'Escape') setPaused(!paused);
     else if (e.code === 'KeyI') {
       const focus = inventoryFocus();
       if (ui.isOpen) ui.close();
-      else if (playable() && focus !== null) ui.openInventory(focus);
+      else if (playable() && !shop.isOpen && focus !== null) ui.openInventory(focus);
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
       if (ui.isOpen) ui.close();
-      else if (playable() && crate && state.controlledId !== null) {
+      else if (playable() && !shop.isOpen && crate && state.controlledId !== null) {
         ui.openCrate(state.controlledId, crate.id);
       }
-    } else if (e.code === 'KeyT' && playable() && !ui.isOpen && state.controlledId !== null) {
+    } else if (e.code === 'KeyT' && playable() && !modalOpen() && state.controlledId !== null) {
       setView(NEXT_VIEW[renderer.viewMode]);
-    } else if (e.code === 'KeyY' && playable() && !ui.isOpen) toggleControl();
+    } else if (e.code === 'KeyY' && playable() && !modalOpen()) toggleControl();
   });
   window.addEventListener('blur', () => setPaused(true));
 
@@ -172,7 +185,7 @@ async function main(): Promise<void> {
 
   startLoop(
     (dt) => {
-      if (paused || ui.isOpen) return;
+      if (paused || modalOpen()) return;
       const direct = state.controlledId !== null;
       step(state, config, direct ? readInput() : noInput, dt);
       renderer.onStep(state);
@@ -193,12 +206,13 @@ async function main(): Promise<void> {
         setView('top');
       }
       const look = input.takeLook();
-      if (!paused && !ui.isOpen) renderer.look(look.x, look.y);
+      if (!paused && !modalOpen()) renderer.look(look.x, look.y);
+      perks.update();
       hud.setCrosshair(renderer.viewMode !== 'top' && state.controlledId !== null);
       rts.prune();
       renderer.render(state, alpha, frameDt);
 
-      const crate = !ui.isOpen && playable() ? crateInReach() : undefined;
+      const crate = !modalOpen() && playable() ? crateInReach() : undefined;
       if (crate) {
         const p = renderer.projectToScreen(crate.pos.x, crate.pos.z, 1.5);
         if (p) cratePrompt.show(p.x, p.z);
@@ -213,7 +227,7 @@ async function main(): Promise<void> {
       const view =
         renderer.viewMode === 'top' ? '' : `  [${renderer.viewMode.toUpperCase()} PERSON]`;
       hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view);
-      squad.update(state, rts.selected, config.player.maxHealth);
+      squad.update(state, rts.selected, maxHealthOf(state, config));
     },
   );
 }

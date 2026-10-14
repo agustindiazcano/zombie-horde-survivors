@@ -1,5 +1,12 @@
 import './hud.css';
-import { getSoldier, levelInfo, weaponDef, type GameConfig, type GameState } from './sim';
+import {
+  getSoldier,
+  levelInfo,
+  maxHealthOf,
+  weaponDef,
+  type GameConfig,
+  type GameState,
+} from './sim';
 
 const BANNER_MS = 1800;
 const LOW_HEALTH = 0.3;
@@ -159,7 +166,7 @@ export class Hud {
       this.shown.health = health;
       this.shown.focus = focusKey;
       this.shown.weapon = weapon;
-      const max = this.config.player.maxHealth;
+      const max = Math.round(maxHealthOf(state, this.config));
       this.healthLabel.textContent = `${focus?.kind === 'drone' ? 'Drone' : 'Soldier'} ${focusKey} · ${weapon} — Health ${health} / ${max}`;
       this.healthFill.style.width = `${(health / max) * 100}%`;
       this.healthFill.classList.toggle('hud__bar-fill--low', health / max < LOW_HEALTH);
@@ -189,7 +196,7 @@ export class Hud {
 
     const countdown =
       state.status === 'playing' && state.spawner.phase === 'intermission'
-        ? `Next wave in ${Math.ceil(state.spawner.timer)}s`
+        ? `Next wave in ${Math.ceil(state.spawner.timer)}s · B: shop`
         : '';
     if (countdown !== this.shown.countdown) {
       this.shown.countdown = countdown;

@@ -1,5 +1,5 @@
 import type { GameConfig } from './config';
-import type { Soldier, Stance } from './types';
+import type { Mods, Soldier, Stance } from './types';
 
 export interface WeaponDef {
   id: string;
@@ -19,15 +19,20 @@ export interface WeaponStats extends WeaponDef {
 
 export const isDrone = (s: Soldier): boolean => s.kind === 'drone';
 
-export function speedOf(config: GameConfig, s: Soldier, stance: Stance = 'normal'): number {
-  if (isDrone(s)) return config.drone.speed;
+export function speedOf(
+  config: GameConfig,
+  s: Soldier,
+  mods: Mods,
+  stance: Stance = 'normal',
+): number {
+  if (isDrone(s)) return config.drone.speed * mods.speed;
   const scale =
     stance === 'crouch'
       ? config.stance.crouchSpeedScale
       : stance === 'sprint'
         ? config.stance.sprintSpeedScale
         : 1;
-  return config.player.speed * scale;
+  return config.player.speed * scale * mods.speed;
 }
 
 /** Looks up a weapon by id. Unknown ids fall back to the rifle. */
@@ -43,8 +48,15 @@ export function weaponDef(config: GameConfig, id: string): WeaponDef {
 }
 
 /** Stats of a unit's equipped weapon, plus how the unit itself shoots (height, cover). */
-export function weaponOf(config: GameConfig, s: Soldier, stance: Stance = 'normal'): WeaponStats {
+export function weaponOf(
+  config: GameConfig,
+  s: Soldier,
+  mods: Mods,
+  stance: Stance = 'normal',
+): WeaponStats {
   const def = weaponDef(config, s.weapon);
+  def.damage *= mods.damage;
+  def.fireRate *= mods.fireRate;
   if (isDrone(s)) return { ...def, height: config.drone.height, ignoresCover: true };
   if (stance === 'crouch') {
     // A steadier stance: tighter spread and a bit more punch.

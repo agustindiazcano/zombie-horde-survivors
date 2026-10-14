@@ -34,6 +34,7 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 | Space             | Jump (only the soldier you control)                               |
 | T                 | Change view: normal → third person → first person → normal        |
 | I                 | Open / close the inventory                                        |
+| B                 | Open / close the shop (only between waves)                        |
 | E                 | Next to a crate (a yellow **E** floats above it): open it         |
 | Y                 | Go back to RTS mode                                               |
 | Mouse wheel       | Zoom (normal and third-person views)                              |
@@ -66,6 +67,7 @@ In third and first person the cursor is locked (so you can keep turning) and W /
 | Y                        | Take direct control of the first selected unit                                    |
 | Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                 |
 | I                        | Inventory                                                                         |
+| B                        | Shop (only between waves)                                                         |
 
 When you take control with **Y**, only the units that were selected follow you. The rest hold their position (or keep their move order). Every uncontrolled unit shoots the nearest enemy it can see.
 
@@ -90,6 +92,12 @@ Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop 
 ## Loot, levels and gore
 
 Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collects them by walking over them; they vanish after 60 s. XP raises your level (shown at the top). Enemies show a health bar and light up when hit, and about half of them burst when killed, spraying blood and gibs.
+
+## Perks and the shop
+
+Every level-up pauses the game and offers **3 random perks** for the whole squad: pick one with a click or the **1 / 2 / 3** keys. Perks stack up to a limit: damage, fire rate, movement speed, max health, health regeneration and a bigger loot pickup radius.
+
+Between waves (the countdown at the top) press **B** to open the **shop** and spend gold: heal the squad, bring back a fallen soldier, buy a pistol or heavy machine gun for the selected unit, or buy permanent upgrades. Prices grow with each purchase. The game is paused while a menu is open. Perks and shop items are in `data/game.json` (`perks`, `shop`).
 
 ## Enemies
 

@@ -102,6 +102,16 @@ export type SimEvent =
   | { type: 'waveStarted'; wave: number }
   | { type: 'gameOver' };
 
+/** Squad-wide multipliers from perks (all 1 at the start; regen is HP/s). */
+export interface Mods {
+  damage: number;
+  fireRate: number;
+  speed: number;
+  maxHealth: number;
+  regen: number;
+  pickupRadius: number;
+}
+
 export interface GameState {
   time: number;
   status: 'playing' | 'gameover';
@@ -119,6 +129,14 @@ export interface GameState {
   nextPickupId: number;
   gold: number;
   xp: number;
+  /** Perk stacks taken so far, by perk id, and the multipliers they add up to. */
+  upgrades: Record<string, number>;
+  mods: Mods;
+  /** Level-ups whose perk has not been picked yet; the current choices are in `perkOffer`. */
+  pendingPerks: number;
+  perkOffer: string[] | null;
+  /** Times each shop item was bought (prices grow with it). */
+  purchases: Record<string, number>;
   wave: number;
   kills: number;
   spawner: Spawner;

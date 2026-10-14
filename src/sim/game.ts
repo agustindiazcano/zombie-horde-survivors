@@ -4,6 +4,7 @@ import { createSquad, updateSoldiers } from './soldiers';
 import { createRng } from './rng';
 import type { GameState, Input } from './types';
 import { updatePickups } from './loot';
+import { baseMods } from './upgrades';
 import { updateWaves } from './waves';
 import { updateZombies } from './zombies';
 
@@ -24,6 +25,11 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     nextPickupId: 1,
     gold: 0,
     xp: 0,
+    upgrades: {},
+    mods: baseMods(),
+    pendingPerks: 0,
+    perkOffer: null,
+    purchases: {},
     wave: 0,
     kills: 0,
     spawner: { phase: 'intermission', timer: config.waves.intermission, toSpawn: 0 },

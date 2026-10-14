@@ -136,6 +136,10 @@ export function updateSoldiers(
     if (s.dead) continue;
     // May dip up to one step below zero so the leftover time carries into the next shot.
     s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
+    if (state.mods.regen > 0 && !isDrone(s)) {
+      const max = config.player.maxHealth * state.mods.maxHealth;
+      s.health = Math.min(max, s.health + state.mods.regen * dt);
+    }
     if (s.id === state.controlledId) updateControlled(state, config, s, input, dt);
     else updateAi(state, config, s, leader, dt);
     updateJump(config, s, dt);
@@ -165,7 +169,7 @@ function updateControlled(
   // Normalize only above unit length so analog input keeps its magnitude.
   const l = Math.hypot(move.x, move.z);
   const k = l > 1 ? 1 / l : 1;
-  const speed = speedOf(config, s, state.stance);
+  const speed = speedOf(config, s, state.mods, state.stance);
   s.pos.x += move.x * k * speed * dt;
   s.pos.z += move.z * k * speed * dt;
   resolveUnit(s, config);
@@ -188,7 +192,7 @@ function updateAi(
 ): void {
   // Movement destination from the current order.
   let dest: Vec2 | null = null;
-  let speed = speedOf(config, s, state.stance);
+  let speed = speedOf(config, s, state.mods, state.stance);
   if (s.order.type === 'move') {
     dest = { x: s.order.x, z: s.order.z };
     if (Math.hypot(dest.x - s.pos.x, dest.z - s.pos.z) < ARRIVE_DISTANCE) {
@@ -231,7 +235,7 @@ function updateAi(
 
 /** Nearest living zombie within AI range and line of sight. */
 function findTarget(state: GameState, config: GameConfig, s: Soldier): Zombie | null {
-  const weapon = weaponOf(config, s);
+  const weapon = weaponOf(config, s, state.mods);
   let best: Zombie | null = null;
   let bestDist = isDrone(s) ? weapon.range : Math.min(config.squad.aiRange, weapon.range);
   for (const z of state.zombies) {
