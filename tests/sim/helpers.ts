@@ -25,7 +25,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     progress: { ...base.progress },
     gore: { ...base.gore, explodeChance: 0 },
     inventory: { ...base.inventory },
-    boss: { ...base.boss },
+    boss: { ...base.boss, types: ['zombie'] },
     perks: { ...base.perks },
     shop: { ...base.shop },
     weapons: { ...base.weapons },
