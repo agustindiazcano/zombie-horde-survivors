@@ -49,14 +49,27 @@ const ZOOM_RATE = 4;
 export type ViewMode = 'top' | 'third' | 'first';
 
 /** Over-the-shoulder and eye-level cameras (world units / radians). */
-const THIRD_DISTANCE = 4.2;
+const THIRD_DISTANCE = 4.6;
 const THIRD_SHOULDER = 0.45;
-const THIRD_TARGET_HEIGHT = 1.5;
-const THIRD_PITCH = -0.18;
+const THIRD_TARGET_HEIGHT = 1.7;
+const THIRD_PITCH = -0.38;
 const EYE_HEIGHT = 1.6;
 const CROUCH_EYE_DROP = 0.45;
-const LOOK_SENSITIVITY = 0.0022;
-const MAX_LOOK_PITCH = 1.2;
+/**
+ * Cursor-follow camera. Inside the dead zone (radians off the screen centre) the cursor moves
+ * freely and only the unit aims; beyond it the camera turns towards the cursor at
+ * TURN_GAIN rad/s per radian. Third person has a wider dead zone, so aiming is freer.
+ */
+const DEAD_ZONE_THIRD = 0.2;
+const DEAD_ZONE_FIRST = 0.08;
+const TURN_GAIN = 2.6;
+/** How far the cursor's height tilts the view, and how quickly the tilt settles (1/s). */
+const PITCH_RANGE = 0.4;
+const PITCH_RATE = 5;
+/** Camera shake is only a light tremor in person views; big jolts feel like glitches. */
+const PERSON_SHAKE_SCALE = 0.12;
+/** How fast a model's drawn heading catches up with the simulated one (1/s). */
+const TURN_VISUAL_RATE = 22;
 const FOV_TOP = 50;
 const FOV_THIRD = 60;
 const FOV_FIRST = 78;
@@ -88,6 +101,9 @@ export class GameRenderer {
   /** Camera style. Third/first person only make sense while a soldier is controlled. */
   viewMode: ViewMode = 'top';
   private lookPitch = 0;
+  private basePitch = 0;
+  /** Drawn heading per soldier, easing towards the simulated facing. */
+  private readonly visYaw = new Map<number, number>();
   private thirdZoom = 1;
   private savedTop = { yaw: 0, pitch: DEFAULT_PITCH };
   private focusInitialized = false;
@@ -203,24 +219,37 @@ export class GameRenderer {
       // The orbit yaw sits half a turn from the view direction (the camera is behind).
       this.yaw = facing - Math.PI;
       this.lookPitch = mode === 'third' ? THIRD_PITCH : 0;
+      this.basePitch = this.lookPitch;
     }
     this.camera.fov = mode === 'first' ? FOV_FIRST : mode === 'third' ? FOV_THIRD : FOV_TOP;
     this.camera.updateProjectionMatrix();
   }
 
-  /** Mouse look for first/third person: dx turns right, dy looks down (pixels). */
-  look(dx: number, dy: number): void {
-    if (this.viewMode === 'top') return;
-    this.yaw -= dx * LOOK_SENSITIVITY;
-    this.lookPitch = Math.min(
-      Math.max(this.lookPitch - dy * LOOK_SENSITIVITY, -MAX_LOOK_PITCH),
-      MAX_LOOK_PITCH,
-    );
+  /** Horizontal angle of the cursor's ray off the view direction (positive = to the right). */
+  private cursorOffset(ndcX: number): number {
+    const tanHalfV = Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2);
+    return Math.atan(ndcX * tanHalfV * this.camera.aspect);
   }
 
-  /** The point 20 units ahead of `from` along the current view direction. */
-  lookAimPoint(from: Vec2): Vec2 {
-    const theta = this.yaw + Math.PI;
+  /**
+   * First/third person: eases the camera towards the cursor. Call once per frame. Past the
+   * dead zone the view turns towards the cursor; its height gently tilts the view.
+   */
+  followCursor(ndcX: number, ndcY: number, dt: number): void {
+    if (this.viewMode === 'top') return;
+    const offset = this.cursorOffset(ndcX);
+    const dead = this.viewMode === 'third' ? DEAD_ZONE_THIRD : DEAD_ZONE_FIRST;
+    const excess = Math.max(Math.abs(offset) - dead, 0);
+    // Turning right lowers the heading; `yaw` is the orbit angle, half a turn from it.
+    this.yaw -= Math.sign(offset) * excess * TURN_GAIN * dt;
+
+    const targetPitch = this.basePitch + ndcY * PITCH_RANGE;
+    this.lookPitch += (targetPitch - this.lookPitch) * (1 - Math.exp(-PITCH_RATE * dt));
+  }
+
+  /** The point 20 units from `from` in the direction the cursor points (horizontally). */
+  lookAimPoint(from: Vec2, ndcX: number): Vec2 {
+    const theta = this.yaw + Math.PI - this.cursorOffset(ndcX);
     return { x: from.x + Math.sin(theta) * 20, z: from.z + Math.cos(theta) * 20 };
   }
 
@@ -290,10 +319,10 @@ export class GameRenderer {
     this.camera.updateMatrixWorld();
   }
 
-  private applyShake(dt: number): void {
+  private applyShake(dt: number, scale = 1): void {
     if (this.shake <= 0) return;
-    this.camera.position.x += (Math.random() - 0.5) * 2 * this.shake;
-    this.camera.position.z += (Math.random() - 0.5) * 2 * this.shake;
+    this.camera.position.x += (Math.random() - 0.5) * 2 * this.shake * scale;
+    this.camera.position.z += (Math.random() - 0.5) * 2 * this.shake * scale;
     this.shake = Math.max(0, this.shake - SHAKE_DECAY * dt);
   }
 
@@ -334,7 +363,7 @@ export class GameRenderer {
       this.camera.position.copy(target).addScaledVector(dir, -THIRD_DISTANCE * this.thirdZoom);
       this.camera.position.y = Math.max(this.camera.position.y, 0.3);
     }
-    this.applyShake(dt);
+    this.applyShake(dt, PERSON_SHAKE_SCALE);
     this.camera.lookAt(this.camera.position.clone().add(dir));
     this.camera.updateMatrixWorld();
   }
@@ -378,7 +407,11 @@ export class GameRenderer {
       const moving = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > MOVING_EPSILON;
       const drone = s.kind === 'drone';
       view.object.position.set(lerp(s.prev.x, s.pos.x, alpha), 0, lerp(s.prev.z, s.pos.z, alpha));
-      view.object.rotation.y = s.facing;
+      const shown = this.visYaw.get(s.id) ?? s.facing;
+      const turn = Math.atan2(Math.sin(s.facing - shown), Math.cos(s.facing - shown));
+      const heading = shown + turn * (1 - Math.exp(-TURN_VISUAL_RATE * dt));
+      this.visYaw.set(s.id, heading);
+      view.object.rotation.y = heading;
       view.setState(s.dead ? 'death' : moving ? 'run' : 'idle');
       view.update(dt);
       // In first person you look out of the controlled unit's head, so hide its model.
