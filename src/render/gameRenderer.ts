@@ -65,6 +65,17 @@ const MAX_LOOK_PITCH = 1.2;
 const PERSON_SHAKE_SCALE = 0.12;
 /** How fast a model's drawn heading catches up with the simulated one (1/s). */
 const TURN_VISUAL_RATE = 22;
+
+/** Night lighting: dim moonlight and ambient, with each soldier carrying a flashlight. */
+const AMBIENT_INTENSITY = 0.22;
+const MOON_INTENSITY = 0.35;
+const NIGHT_BACKGROUND = 0x05070a;
+const FLASHLIGHT_INTENSITY = 90;
+const FLASHLIGHT_RANGE = 24;
+const FLASHLIGHT_ANGLE = 0.5;
+const FLASHLIGHT_HEIGHT = 1.3;
+/** How far ahead of the soldier, on the ground, the flashlight points. */
+const FLASHLIGHT_REACH = 8;
 const FOV_TOP = 50;
 const FOV_THIRD = 60;
 const FOV_FIRST = 78;
@@ -84,6 +95,8 @@ export class GameRenderer {
   readonly scene = new THREE.Scene();
   private readonly renderer = new THREE.WebGLRenderer({ antialias: true });
   private readonly soldiers = new Map<number, CharacterView>();
+  /** One flashlight per soldier: a group (moved and turned with the unit) holding a spotlight. */
+  private readonly flashlights = new Map<number, { group: THREE.Group; light: THREE.SpotLight }>();
   private readonly markers = new SelectionMarkers();
   /** Ground point the camera looks at. Pan it in RTS mode; it follows the controlled soldier. */
   readonly focus: Vec2 = { x: 0, z: 0 };
@@ -140,7 +153,7 @@ export class GameRenderer {
     this.renderer.shadowMap.enabled = true;
     container.appendChild(this.renderer.domElement);
 
-    this.scene.background = new THREE.Color(0x14171c);
+    this.scene.background = new THREE.Color(NIGHT_BACKGROUND);
     this.scene.add(buildArena(config.arena));
     this.addLights(config.arena.halfSize);
 
@@ -384,6 +397,7 @@ export class GameRenderer {
         view = s.kind === 'drone' ? this.factories.drone() : this.soldierFactory(s.id)();
         this.soldiers.set(s.id, view);
         this.scene.add(view.object);
+        if (s.kind === 'soldier') this.flashlights.set(s.id, this.createFlashlight());
       }
       const moving = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > MOVING_EPSILON;
       const drone = s.kind === 'drone';
@@ -401,6 +415,7 @@ export class GameRenderer {
       view.object.rotation.y = heading;
       view.setState(s.dead ? 'death' : moving ? 'run' : 'idle');
       view.update(dt);
+      this.updateFlashlight(s.id, view.object, heading, !s.dead);
       // In first person you look out of the controlled unit's head, so hide its model.
       view.object.visible = !(this.viewMode === 'first' && s.id === state.controlledId);
 
@@ -498,9 +513,40 @@ export class GameRenderer {
     }
   }
 
+  /** A warm spotlight held at chest height, pointing at the ground ahead of the soldier. */
+  private createFlashlight(): { group: THREE.Group; light: THREE.SpotLight } {
+    const light = new THREE.SpotLight(
+      0xfff0d0,
+      FLASHLIGHT_INTENSITY,
+      FLASHLIGHT_RANGE,
+      FLASHLIGHT_ANGLE,
+      0.6,
+    );
+    light.decay = 1.5;
+    light.position.set(0, FLASHLIGHT_HEIGHT, 0.3);
+    light.target.position.set(0, 0, FLASHLIGHT_REACH);
+    const group = new THREE.Group();
+    group.add(light, light.target);
+    this.scene.add(group);
+    return { group, light };
+  }
+
+  /**
+   * Keeps a flashlight on its soldier. It lives outside the model's group so it keeps
+   * shining in first person, when the model itself is hidden.
+   */
+  private updateFlashlight(id: number, unit: THREE.Object3D, heading: number, on: boolean): void {
+    const lamp = this.flashlights.get(id);
+    if (!lamp) return;
+    lamp.group.position.set(unit.position.x, 0, unit.position.z);
+    lamp.group.rotation.y = heading;
+    // Dimming to zero (not hiding) keeps the light count, and so the shaders, unchanged.
+    lamp.light.intensity = on ? FLASHLIGHT_INTENSITY : 0;
+  }
+
   private addLights(halfSize: number): void {
-    this.scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x30343a, 1.2));
-    const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+    this.scene.add(new THREE.HemisphereLight(0x8fa6d8, 0x1a1d24, AMBIENT_INTENSITY));
+    const sun = new THREE.DirectionalLight(0x9db4ff, MOON_INTENSITY);
     sun.position.set(12, 24, 8);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
