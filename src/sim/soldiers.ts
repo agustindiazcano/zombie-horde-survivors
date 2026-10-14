@@ -31,8 +31,10 @@ export function createSquad(config: GameConfig): Soldier[] {
       prevY: 0,
       vy: 0,
       order: { type: 'follow' },
-      weapon: 'rifle',
+      weapon: config.squad.startWeapon,
       backpack: [],
+      xp: 0,
+      kills: 0,
     };
   });
   for (let i = 0; i < config.drone.count; i++) {
@@ -50,8 +52,10 @@ export function createSquad(config: GameConfig): Soldier[] {
       prevY: 0,
       vy: 0,
       order: { type: 'follow' },
-      weapon: 'drone_cannon',
+      weapon: null,
       backpack: [],
+      xp: 0,
+      kills: 0,
     });
   }
   return soldiers;
@@ -180,7 +184,7 @@ function updateControlled(
 
   if (input.jump && s.y === 0 && s.vy === 0 && !isDrone(s)) s.vy = config.stance.jumpSpeed;
 
-  if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
+  if (input.firing && s.fireCooldown <= 0 && s.weapon !== null) fireWeapon(state, config, s);
 }
 
 function updateAi(
@@ -236,6 +240,7 @@ function updateAi(
 /** Nearest living zombie within AI range and line of sight. */
 function findTarget(state: GameState, config: GameConfig, s: Soldier): Zombie | null {
   const weapon = weaponOf(config, s, state.mods);
+  if (!weapon) return null;
   let best: Zombie | null = null;
   let bestDist = isDrone(s) ? weapon.range : Math.min(config.squad.aiRange, weapon.range);
   for (const z of state.zombies) {

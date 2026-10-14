@@ -79,6 +79,8 @@ export const GameConfigSchema = z
         followDistance: positive,
         /** AI soldiers engage zombies within this distance (and line of sight). */
         aiRange: positive,
+        /** Weapon every soldier starts with ('rifle' or an id from `weapons`). */
+        startWeapon: z.string().min(1),
         /** AI fire rate as a fraction of the weapon fire rate. */
         aiFireRateScale: positive,
       })
@@ -130,6 +132,32 @@ export const GameConfigSchema = z
     perks: z.object({ choices: z.number().int().positive(), list: z.array(perk).min(1) }).strict(),
     /** Between-wave shop, paid with gold. */
     shop: z.object({ items: z.array(shopItem) }).strict(),
+    /** A mini boss every few waves: a stronger, slower copy of one of the enemy types. */
+    boss: z
+      .object({
+        everyWaves: z.number().int().positive(),
+        /** Enemy types the bosses cycle through, in order. */
+        types: z.array(z.string()).min(1),
+        /**
+         * Health and damage multipliers (on that type's normal stats at the current wave) for the
+         * 1st boss, the 2nd, and so on. Past the end of a list each further boss multiplies the
+         * last entry by `growth` again.
+         */
+        health: z.array(positive).min(1),
+        damage: z.array(positive).min(1),
+        growth: z.number().min(1),
+        speedScale: positive,
+        /** Loot multiplier of the 1st boss; the nth boss pays n times as much. */
+        rewardScale: positive,
+        /**
+         * Model and hitbox size: `sizeBase` for the 1st boss, growing with how much more health
+         * a boss has than the 1st one (health ratio ^ `sizeExponent`), up to `maxSize`.
+         */
+        sizeBase: positive,
+        sizeExponent: nonNegative,
+        maxSize: positive,
+      })
+      .strict(),
     gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
     /** Droppable weapons by id. 'rifle' (the `weapon` section) and the drone cannon are built in. */
@@ -183,6 +211,16 @@ export const GameConfigSchema = z
     if (cfg.drops.maxItems < cfg.drops.minItems) {
       ctx.addIssue({ code: 'custom', message: 'drops.maxItems must be >= drops.minItems' });
     }
+    for (const type of cfg.boss.types) {
+      if (type !== 'zombie' && !(type in cfg.enemies)) {
+        ctx.addIssue({ code: 'custom', message: `boss.types references unknown enemy "${type}"` });
+      }
+    }
+    const isKnownWeapon = (id: string) =>
+      id === 'rifle' || id === 'drone_cannon' || id in cfg.weapons;
+    if (cfg.squad.startWeapon !== 'rifle' && !(cfg.squad.startWeapon in cfg.weapons)) {
+      ctx.addIssue({ code: 'custom', message: 'squad.startWeapon is not a known soldier weapon' });
+    }
     const perkIds = new Set(cfg.perks.list.map((p) => p.id));
     if (perkIds.size !== cfg.perks.list.length) {
       ctx.addIssue({ code: 'custom', message: 'perks.list ids must be unique' });
@@ -194,7 +232,7 @@ export const GameConfigSchema = z
           message: `shop item "${item.id}" needs a valid perk target`,
         });
       }
-      if (item.kind === 'weapon' && !(item.target && item.target in cfg.weapons)) {
+      if (item.kind === 'weapon' && !(item.target && isKnownWeapon(item.target))) {
         ctx.addIssue({
           code: 'custom',
           message: `shop item "${item.id}" needs a valid weapon target`,
@@ -202,7 +240,7 @@ export const GameConfigSchema = z
       }
     }
     for (const entry of cfg.drops.table) {
-      if (entry.weapon !== 'rifle' && !(entry.weapon in cfg.weapons)) {
+      if (!isKnownWeapon(entry.weapon)) {
         ctx.addIssue({
           code: 'custom',
           message: `drops.table references unknown weapon "${entry.weapon}"`,

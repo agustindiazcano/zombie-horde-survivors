@@ -19,6 +19,23 @@
   display: block;
 }
 
+.pp__settings {
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: inherit;
+  background: #262c37;
+  border: 1px solid #4a5366;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pp__settings:hover {
+  border-color: #ffd84a;
+}
+
 .pp__heading {
   margin: 0 0 10px;
   font-size: 15px;

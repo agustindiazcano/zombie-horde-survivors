@@ -28,6 +28,8 @@ interface Factories {
 }
 
 interface ZombieEntry {
+  /** Key of the pool the view returns to (bosses get their own, since they are re-skinned). */
+  poolKey: string;
   type: string;
   view: CharacterView;
   seenFrame: number;
@@ -65,6 +67,25 @@ const MAX_LOOK_PITCH = 1.2;
 const PERSON_SHAKE_SCALE = 0.12;
 /** How fast a model's drawn heading catches up with the simulated one (1/s). */
 const TURN_VISUAL_RATE = 22;
+
+/** How much a mini boss's colours are darkened (1 = unchanged). */
+const BOSS_DARKEN = 0.3;
+
+/** Normal lighting (the default): bright, flashlights off. */
+const DAY_AMBIENT = 1.2;
+const DAY_SUN = 2.2;
+const DAY_BACKGROUND = 0x14171c;
+
+/** Dusk lighting (toggle with setDark): dimmed moonlight and ambient, flashlights on. */
+const AMBIENT_INTENSITY = 0.75;
+const MOON_INTENSITY = 1.1;
+const NIGHT_BACKGROUND = 0x10141a;
+const FLASHLIGHT_INTENSITY = 160;
+const FLASHLIGHT_RANGE = 24;
+const FLASHLIGHT_ANGLE = 0.5;
+const FLASHLIGHT_HEIGHT = 1.3;
+/** How far ahead of the soldier, on the ground, the flashlight points. */
+const FLASHLIGHT_REACH = 8;
 const FOV_TOP = 50;
 const FOV_THIRD = 60;
 const FOV_FIRST = 78;
@@ -84,6 +105,8 @@ export class GameRenderer {
   readonly scene = new THREE.Scene();
   private readonly renderer = new THREE.WebGLRenderer({ antialias: true });
   private readonly soldiers = new Map<number, CharacterView>();
+  /** One flashlight per soldier: a group (moved and turned with the unit) holding a spotlight. */
+  private readonly flashlights = new Map<number, { group: THREE.Group; light: THREE.SpotLight }>();
   private readonly markers = new SelectionMarkers();
   /** Ground point the camera looks at. Pan it in RTS mode; it follows the controlled soldier. */
   readonly focus: Vec2 = { x: 0, z: 0 };
@@ -95,6 +118,11 @@ export class GameRenderer {
   private userZoomTarget = 1;
   /** Camera style. Third/first person only make sense while a soldier is controlled. */
   viewMode: ViewMode = 'top';
+  /** Dark mode: dim lights plus flashlights. Off by default. */
+  private dark = false;
+  private goreEnabled = true;
+  private hemi = new THREE.HemisphereLight();
+  private readonly sun = new THREE.DirectionalLight(0xffffff, DAY_SUN);
   private lookPitch = 0;
   /** Drawn heading per soldier, easing towards the simulated facing. */
   private readonly visYaw = new Map<number, number>();
@@ -140,7 +168,7 @@ export class GameRenderer {
     this.renderer.shadowMap.enabled = true;
     container.appendChild(this.renderer.domElement);
 
-    this.scene.background = new THREE.Color(0x14171c);
+    this.scene.background = new THREE.Color(DAY_BACKGROUND);
     this.scene.add(buildArena(config.arena));
     this.addLights(config.arena.halfSize);
 
@@ -384,6 +412,7 @@ export class GameRenderer {
         view = s.kind === 'drone' ? this.factories.drone() : this.soldierFactory(s.id)();
         this.soldiers.set(s.id, view);
         this.scene.add(view.object);
+        if (s.kind === 'soldier') this.flashlights.set(s.id, this.createFlashlight());
       }
       const moving = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > MOVING_EPSILON;
       const drone = s.kind === 'drone';
@@ -401,6 +430,7 @@ export class GameRenderer {
       view.object.rotation.y = heading;
       view.setState(s.dead ? 'death' : moving ? 'run' : 'idle');
       view.update(dt);
+      this.updateFlashlight(s.id, view.object, heading, !s.dead);
       // In first person you look out of the controlled unit's head, so hide its model.
       view.object.visible = !(this.viewMode === 'first' && s.id === state.controlledId);
 
@@ -430,7 +460,7 @@ export class GameRenderer {
           this.shake = Math.min(this.shake + SHOT_SHAKE, MAX_SHAKE);
         }
         if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
-      } else if (e.type === 'zombieKilled' && e.exploded) {
+      } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
         const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
         this.gore.burst(e.pos.x, e.pos.z, Math.min(Math.max(size, 0.8), 1.8));
       } else if (e.type === 'soldierHurt' && e.soldierId === state.controlledId) {
@@ -452,16 +482,22 @@ export class GameRenderer {
       let entry = this.zombies.get(z.id);
       if (!entry) {
         const type = this.factories.enemies[z.type] ? z.type : 'zombie';
-        const view = this.pools.get(type)?.pop() ?? this.factories.enemies[type]!();
+        const poolKey = z.boss ? `boss:${type}` : type;
+        let view = this.pools.get(poolKey)?.pop();
+        if (!view) {
+          view = this.factories.enemies[type]!();
+          if (z.boss) this.makeBoss(view.object, this.factories.barHeights[type] ?? 2.2);
+        }
         view.setFlash?.(0);
         this.scene.add(view.object);
-        entry = { type, view, seenFrame: this.frame };
+        entry = { poolKey, type, view, seenFrame: this.frame };
         this.zombies.set(z.id, entry);
       }
       entry.seenFrame = this.frame;
       const { object } = entry.view;
       object.position.set(lerp(z.prev.x, z.pos.x, alpha), 0, lerp(z.prev.z, z.pos.z, alpha));
       object.rotation.y = z.facing;
+      object.scale.setScalar(z.size);
       object.visible = !z.exploded;
       entry.view.setState(z.state);
       entry.view.update(dt);
@@ -477,7 +513,7 @@ export class GameRenderer {
         this.healthBars.show(
           z.id,
           object.position.x,
-          this.factories.barHeights[entry.type] ?? 2.2,
+          (this.factories.barHeights[entry.type] ?? 2.2) * z.size,
           object.position.z,
           0.6 + z.radius * 1.2,
           z.health / z.maxHealth,
@@ -489,18 +525,116 @@ export class GameRenderer {
     for (const [id, entry] of this.zombies) {
       if (entry.seenFrame === this.frame) continue;
       this.scene.remove(entry.view.object);
-      const pool = this.pools.get(entry.type) ?? [];
+      const pool = this.pools.get(entry.poolKey) ?? [];
       pool.push(entry.view);
-      this.pools.set(entry.type, pool);
+      this.pools.set(entry.poolKey, pool);
       this.zombies.delete(id);
       this.healthBars.release(id);
       this.flash.delete(id);
     }
   }
 
+  /**
+   * Gives a model the mini boss look: much darker, with two glowing red eyes. The eyes are
+   * placed from the model's head height (`headHeight`, the health bar height).
+   */
+  private makeBoss(root: THREE.Object3D, headHeight: number): void {
+    root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        (m as THREE.MeshStandardMaterial).color?.multiplyScalar(BOSS_DARKEN);
+      }
+    });
+    const k = headHeight / 2.2;
+    const core = new THREE.SphereGeometry(0.06 * k, 10, 8);
+    const halo = new THREE.SphereGeometry(0.13 * k, 10, 8);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xff2020, toneMapped: false });
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0xff2020,
+      transparent: true,
+      opacity: 0.3,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Group();
+      eye.add(new THREE.Mesh(core, coreMat), new THREE.Mesh(halo, haloMat));
+      eye.position.set(side * 0.1 * k, headHeight * 0.87, 0.22 * k);
+      root.add(eye);
+    }
+  }
+
+  /** Applies the graphics options: shadows, shadow resolution, render resolution and gore. */
+  applyGraphics(g: {
+    shadows: boolean;
+    shadowMapSize: number;
+    resolutionScale: number;
+    gore: boolean;
+  }): void {
+    this.goreEnabled = g.gore;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * g.resolutionScale);
+    this.resize();
+    this.sun.castShadow = g.shadows;
+    if (this.sun.shadow.mapSize.x !== g.shadowMapSize) {
+      this.sun.shadow.mapSize.set(g.shadowMapSize, g.shadowMapSize);
+      // The old shadow map has the wrong size; it is rebuilt on the next frame.
+      this.sun.shadow.map?.dispose();
+      this.sun.shadow.map = null;
+    }
+  }
+
+  get isDark(): boolean {
+    return this.dark;
+  }
+
+  /** Switches between normal lighting and the dark mode with a flashlight per soldier. */
+  setDark(dark: boolean): void {
+    this.dark = dark;
+    this.hemi.color.set(dark ? 0x8fa6d8 : 0xbfd4ff);
+    this.hemi.groundColor.set(dark ? 0x1a1d24 : 0x30343a);
+    this.hemi.intensity = dark ? AMBIENT_INTENSITY : DAY_AMBIENT;
+    this.sun.color.set(dark ? 0x9db4ff : 0xffffff);
+    this.sun.intensity = dark ? MOON_INTENSITY : DAY_SUN;
+    (this.scene.background as THREE.Color).set(dark ? NIGHT_BACKGROUND : DAY_BACKGROUND);
+  }
+
+  /** A warm spotlight held at chest height, pointing at the ground ahead of the soldier. */
+  private createFlashlight(): { group: THREE.Group; light: THREE.SpotLight } {
+    const light = new THREE.SpotLight(
+      0xfff0d0,
+      FLASHLIGHT_INTENSITY,
+      FLASHLIGHT_RANGE,
+      FLASHLIGHT_ANGLE,
+      0.6,
+    );
+    light.decay = 1.5;
+    light.position.set(0, FLASHLIGHT_HEIGHT, 0.3);
+    light.target.position.set(0, 0, FLASHLIGHT_REACH);
+    const group = new THREE.Group();
+    group.add(light, light.target);
+    this.scene.add(group);
+    return { group, light };
+  }
+
+  /**
+   * Keeps a flashlight on its soldier. It lives outside the model's group so it keeps
+   * shining in first person, when the model itself is hidden.
+   */
+  private updateFlashlight(id: number, unit: THREE.Object3D, heading: number, on: boolean): void {
+    const lamp = this.flashlights.get(id);
+    if (!lamp) return;
+    lamp.group.position.set(unit.position.x, 0, unit.position.z);
+    lamp.group.rotation.y = heading;
+    // Dimming to zero (not hiding) keeps the light count, and so the shaders, unchanged.
+    lamp.light.intensity = on && this.dark ? FLASHLIGHT_INTENSITY : 0;
+  }
+
   private addLights(halfSize: number): void {
-    this.scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x30343a, 1.2));
-    const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+    this.hemi = new THREE.HemisphereLight(0xbfd4ff, 0x30343a, DAY_AMBIENT);
+    this.scene.add(this.hemi);
+    const sun = this.sun;
+    sun.intensity = DAY_SUN;
     sun.position.set(12, 24, 8);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);

@@ -28,10 +28,13 @@ export interface Soldier {
   prevY: number;
   vy: number;
   order: SoldierOrder;
-  /** Equipped weapon id ('rifle', 'pistol', 'heavy_mg', 'drone_cannon'). */
-  weapon: string;
+  /** Equipped weapon id ('rifle', 'pistol', 'heavy_mg', 'drone_cannon'), or null if unarmed. */
+  weapon: string | null;
   /** Carried weapon ids, up to `inventory.backpackSlots`. */
   backpack: string[];
+  /** This unit's own experience (grows when it kills) and enemies it has killed. */
+  xp: number;
+  kills: number;
 }
 
 export interface Zombie {
@@ -43,6 +46,12 @@ export interface Zombie {
   type: string;
   health: number;
   maxHealth: number;
+  /** A mini boss: darker, slower, much tougher and harder-hitting than its type. */
+  boss: boolean;
+  /** Model and hitbox scale: 1 for normal enemies, bigger for bosses. */
+  size: number;
+  /** Loot multiplier (1 for normal enemies). */
+  reward: number;
   /** Killed by bursting: skipped death animation, the renderer shows gore instead. */
   exploded: boolean;
   /** Chase speed, fixed at spawn from the wave's difficulty scaling. */
@@ -93,13 +102,22 @@ export type SimEvent =
       to: Vec2;
       hitZombieId: number | null;
     }
-  | { type: 'zombieKilled'; id: number; enemy: string; pos: Vec2; exploded: boolean }
+  | {
+      type: 'zombieKilled';
+      id: number;
+      enemy: string;
+      pos: Vec2;
+      exploded: boolean;
+      /** The soldier that landed the killing shot. */
+      killerId: number | null;
+    }
   | { type: 'pickupCollected'; kind: 'gold' | 'xp'; amount: number; pos: Vec2 }
   | { type: 'levelUp'; level: number }
   | { type: 'crateDropped'; crateId: number; pos: Vec2 }
   | { type: 'soldierHurt'; soldierId: number; damage: number; zombieId: number }
   | { type: 'soldierDied'; soldierId: number }
   | { type: 'waveStarted'; wave: number }
+  | { type: 'bossSpawned'; wave: number; enemy: string }
   | { type: 'gameOver' };
 
 /** Squad-wide multipliers from perks (all 1 at the start; regen is HP/s). */

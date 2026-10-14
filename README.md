@@ -35,7 +35,7 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 | Shift             | The whole squad sprints (1.6x speed)                              |
 | Space             | Jump (only the soldier you control)                               |
 | T                 | Change view: normal → third person → first person → normal        |
-| I                 | Open / close the inventory                                        |
+| I                 | Squad screen: units, inventories and bonuses (pauses the game)    |
 | B                 | Open / close the shop (only between waves)                        |
 | E                 | Next to a crate (a yellow **E** floats above it): open it         |
 | Y                 | Go back to RTS mode                                               |
@@ -68,7 +68,7 @@ In third and first person the cursor is locked (so you can keep turning) and W /
 | Squad panel (bottom)     | Click a unit to select it; shows each unit's health                               |
 | Y                        | Take direct control of the first selected unit                                    |
 | Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                 |
-| I                        | Inventory                                                                         |
+| I                        | Squad screen (pauses the game)                                                    |
 | B                        | Shop (only between waves)                                                         |
 
 When you take control with **Y**, only the units that were selected follow you. The rest hold their position (or keep their move order). Every uncontrolled unit shoots the nearest enemy it can see.
@@ -79,22 +79,46 @@ When you take control with **Y**, only the units that were selected follow you. 
 | ------- | -------------------------------------------------------------- |
 | P / Esc | Pause / resume (the pause screen lists your bonuses and stats) |
 | M       | Mute / unmute                                                  |
+| L       | Dark mode: dim lights and a flashlight per soldier             |
+| O       | Settings (graphics, lighting, FPS counter, volume)             |
 | F3      | Show / hide the FPS counter                                    |
 | R       | Restart (on the game over screen)                              |
 
+## Radar
+
+The round display in the bottom-right corner is a motion tracker, like the one from the film Aliens. A pulse ring spreads out from the middle of your squad and enemies only show up as bright blips when it crosses them, fading until the next ping. It is centred on your living units and only sees about 30 metres around them. The number at the bottom is the distance to the closest contact. Your units are hollow rings (filled for the one you control, a square for the drone). North is up.
+
 ## The squad
 
-- **4 soldiers**, each with its own model, armed with a **rifle**.
-- **A drone** (unit 5): a small flying ship with slow, hard-hitting shots that ignore cover. Enemies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
+- **4 soldiers**, each with its own model, starting with a **pistol**.
+- **A drone** (unit 5): a small flying ship that starts **unarmed**. Give it a **Drone gun** (buy one in the shop, or find one in a crate, then drag it into the drone's equipped slot) and it fires slow, hard-hitting shots that ignore cover. Enemies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
 - Crouching, sprinting and jumping are set by the unit you control; crouch and sprint affect the whole squad.
 
 ## Inventory and weapons
 
-Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop a **crate** with a **pistol** and/or a **heavy machine gun**. Press **E** next to it to take items or stash your own; press **I** to equip weapons. The game pauses while an inventory window is open. Weapon stats, the drop chance and the loot table are in `data/game.json`.
+Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop a **crate** with weapons: pistol, rifle, heavy machine gun or the drone gun. Press **E** next to it to take items or stash your own; to equip weapons and move items between units press **I** (see below). The game pauses while a menu is open. Weapon stats, the drop chance and the loot table are in `data/game.json`.
 
 ## Loot, levels and gore
 
 Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collects them by walking over them; they vanish after 60 s. XP raises your level (shown at the top). Enemies show a health bar and light up when hit, and about half of them burst when killed, spraying blood and gibs.
+
+## Pause screen and the squad
+
+Pausing (Esc, P or **I**) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (up to four windows at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two. Drag the equipped weapon to an empty backpack slot to unequip it (an unarmed unit can't shoot).
+
+There are two kinds of experience. The **global** XP comes from the blue orbs and levels the squad up (perks). Each unit also has **its own** XP, which grows when that unit kills an enemy, plus a kill counter.
+
+## Settings
+
+Press **O** (or use the Settings button on the title screen and the pause screen) for the settings window. Opened in the middle of a game it pauses, and gives the game back when you close it. Everything is saved in your browser.
+
+| Section  | Options                                                                                                                                  |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Graphics | Quality preset (Low / Medium / High), shadows on/off, shadow quality, resolution (50-100% of the screen's pixel density), blood and gibs |
+| Lighting | Normal, or dark with a flashlight per soldier (also **L**)                                                                               |
+| Other    | FPS counter (also **F3**), sound volume                                                                                                  |
+
+If the game runs slowly, try the **Low** preset or lower the resolution. Changing any graphics option by hand switches the preset to Custom.
 
 ## Perks and the shop
 
@@ -116,6 +140,8 @@ Variants are multipliers on the base zombie in `data/game.json` (`enemies`); eac
 | Giant worm        | 4         | Very slow, very tanky, wide  |
 
 Zombie speed and health also grow with each wave.
+
+**Mini boss:** every 3rd wave one enemy comes back as a mini boss: a darker copy of one of the models, with glowing red eyes and a slower walk. Each boss is tougher and bigger than the last: health x50, x70, x100, x200, x500 (then x1.6 more each time), damage x2 up to x8, and a size from 2x up to 5x that grows with its health. They pay much better gold and XP. The bosses cycle zombie, skeleton, alien, brute, hound (`boss` in `data/game.json`).
 
 ## Architecture
 

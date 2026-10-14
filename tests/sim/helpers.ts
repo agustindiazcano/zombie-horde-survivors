@@ -17,7 +17,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
   const base = data as unknown as GameConfig;
   const merged: Record<string, object> = {
     arena: { ...base.arena, obstacles: [] },
-    squad: { ...base.squad, count: 1 },
+    squad: { ...base.squad, count: 1, startWeapon: 'rifle' },
     drone: { ...base.drone, count: 0 },
     enemies: {},
     stance: { ...base.stance },
@@ -25,6 +25,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     progress: { ...base.progress },
     gore: { ...base.gore, explodeChance: 0 },
     inventory: { ...base.inventory },
+    boss: { ...base.boss, types: ['zombie'] },
     perks: { ...base.perks },
     shop: { ...base.shop },
     weapons: { ...base.weapons },

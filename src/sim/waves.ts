@@ -27,8 +27,8 @@ function pickEnemyType(state: GameState, config: GameConfig): string {
   return options[options.length - 1]![0];
 }
 
-function spawnAtEdge(state: GameState, config: GameConfig): void {
-  const type = pickEnemyType(state, config);
+function spawnAtEdge(state: GameState, config: GameConfig, forced?: string, bossNumber = 0): void {
+  const type = forced ?? pickEnemyType(state, config);
   const radius = config.zombie.radius * (config.enemies[type]?.radiusScale ?? 1);
   const lim = config.arena.halfSize - radius;
   const side = Math.floor(nextFloat(state.rng) * 4);
@@ -41,7 +41,7 @@ function spawnAtEdge(state: GameState, config: GameConfig): void {
         : side === 2
           ? { x: lim, z: t }
           : { x: -lim, z: t };
-  spawnZombie(state, config, pos, type);
+  spawnZombie(state, config, pos, type, bossNumber);
 }
 
 export function updateWaves(state: GameState, config: GameConfig, dt: number): void {
@@ -56,6 +56,12 @@ export function updateWaves(state: GameState, config: GameConfig, dt: number): v
     sp.timer = 0;
     sp.phase = 'spawning';
     state.events.push({ type: 'waveStarted', wave: state.wave });
+    if (state.wave % config.boss.everyWaves === 0) {
+      const { types, everyWaves } = config.boss;
+      const enemy = types[(state.wave / everyWaves - 1) % types.length]!;
+      spawnAtEdge(state, config, enemy, state.wave / everyWaves);
+      state.events.push({ type: 'bossSpawned', wave: state.wave, enemy });
+    }
   }
 
   if (sp.phase === 'spawning') {

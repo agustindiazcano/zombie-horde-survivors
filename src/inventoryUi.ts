@@ -67,7 +67,11 @@ export class InventoryUi {
     this.render();
   }
 
-  private weaponLabel(id: string, parent: HTMLElement): void {
+  private weaponLabel(id: string | null, parent: HTMLElement): void {
+    if (id === null) {
+      el('div', 'inv__item-name', parent, 'Unarmed');
+      return;
+    }
     const def = weaponDef(this.config, id);
     el('div', 'inv__item-name', parent, def.name);
     el(

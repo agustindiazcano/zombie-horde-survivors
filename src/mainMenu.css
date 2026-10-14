@@ -14,6 +14,27 @@
   display: none;
 }
 
+.menu {
+  gap: clamp(8px, 4vw, 64px);
+}
+
+.menu__stage {
+  width: min(36vw, 460px);
+  height: min(80vh, 640px);
+}
+
+.menu__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 800px) {
+  .menu__stage {
+    display: none;
+  }
+}
+
 .menu__panel {
   max-width: 560px;
   padding: 0 20px;
@@ -49,6 +70,24 @@
 .menu__start:focus-visible {
   background: #e33;
   outline: none;
+}
+
+.menu__settings {
+  display: block;
+  margin: 14px auto 0;
+  font: inherit;
+  font-size: 15px;
+  padding: 8px 22px;
+  color: #ddd;
+  background: transparent;
+  border: 1px solid #4a5366;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu__settings:hover {
+  border-color: #ffd84a;
+  color: #fff;
 }
 
 .menu__tips {

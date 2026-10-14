@@ -1,17 +1,29 @@
 import { rayAabb, resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { maybeDropCrate } from './inventory';
-import { dropLoot } from './loot';
+import { dropLoot, rewardOf } from './loot';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
 import type { GameState, Soldier, Zombie } from './types';
 import type { Vec2 } from './vec';
+
+/** A boss's multipliers: the nth boss (1-based) reads the nth list entry, then keeps growing. */
+export function bossStats(config: GameConfig, nth: number) {
+  const b = config.boss;
+  const pick = (list: number[]) =>
+    list[nth - 1] ?? list[list.length - 1]! * b.growth ** (nth - list.length);
+  const health = pick(b.health);
+  const size = Math.min(b.sizeBase * (health / b.health[0]!) ** b.sizeExponent, b.maxSize);
+  return { health, damage: pick(b.damage), size, reward: b.rewardScale * nth };
+}
 
 export function spawnZombie(
   state: GameState,
   config: GameConfig,
   pos: Vec2,
   type = 'zombie',
+  /** 0 for a normal enemy; otherwise which boss this is (1st, 2nd, ...). */
+  bossNumber = 0,
 ): Zombie {
   const variant = config.enemies[type];
   const k = variant ?? {
@@ -24,19 +36,26 @@ export function spawnZombie(
   const wc = config.waves;
   const speedScale = Math.min(1 + wc.speedScalePerWave * wavesPlayed, wc.maxSpeedScale);
   const health = config.zombie.health * k.healthScale * (1 + wc.healthScalePerWave * wavesPlayed);
+  const boss = bossNumber > 0;
+  const b = boss
+    ? { ...bossStats(config, bossNumber), speed: config.boss.speedScale }
+    : { health: 1, damage: 1, size: 1, speed: 1, reward: 1 };
   const zombie: Zombie = {
     id: state.nextZombieId++,
     pos: { ...pos },
     prev: { ...pos },
     facing: 0,
     type: variant ? type : 'zombie',
-    health,
-    maxHealth: health,
+    boss,
+    size: b.size,
+    reward: b.reward,
+    health: health * b.health,
+    maxHealth: health * b.health,
     exploded: false,
-    speed: config.zombie.speed * k.speedScale * speedScale,
-    radius: config.zombie.radius * k.radiusScale,
-    damage: config.zombie.damage * k.damageScale,
-    attackRange: config.zombie.attackRange * k.radiusScale,
+    speed: config.zombie.speed * k.speedScale * speedScale * b.speed,
+    radius: config.zombie.radius * k.radiusScale * b.size,
+    damage: config.zombie.damage * k.damageScale * b.damage,
+    attackRange: config.zombie.attackRange * k.radiusScale * b.size,
     state: 'walk',
     attackTimer: 0,
     deathTimer: 0,
@@ -53,6 +72,8 @@ export function damageZombie(
   config: GameConfig,
   zombie: Zombie,
   amount: number,
+  /** The soldier that fired the shot; it gets the kill and the experience. */
+  killer?: Soldier,
 ): void {
   if (zombie.state === 'death') return;
   zombie.health -= amount;
@@ -65,12 +86,17 @@ export function damageZombie(
   // A burst enemy has no death animation to wait for.
   zombie.deathTimer = exploded ? EXPLODED_LINGER : config.zombie.deathDuration;
   state.kills++;
+  if (killer) {
+    killer.kills++;
+    killer.xp += rewardOf(config, zombie).xp;
+  }
   state.events.push({
     type: 'zombieKilled',
     id: zombie.id,
     enemy: zombie.type,
     pos: { x: zombie.pos.x, z: zombie.pos.z },
     exploded,
+    killerId: killer?.id ?? null,
   });
   dropLoot(state, config, zombie);
   maybeDropCrate(state, config, zombie.pos);
@@ -169,6 +195,8 @@ function separateZombies(state: GameState, config: GameConfig): void {
 
 const LOOKAHEAD = 3;
 const CORNER_MARGIN = 0.35;
+/** A zombie this close to a detour corner counts as having reached it. */
+const CORNER_REACHED = 0.8;
 const scratch: Vec2 = { x: 0, z: 0 };
 
 /**
@@ -195,6 +223,9 @@ function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: 
     for (const sz of [-1, 1]) {
       const cx = blocker.x + sx * hw;
       const cz = blocker.z + sz * hd;
+      // Already standing on this corner: aim for the next one along the wall instead of
+      // picking the same corner again and never getting past it.
+      if (Math.hypot(cx - from.x, cz - from.z) < CORNER_REACHED) continue;
       const cost = Math.hypot(cx - from.x, cz - from.z) + Math.hypot(to.x - cx, to.z - cz);
       if (cost < best) {
         best = cost;

@@ -1,4 +1,4 @@
-/** A small frames-per-second readout in the corner, toggled with F3. */
+/** A small frames-per-second readout in the corner (F3 or the settings). */
 export class FpsCounter {
   private readonly node = document.createElement('div');
   private visible = false;
@@ -8,7 +8,7 @@ export class FpsCounter {
   constructor(parent: HTMLElement) {
     Object.assign(this.node.style, {
       position: 'fixed',
-      right: '8px',
+      left: '8px',
       bottom: '8px',
       padding: '2px 6px',
       font: '12px monospace',
@@ -22,9 +22,9 @@ export class FpsCounter {
     parent.appendChild(this.node);
   }
 
-  toggle(): void {
-    this.visible = !this.visible;
-    this.node.style.display = this.visible ? 'block' : 'none';
+  setVisible(visible: boolean): void {
+    this.visible = visible;
+    this.node.style.display = visible ? 'block' : 'none';
   }
 
   /** Call once per rendered frame with the frame time in seconds. */

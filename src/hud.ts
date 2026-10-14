@@ -101,7 +101,7 @@ export class Hud {
 
     this.pause = el('div', 'hud__pause', root);
     el('h1', '', this.pause, 'PAUSED');
-    el('p', '', this.pause, 'Press P or Esc to resume');
+    el('p', '', this.pause, 'Press P, I or Esc to resume');
 
     this.gameOver = el('div', 'hud__gameover', root);
     el('h1', '', this.gameOver, 'GAME OVER');
@@ -135,6 +135,7 @@ export class Hud {
     for (const e of state.events) {
       if (e.type === 'soldierHurt' && e.soldierId === state.controlledId) this.flashDamage();
       else if (e.type === 'levelUp') this.showBanner(`LEVEL UP! Lv ${e.level}`);
+      else if (e.type === 'bossSpawned') this.showBanner('MINI BOSS!');
     }
   }
 
@@ -157,7 +158,11 @@ export class Hud {
       getSoldier(state, focusId) ?? state.soldiers.find((s) => !s.dead) ?? state.soldiers[0];
     const health = Math.ceil(focus?.health ?? 0);
     const focusKey = focus?.id ?? 0;
-    const weapon = focus ? weaponDef(this.config, focus.weapon).name : '';
+    const weapon = focus
+      ? focus.weapon
+        ? weaponDef(this.config, focus.weapon).name
+        : 'Unarmed'
+      : '';
     if (
       health !== this.shown.health ||
       focusKey !== this.shown.focus ||

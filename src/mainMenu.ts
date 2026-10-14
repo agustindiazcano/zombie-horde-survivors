@@ -1,4 +1,6 @@
 import './mainMenu.css';
+import { MenuModel } from './menuModel';
+import type { CharacterFactory } from './render/characters';
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -20,10 +22,14 @@ function el<K extends keyof HTMLElementTagNameMap>(
 export class MainMenu {
   private readonly root = el('div', 'menu');
   private open = true;
+  private model: MenuModel | null = null;
 
+  /** `preview` makes the character that floats on the right of the title screen. */
   constructor(
     parent: HTMLElement,
     private readonly onStart: () => void,
+    preview?: CharacterFactory,
+    onSettings?: () => void,
   ) {
     const panel = el('div', 'menu__panel', this.root);
     el('h1', 'menu__title', panel, 'Zombie Horde Survivors');
@@ -35,6 +41,10 @@ export class MainMenu {
     );
     const start = el('button', 'menu__start', panel, 'Start');
     start.addEventListener('click', () => this.start());
+    if (onSettings) {
+      const settings = el('button', 'menu__settings', panel, '⚙ Settings (O)');
+      settings.addEventListener('click', onSettings);
+    }
     const tips = el('ul', 'menu__tips', panel);
     for (const tip of [
       'WASD move · Mouse aim · Click fire',
@@ -44,6 +54,10 @@ export class MainMenu {
       el('li', '', tips, tip);
     }
     parent.appendChild(this.root);
+    if (preview) {
+      const stage = el('div', 'menu__stage', this.root);
+      this.model = new MenuModel(stage, preview);
+    }
     start.focus();
   }
 
@@ -61,6 +75,8 @@ export class MainMenu {
   private start(): void {
     if (!this.open) return;
     this.open = false;
+    this.model?.stop();
+    this.model = null;
     this.root.classList.add('menu--hidden');
     this.onStart();
   }

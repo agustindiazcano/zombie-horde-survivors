@@ -26,6 +26,7 @@ export function fireWeapon(
   rateScale = 1,
 ): void {
   const weapon = weaponOf(config, soldier, state.mods, state.stance);
+  if (!weapon) return;
   soldier.fireCooldown += 1 / (weapon.fireRate * rateScale);
 
   const origin = soldier.pos;
@@ -62,5 +63,5 @@ export function fireWeapon(
     to: { x: origin.x + dir.x * nearest, z: origin.z + dir.z * nearest },
     hitZombieId: target?.id ?? null,
   });
-  if (target) damageZombie(state, config, target, weapon.damage);
+  if (target) damageZombie(state, config, target, weapon.damage, soldier);
 }

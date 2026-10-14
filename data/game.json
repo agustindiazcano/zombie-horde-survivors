@@ -1,6 +1,6 @@
 {
   "arena": {
-    "halfSize": 20,
+    "halfSize": 40,
     "obstacles": [
       {
         "x": 5,
@@ -19,6 +19,78 @@
         "z": -8,
         "halfW": 3,
         "halfD": 1
+      },
+      {
+        "x": 15,
+        "z": -12,
+        "halfW": 2,
+        "halfD": 2
+      },
+      {
+        "x": -16,
+        "z": -14,
+        "halfW": 1,
+        "halfD": 4
+      },
+      {
+        "x": 18,
+        "z": 14,
+        "halfW": 3,
+        "halfD": 1
+      },
+      {
+        "x": -14,
+        "z": 18,
+        "halfW": 2,
+        "halfD": 2
+      },
+      {
+        "x": 2,
+        "z": 20,
+        "halfW": 4,
+        "halfD": 1
+      },
+      {
+        "x": 28,
+        "z": -24,
+        "halfW": 3,
+        "halfD": 2
+      },
+      {
+        "x": -30,
+        "z": -26,
+        "halfW": 2,
+        "halfD": 5
+      },
+      {
+        "x": 30,
+        "z": 26,
+        "halfW": 2,
+        "halfD": 4
+      },
+      {
+        "x": -26,
+        "z": 28,
+        "halfW": 4,
+        "halfD": 2
+      },
+      {
+        "x": 0,
+        "z": -30,
+        "halfW": 5,
+        "halfD": 1.5
+      },
+      {
+        "x": -32,
+        "z": 4,
+        "halfW": 1.5,
+        "halfD": 3
+      },
+      {
+        "x": 33,
+        "z": -2,
+        "halfW": 1.5,
+        "halfD": 3
       }
     ]
   },
@@ -26,7 +98,8 @@
     "count": 4,
     "followDistance": 3,
     "aiRange": 14,
-    "aiFireRateScale": 0.5
+    "aiFireRateScale": 0.5,
+    "startWeapon": "pistol"
   },
   "inventory": {
     "backpackSlots": 6
@@ -56,11 +129,19 @@
     "table": [
       {
         "weapon": "pistol",
-        "weight": 3
+        "weight": 2
+      },
+      {
+        "weapon": "rifle",
+        "weight": 2
       },
       {
         "weapon": "heavy_mg",
         "weight": 2
+      },
+      {
+        "weapon": "drone_cannon",
+        "weight": 1.5
       }
     ]
   },
@@ -170,7 +251,7 @@
     "maxPickups": 120
   },
   "progress": {
-    "xpPerLevel": 100,
+    "xpPerLevel": 200,
     "growth": 1.35
   },
   "gore": {
@@ -253,12 +334,12 @@
         "costGrowth": 1.4
       },
       {
-        "id": "pistol",
-        "name": "Pistol",
-        "description": "Adds a pistol to the selected unit's backpack",
+        "id": "rifle",
+        "name": "Rifle",
+        "description": "Adds a rifle to the selected unit's backpack",
         "kind": "weapon",
-        "target": "pistol",
-        "cost": 40
+        "target": "rifle",
+        "cost": 90
       },
       {
         "id": "heavy_mg",
@@ -267,6 +348,14 @@
         "kind": "weapon",
         "target": "heavy_mg",
         "cost": 140
+      },
+      {
+        "id": "drone_gun",
+        "name": "Drone gun",
+        "description": "A gun for the drone, which has none to start with",
+        "kind": "weapon",
+        "target": "drone_cannon",
+        "cost": 50
       },
       {
         "id": "up_damage",
@@ -296,5 +385,17 @@
         "costGrowth": 1.5
       }
     ]
+  },
+  "boss": {
+    "everyWaves": 3,
+    "types": ["zombie", "skeleton", "alien", "brute", "hound"],
+    "health": [50, 70, 100, 200, 500],
+    "damage": [2, 3, 4, 6, 8],
+    "growth": 1.6,
+    "speedScale": 0.6,
+    "rewardScale": 8,
+    "sizeBase": 2,
+    "sizeExponent": 0.4,
+    "maxSize": 5
   }
 }
