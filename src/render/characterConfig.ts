@@ -16,7 +16,7 @@ const characterSpec = z
 
 /** Schema for data/characters.json: the single place states are mapped to clip names. */
 export const CharactersConfigSchema = z
-  .object({ player: characterSpec, zombie: characterSpec })
+  .object({ player: characterSpec, zombie: characterSpec, drone: characterSpec })
   .strict();
 
 export type CharacterSpec = z.infer<typeof characterSpec>;

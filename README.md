@@ -38,6 +38,8 @@ You command a squad of soldiers. The game starts in **direct control** of one so
 | 1-9               | Select soldier by number                          |
 | Y                 | Take direct control of the first selected soldier |
 
+The squad also has a **drone** (unit 5): a flying ball with slow, hard-hitting shots that ignore cover. Zombies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
+
 Uncontrolled soldiers shoot the nearest zombie in sight on their own. When you press Y, only the soldiers selected at that moment follow the controlled one; the others hold their position (or keep their move order).
 
 | Anywhere | Action              |

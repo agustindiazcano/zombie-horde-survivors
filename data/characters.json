@@ -20,5 +20,15 @@
       "death": "Death_A"
     },
     "once": ["death"]
+  },
+  "drone": {
+    "model": null,
+    "scale": 1,
+    "yawOffset": 0,
+    "clips": {
+      "idle": "Idle",
+      "run": "Fly"
+    },
+    "once": []
   }
 }

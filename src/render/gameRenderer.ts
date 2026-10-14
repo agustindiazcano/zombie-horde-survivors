@@ -13,6 +13,7 @@ const MOVING_EPSILON = 1e-4;
 interface Factories {
   player: CharacterFactory;
   zombie: CharacterFactory;
+  drone: CharacterFactory;
 }
 
 interface ZombieEntry {
@@ -49,6 +50,7 @@ export class GameRenderer {
   private zoom = ZOOM_DIRECT;
   private focusInitialized = false;
   private readonly halfSize: number;
+  private readonly droneHeight: number;
   selection: ReadonlySet<number> = new Set();
   private readonly zombies = new Map<number, ZombieEntry>();
   /** Released zombie views kept for reuse instead of being rebuilt. */
@@ -75,6 +77,7 @@ export class GameRenderer {
     this.addLights(config.arena.halfSize);
 
     this.halfSize = config.arena.halfSize;
+    this.droneHeight = config.drone.height;
     this.scene.add(this.effects.group, this.markers.group);
 
     window.addEventListener('resize', this.resize);
@@ -149,12 +152,13 @@ export class GameRenderer {
     for (const s of state.soldiers) {
       let view = this.soldiers.get(s.id);
       if (!view) {
-        view = this.factories.player();
+        view = s.kind === 'drone' ? this.factories.drone() : this.factories.player();
         this.soldiers.set(s.id, view);
         this.scene.add(view.object);
       }
       const moving = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > MOVING_EPSILON;
-      view.object.position.set(lerp(s.prev.x, s.pos.x, alpha), 0, lerp(s.prev.z, s.pos.z, alpha));
+      const y = s.kind === 'drone' ? this.droneHeight : 0;
+      view.object.position.set(lerp(s.prev.x, s.pos.x, alpha), y, lerp(s.prev.z, s.pos.z, alpha));
       view.object.rotation.y = s.facing;
       view.setState(s.dead ? 'death' : moving ? 'run' : 'idle');
       view.update(dt);
@@ -165,7 +169,7 @@ export class GameRenderer {
   onStep(state: GameState): void {
     for (const e of state.events) {
       if (e.type === 'shot') {
-        this.effects.spawnShot(e.from, e.to, e.facing);
+        this.effects.spawnShot(e.from, e.to, e.facing, e.height, e.hitZombieId !== null);
         if (e.shooterId === state.controlledId) {
           this.shake = Math.min(this.shake + SHOT_SHAKE, MAX_SHAKE);
         }
