@@ -26,6 +26,7 @@ npm run lint && npm run format:check && npm run typecheck
 | Left click (hold) | Fire                          |
 | R (game over)     | Restart                       |
 | M                 | Mute / unmute                 |
+| P / Esc           | Pause / resume                |
 
 ## Assets
 

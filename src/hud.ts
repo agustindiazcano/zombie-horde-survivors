@@ -3,6 +3,23 @@ import type { GameConfig, GameState } from './sim';
 
 const BANNER_MS = 1800;
 const LOW_HEALTH = 0.3;
+const BEST_KEY = 'zombie-shooter.best-kills';
+
+function loadBest(): number {
+  try {
+    return Number(localStorage.getItem(BEST_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveBest(kills: number): void {
+  try {
+    localStorage.setItem(BEST_KEY, String(kills));
+  } catch {
+    // Storage can be unavailable (private mode); the best score is optional.
+  }
+}
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -25,11 +42,13 @@ export class Hud {
   private readonly kills: HTMLElement;
   private readonly banner: HTMLElement;
   private readonly damage: HTMLElement;
+  private readonly countdown: HTMLElement;
+  private readonly pause: HTMLElement;
   private readonly gameOver: HTMLElement;
   private readonly summary: HTMLElement;
   private bannerTimer = 0;
   // Last rendered values, so the DOM is only touched when something changes.
-  private shown = { health: -1, wave: -1, kills: -1, over: false };
+  private shown = { health: -1, wave: -1, kills: -1, over: false, countdown: '' };
 
   constructor(
     parent: HTMLElement,
@@ -47,6 +66,11 @@ export class Hud {
     this.kills = el('span', '', stats);
     this.banner = el('div', 'hud__banner', root);
     this.damage = el('div', 'hud__damage', root);
+    this.countdown = el('div', 'hud__countdown', root);
+
+    this.pause = el('div', 'hud__pause', root);
+    el('h1', '', this.pause, 'PAUSED');
+    el('p', '', this.pause, 'Press P or Esc to resume');
 
     this.gameOver = el('div', 'hud__gameover', root);
     el('h1', '', this.gameOver, 'GAME OVER');
@@ -60,7 +84,7 @@ export class Hud {
 
   /** Forces a full refresh on the next update (call after restarting). */
   reset(): void {
-    this.shown = { health: -1, wave: -1, kills: -1, over: false };
+    this.shown = { health: -1, wave: -1, kills: -1, over: false, countdown: '' };
     this.gameOver.classList.remove('hud__gameover--visible');
     this.banner.classList.remove('hud__banner--visible');
   }
@@ -70,6 +94,10 @@ export class Hud {
     for (const e of state.events) {
       if (e.type === 'playerHurt') this.flashDamage();
     }
+  }
+
+  setPaused(paused: boolean): void {
+    this.pause.classList.toggle('hud__pause--visible', paused);
   }
 
   update(state: GameState): void {
@@ -93,11 +121,24 @@ export class Hud {
       this.kills.textContent = `Kills ${state.kills}`;
     }
 
+    const countdown =
+      state.status === 'playing' && state.spawner.phase === 'intermission'
+        ? `Next wave in ${Math.ceil(state.spawner.timer)}s`
+        : '';
+    if (countdown !== this.shown.countdown) {
+      this.shown.countdown = countdown;
+      this.countdown.textContent = countdown;
+    }
+
     const over = state.status === 'gameover';
     if (over !== this.shown.over) {
       this.shown.over = over;
       this.gameOver.classList.toggle('hud__gameover--visible', over);
-      this.summary.textContent = `You survived to wave ${state.wave} with ${state.kills} kills.`;
+      if (over) {
+        const best = Math.max(loadBest(), state.kills);
+        saveBest(best);
+        this.summary.textContent = `You survived to wave ${state.wave} with ${state.kills} kills. Best: ${best}`;
+      }
     }
   }
 

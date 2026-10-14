@@ -72,6 +72,36 @@
   transition: none;
 }
 
+.hud__countdown {
+  position: absolute;
+  top: 56px;
+  width: 100%;
+  text-align: center;
+  font-size: 16px;
+  opacity: 0.85;
+}
+
+.hud__pause {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 18px;
+}
+
+.hud__pause h1 {
+  margin: 0;
+  font-size: 48px;
+}
+
+.hud__pause--visible {
+  display: flex;
+}
+
 .hud__gameover {
   position: absolute;
   inset: 0;
