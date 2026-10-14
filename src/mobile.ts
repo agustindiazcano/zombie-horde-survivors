@@ -127,6 +127,18 @@ export class MobileControls {
     }
   }
 
+  /** Hides the joystick and action buttons while a menu, the pause screen or the shop is open. */
+  setMenuOpen(open: boolean): void {
+    if (this.root.classList.contains('mob--menu') === open) return;
+    this.root.classList.toggle('mob--menu', open);
+    if (open) {
+      this.pointerId = null;
+      this.knob.style.transform = '';
+      this.base.classList.remove('mob__stick--active');
+      this.actions.onMove(0, 0);
+    }
+  }
+
   /** Shows the crate button while the leader stands next to a crate. */
   setCrateReady(ready: boolean): void {
     this.crate.hidden = !ready;

@@ -323,6 +323,11 @@ body.mobile .set__button {
   height: 50px;
 }
 
+.mob--menu .mob__zone,
+.mob--menu .mob__actions {
+  display: none;
+}
+
 .mob__btn[hidden] {
   display: none;
 }
