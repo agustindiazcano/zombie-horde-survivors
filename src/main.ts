@@ -3,6 +3,7 @@ import data from '../data/game.json';
 import { Sfx } from './audio';
 import { FpsCounter } from './fps';
 import { Hud } from './hud';
+import { MainMenu } from './mainMenu';
 import { InputController } from './input';
 import { CameraControls } from './cameraControls';
 import { CratePrompt, InventoryUi } from './inventoryUi';
@@ -55,7 +56,8 @@ async function main(): Promise<void> {
   const perks = new PerkPicker(document.body, config, () => state);
   const shop = new Shop(document.body, config, () => state);
   /** Any full-screen menu: the game is frozen and keyboard shortcuts are off. */
-  const modalOpen = () => ui.isOpen || perks.isOpen || shop.isOpen;
+  const menu = new MainMenu(document.body, () => undefined);
+  const modalOpen = () => menu.isOpen || ui.isOpen || perks.isOpen || shop.isOpen;
   const rts = new RtsController(
     renderer.domElement,
     renderer,
@@ -75,7 +77,7 @@ async function main(): Promise<void> {
   });
 
   const setPaused = (value: boolean) => {
-    paused = value && state.status === 'playing';
+    paused = value && state.status === 'playing' && !menu.isOpen;
     hud.setPaused(paused);
   };
 
@@ -126,7 +128,7 @@ async function main(): Promise<void> {
     if (!document.pointerLockElement && renderer.viewMode !== 'top') setView('top');
   });
 
-  const playable = () => !paused && state.status === 'playing' && !perks.isOpen;
+  const playable = () => !paused && state.status === 'playing' && !perks.isOpen && !menu.isOpen;
 
   /** The unit the inventory opens on: controlled, else first selected, else first alive. */
   const inventoryFocus = () =>
@@ -139,6 +141,7 @@ async function main(): Promise<void> {
   };
 
   window.addEventListener('keydown', (e) => {
+    if (menu.onKey(e.code)) return;
     if (perks.onKey(e.code)) return;
     if (e.code === 'KeyM') sfx.toggleMute();
     else if (e.code === 'Escape' && ui.isOpen) ui.close();

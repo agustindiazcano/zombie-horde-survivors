@@ -1,0 +1,61 @@
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(20, 24, 32, 0.7), rgba(0, 0, 0, 0.92));
+  font-family: system-ui, sans-serif;
+  color: #fff;
+}
+
+.menu--hidden {
+  display: none;
+}
+
+.menu__panel {
+  max-width: 560px;
+  padding: 0 20px;
+  text-align: center;
+}
+
+.menu__title {
+  margin: 0 0 10px;
+  font-size: clamp(32px, 7vw, 56px);
+  color: #e33;
+  text-shadow: 0 3px 0 #500;
+}
+
+.menu__tagline {
+  margin: 0 0 28px;
+  font-size: 18px;
+  opacity: 0.85;
+}
+
+.menu__start {
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  padding: 12px 56px;
+  color: #fff;
+  background: #c22;
+  border: 2px solid #f66;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu__start:hover,
+.menu__start:focus-visible {
+  background: #e33;
+  outline: none;
+}
+
+.menu__tips {
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.8;
+  opacity: 0.65;
+}
