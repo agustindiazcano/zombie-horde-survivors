@@ -15,4 +15,13 @@ export {
   orderMove,
 } from './soldiers';
 export { spawnZombie } from './zombies';
+export {
+  backpackFull,
+  equipFromBackpack,
+  getCrate,
+  nearestCrate,
+  stashInCrate,
+  takeFromCrate,
+} from './inventory';
+export { weaponDef, type WeaponDef } from './stats';
 export { waveSize } from './waves';

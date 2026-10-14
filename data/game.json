@@ -8,6 +8,28 @@
     ]
   },
   "squad": { "count": 4, "followDistance": 3, "aiRange": 14, "aiFireRateScale": 0.5 },
+  "inventory": { "backpackSlots": 6 },
+  "weapons": {
+    "pistol": { "name": "Pistol", "fireRate": 4, "damage": 20, "range": 25, "spread": 0.02 },
+    "heavy_mg": {
+      "name": "Heavy machine gun",
+      "fireRate": 14,
+      "damage": 18,
+      "range": 35,
+      "spread": 0.07
+    }
+  },
+  "drops": {
+    "chance": 0.25,
+    "minItems": 1,
+    "maxItems": 2,
+    "pickupRange": 2.2,
+    "maxCrates": 12,
+    "table": [
+      { "weapon": "pistol", "weight": 3 },
+      { "weapon": "heavy_mg", "weight": 2 }
+    ]
+  },
   "drone": { "count": 1, "speed": 7, "height": 3, "fireRate": 1.2, "damage": 45, "range": 30 },
   "player": { "speed": 6, "maxHealth": 100, "radius": 0.4 },
   "weapon": { "fireRate": 8, "damage": 25, "range": 40 },

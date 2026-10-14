@@ -1,5 +1,6 @@
 import { rayAabb, resolveStatic } from './collision';
 import type { GameConfig } from './config';
+import { maybeDropCrate } from './inventory';
 import { hurtSoldier } from './soldiers';
 import type { GameState, Soldier, Zombie } from './types';
 import type { Vec2 } from './vec';
@@ -37,6 +38,7 @@ export function damageZombie(
   zombie.deathTimer = config.zombie.deathDuration;
   state.kills++;
   state.events.push({ type: 'zombieKilled', id: zombie.id });
+  maybeDropCrate(state, config, zombie.pos);
 }
 
 export function updateZombies(state: GameState, config: GameConfig, dt: number): void {

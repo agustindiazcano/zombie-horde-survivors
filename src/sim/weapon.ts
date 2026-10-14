@@ -2,6 +2,7 @@ import { rayAabb, rayCircle } from './collision';
 import type { GameConfig } from './config';
 import type { GameState, Soldier, Zombie } from './types';
 import { dirFromAngle, type Vec2 } from './vec';
+import { nextFloat } from './rng';
 import { weaponOf } from './stats';
 import { damageZombie } from './zombies';
 
@@ -28,7 +29,9 @@ export function fireWeapon(
   soldier.fireCooldown = 1 / (weapon.fireRate * rateScale);
 
   const origin = soldier.pos;
-  const dir = dirFromAngle(soldier.facing);
+  // Inaccurate weapons scatter their shots around the facing direction.
+  const spread = weapon.spread > 0 ? (nextFloat(state.rng) * 2 - 1) * weapon.spread : 0;
+  const dir = dirFromAngle(soldier.facing + spread);
   let nearest = weapon.range;
   let target: Zombie | null = null;
 
@@ -53,6 +56,7 @@ export function fireWeapon(
     type: 'shot',
     shooterId: soldier.id,
     facing: soldier.facing,
+    weapon: weapon.id,
     height: weapon.height,
     from: { x: origin.x, z: origin.z },
     to: { x: origin.x + dir.x * nearest, z: origin.z + dir.z * nearest },

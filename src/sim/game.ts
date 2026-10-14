@@ -16,6 +16,8 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     nextSoldierId: soldiers.length + 1,
     zombies: [],
     nextZombieId: 1,
+    crates: [],
+    nextCrateId: 1,
     wave: 0,
     kills: 0,
     spawner: { phase: 'intermission', timer: config.waves.intermission, toSpawn: 0 },

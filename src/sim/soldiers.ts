@@ -28,6 +28,8 @@ export function createSquad(config: GameConfig): Soldier[] {
       dead: false,
       fireCooldown: 0,
       order: { type: 'follow' },
+      weapon: 'rifle',
+      backpack: [],
     };
   });
   for (let i = 0; i < config.drone.count; i++) {
@@ -42,6 +44,8 @@ export function createSquad(config: GameConfig): Soldier[] {
       dead: false,
       fireCooldown: 0,
       order: { type: 'follow' },
+      weapon: 'drone_cannon',
+      backpack: [],
     });
   }
   return soldiers;
@@ -207,7 +211,7 @@ function updateAi(
 function findTarget(state: GameState, config: GameConfig, s: Soldier): Zombie | null {
   const weapon = weaponOf(config, s);
   let best: Zombie | null = null;
-  let bestDist = isDrone(s) ? weapon.range : config.squad.aiRange;
+  let bestDist = isDrone(s) ? weapon.range : Math.min(config.squad.aiRange, weapon.range);
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
     const d = Math.hypot(z.pos.x - s.pos.x, z.pos.z - s.pos.z);
