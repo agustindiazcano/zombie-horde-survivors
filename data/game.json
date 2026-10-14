@@ -142,6 +142,10 @@
       {
         "weapon": "drone_cannon",
         "weight": 1.5
+      },
+      {
+        "weapon": "armor_plate",
+        "weight": 2
       }
     ]
   },
@@ -157,6 +161,7 @@
     "speed": 6,
     "maxHealth": 100,
     "maxArmor": 50,
+    "armorPlate": 20,
     "radius": 0.4
   },
   "weapon": {
@@ -337,6 +342,15 @@
         "kind": "revive",
         "cost": 100,
         "costGrowth": 1.4
+      },
+      {
+        "id": "armor",
+        "name": "Armor vest",
+        "description": "+25 armor for every living soldier (up to the maximum)",
+        "kind": "armor",
+        "amount": 25,
+        "cost": 60,
+        "costGrowth": 1.25
       },
       {
         "id": "rifle",

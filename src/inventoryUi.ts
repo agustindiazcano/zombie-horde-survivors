@@ -5,6 +5,7 @@ import {
   getCrate,
   stashInCrate,
   takeFromCrate,
+  ARMOR_PLATE,
   weaponDef,
   type GameConfig,
   type GameState,
@@ -70,6 +71,11 @@ export class InventoryUi {
   private weaponLabel(id: string | null, parent: HTMLElement): void {
     if (id === null) {
       el('div', 'inv__item-name', parent, 'Unarmed');
+      return;
+    }
+    if (id === ARMOR_PLATE) {
+      el('div', 'inv__item-name', parent, 'Armor plate');
+      el('div', 'inv__item-stats', parent, `+${this.config.player.armorPlate} armor, worn at once`);
       return;
     }
     const def = weaponDef(this.config, id);

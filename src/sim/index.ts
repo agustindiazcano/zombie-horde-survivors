@@ -16,6 +16,7 @@ export {
 } from './soldiers';
 export { bossStats, spawnZombie } from './zombies';
 export {
+  ARMOR_PLATE,
   backpackFull,
   equipFromBackpack,
   getCrate,

@@ -140,7 +140,9 @@ If the game runs slowly, try the **Low** preset or lower the resolution. Changin
 
 Every level-up pauses the game and offers **3 random perks** for the whole squad: pick one with a click or the **1 / 2 / 3** keys. Perks stack up to a limit: damage, fire rate, movement speed, max health, health regeneration and a bigger loot pickup radius.
 
-Between waves (the countdown at the top) press **B** to open the **shop** and spend gold: heal the squad, bring back a fallen soldier, buy a pistol or heavy machine gun for the selected unit, or buy permanent upgrades. Prices grow with each purchase. The game is paused while a menu is open. Perks and shop items are in `data/game.json` (`perks`, `shop`).
+Between waves (the countdown at the top) press **B** to open the **shop** and spend gold: heal the squad, buy an armor vest (+25 armor for every soldier), bring back a fallen soldier, buy a pistol or heavy machine gun for the selected unit, or buy permanent upgrades. Prices grow with each purchase. The game is paused while a menu is open. Perks and shop items are in `data/game.json` (`perks`, `shop`).
+
+Crates can also hold an **armor plate** (+20 armor): taking it wears it at once instead of using a backpack slot. Armor soaks damage before health and caps at 50.
 
 ## Enemies
 

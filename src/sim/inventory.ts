@@ -3,6 +3,9 @@ import { nextFloat } from './rng';
 import type { Crate, GameState, Soldier } from './types';
 import type { Vec2 } from './vec';
 
+/** Crate entry that is worn as armor instead of carried. */
+export const ARMOR_PLATE = 'armor_plate';
+
 export const backpackFull = (config: GameConfig, s: Soldier): boolean =>
   s.backpack.length >= config.inventory.backpackSlots;
 
@@ -125,9 +128,16 @@ export function takeFromCrate(
   if (!s) return false;
   const crate = reachableCrate(state, config, s, crateId);
   const item = crate?.items[index];
-  if (!crate || item === undefined || backpackFull(config, s)) return false;
+  if (!crate || item === undefined) return false;
+  if (item === ARMOR_PLATE) {
+    // Armor is worn straight away instead of taking a backpack slot.
+    if (s.kind === 'drone' || s.armor >= config.player.maxArmor) return false;
+    s.armor = Math.min(config.player.maxArmor, s.armor + config.player.armorPlate);
+  } else {
+    if (backpackFull(config, s)) return false;
+    s.backpack.push(item);
+  }
   crate.items.splice(index, 1);
-  s.backpack.push(item);
   if (crate.items.length === 0) state.crates = state.crates.filter((c) => c !== crate);
   return true;
 }

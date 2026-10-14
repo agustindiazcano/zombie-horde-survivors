@@ -40,7 +40,9 @@ const shopItem = z
     id: z.string().min(1),
     name: z.string().min(1),
     description: z.string().min(1),
-    kind: z.enum(['heal', 'revive', 'weapon', 'perk']),
+    kind: z.enum(['heal', 'revive', 'weapon', 'perk', 'armor']),
+    /** Armor points given to every living soldier, for 'armor'. */
+    amount: positive.optional(),
     /** Weapon id for 'weapon', perk id for 'perk'. */
     target: z.string().optional(),
     cost: z.number().int().positive(),
@@ -76,6 +78,8 @@ export const GameConfigSchema = z
         maxHealth: positive,
         /** Capacity of the armor bar; units start with none and armor soaks damage before health. */
         maxArmor: positive,
+        /** Armor gained by taking an "armor_plate" from a crate. */
+        armorPlate: positive,
         radius: positive,
       })
       .strict(),
@@ -254,7 +258,7 @@ export const GameConfigSchema = z
       }
     }
     for (const entry of cfg.drops.table) {
-      if (!isKnownWeapon(entry.weapon)) {
+      if (entry.weapon !== 'armor_plate' && !isKnownWeapon(entry.weapon)) {
         ctx.addIssue({
           code: 'custom',
           message: `drops.table references unknown weapon "${entry.weapon}"`,
