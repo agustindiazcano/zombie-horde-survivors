@@ -84,6 +84,18 @@ When you take control with **Y**, only the units that were selected follow you. 
 | F3      | Show / hide the FPS counter                                    |
 | R       | Restart (on the game over screen)                              |
 
+## Mobile (landscape)
+
+On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the URL to try it on a desktop). Hold the phone sideways.
+
+| Control          | Action                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| Joystick (left)  | Drag a thumb anywhere in the lower-left area to move the whole squad; the others follow           |
+| Auto-fire        | The leader aims at the nearest enemy and fires on its own; so does the rest of the squad          |
+| Soldier icons    | Top-left row with each unit's health                                                              |
+| ⚙ / ☰ / 🛒 / 🎒 | Top-right: settings, main menu, shop (between waves), squad screen and inventories                |
+| Inventory        | Tap a weapon, then tap the slot to move it to (drag and drop also works where the browser allows) |
+
 ## Radar
 
 The round display in the bottom-right corner is a motion tracker, like the one from the film Aliens. A pulse ring spreads out from the middle of your squad and enemies only show up as bright blips when it crosses them, fading until the next ping. It is centred on your living units and only sees about 30 metres around them. The number at the bottom is the distance to the closest contact. Your units are hollow rings (filled for the one you control, a square for the drone). North is up.

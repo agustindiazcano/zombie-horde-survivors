@@ -17,6 +17,8 @@ export class InputController {
   private firing = false;
   private lookX = 0;
   private lookY = 0;
+  /** Virtual joystick on touch screens (-1..1 per axis, screen-relative like WASD). */
+  private readonly touchMove = { x: 0, z: 0 };
   private readonly current: Input = {
     move: { x: 0, z: 0 },
     aim: { x: 0, z: 1 },
@@ -60,6 +62,12 @@ export class InputController {
     target.style.cursor = 'crosshair';
   }
 
+  /** Sets the virtual joystick; the stick adds to the keyboard (clamped by the sim). */
+  setTouchMove(x: number, z: number): void {
+    this.touchMove.x = x;
+    this.touchMove.z = z;
+  }
+
   /** Mouse movement (pixels) since the last call; drives first/third person look. */
   takeLook(): { x: number; y: number } {
     const look = { x: this.lookX, y: this.lookY };
@@ -74,6 +82,8 @@ export class InputController {
     const move = this.current.move;
     move.x = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0);
     move.z = (k.has('KeyS') ? 1 : 0) - (k.has('KeyW') ? 1 : 0);
+    move.x += this.touchMove.x;
+    move.z += this.touchMove.z;
 
     const ground = project(this.ndcX, this.ndcY);
     if (ground) {

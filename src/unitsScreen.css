@@ -203,3 +203,8 @@
   width: 100%;
   height: 100%;
 }
+
+.us__slot--picked {
+  border-color: #5cff7a;
+  background: #2f4a37;
+}

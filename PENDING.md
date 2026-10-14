@@ -33,6 +33,11 @@ Claude has no browser, so every visual and feel decision below is an estimate. T
 - [ ] 🟡 **Gold between runs.** Gold, perks and purchases reset every run (only the best kill count is saved). Option offered: keep some gold in localStorage and add a shop on the main menu for permanent upgrades.
 - [ ] 🟢 **Crate contents in the squad screen:** today crates are opened only with E next to them (the old inventory window, crate mode). Decide whether nearby crates should also appear in the squad screen.
 
+### 2b — 🟡 Mobile follow-ups (first version on `feat/mobile-view`, not seen on a real phone)
+
+- Try it on a real phone (landscape) and tune sizes in `src/mobile.css` and `STICK_RADIUS` in `src/mobile.ts`.
+- Ideas not built yet: pinch to zoom; tap-to-open crates (E has no touch button); jump/crouch/sprint buttons; choose the leader by tapping a soldier icon; a RTS mode with tap-to-move; vibration on damage; auto-pause when the browser tab hides; PWA / fullscreen button; a lighter graphics preset by default on phones; the ~16 MB first load on mobile data.
+
 ### 3 — 🟡 Going public (GitHub Pages is live)
 
 - [ ] 🟡 **Analytics with GoatCounter** (free, no cookies, custom events for waves reached and game over). Needs the user's GoatCounter site name; the script goes in `index.html`.

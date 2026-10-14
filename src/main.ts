@@ -4,6 +4,7 @@ import { Sfx } from './audio';
 import { FpsCounter } from './fps';
 import { Hud } from './hud';
 import { MainMenu } from './mainMenu';
+import { isMobile, MobileControls } from './mobile';
 import { InputController } from './input';
 import { CameraControls } from './cameraControls';
 import { CratePrompt, InventoryUi } from './inventoryUi';
@@ -31,6 +32,9 @@ import { loadSettings, saveSettings, type Settings } from './settings';
 import { SettingsPanel } from './settingsPanel';
 import { Radar } from './radar';
 import { PerkPicker, Shop } from './upgradesUi';
+
+/** Mobile: enemies within this distance (world units) are shot at automatically. */
+const MOBILE_AIM_RANGE = 22;
 
 /** Camera pan speed in RTS mode (world units per second). */
 const PAN_SPEED = 22;
@@ -130,6 +134,41 @@ async function main(): Promise<void> {
   const setPaused = (value: boolean) => {
     paused = value && state.status === 'playing' && !menu.isOpen;
     hud.setPaused(paused);
+  };
+
+  const mobile = isMobile();
+  if (mobile) {
+    // Touch play: one joystick moves the whole squad; the leader auto-aims and everyone fires.
+    new MobileControls(document.body, {
+      onMove: (x, z) => input.setTouchMove(x, z),
+      onSettings: () => openSettings(),
+      onMenu: () => {
+        if (settingsPanel.isOpen) settingsPanel.close();
+        ui.close();
+        shop.close();
+        setPaused(false);
+        menu.show();
+      },
+      onShop: () => {
+        if (shop.isOpen) shop.close();
+        else if (playable() && !ui.isOpen && shopAvailable(state)) shop.show(inventoryFocus());
+      },
+      onInventory: () => {
+        if (!modalOpen()) setPaused(!paused);
+      },
+    });
+  }
+
+  /** Mobile: keeps a living soldier in control, with the rest of the squad following it. */
+  const ensureMobileLeader = () => {
+    if (state.status !== 'playing' || state.controlledId !== null) return;
+    const leader = state.soldiers.find((s) => !s.dead && s.kind !== 'drone');
+    if (!leader) return;
+    controlSoldier(state, leader.id);
+    orderFollow(
+      state,
+      state.soldiers.filter((s) => !s.dead && s.id !== leader.id).map((s) => s.id),
+    );
   };
 
   /** Y: take direct control of the first selected soldier, or go back to RTS mode. */
@@ -248,6 +287,29 @@ async function main(): Promise<void> {
     directInput.aim =
       renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
     directInput.firing = raw.firing;
+    if (mobile && unit) {
+      // No cursor: aim at the nearest enemy and keep firing; otherwise face the way we walk.
+      let best: { x: number; z: number } | null = null;
+      let bestDist = MOBILE_AIM_RANGE;
+      for (const z of state.zombies) {
+        if (z.state === 'death') continue;
+        const d = Math.hypot(z.pos.x - unit.pos.x, z.pos.z - unit.pos.z);
+        if (d < bestDist) {
+          bestDist = d;
+          best = z.pos;
+        }
+      }
+      const m = directInput.move;
+      if (best) directInput.aim = best;
+      else if (m.x !== 0 || m.z !== 0)
+        directInput.aim = { x: unit.pos.x + m.x, z: unit.pos.z + m.z };
+      else
+        directInput.aim = {
+          x: unit.pos.x + Math.sin(unit.facing),
+          z: unit.pos.z + Math.cos(unit.facing),
+        };
+      directInput.firing = best !== null;
+    }
     directInput.crouch = raw.crouch;
     directInput.sprint = raw.sprint;
     directInput.jump = raw.jump;
@@ -257,6 +319,7 @@ async function main(): Promise<void> {
   startLoop(
     (dt) => {
       if (paused || modalOpen()) return;
+      if (mobile) ensureMobileLeader();
       const direct = state.controlledId !== null;
       step(state, config, direct ? readInput() : noInput, dt);
       renderer.onStep(state);

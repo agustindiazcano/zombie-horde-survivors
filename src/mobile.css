@@ -1,0 +1,320 @@
+/* Touch layout (landscape phone). Everything below is gated by body.mobile. */
+
+.mob {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 70;
+  font-family: system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* The whole left-bottom area catches the thumb; the circle inside is only the picture. */
+.mob__zone {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 46vw;
+  height: 70%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0 0 max(18px, env(safe-area-inset-bottom)) max(28px, env(safe-area-inset-left));
+  box-sizing: border-box;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.mob__stick {
+  position: relative;
+  flex: none;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.35);
+}
+
+.mob__stick--active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.mob__knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+/* Little chevrons around the circle: "drag in any direction". */
+.mob__arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  opacity: 0.7;
+}
+
+.mob__arrow--up {
+  top: 4px;
+  left: calc(50% - 6px);
+  border-bottom-color: #fff;
+  border-top-width: 0;
+}
+
+.mob__arrow--down {
+  bottom: 4px;
+  left: calc(50% - 6px);
+  border-top-color: #fff;
+  border-bottom-width: 0;
+}
+
+.mob__arrow--left {
+  left: 4px;
+  top: calc(50% - 6px);
+  border-right-color: #fff;
+  border-left-width: 0;
+}
+
+.mob__arrow--right {
+  right: 4px;
+  top: calc(50% - 6px);
+  border-left-color: #fff;
+  border-right-width: 0;
+}
+
+/* Until the first touch the knob sweeps around and the circle breathes. */
+.mob__stick--hint {
+  animation: mob-breathe 2.4s ease-in-out infinite;
+}
+
+.mob__stick--hint .mob__knob {
+  animation: mob-sweep 3.2s ease-in-out infinite;
+}
+
+.mob__stick--active .mob__arrow {
+  opacity: 0.25;
+}
+
+.mob__tip {
+  position: absolute;
+  left: max(28px, env(safe-area-inset-left));
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 130px);
+  width: 120px;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 3px #000;
+  pointer-events: none;
+}
+
+.mob__stick--active + .mob__tip {
+  display: none;
+}
+
+@keyframes mob-breathe {
+  50% {
+    background: rgba(255, 255, 255, 0.16);
+    transform: scale(1.04);
+  }
+}
+
+@keyframes mob-sweep {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(28px, 0);
+  }
+  50% {
+    transform: translate(0, -28px);
+  }
+  75% {
+    transform: translate(-28px, 10px);
+  }
+}
+
+.mob__buttons {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.mob__btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  touch-action: manipulation;
+}
+
+.mob__btn:active {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ---- HUD adaptations ---- */
+
+body.mobile {
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+/* Soldier icons: a horizontal row at the top-left, with their health bars. */
+body.mobile .squad {
+  left: max(8px, env(safe-area-inset-left));
+  top: max(8px, env(safe-area-inset-top));
+  bottom: auto;
+  transform: none;
+  gap: 5px;
+}
+
+body.mobile .squad__chip {
+  width: 40px;
+  padding: 4px 3px;
+  font-size: 12px;
+  gap: 3px;
+}
+
+body.mobile .hud__health,
+body.mobile .hud__hint {
+  display: none;
+}
+
+body.mobile .hud__stats {
+  top: 8px;
+  gap: 14px;
+  font-size: 15px;
+}
+
+body.mobile .hud__xp {
+  top: 34px;
+  width: min(240px, 36vw);
+}
+
+body.mobile .hud__banner {
+  font-size: 28px;
+  top: 18%;
+}
+
+body.mobile .hud__countdown {
+  top: 44px;
+  font-size: 13px;
+}
+
+/* The motion tracker shrinks (the canvas keeps drawing at its own resolution). */
+body.mobile canvas[style*='drop-shadow'] {
+  width: 118px !important;
+  height: 118px !important;
+  right: max(8px, env(safe-area-inset-right)) !important;
+  bottom: max(8px, env(safe-area-inset-bottom)) !important;
+}
+
+/* ---- Menus ---- */
+
+body.mobile .menu__tips {
+  display: none;
+}
+
+/* Squad screen: narrower bonuses column, smaller 3D stage, room for the button row. */
+body.mobile .pp {
+  width: min(210px, 34vw);
+  padding: 56px 10px 12px;
+}
+
+body.mobile .us {
+  left: min(210px, 34vw);
+  padding: 56px 12px 12px;
+}
+
+body.mobile .us__card {
+  width: 140px;
+}
+
+body.mobile .us__windows {
+  gap: 10px;
+}
+
+body.mobile .us__window {
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+}
+
+body.mobile .us__stage {
+  width: 120px;
+  height: 150px;
+}
+
+body.mobile .us__side {
+  width: min(240px, 100%);
+}
+
+body.mobile .us__slot {
+  min-height: 52px;
+}
+
+/* Crate / inventory window and the shop use the whole short screen. */
+body.mobile .inv__window {
+  width: 96vw;
+  max-height: 94dvh;
+  padding: 10px;
+}
+
+body.mobile .inv__tab,
+body.mobile .inv__btn {
+  min-height: 36px;
+  padding: 6px 12px;
+}
+
+body.mobile .inv__columns {
+  gap: 10px;
+}
+
+body.mobile .up__close,
+body.mobile .set__button {
+  min-height: 40px;
+}
+
+/* Portrait phones: ask for landscape (the layout is designed for it). */
+.mob__rotate {
+  display: none;
+}
+
+@media (orientation: portrait) {
+  body.mobile .mob__rotate {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(8, 10, 14, 0.96);
+    color: #fff;
+    font:
+      600 18px system-ui,
+      sans-serif;
+    text-align: center;
+    padding: 24px;
+    pointer-events: auto;
+  }
+}

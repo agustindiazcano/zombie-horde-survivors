@@ -56,6 +56,8 @@ export class UnitsScreen {
   private readonly open = new Map<number, UnitWindow>();
   private selected: number[] = [];
   private visible = false;
+  private picked: Slot | null = null;
+  private pickedCell: HTMLElement | null = null;
 
   constructor(
     parent: HTMLElement,
@@ -220,6 +222,25 @@ export class UnitsScreen {
       });
       cell.addEventListener('dragend', () => cell.classList.remove('us__slot--dragging'));
     }
+    // Tap to pick a weapon, tap another slot to move it there: touch screens can't drag reliably.
+    cell.addEventListener('click', () => {
+      const here: Slot = { unitId: unit.id, slot };
+      const picked = this.picked;
+      this.pickedCell?.classList.remove('us__slot--picked');
+      this.picked = null;
+      this.pickedCell = null;
+      if (!picked) {
+        if (item === undefined) return;
+        this.picked = here;
+        this.pickedCell = cell;
+        cell.classList.add('us__slot--picked');
+        return;
+      }
+      if (picked.unitId === here.unitId && picked.slot === here.slot) return;
+      if (moveItem(this.getState(), this.config, picked, here)) {
+        for (const id of this.open.keys()) this.renderWindow(id);
+      }
+    });
     cell.addEventListener('dragover', (e) => {
       e.preventDefault();
       cell.classList.add('us__slot--over');
