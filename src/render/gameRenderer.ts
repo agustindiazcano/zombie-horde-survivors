@@ -5,8 +5,15 @@ import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
 import { SelectionMarkers } from './markers';
 
-/** Camera offset from the focus point: above and behind (towards +z), at zoom 1. */
-const CAMERA_OFFSET = new THREE.Vector3(0, 13, 9);
+/** Default camera: above and behind the focus point (towards +z), at zoom 1. */
+const BASE_DISTANCE = Math.hypot(13, 9);
+const DEFAULT_PITCH = Math.atan2(13, 9);
+/** Tilt limits (radians above the horizon) and the range of the player's zoom wheel. */
+const MIN_PITCH = 0.35;
+const MAX_PITCH = 1.5;
+const MIN_USER_ZOOM = 0.35;
+const MAX_USER_ZOOM = 2.2;
+const USER_ZOOM_RATE = 10;
 /** Per-frame movement below this (world units) counts as standing still. */
 const MOVING_EPSILON = 1e-4;
 
@@ -48,6 +55,11 @@ export class GameRenderer {
   /** Ground point the camera looks at. Pan it in RTS mode; it follows the controlled soldier. */
   readonly focus: Vec2 = { x: 0, z: 0 };
   private zoom = ZOOM_DIRECT;
+  /** Orbit angle around the focus (0 = camera behind, towards +z) and tilt above the horizon. */
+  private yaw = 0;
+  private pitch = DEFAULT_PITCH;
+  private userZoom = 1;
+  private userZoomTarget = 1;
   private focusInitialized = false;
   private readonly crates = new Map<number, THREE.Mesh>();
   private readonly crateGeometry = new THREE.BoxGeometry(0.8, 0.5, 0.6);
@@ -111,6 +123,27 @@ export class GameRenderer {
     this.focus.z = Math.min(Math.max(this.focus.z + dz, -this.halfSize), this.halfSize);
   }
 
+  /** Orbits (`dYaw`) and tilts (`dPitch`) the camera, within the tilt limits. */
+  rotate(dYaw: number, dPitch: number): void {
+    this.yaw += dYaw;
+    this.pitch = Math.min(Math.max(this.pitch + dPitch, MIN_PITCH), MAX_PITCH);
+  }
+
+  /** Multiplies the player zoom; factors above 1 move the camera away. */
+  zoomBy(factor: number): void {
+    this.userZoomTarget = Math.min(
+      Math.max(this.userZoomTarget * factor, MIN_USER_ZOOM),
+      MAX_USER_ZOOM,
+    );
+  }
+
+  /** Converts screen-relative movement (right = +x, down = +z) to a world direction. */
+  screenToWorldDir(x: number, z: number): Vec2 {
+    const cos = Math.cos(this.yaw);
+    const sin = Math.sin(this.yaw);
+    return { x: x * cos + z * sin, z: -x * sin + z * cos };
+  }
+
   /** Feedback pulse on the ground where an order was given. */
   pulse(at: Vec2): void {
     this.markers.pulse(at);
@@ -145,9 +178,14 @@ export class GameRenderer {
     const zoomTarget = leader ? ZOOM_DIRECT : ZOOM_RTS;
     this.zoom = lerp(this.zoom, zoomTarget, 1 - Math.exp(-ZOOM_RATE * dt));
 
-    this.camera.position
-      .set(this.focus.x, 0, this.focus.z)
-      .addScaledVector(CAMERA_OFFSET, this.zoom);
+    this.userZoom = lerp(this.userZoom, this.userZoomTarget, 1 - Math.exp(-USER_ZOOM_RATE * dt));
+    const distance = BASE_DISTANCE * this.zoom * this.userZoom;
+    const flat = Math.cos(this.pitch) * distance;
+    this.camera.position.set(
+      this.focus.x + Math.sin(this.yaw) * flat,
+      Math.sin(this.pitch) * distance,
+      this.focus.z + Math.cos(this.yaw) * flat,
+    );
     if (this.shake > 0) {
       this.camera.position.x += (Math.random() - 0.5) * 2 * this.shake;
       this.camera.position.z += (Math.random() - 0.5) * 2 * this.shake;
