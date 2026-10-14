@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Vec2 } from '../sim';
 
-const POOL_SIZE = 24;
+const POOL_SIZE = 48;
 const TRACER_LIFE = 0.08;
 const FLASH_LIFE = 0.05;
 const MUZZLE_HEIGHT = 1.0;
