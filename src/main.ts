@@ -8,7 +8,7 @@ import { CratePrompt, InventoryUi } from './inventoryUi';
 import { startLoop } from './loop';
 import { GltfAssetLoader } from './render/assetLoader';
 import { parseCharactersConfig } from './render/characterConfig';
-import { GameRenderer } from './render/gameRenderer';
+import { GameRenderer, type ViewMode } from './render/gameRenderer';
 import { RtsController } from './rts';
 import {
   controlSoldier,
@@ -26,7 +26,7 @@ import { SquadPanel } from './squadPanel';
 const PAN_SPEED = 22;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · Y: back to RTS · I: inventory · E: open crate · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: inventory · E: open crate · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: inventory · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -83,6 +83,24 @@ async function main(): Promise<void> {
     );
   };
 
+  /** Normal -> third person -> first person -> normal. Only while controlling a unit. */
+  const NEXT_VIEW: Record<ViewMode, ViewMode> = { top: 'third', third: 'first', first: 'top' };
+  const setView = (mode: ViewMode) => {
+    const unit = state.soldiers.find((s) => s.id === state.controlledId);
+    renderer.setViewMode(mode, unit?.facing ?? 0);
+    input.takeLook(); // drop movement accumulated before the switch
+    if (mode === 'top') {
+      if (document.pointerLockElement) document.exitPointerLock();
+    } else {
+      // Mouse look wants a locked cursor. Browsers may refuse; it still works unlocked.
+      renderer.domElement.requestPointerLock?.();
+    }
+  };
+  document.addEventListener('pointerlockchange', () => {
+    // Leaving the lock (Esc) returns to the normal view.
+    if (!document.pointerLockElement && renderer.viewMode !== 'top') setView('top');
+  });
+
   const playable = () => !paused && state.status === 'playing';
 
   /** The unit the inventory opens on: controlled, else first selected, else first alive. */
@@ -109,6 +127,8 @@ async function main(): Promise<void> {
       else if (playable() && crate && state.controlledId !== null) {
         ui.openCrate(state.controlledId, crate.id);
       }
+    } else if (e.code === 'KeyT' && playable() && !ui.isOpen && state.controlledId !== null) {
+      setView(NEXT_VIEW[renderer.viewMode]);
     } else if (e.code === 'KeyY' && playable() && !ui.isOpen) toggleControl();
   });
   window.addEventListener('blur', () => setPaused(true));
@@ -130,7 +150,10 @@ async function main(): Promise<void> {
   const readInput = (): Input => {
     const raw = input.read(renderer.screenToGround);
     directInput.move = renderer.screenToWorldDir(raw.move.x, raw.move.z);
-    directInput.aim = raw.aim;
+    const unit = state.soldiers.find((s) => s.id === state.controlledId);
+    // In first/third person the view direction is the aim; otherwise the cursor on the ground.
+    directInput.aim =
+      renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
     directInput.firing = raw.firing;
     directInput.crouch = raw.crouch;
     directInput.sprint = raw.sprint;
@@ -153,13 +176,24 @@ async function main(): Promise<void> {
         const move = readInput().move;
         renderer.pan(move.x * PAN_SPEED * frameDt, move.z * PAN_SPEED * frameDt);
       }
+      // Back to the normal view if control ends (RTS mode, death, game over).
+      if (
+        renderer.viewMode !== 'top' &&
+        (state.controlledId === null || state.status !== 'playing')
+      ) {
+        setView('top');
+      }
+      const look = input.takeLook();
+      if (!paused && !ui.isOpen) renderer.look(look.x, look.y);
+      hud.setCrosshair(renderer.viewMode !== 'top' && state.controlledId !== null);
       rts.prune();
       renderer.render(state, alpha, frameDt);
 
       const crate = !ui.isOpen && playable() ? crateInReach() : undefined;
       if (crate) {
-        const p = renderer.worldToScreen(crate.pos.x, crate.pos.z, 1.5);
-        cratePrompt.show(p.x, p.z);
+        const p = renderer.projectToScreen(crate.pos.x, crate.pos.z, 1.5);
+        if (p) cratePrompt.show(p.x, p.z);
+        else cratePrompt.hide();
       } else {
         cratePrompt.hide();
       }
@@ -167,7 +201,9 @@ async function main(): Promise<void> {
       const focusId = state.controlledId ?? [...rts.selected][0] ?? null;
       hud.update(state, focusId);
       const stance = state.stance === 'normal' ? '' : `  [${state.stance.toUpperCase()}]`;
-      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance);
+      const view =
+        renderer.viewMode === 'top' ? '' : `  [${renderer.viewMode.toUpperCase()} PERSON]`;
+      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view);
       squad.update(state, rts.selected, config.player.maxHealth);
     },
   );
