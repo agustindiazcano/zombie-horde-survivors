@@ -1,6 +1,6 @@
 # 📝 Roadmap: Zombie Horde Survivors
 
-Personal working notes: only what is still open, in priority order. Everything done up to 2026-10-14 (PRs #1–#30, the game live on GitHub Pages): [docs/worklog/2026-10-14-snapshot.md](docs/worklog/2026-10-14-snapshot.md). README.md holds the player-facing reference; [LASTCONTEXT.md](LASTCONTEXT.md) holds the current state and the user's decisions.
+Personal working notes: only what is still open, in priority order. Everything done up to 2026-10-14 (PRs #1–#31, the game live on GitHub Pages): [docs/worklog/2026-10-14-snapshot.md](docs/worklog/2026-10-14-snapshot.md). README.md holds the player-facing reference; [LASTCONTEXT.md](LASTCONTEXT.md) holds the current state and the user's decisions.
 
 ## Priority Order
 
