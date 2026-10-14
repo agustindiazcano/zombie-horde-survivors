@@ -3,6 +3,9 @@ import type { Input, Vec2 } from './sim';
 /** Maps a normalized-device-coordinate point (-1..1) to the ground, or null if it misses. */
 export type GroundProjector = (ndcX: number, ndcY: number) => Vec2 | null;
 
+/** Largest mouse movement (px) accepted from a single event. */
+const MAX_LOOK_DELTA = 600;
+
 /**
  * Keyboard + mouse input. The camera looks towards -z with screen-up = -z, so
  * WASD maps straight onto world axes (screen-relative movement).
@@ -12,6 +15,8 @@ export class InputController {
   private ndcX = 0;
   private ndcY = 0;
   private firing = false;
+  private lookX = 0;
+  private lookY = 0;
   private readonly current: Input = {
     move: { x: 0, z: 0 },
     aim: { x: 0, z: 1 },
@@ -39,6 +44,9 @@ export class InputController {
       this.firing = false;
     });
     window.addEventListener('mousemove', (e) => {
+      // Some systems report a huge bogus delta now and then; a real flick never gets close.
+      this.lookX += Math.max(-MAX_LOOK_DELTA, Math.min(MAX_LOOK_DELTA, e.movementX));
+      this.lookY += Math.max(-MAX_LOOK_DELTA, Math.min(MAX_LOOK_DELTA, e.movementY));
       this.ndcX = (e.clientX / window.innerWidth) * 2 - 1;
       this.ndcY = -(e.clientY / window.innerHeight) * 2 + 1;
     });
@@ -52,9 +60,12 @@ export class InputController {
     target.style.cursor = 'crosshair';
   }
 
-  /** The cursor in normalized device coordinates (-1..1, y up). */
-  cursor(): { x: number; y: number } {
-    return { x: this.ndcX, y: this.ndcY };
+  /** Mouse movement (pixels) since the last call; drives first/third person look. */
+  takeLook(): { x: number; y: number } {
+    const look = { x: this.lookX, y: this.lookY };
+    this.lookX = 0;
+    this.lookY = 0;
+    return look;
   }
 
   /** Samples the current input. The returned object is reused between calls. */

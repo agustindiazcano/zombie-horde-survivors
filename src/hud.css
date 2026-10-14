@@ -238,3 +238,39 @@
   background: #3de0c8;
   transition: width 0.2s ease-out;
 }
+
+.hud__crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  display: none;
+  transform: translate(-50%, -50%);
+}
+
+.hud__crosshair--visible {
+  display: block;
+}
+
+.hud__crosshair::before,
+.hud__crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+}
+
+.hud__crosshair::before {
+  top: 10px;
+  left: 0;
+  width: 22px;
+  height: 2px;
+}
+
+.hud__crosshair::after {
+  left: 10px;
+  top: 0;
+  width: 2px;
+  height: 22px;
+}
