@@ -64,6 +64,10 @@ export function orderFollow(state: GameState, ids: number[]): void {
   for (const s of state.soldiers) if (!s.dead && ids.includes(s.id)) s.order = { type: 'follow' };
 }
 
+export function orderHold(state: GameState, ids: number[]): void {
+  for (const s of state.soldiers) if (!s.dead && ids.includes(s.id)) s.order = { type: 'hold' };
+}
+
 /** Applies damage; a soldier at 0 health dies and, if controlled, drops back to RTS mode. */
 export function hurtSoldier(
   state: GameState,
