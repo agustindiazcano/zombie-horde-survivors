@@ -15,6 +15,7 @@ const BODY_MID = 1;
 export class RtsController {
   /** Insertion-ordered; the first id is the one Y takes control of. */
   selected = new Set<number>();
+  private rightDown: { x: number; y: number } | null = null;
   private drag: { x0: number; y0: number; x1: number; y1: number } | null = null;
   private readonly box = document.createElement('div');
 
@@ -68,16 +69,25 @@ export class RtsController {
     if (!this.isActive()) return;
     if (e.button === 0) {
       this.drag = { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY };
-    } else if (e.button === 2 && this.selected.size > 0) {
-      const ground = this.renderer.screenToGround(
-        (e.clientX / window.innerWidth) * 2 - 1,
-        -(e.clientY / window.innerHeight) * 2 + 1,
-      );
-      if (!ground) return;
-      orderMove(this.getState(), this.config, [...this.selected], ground);
-      this.renderer.pulse(ground);
+    } else if (e.button === 2) {
+      // A right click orders on release; dragging with it rotates the camera instead.
+      this.rightDown = { x: e.clientX, y: e.clientY };
     }
   };
+
+  private finishRightClick(e: MouseEvent): void {
+    const start = this.rightDown;
+    this.rightDown = null;
+    if (!start || !this.isActive() || this.selected.size === 0) return;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) >= DRAG_THRESHOLD) return;
+    const ground = this.renderer.screenToGround(
+      (e.clientX / window.innerWidth) * 2 - 1,
+      -(e.clientY / window.innerHeight) * 2 + 1,
+    );
+    if (!ground) return;
+    orderMove(this.getState(), this.config, [...this.selected], ground);
+    this.renderer.pulse(ground);
+  }
 
   private onMouseMove = (e: MouseEvent): void => {
     if (!this.drag) return;
@@ -94,6 +104,10 @@ export class RtsController {
   };
 
   private onMouseUp = (e: MouseEvent): void => {
+    if (e.button === 2) {
+      this.finishRightClick(e);
+      return;
+    }
     if (e.button !== 0 || !this.drag) return;
     const { x0, y0 } = this.drag;
     const x1 = e.clientX;

@@ -3,6 +3,7 @@ import data from '../data/game.json';
 import { Sfx } from './audio';
 import { Hud } from './hud';
 import { InputController } from './input';
+import { CameraControls } from './cameraControls';
 import { CratePrompt, InventoryUi } from './inventoryUi';
 import { startLoop } from './loop';
 import { GltfAssetLoader } from './render/assetLoader';
@@ -25,9 +26,9 @@ import { SquadPanel } from './squadPanel';
 const PAN_SPEED = 22;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Y: back to RTS · I: inventory · E: open crate';
+  'Direct control · WASD move · Mouse aim · Click fire · Y: back to RTS · I: inventory · E: open crate · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
-  'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: inventory';
+  'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: inventory · Wheel: zoom · Right-drag: rotate/tilt';
 
 async function main(): Promise<void> {
   const config = parseConfig(data);
@@ -112,13 +113,25 @@ async function main(): Promise<void> {
   });
   window.addEventListener('blur', () => setPaused(true));
 
+  new CameraControls(renderer.domElement, renderer);
+
   const noInput: Input = { move: { x: 0, z: 0 }, aim: { x: 0, z: 0 }, firing: false };
+  const directInput: Input = { move: { x: 0, z: 0 }, aim: { x: 0, z: 0 }, firing: false };
+
+  /** Keyboard/mouse input with movement rotated to follow the camera's orbit. */
+  const readInput = (): Input => {
+    const raw = input.read(renderer.screenToGround);
+    directInput.move = renderer.screenToWorldDir(raw.move.x, raw.move.z);
+    directInput.aim = raw.aim;
+    directInput.firing = raw.firing;
+    return directInput;
+  };
 
   startLoop(
     (dt) => {
       if (paused || ui.isOpen) return;
       const direct = state.controlledId !== null;
-      step(state, config, direct ? input.read(renderer.screenToGround) : noInput, dt);
+      step(state, config, direct ? readInput() : noInput, dt);
       renderer.onStep(state);
       hud.onStep(state);
       sfx.onStep(state);
@@ -126,7 +139,7 @@ async function main(): Promise<void> {
     (alpha, frameDt) => {
       const rtsMode = state.controlledId === null;
       if (rtsMode && !paused) {
-        const move = input.read(renderer.screenToGround).move;
+        const move = readInput().move;
         renderer.pan(move.x * PAN_SPEED * frameDt, move.z * PAN_SPEED * frameDt);
       }
       rts.prune();
