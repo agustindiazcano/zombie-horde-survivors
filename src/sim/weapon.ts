@@ -26,7 +26,7 @@ export function fireWeapon(
   rateScale = 1,
 ): void {
   const weapon = weaponOf(config, soldier);
-  soldier.fireCooldown = 1 / (weapon.fireRate * rateScale);
+  soldier.fireCooldown += 1 / (weapon.fireRate * rateScale);
 
   const origin = soldier.pos;
   // Inaccurate weapons scatter their shots around the facing direction.

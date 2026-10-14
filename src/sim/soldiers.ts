@@ -127,7 +127,8 @@ export function updateSoldiers(
     s.prev.x = s.pos.x;
     s.prev.z = s.pos.z;
     if (s.dead) continue;
-    s.fireCooldown = Math.max(0, s.fireCooldown - dt);
+    // May dip up to one step below zero so the leftover time carries into the next shot.
+    s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
     if (s.id === state.controlledId) updateControlled(state, config, s, input, dt);
     else updateAi(state, config, s, leader, dt);
   }
