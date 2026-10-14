@@ -12,7 +12,8 @@ import {
 } from './characters';
 
 export interface CharacterFactories {
-  player: CharacterFactory;
+  /** One factory per soldier slot; soldier N uses entry (N - 1) modulo the length. */
+  soldiers: CharacterFactory[];
   zombie: CharacterFactory;
   drone: CharacterFactory;
 }
@@ -48,12 +49,12 @@ export class GltfAssetLoader implements AssetLoader {
   private readonly loader = new GLTFLoader();
 
   async loadCharacters(config: CharactersConfig): Promise<CharacterFactories> {
-    const [player, zombie, drone] = await Promise.all([
-      this.load(config.player, createPlaceholderSoldier),
+    const [soldiers, zombie, drone] = await Promise.all([
+      Promise.all(config.soldiers.map((spec) => this.load(spec, createPlaceholderSoldier))),
       this.load(config.zombie, createPlaceholderZombie),
       this.load(config.drone, createPlaceholderDrone),
     ]);
-    return { player, zombie, drone };
+    return { soldiers, zombie, drone };
   }
 
   private async load(

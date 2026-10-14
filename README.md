@@ -71,7 +71,10 @@ Run `npm run credits` to regenerate the section below.
 
 <!-- credits:start -->
 
-- **Rogue (KayKit Character Pack: Adventurers) - used as the soldier** by Kay Lousberg — [CC0-1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0)
+- **Soldier_Male (Quaternius Ultimate Animated Character Pack)** by Quaternius — [CC0-1.0](https://quaternius.com/packs/ultimatedanimatedcharacter.html)
+- **Soldier_Female (Quaternius Ultimate Animated Character Pack)** by Quaternius — [CC0-1.0](https://quaternius.com/packs/ultimatedanimatedcharacter.html)
+- **Character_Soldier (Quaternius Toon Shooter Game Kit)** by Quaternius — [CC0-1.0](https://quaternius.com/)
+- **Character Soldier (Kenney Mini Arena)** by Kenney — [CC0-1.0](https://kenney.nl/assets/mini-arena)
 - **Skeleton Minion (KayKit Character Pack: Skeletons) - used as the zombie** by Kay Lousberg — [CC0-1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0)
 
 <!-- credits:end -->

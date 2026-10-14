@@ -1,15 +1,50 @@
 {
-  "player": {
-    "model": "models/soldier.glb",
-    "scale": 0.8,
-    "yawOffset": 0,
-    "clips": {
-      "idle": "Idle",
-      "run": "Running_A",
-      "death": "Death_A"
+  "soldiers": [
+    {
+      "model": "models/soldier-quaternius-male.glb",
+      "scale": 0.95,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "run": "Run",
+        "death": "Death"
+      },
+      "once": ["death"]
     },
-    "once": ["death"]
-  },
+    {
+      "model": "models/soldier-quaternius-female.glb",
+      "scale": 0.97,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "run": "Run",
+        "death": "Death"
+      },
+      "once": ["death"]
+    },
+    {
+      "model": "models/soldier-kenney.glb",
+      "scale": 2.1,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "idle",
+        "run": "sprint",
+        "death": "die"
+      },
+      "once": ["death"]
+    },
+    {
+      "model": "models/soldier-quaternius-toon.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "run": "Run_Gun",
+        "death": "Death"
+      },
+      "once": ["death"]
+    }
+  ],
   "zombie": {
     "model": "models/zombie.glb",
     "scale": 0.8,
