@@ -131,8 +131,9 @@ async function main(): Promise<void> {
     shop.close();
   });
   const squad = new SquadPanel(document.body, (id, additive) => {
-    if (mobile) setLeader(id);
-    else if (state.controlledId === null) rts.toggle(id, additive);
+    // Clicking an icon while playing hands direct control to that unit; in RTS mode it selects.
+    if (mobile || state.controlledId !== null) setLeader(id);
+    else rts.toggle(id, additive);
   });
 
   const setPaused = (value: boolean) => {
@@ -182,10 +183,10 @@ async function main(): Promise<void> {
     });
   }
 
-  /** Mobile: makes this soldier the leader; the rest of the squad follows it. */
+  /** Hands direct control to this unit (soldier or drone); the rest of the squad follows it. */
   const setLeader = (id: number) => {
     const leader = state.soldiers.find((s) => s.id === id);
-    if (!leader || leader.dead || leader.kind === 'drone') return;
+    if (!leader || leader.dead) return;
     controlSoldier(state, leader.id);
     orderFollow(
       state,
