@@ -33,6 +33,8 @@ export class SquadPanel {
       if (selected.has(s.id)) chip.classList.add('squad__chip--selected');
       if (s.id === state.controlledId) chip.classList.add('squad__chip--controlled');
       chip.title = `${s.kind === 'drone' ? 'Drone' : 'Soldier'} ${s.id} (${s.order.type})`;
+      // Keep focus off the chip so Space (jump) never "presses" it.
+      chip.addEventListener('mousedown', (e) => e.preventDefault());
       chip.addEventListener('click', (e) => this.onPick(s.id, e.shiftKey));
 
       const label = document.createElement('span');

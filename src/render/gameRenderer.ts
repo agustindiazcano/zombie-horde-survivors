@@ -62,6 +62,8 @@ export class GameRenderer {
   private userZoom = 1;
   private userZoomTarget = 1;
   private focusInitialized = false;
+  /** Smoothed crouch (0..1) and sprint lean (0..1) per soldier id. */
+  private readonly stanceVisual = new Map<number, { crouch: number; lean: number }>();
   private readonly crates = new Map<number, THREE.Mesh>();
   private readonly crateGeometry = new THREE.BoxGeometry(0.8, 0.5, 0.6);
   private readonly crateMaterial = new THREE.MeshStandardMaterial({
@@ -233,11 +235,26 @@ export class GameRenderer {
         this.scene.add(view.object);
       }
       const moving = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > MOVING_EPSILON;
-      const y = s.kind === 'drone' ? this.droneHeight : 0;
-      view.object.position.set(lerp(s.prev.x, s.pos.x, alpha), y, lerp(s.prev.z, s.pos.z, alpha));
+      const drone = s.kind === 'drone';
+      view.object.position.set(lerp(s.prev.x, s.pos.x, alpha), 0, lerp(s.prev.z, s.pos.z, alpha));
       view.object.rotation.y = s.facing;
       view.setState(s.dead ? 'death' : moving ? 'run' : 'idle');
       view.update(dt);
+
+      // Applied after the view's own update, which may reset its root transform.
+      view.object.position.y = drone ? this.droneHeight : lerp(s.prevY, s.y, alpha);
+      if (drone) continue;
+      let vis = this.stanceVisual.get(s.id);
+      if (!vis) {
+        vis = { crouch: 0, lean: 0 };
+        this.stanceVisual.set(s.id, vis);
+      }
+      const k = 1 - Math.exp(-14 * dt);
+      const alive = !s.dead;
+      vis.crouch = lerp(vis.crouch, alive && state.stance === 'crouch' ? 1 : 0, k);
+      vis.lean = lerp(vis.lean, alive && state.stance === 'sprint' && moving ? 1 : 0, k);
+      view.object.scale.set(1 + 0.06 * vis.crouch, 1 - 0.28 * vis.crouch, 1 + 0.06 * vis.crouch);
+      view.object.rotation.x = 0.25 * vis.lean;
     }
   }
 

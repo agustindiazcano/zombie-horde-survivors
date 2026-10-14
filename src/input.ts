@@ -16,11 +16,24 @@ export class InputController {
     move: { x: 0, z: 0 },
     aim: { x: 0, z: 1 },
     firing: false,
+    crouch: false,
+    sprint: false,
+    jump: false,
   };
 
   constructor(target: HTMLElement) {
-    window.addEventListener('keydown', (e) => this.keys.add(e.code));
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+    // Space scrolls the page / presses focused buttons by default.
+    const blockSpace = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !(e.target instanceof HTMLButtonElement)) e.preventDefault();
+    };
+    window.addEventListener('keydown', (e) => {
+      blockSpace(e);
+      this.keys.add(e.code);
+    });
+    window.addEventListener('keyup', (e) => {
+      blockSpace(e);
+      this.keys.delete(e.code);
+    });
     window.addEventListener('blur', () => {
       this.keys.clear();
       this.firing = false;
@@ -52,6 +65,10 @@ export class InputController {
       this.current.aim.z = ground.z;
     }
     this.current.firing = this.firing;
+    // C is an alternative to Ctrl, since browsers reserve Ctrl+W and friends.
+    this.current.crouch = k.has('ControlLeft') || k.has('ControlRight') || k.has('KeyC');
+    this.current.sprint = k.has('ShiftLeft') || k.has('ShiftRight');
+    this.current.jump = k.has('Space');
     return this.current;
   }
 }
