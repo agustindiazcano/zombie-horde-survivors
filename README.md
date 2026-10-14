@@ -122,6 +122,8 @@ Variants are multipliers on the base zombie in `data/game.json` (`enemies`); eac
 
 Zombie speed and health also grow with each wave.
 
+**Mini boss:** every 3rd wave one enemy comes back as a mini boss: a darker copy of one of the models, with glowing red eyes, 10x the health, double the damage and a slower walk. It pays much better gold and XP. The bosses cycle zombie, skeleton, alien, brute, hound (`boss` in `data/game.json`).
+
 ## Architecture
 
 - `src/sim` — the pure simulation (squad, enemies, waves, loot). It imports no Three.js; ESLint and a test enforce that, so it can be unit-tested.

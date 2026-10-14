@@ -43,6 +43,8 @@ export interface Zombie {
   type: string;
   health: number;
   maxHealth: number;
+  /** A mini boss: darker, slower, much tougher and harder-hitting than its type. */
+  boss: boolean;
   /** Killed by bursting: skipped death animation, the renderer shows gore instead. */
   exploded: boolean;
   /** Chase speed, fixed at spawn from the wave's difficulty scaling. */
@@ -100,6 +102,7 @@ export type SimEvent =
   | { type: 'soldierHurt'; soldierId: number; damage: number; zombieId: number }
   | { type: 'soldierDied'; soldierId: number }
   | { type: 'waveStarted'; wave: number }
+  | { type: 'bossSpawned'; wave: number; enemy: string }
   | { type: 'gameOver' };
 
 /** Squad-wide multipliers from perks (all 1 at the start; regen is HP/s). */

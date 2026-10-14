@@ -12,6 +12,7 @@ export function spawnZombie(
   config: GameConfig,
   pos: Vec2,
   type = 'zombie',
+  boss = false,
 ): Zombie {
   const variant = config.enemies[type];
   const k = variant ?? {
@@ -24,18 +25,20 @@ export function spawnZombie(
   const wc = config.waves;
   const speedScale = Math.min(1 + wc.speedScalePerWave * wavesPlayed, wc.maxSpeedScale);
   const health = config.zombie.health * k.healthScale * (1 + wc.healthScalePerWave * wavesPlayed);
+  const b = boss ? config.boss : { healthScale: 1, damageScale: 1, speedScale: 1 };
   const zombie: Zombie = {
     id: state.nextZombieId++,
     pos: { ...pos },
     prev: { ...pos },
     facing: 0,
     type: variant ? type : 'zombie',
-    health,
-    maxHealth: health,
+    boss,
+    health: health * b.healthScale,
+    maxHealth: health * b.healthScale,
     exploded: false,
-    speed: config.zombie.speed * k.speedScale * speedScale,
+    speed: config.zombie.speed * k.speedScale * speedScale * b.speedScale,
     radius: config.zombie.radius * k.radiusScale,
-    damage: config.zombie.damage * k.damageScale,
+    damage: config.zombie.damage * k.damageScale * b.damageScale,
     attackRange: config.zombie.attackRange * k.radiusScale,
     state: 'walk',
     attackTimer: 0,

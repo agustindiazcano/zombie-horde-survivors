@@ -326,5 +326,13 @@
         "costGrowth": 1.5
       }
     ]
+  },
+  "boss": {
+    "everyWaves": 3,
+    "types": ["zombie", "skeleton", "alien", "brute", "hound"],
+    "healthScale": 10,
+    "damageScale": 2,
+    "speedScale": 0.6,
+    "rewardScale": 8
   }
 }

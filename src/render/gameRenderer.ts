@@ -28,6 +28,8 @@ interface Factories {
 }
 
 interface ZombieEntry {
+  /** Key of the pool the view returns to (bosses get their own, since they are re-skinned). */
+  poolKey: string;
   type: string;
   view: CharacterView;
   seenFrame: number;
@@ -65,6 +67,9 @@ const MAX_LOOK_PITCH = 1.2;
 const PERSON_SHAKE_SCALE = 0.12;
 /** How fast a model's drawn heading catches up with the simulated one (1/s). */
 const TURN_VISUAL_RATE = 22;
+
+/** How much a mini boss's colours are darkened (1 = unchanged). */
+const BOSS_DARKEN = 0.3;
 
 /** Normal lighting (the default): bright, flashlights off. */
 const DAY_AMBIENT = 1.2;
@@ -476,10 +481,15 @@ export class GameRenderer {
       let entry = this.zombies.get(z.id);
       if (!entry) {
         const type = this.factories.enemies[z.type] ? z.type : 'zombie';
-        const view = this.pools.get(type)?.pop() ?? this.factories.enemies[type]!();
+        const poolKey = z.boss ? `boss:${type}` : type;
+        let view = this.pools.get(poolKey)?.pop();
+        if (!view) {
+          view = this.factories.enemies[type]!();
+          if (z.boss) this.makeBoss(view.object, this.factories.barHeights[type] ?? 2.2);
+        }
         view.setFlash?.(0);
         this.scene.add(view.object);
-        entry = { type, view, seenFrame: this.frame };
+        entry = { poolKey, type, view, seenFrame: this.frame };
         this.zombies.set(z.id, entry);
       }
       entry.seenFrame = this.frame;
@@ -513,12 +523,43 @@ export class GameRenderer {
     for (const [id, entry] of this.zombies) {
       if (entry.seenFrame === this.frame) continue;
       this.scene.remove(entry.view.object);
-      const pool = this.pools.get(entry.type) ?? [];
+      const pool = this.pools.get(entry.poolKey) ?? [];
       pool.push(entry.view);
-      this.pools.set(entry.type, pool);
+      this.pools.set(entry.poolKey, pool);
       this.zombies.delete(id);
       this.healthBars.release(id);
       this.flash.delete(id);
+    }
+  }
+
+  /**
+   * Gives a model the mini boss look: much darker, with two glowing red eyes. The eyes are
+   * placed from the model's head height (`headHeight`, the health bar height).
+   */
+  private makeBoss(root: THREE.Object3D, headHeight: number): void {
+    root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        (m as THREE.MeshStandardMaterial).color?.multiplyScalar(BOSS_DARKEN);
+      }
+    });
+    const k = headHeight / 2.2;
+    const core = new THREE.SphereGeometry(0.06 * k, 10, 8);
+    const halo = new THREE.SphereGeometry(0.13 * k, 10, 8);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xff2020, toneMapped: false });
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0xff2020,
+      transparent: true,
+      opacity: 0.3,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Group();
+      eye.add(new THREE.Mesh(core, coreMat), new THREE.Mesh(halo, haloMat));
+      eye.position.set(side * 0.1 * k, headHeight * 0.87, 0.22 * k);
+      root.add(eye);
     }
   }
 

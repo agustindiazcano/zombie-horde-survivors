@@ -130,6 +130,19 @@ export const GameConfigSchema = z
     perks: z.object({ choices: z.number().int().positive(), list: z.array(perk).min(1) }).strict(),
     /** Between-wave shop, paid with gold. */
     shop: z.object({ items: z.array(shopItem) }).strict(),
+    /** A mini boss every few waves: a stronger, slower copy of one of the enemy types. */
+    boss: z
+      .object({
+        everyWaves: z.number().int().positive(),
+        /** Enemy types the bosses cycle through, in order. */
+        types: z.array(z.string()).min(1),
+        /** Multipliers on that type's normal stats at the current wave. */
+        healthScale: positive,
+        damageScale: positive,
+        speedScale: positive,
+        rewardScale: positive,
+      })
+      .strict(),
     gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
     /** Droppable weapons by id. 'rifle' (the `weapon` section) and the drone cannon are built in. */
@@ -182,6 +195,11 @@ export const GameConfigSchema = z
   .superRefine((cfg, ctx) => {
     if (cfg.drops.maxItems < cfg.drops.minItems) {
       ctx.addIssue({ code: 'custom', message: 'drops.maxItems must be >= drops.minItems' });
+    }
+    for (const type of cfg.boss.types) {
+      if (type !== 'zombie' && !(type in cfg.enemies)) {
+        ctx.addIssue({ code: 'custom', message: `boss.types references unknown enemy "${type}"` });
+      }
     }
     const perkIds = new Set(cfg.perks.list.map((p) => p.id));
     if (perkIds.size !== cfg.perks.list.length) {
