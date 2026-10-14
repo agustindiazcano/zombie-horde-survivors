@@ -104,12 +104,18 @@ export function buyItem(
     if (!fallen) return 'No fallen soldier to bring back';
     fallen.dead = false;
     fallen.health = maxHealthOf(state, config) / 2;
+    fallen.armor = 0;
     fallen.order = { type: 'follow' };
     fallen.fireCooldown = 0;
     if (anchor) {
       fallen.pos = { x: anchor.pos.x + 1, z: anchor.pos.z + 1 };
       fallen.prev = { ...fallen.pos };
     }
+  } else if (item.kind === 'armor') {
+    const cap = config.player.maxArmor;
+    const bare = state.soldiers.filter((s) => !s.dead && s.kind === 'soldier' && s.armor < cap);
+    if (bare.length === 0) return 'Everyone already has full armor';
+    for (const s of bare) s.armor = Math.min(cap, s.armor + (item.amount ?? 0));
   } else if (item.kind === 'weapon') {
     // A drone gun goes straight onto an unarmed drone; anything else into the unit's backpack.
     const drone =

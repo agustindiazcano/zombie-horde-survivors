@@ -40,7 +40,9 @@ const shopItem = z
     id: z.string().min(1),
     name: z.string().min(1),
     description: z.string().min(1),
-    kind: z.enum(['heal', 'revive', 'weapon', 'perk']),
+    kind: z.enum(['heal', 'revive', 'weapon', 'perk', 'armor']),
+    /** Armor points given to every living soldier, for 'armor'. */
+    amount: positive.optional(),
     /** Weapon id for 'weapon', perk id for 'perk'. */
     target: z.string().optional(),
     cost: z.number().int().positive(),
@@ -70,7 +72,17 @@ export const GameConfigSchema = z
   .object({
     arena: z.object({ halfSize: positive, obstacles: z.array(obstacle) }).strict(),
     /** Stats shared by every soldier. */
-    player: z.object({ speed: positive, maxHealth: positive, radius: positive }).strict(),
+    player: z
+      .object({
+        speed: positive,
+        maxHealth: positive,
+        /** Capacity of the armor bar; units start with none and armor soaks damage before health. */
+        maxArmor: positive,
+        /** Armor gained by taking an "armor_plate" from a crate. */
+        armorPlate: positive,
+        radius: positive,
+      })
+      .strict(),
     squad: z
       .object({
         /** Soldiers at the start of a game. */
@@ -106,6 +118,12 @@ export const GameConfigSchema = z
         crouchSpreadScale: nonNegative,
         crouchDamageScale: positive,
         sprintSpeedScale: positive,
+        /** Sprinting drains stamina per second; it refills when not sprinting. */
+        staminaMax: positive,
+        staminaDrain: positive,
+        staminaRegen: positive,
+        /** After running dry a unit cannot sprint again until it has recovered this much. */
+        staminaResume: positive,
         /** Initial upward speed of a jump and the downward pull on it. */
         jumpSpeed: positive,
         gravity: positive,
@@ -240,7 +258,7 @@ export const GameConfigSchema = z
       }
     }
     for (const entry of cfg.drops.table) {
-      if (!isKnownWeapon(entry.weapon)) {
+      if (entry.weapon !== 'armor_plate' && !isKnownWeapon(entry.weapon)) {
         ctx.addIssue({
           code: 'custom',
           message: `drops.table references unknown weapon "${entry.weapon}"`,

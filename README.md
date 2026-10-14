@@ -26,21 +26,21 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 
 ### Direct control
 
-| Key / mouse       | Action                                                            |
-| ----------------- | ----------------------------------------------------------------- |
-| W / A / S / D     | Move (relative to where the camera looks)                         |
-| Mouse             | Aim (see _Views_ below)                                           |
-| Left click (hold) | Fire                                                              |
-| Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed |
-| Shift             | The whole squad sprints (1.6x speed)                              |
-| Space             | Jump (only the soldier you control)                               |
-| T                 | Change view: normal → third person → first person → normal        |
-| I                 | Squad screen: units, inventories and bonuses (pauses the game)    |
-| B                 | Open / close the shop (only between waves)                        |
-| E                 | Next to a crate (a yellow **E** floats above it): open it         |
-| Y                 | Go back to RTS mode                                               |
-| Mouse wheel       | Zoom (normal and third-person views)                              |
-| Right-drag        | Rotate and tilt the camera (normal view only)                     |
+| Key / mouse       | Action                                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| W / A / S / D     | Move (relative to where the camera looks)                                                            |
+| Mouse             | Aim (see _Views_ below)                                                                              |
+| Left click (hold) | Fire                                                                                                 |
+| Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                    |
+| Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers |
+| Space             | Jump (only the soldier you control)                                                                  |
+| T                 | Change view: normal → third person → first person → normal                                           |
+| I                 | Squad screen: units, inventories and bonuses (pauses the game)                                       |
+| B                 | Open / close the shop (only between waves)                                                           |
+| E                 | Next to a crate (a yellow **E** floats above it): open it                                            |
+| Y                 | Go back to RTS mode                                                                                  |
+| Mouse wheel       | Zoom (normal and third-person views)                                                                 |
+| Right-drag        | Rotate and tilt the camera (normal view only)                                                        |
 
 Ctrl+W closes the browser tab and the browser won't let a page block it, so **C** is provided as an alternative way to crouch.
 
@@ -84,6 +84,22 @@ When you take control with **Y**, only the units that were selected follow you. 
 | F3      | Show / hide the FPS counter                                    |
 | R       | Restart (on the game over screen)                              |
 
+## Mobile (landscape)
+
+On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the URL to try it on a desktop). Hold the phone sideways.
+
+| Control           | Action                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
+| Joystick (left)   | Drag a thumb anywhere in the lower-left area to move the whole squad; the others follow           |
+| Auto-fire         | The leader aims at the nearest enemy and fires on its own; so does the rest of the squad          |
+| Soldier icons     | Top-left row with each unit's health                                                              |
+| ⚙ / ☰ / 🛒 / 🎒  | Top-right: settings, main menu, shop (between waves), squad screen and inventories                |
+| Inventory         | Tap a weapon, then tap the slot to move it to (drag and drop also works where the browser allows) |
+| 📦 (bottom-right) | Appears when the leader stands next to a crate: tap to open it                                    |
+| 🧎 / 💨 / ⤒       | Crouch and sprint (tap to toggle) and jump (hold)                                                 |
+| Soldier icon      | Tap a soldier icon: direct control passes to it                                                   |
+| Pinch / ⛶ / buzz  | Two-finger zoom; full screen button; the phone vibrates when a soldier is hurt                    |
+
 ## Radar
 
 The round display in the bottom-right corner is a motion tracker, like the one from the film Aliens. A pulse ring spreads out from the middle of your squad and enemies only show up as bright blips when it crosses them, fading until the next ping. It is centred on your living units and only sees about 30 metres around them. The number at the bottom is the distance to the closest contact. Your units are hollow rings (filled for the one you control, a square for the drone). North is up.
@@ -92,7 +108,7 @@ The round display in the bottom-right corner is a motion tracker, like the one f
 
 - **4 soldiers**, each with its own model, starting with a **pistol**.
 - **A drone** (unit 5): a small flying ship that starts **unarmed**. Give it a **Drone gun** (buy one in the shop, or find one in a crate, then drag it into the drone's equipped slot) and it fires slow, hard-hitting shots that ignore cover. Enemies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
-- Crouching, sprinting and jumping are set by the unit you control; crouch and sprint affect the whole squad.
+- Crouching, sprinting and jumping are set by the unit you control; crouch and sprint affect the whole squad. Sprinting drains each unit's stamina (the orange bar under its icon; the blue bar is its own XP; the grey bar is armor, empty until a unit gets some, and it soaks damage before health); a unit that runs dry walks until it recovers.
 
 ## Inventory and weapons
 
@@ -124,7 +140,9 @@ If the game runs slowly, try the **Low** preset or lower the resolution. Changin
 
 Every level-up pauses the game and offers **3 random perks** for the whole squad: pick one with a click or the **1 / 2 / 3** keys. Perks stack up to a limit: damage, fire rate, movement speed, max health, health regeneration and a bigger loot pickup radius.
 
-Between waves (the countdown at the top) press **B** to open the **shop** and spend gold: heal the squad, bring back a fallen soldier, buy a pistol or heavy machine gun for the selected unit, or buy permanent upgrades. Prices grow with each purchase. The game is paused while a menu is open. Perks and shop items are in `data/game.json` (`perks`, `shop`).
+Between waves (the countdown at the top) press **B** to open the **shop** and spend gold: heal the squad, buy an armor vest (+25 armor for every soldier), bring back a fallen soldier, buy a pistol or heavy machine gun for the selected unit, or buy permanent upgrades. Prices grow with each purchase. The game is paused while a menu is open. Perks and shop items are in `data/game.json` (`perks`, `shop`).
+
+Crates can also hold an **armor plate** (+20 armor): taking it wears it at once instead of using a backpack slot. Armor soaks damage before health and caps at 50.
 
 ## Enemies
 

@@ -29,6 +29,26 @@ export class CameraControls {
       { passive: false },
     );
 
+    // Two-finger pinch zooms on touch screens.
+    let pinch = 0;
+    const span = (t: TouchList) =>
+      Math.hypot(t[0]!.clientX - t[1]!.clientX, t[0]!.clientY - t[1]!.clientY);
+    canvas.addEventListener('touchstart', (e) => {
+      pinch = e.touches.length === 2 ? span(e.touches) : 0;
+    });
+    canvas.addEventListener(
+      'touchmove',
+      (e) => {
+        if (e.touches.length !== 2 || pinch === 0) return;
+        e.preventDefault();
+        const now = span(e.touches);
+        renderer.zoomBy(pinch / now);
+        pinch = now;
+      },
+      { passive: false },
+    );
+    canvas.addEventListener('touchend', () => (pinch = 0));
+
     canvas.addEventListener('mousedown', (e) => {
       if (e.button !== 2) return;
       this.drag = {

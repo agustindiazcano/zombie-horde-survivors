@@ -16,6 +16,7 @@ export {
 } from './soldiers';
 export { bossStats, spawnZombie } from './zombies';
 export {
+  ARMOR_PLATE,
   backpackFull,
   equipFromBackpack,
   getCrate,
@@ -23,6 +24,7 @@ export {
   nearestCrate,
   stashInCrate,
   takeFromCrate,
+  unequipWeapon,
 } from './inventory';
 export { weaponDef, type WeaponDef } from './stats';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';

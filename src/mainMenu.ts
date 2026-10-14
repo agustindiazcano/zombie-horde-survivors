@@ -23,6 +23,8 @@ export class MainMenu {
   private readonly root = el('div', 'menu');
   private open = true;
   private model: MenuModel | null = null;
+  private stage: HTMLElement | null = null;
+  private preview: CharacterFactory | undefined;
 
   /** `preview` makes the character that floats on the right of the title screen. */
   constructor(
@@ -54,9 +56,10 @@ export class MainMenu {
       el('li', '', tips, tip);
     }
     parent.appendChild(this.root);
+    this.preview = preview;
     if (preview) {
-      const stage = el('div', 'menu__stage', this.root);
-      this.model = new MenuModel(stage, preview);
+      this.stage = el('div', 'menu__stage', this.root);
+      this.model = new MenuModel(this.stage, preview);
     }
     start.focus();
   }
@@ -70,6 +73,15 @@ export class MainMenu {
     if (!this.open) return false;
     if (code === 'Enter' || code === 'Space' || code === 'NumpadEnter') this.start();
     return true;
+  }
+
+  /** Brings the title screen back (mobile menu button); the game stays frozen behind it. */
+  show(): void {
+    if (this.open) return;
+    this.open = true;
+    this.root.classList.remove('menu--hidden');
+    if (this.stage && this.preview && !this.model)
+      this.model = new MenuModel(this.stage, this.preview);
   }
 
   private start(): void {

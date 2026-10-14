@@ -4,7 +4,9 @@ import type { CharacterFactory } from './render/characters';
 import {
   levelInfo,
   maxHealthOf,
+  equipFromBackpack,
   moveItem,
+  unequipWeapon,
   weaponDef,
   type GameConfig,
   type GameState,
@@ -56,6 +58,8 @@ export class UnitsScreen {
   private readonly open = new Map<number, UnitWindow>();
   private selected: number[] = [];
   private visible = false;
+  private picked: Slot | null = null;
+  private pickedCell: HTMLElement | null = null;
 
   constructor(
     parent: HTMLElement,
@@ -110,7 +114,9 @@ export class UnitsScreen {
       card.classList.toggle('us__card--selected', this.selected.includes(s.id));
       card.classList.toggle('us__card--dead', s.dead);
       card.disabled = s.dead;
-      el('div', 'us__name', card, `${unitName(s)}${s.dead ? ' (fallen)' : ''}`);
+      const name = el('div', 'us__name', card);
+      el('span', 'us__icon', name, s.kind === 'drone' ? '◈' : '🪖');
+      el('span', 'us__num', name, `${unitName(s)}${s.dead ? ' (fallen)' : ''}`);
       this.bar(
         card,
         'us__bar--hp',
@@ -187,10 +193,12 @@ export class UnitsScreen {
     el('div', 'us__kills', w.info, `☠ ${unit.kills} kills`);
 
     w.slots.replaceChildren();
-    el('div', 'us__label', w.slots, 'Equipped');
-    this.slot(w.slots, unit, 'weapon', unit.weapon ?? undefined);
-    el('div', 'us__label', w.slots, 'Backpack');
-    const grid = el('div', 'us__grid', w.slots);
+    const equipped = el('div', 'us__box', w.slots);
+    el('div', 'us__label', equipped, 'Equipped');
+    this.slot(equipped, unit, 'weapon', unit.weapon ?? undefined);
+    const pack = el('div', 'us__box', w.slots);
+    el('div', 'us__label', pack, 'Backpack');
+    const grid = el('div', 'us__grid', pack);
     for (let i = 0; i < this.config.inventory.backpackSlots; i++) {
       this.slot(grid, unit, i, unit.backpack[i]);
     }
@@ -211,6 +219,17 @@ export class UnitsScreen {
       el('div', 'us__slot-name', cell, def.name);
       el('div', 'us__slot-stats', cell, `${def.damage} dmg · ${def.fireRate}/s`);
       cell.title = `${def.name}: damage ${def.damage}, ${def.fireRate} shots/s, range ${def.range}`;
+      // A small button per weapon: equip from the backpack, or unequip back into it.
+      const toggle = el('button', 'us__equip', cell, slot === 'weapon' ? 'Unequip' : 'Equip');
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation(); // not a tap-to-move pick
+        const state = this.getState();
+        const done =
+          slot === 'weapon'
+            ? unequipWeapon(state, this.config, unit.id)
+            : equipFromBackpack(state, unit.id, slot);
+        if (done) for (const id of this.open.keys()) this.renderWindow(id);
+      });
       cell.draggable = true;
       cell.addEventListener('dragstart', (e) => {
         const from: Slot = { unitId: unit.id, slot };
@@ -220,6 +239,25 @@ export class UnitsScreen {
       });
       cell.addEventListener('dragend', () => cell.classList.remove('us__slot--dragging'));
     }
+    // Tap to pick a weapon, tap another slot to move it there: touch screens can't drag reliably.
+    cell.addEventListener('click', () => {
+      const here: Slot = { unitId: unit.id, slot };
+      const picked = this.picked;
+      this.pickedCell?.classList.remove('us__slot--picked');
+      this.picked = null;
+      this.pickedCell = null;
+      if (!picked) {
+        if (item === undefined) return;
+        this.picked = here;
+        this.pickedCell = cell;
+        cell.classList.add('us__slot--picked');
+        return;
+      }
+      if (picked.unitId === here.unitId && picked.slot === here.slot) return;
+      if (moveItem(this.getState(), this.config, picked, here)) {
+        for (const id of this.open.keys()) this.renderWindow(id);
+      }
+    });
     cell.addEventListener('dragover', (e) => {
       e.preventDefault();
       cell.classList.add('us__slot--over');
