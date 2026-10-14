@@ -53,11 +53,13 @@ Every unit carries one equipped weapon and a 6-slot backpack. Soldiers start wit
 
 The game pauses while an inventory window is open.
 
-| Anywhere | Action              |
-| -------- | ------------------- |
-| R        | Restart (game over) |
-| M        | Mute / unmute       |
-| P / Esc  | Pause / resume      |
+| Anywhere    | Action                                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
+| R           | Restart (game over)                                                                                     |
+| M           | Mute / unmute                                                                                           |
+| P / Esc     | Pause / resume                                                                                          |
+| Mouse wheel | Zoom in / out (both modes)                                                                              |
+| Right-drag  | Rotate and tilt the camera (both modes). In RTS mode a right _click_ without moving still orders a move |
 
 ## Assets
 
