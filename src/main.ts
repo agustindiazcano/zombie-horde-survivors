@@ -61,7 +61,9 @@ async function main(): Promise<void> {
   const perks = new PerkPicker(document.body, config, () => state);
   const shop = new Shop(document.body, config, () => state);
   /** Any full-screen menu: the game is frozen and keyboard shortcuts are off. */
-  const menu = new MainMenu(document.body, () => undefined);
+  // A random soldier floats next to the title, a different one on each visit.
+  const preview = factories.soldiers[Math.floor(Math.random() * factories.soldiers.length)];
+  const menu = new MainMenu(document.body, () => undefined, preview);
   const modalOpen = () => menu.isOpen || ui.isOpen || perks.isOpen || shop.isOpen;
   const rts = new RtsController(
     renderer.domElement,

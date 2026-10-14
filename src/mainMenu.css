@@ -14,6 +14,27 @@
   display: none;
 }
 
+.menu {
+  gap: clamp(8px, 4vw, 64px);
+}
+
+.menu__stage {
+  width: min(36vw, 460px);
+  height: min(80vh, 640px);
+}
+
+.menu__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 800px) {
+  .menu__stage {
+    display: none;
+  }
+}
+
 .menu__panel {
   max-width: 560px;
   padding: 0 20px;
