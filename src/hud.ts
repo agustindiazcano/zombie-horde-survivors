@@ -24,6 +24,7 @@ export class Hud {
   private readonly wave: HTMLElement;
   private readonly kills: HTMLElement;
   private readonly banner: HTMLElement;
+  private readonly damage: HTMLElement;
   private readonly gameOver: HTMLElement;
   private readonly summary: HTMLElement;
   private bannerTimer = 0;
@@ -45,6 +46,7 @@ export class Hud {
     this.wave = el('span', '', stats);
     this.kills = el('span', '', stats);
     this.banner = el('div', 'hud__banner', root);
+    this.damage = el('div', 'hud__damage', root);
 
     this.gameOver = el('div', 'hud__gameover', root);
     el('h1', '', this.gameOver, 'GAME OVER');
@@ -61,6 +63,13 @@ export class Hud {
     this.shown = { health: -1, wave: -1, kills: -1, over: false };
     this.gameOver.classList.remove('hud__gameover--visible');
     this.banner.classList.remove('hud__banner--visible');
+  }
+
+  /** Reacts to events from a simulation step (call after every step). */
+  onStep(state: GameState): void {
+    for (const e of state.events) {
+      if (e.type === 'playerHurt') this.flashDamage();
+    }
   }
 
   update(state: GameState): void {
@@ -90,6 +99,15 @@ export class Hud {
       this.gameOver.classList.toggle('hud__gameover--visible', over);
       this.summary.textContent = `You survived to wave ${state.wave} with ${state.kills} kills.`;
     }
+  }
+
+  private flashDamage(): void {
+    const style = this.damage.style;
+    style.transition = 'none';
+    style.opacity = '1';
+    void this.damage.offsetWidth; // restart the transition
+    style.transition = 'opacity 0.45s ease-out';
+    style.opacity = '0';
   }
 
   private showBanner(text: string): void {

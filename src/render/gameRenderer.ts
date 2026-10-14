@@ -19,6 +19,12 @@ interface ZombieEntry {
   seenFrame: number;
 }
 
+/** Camera shake amplitude (world units) added per event, its cap, and decay per second. */
+const SHOT_SHAKE = 0.03;
+const HURT_SHAKE = 0.25;
+const MAX_SHAKE = 0.4;
+const SHAKE_DECAY = 1.5;
+
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export class GameRenderer {
@@ -33,6 +39,7 @@ export class GameRenderer {
   /** Released zombie views kept for reuse instead of being rebuilt. */
   private readonly pool: CharacterView[] = [];
   private frame = 0;
+  private shake = 0;
   private readonly effects = new ShotEffects();
   private readonly raycaster = new THREE.Raycaster();
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -76,6 +83,11 @@ export class GameRenderer {
     this.effects.update(dt);
 
     this.camera.position.set(px, 0, pz).add(CAMERA_OFFSET);
+    if (this.shake > 0) {
+      this.camera.position.x += (Math.random() - 0.5) * 2 * this.shake;
+      this.camera.position.z += (Math.random() - 0.5) * 2 * this.shake;
+      this.shake = Math.max(0, this.shake - SHAKE_DECAY * dt);
+    }
     this.camera.lookAt(px, 0, pz);
     this.renderer.render(this.scene, this.camera);
   }
@@ -83,7 +95,12 @@ export class GameRenderer {
   /** Spawns visuals for events produced by a simulation step. Call after each step. */
   onStep(state: GameState): void {
     for (const e of state.events) {
-      if (e.type === 'shot') this.effects.spawnShot(e.from, e.to, state.player.facing);
+      if (e.type === 'shot') {
+        this.effects.spawnShot(e.from, e.to, state.player.facing);
+        this.shake = Math.min(this.shake + SHOT_SHAKE, MAX_SHAKE);
+      } else if (e.type === 'playerHurt') {
+        this.shake = Math.min(this.shake + HURT_SHAKE, MAX_SHAKE);
+      }
     }
   }
 
