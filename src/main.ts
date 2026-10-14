@@ -1,6 +1,7 @@
 import characters from '../data/characters.json';
 import data from '../data/game.json';
 import { Sfx } from './audio';
+import { FpsCounter } from './fps';
 import { Hud } from './hud';
 import { InputController } from './input';
 import { CameraControls } from './cameraControls';
@@ -42,6 +43,13 @@ async function main(): Promise<void> {
   const renderer = new GameRenderer(document.body, config, factories);
   const input = new InputController(renderer.domElement);
   const sfx = new Sfx();
+  const fps = new FpsCounter(document.body);
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'F3') {
+      e.preventDefault();
+      fps.toggle();
+    }
+  });
   const ui = new InventoryUi(document.body, config, () => state);
   const cratePrompt = new CratePrompt();
   const perks = new PerkPicker(document.body, config, () => state);
@@ -211,6 +219,7 @@ async function main(): Promise<void> {
       hud.setCrosshair(renderer.viewMode !== 'top' && state.controlledId !== null);
       rts.prune();
       renderer.render(state, alpha, frameDt);
+      fps.tick(frameDt);
 
       const crate = !modalOpen() && playable() ? crateInReach() : undefined;
       if (crate) {

@@ -4,6 +4,8 @@ A browser-based 3D squad shooter: command a small squad of soldiers and a drone 
 
 Built with Three.js + Vite + TypeScript. No backend: it runs in the browser.
 
+**Play online:** https://agustindiazcano.github.io/zombie-horde-survivors/ (desktop browser, keyboard and mouse).
+
 ## Run
 
 ```bash
@@ -77,6 +79,7 @@ When you take control with **Y**, only the units that were selected follow you. 
 | ------- | --------------------------------- |
 | P / Esc | Pause / resume                    |
 | M       | Mute / unmute                     |
+| F3      | Show / hide the FPS counter       |
 | R       | Restart (on the game over screen) |
 
 ## The squad
