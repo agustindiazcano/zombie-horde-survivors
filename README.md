@@ -1,77 +1,99 @@
-# Zombie Shooter
+# Zombie Horde Survivors
 
-Browser-based 3D zombie shooter prototype (Three.js + Vite + TypeScript).
+A browser-based 3D squad shooter: command a small squad of soldiers and a drone against waves of zombies, skeletons, aliens, hounds, brutes and giant worms. Play it **hands-on** (direct control of one soldier, in top-down, third-person or first-person view) or **from above** (RTS mode: select units and give orders).
+
+Built with Three.js + Vite + TypeScript. No backend: it runs in the browser.
 
 ## Run
 
 ```bash
 npm install
-npm run dev      # dev server
+npm run dev      # dev server (http://localhost:5173)
 npm run build    # static files in dist/
 npm test         # unit tests
 npm run lint && npm run format:check && npm run typecheck
 ```
 
-## Architecture
+## How it plays
 
-- `src/sim` — pure simulation (no Three.js imports; enforced by ESLint and a test).
-- `src/render` — Three.js rendering.
+You start in **direct control** of one soldier, with the rest of the squad following you and shooting on their own. Press **Y** to switch to **RTS mode**, select units, send them anywhere on the map, then press **Y** again to take direct control of one of them.
+
+Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The game ends when every soldier is dead (the drone doesn't count).
 
 ## Controls
 
-You command a squad of soldiers. The game starts in **direct control** of one soldier; press **Y** to switch to **RTS mode**.
+### Direct control
 
-| Direct control    | Action                                                                                                                                                                                                   |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| W / A / S / D     | Move (relative to the screen)                                                                                                                                                                            |
-| Mouse             | Aim                                                                                                                                                                                                      |
-| Left click (hold) | Fire                                                                                                                                                                                                     |
-| T                 | Cycle the view: third person, first person, back to the normal (top-down) view. In the person views the mouse turns the view 1:1 and instantly (cursor locked, crosshair in the centre); Esc releases it |
-| Ctrl (or C)       | Whole squad crouches: tighter spread, +10% damage, half speed                                                                                                                                            |
-| Shift             | Whole squad sprints (1.6x speed)                                                                                                                                                                         |
-| Space             | Jump (only the soldier you control)                                                                                                                                                                      |
-| Y                 | Back to RTS mode                                                                                                                                                                                         |
+| Key / mouse       | Action                                                            |
+| ----------------- | ----------------------------------------------------------------- |
+| W / A / S / D     | Move (relative to where the camera looks)                         |
+| Mouse             | Aim (see _Views_ below)                                           |
+| Left click (hold) | Fire                                                              |
+| Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed |
+| Shift             | The whole squad sprints (1.6x speed)                              |
+| Space             | Jump (only the soldier you control)                               |
+| T                 | Change view: normal → third person → first person → normal        |
+| I                 | Open / close the inventory                                        |
+| E                 | Next to a crate (a yellow **E** floats above it): open it         |
+| Y                 | Go back to RTS mode                                               |
+| Mouse wheel       | Zoom (normal and third-person views)                              |
+| Right-drag        | Rotate and tilt the camera (normal view only)                     |
 
-| RTS mode          | Action                                            |
-| ----------------- | ------------------------------------------------- |
-| W / A / S / D     | Pan the camera                                    |
-| Left click / drag | Select soldier / box select (Shift adds)          |
-| Right click       | Send selected soldiers to that point              |
-| F                 | Selected soldiers follow the controlled one       |
-| E                 | Select all                                        |
-| 1-9               | Select soldier by number                          |
-| Y                 | Take direct control of the first selected soldier |
+Ctrl+W closes the browser tab and the browser won't let a page block it, so **C** is provided as an alternative way to crouch.
 
-The squad also has a **drone** (unit 5): a flying ball with slow, hard-hitting shots that ignore cover. Zombies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
+### Views (T)
 
-Uncontrolled soldiers shoot the nearest zombie in sight on their own. When you press Y, only the soldiers selected at that moment follow the controlled one; the others hold their position (or keep their move order).
+| View                  | Camera                               | Aiming                                                                                           |
+| --------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| **Normal** (top-down) | Above and behind, follows the unit   | The soldier aims at the cursor on the ground. Wheel zooms, right-drag rotates / tilts.           |
+| **Third person**      | Over the shoulder, a bit above       | The mouse turns the view 1:1 and instantly; the crosshair in the centre is the aim. Wheel zooms. |
+| **First person**      | At the soldier's eyes (model hidden) | Same as third person; the camera lowers when crouching and rises when jumping.                   |
+
+In third and first person the cursor is locked (so you can keep turning) and W / A / S / D move relative to where you look. **Esc** releases the cursor and goes back to the normal view. The view also returns to normal if you switch to RTS mode, the controlled soldier dies, or the game ends.
+
+### RTS mode
+
+| Key / mouse              | Action                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| W / A / S / D            | Pan the camera                                                                    |
+| Left click               | Select a soldier                                                                  |
+| Left-drag                | Box select (hold **Shift** to add to the selection)                               |
+| Right click              | Send the selected units to that point (a right _drag_ rotates the camera instead) |
+| F                        | Selected units follow the controlled soldier again                                |
+| E                        | Select all                                                                        |
+| 1 – 9                    | Select a unit by number (Shift adds)                                              |
+| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                               |
+| Y                        | Take direct control of the first selected unit                                    |
+| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                 |
+| I                        | Inventory                                                                         |
+
+When you take control with **Y**, only the units that were selected follow you. The rest hold their position (or keep their move order). Every uncontrolled unit shoots the nearest enemy it can see.
+
+### Anywhere
+
+| Key     | Action                            |
+| ------- | --------------------------------- |
+| P / Esc | Pause / resume                    |
+| M       | Mute / unmute                     |
+| R       | Restart (on the game over screen) |
+
+## The squad
+
+- **4 soldiers**, each with its own model, armed with a **rifle**.
+- **A drone** (unit 5): a small flying ship with slow, hard-hitting shots that ignore cover. Enemies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
+- Crouching, sprinting and jumping are set by the unit you control; crouch and sprint affect the whole squad.
 
 ## Inventory and weapons
 
-Every unit carries one equipped weapon and a 6-slot backpack. Soldiers start with a **rifle**, the drone with a **drone cannon**. Some zombies drop a **crate** holding a **pistol** and/or a **heavy machine gun** (drop chance and loot table are in `data/game.json`).
-
-| Key | Action                                                                                             |
-| --- | -------------------------------------------------------------------------------------------------- |
-| I   | Open / close the inventory (tabs for each unit; Equip swaps with the backpack)                     |
-| E   | Next to a crate (the yellow **E** appears above it): open it. Take items, stash items, or Take all |
-
-The game pauses while an inventory window is open.
-
-| Anywhere    | Action                                                                                                  |
-| ----------- | ------------------------------------------------------------------------------------------------------- |
-| R           | Restart (game over)                                                                                     |
-| M           | Mute / unmute                                                                                           |
-| P / Esc     | Pause / resume                                                                                          |
-| Mouse wheel | Zoom in / out (both modes)                                                                              |
-| Right-drag  | Rotate and tilt the camera (both modes). In RTS mode a right _click_ without moving still orders a move |
+Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop a **crate** with a **pistol** and/or a **heavy machine gun**. Press **E** next to it to take items or stash your own; press **I** to equip weapons. The game pauses while an inventory window is open. Weapon stats, the drop chance and the loot table are in `data/game.json`.
 
 ## Loot, levels and gore
 
-Enemies drop a gold coin and an XP orb; they're picked up by any of your units (the drone too) walking over them, and vanish after 60 s. XP raises your level (shown at the top). About half of the enemies burst when killed, spraying blood and gibs. Enemies show a health bar and light up when hit. Drop values, the explode chance and level curve are in `data/game.json` (`zombie.gold`/`xp`, `enemies.*.rewardScale`, `loot`, `progress`, `gore`).
+Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collects them by walking over them; they vanish after 60 s. XP raises your level (shown at the top). Enemies show a health bar and light up when hit, and about half of them burst when killed, spraying blood and gibs.
 
 ## Enemies
 
-Variants are defined in `data/game.json` (`enemies`) as multipliers on the base zombie, and each has its own model in `data/characters.json`.
+Variants are multipliers on the base zombie in `data/game.json` (`enemies`); each has its own model in `data/characters.json`.
 
 | Enemy             | From wave | Traits                       |
 | ----------------- | --------- | ---------------------------- |
@@ -82,11 +104,18 @@ Variants are defined in `data/game.json` (`enemies`) as multipliers on the base 
 | Brute (monster)   | 3         | Slow, huge health and damage |
 | Giant worm        | 4         | Very slow, very tanky, wide  |
 
+Zombie speed and health also grow with each wave.
+
+## Architecture
+
+- `src/sim` — the pure simulation (squad, enemies, waves, loot). It imports no Three.js; ESLint and a test enforce that, so it can be unit-tested.
+- `src/render` — Three.js rendering (arena, characters, effects, cameras).
+- `src` — input, HUD, audio and the fixed-timestep game loop (the render interpolates between steps).
+- `data/game.json` — all gameplay numbers, validated with a strict schema. `data/characters.json` maps each unit to its model and animation clips.
+
 ## Assets
 
-Every third-party asset is listed in `assets.toml` (name, author, source, license, path).
-Allowed licenses: CC0-1.0, CC-BY-3.0, CC-BY-4.0. `npm run check:assets` enforces this and CI runs it.
-Run `npm run credits` to regenerate the section below.
+Every third-party asset is listed in `assets.toml` (name, author, source, license, path). Allowed licenses: CC0-1.0, CC-BY-3.0, CC-BY-4.0. `npm run check:assets` enforces this and CI runs it. Run `npm run credits` to regenerate the section below.
 
 ## Credits
 
