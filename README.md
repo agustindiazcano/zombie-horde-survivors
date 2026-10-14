@@ -42,6 +42,17 @@ The squad also has a **drone** (unit 5): a flying ball with slow, hard-hitting s
 
 Uncontrolled soldiers shoot the nearest zombie in sight on their own. When you press Y, only the soldiers selected at that moment follow the controlled one; the others hold their position (or keep their move order).
 
+## Inventory and weapons
+
+Every unit carries one equipped weapon and a 6-slot backpack. Soldiers start with a **rifle**, the drone with a **drone cannon**. Some zombies drop a **crate** holding a **pistol** and/or a **heavy machine gun** (drop chance and loot table are in `data/game.json`).
+
+| Key | Action                                                                                             |
+| --- | -------------------------------------------------------------------------------------------------- |
+| I   | Open / close the inventory (tabs for each unit; Equip swaps with the backpack)                     |
+| E   | Next to a crate (the yellow **E** appears above it): open it. Take items, stash items, or Take all |
+
+The game pauses while an inventory window is open.
+
 | Anywhere | Action              |
 | -------- | ------------------- |
 | R        | Restart (game over) |

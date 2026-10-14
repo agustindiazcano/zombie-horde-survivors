@@ -22,6 +22,10 @@ export interface Soldier {
   dead: boolean;
   fireCooldown: number;
   order: SoldierOrder;
+  /** Equipped weapon id ('rifle', 'pistol', 'heavy_mg', 'drone_cannon'). */
+  weapon: string;
+  /** Carried weapon ids, up to `inventory.backpackSlots`. */
+  backpack: string[];
 }
 
 export interface Zombie {
@@ -35,6 +39,13 @@ export interface Zombie {
   state: ZombieState;
   attackTimer: number;
   deathTimer: number;
+}
+
+/** A dropped container of weapons on the ground. */
+export interface Crate {
+  id: number;
+  pos: Vec2;
+  items: string[];
 }
 
 export type SpawnerPhase = 'intermission' | 'spawning' | 'clearing';
@@ -51,6 +62,7 @@ export type SimEvent =
       type: 'shot';
       shooterId: number;
       facing: number;
+      weapon: string;
       /** Muzzle height above the ground. */
       height: number;
       from: Vec2;
@@ -58,6 +70,7 @@ export type SimEvent =
       hitZombieId: number | null;
     }
   | { type: 'zombieKilled'; id: number }
+  | { type: 'crateDropped'; crateId: number; pos: Vec2 }
   | { type: 'soldierHurt'; soldierId: number; damage: number; zombieId: number }
   | { type: 'soldierDied'; soldierId: number }
   | { type: 'waveStarted'; wave: number }
@@ -72,6 +85,8 @@ export interface GameState {
   nextSoldierId: number;
   zombies: Zombie[];
   nextZombieId: number;
+  crates: Crate[];
+  nextCrateId: number;
   wave: number;
   kills: number;
   spawner: Spawner;

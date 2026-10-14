@@ -1,5 +1,5 @@
 import './hud.css';
-import { getSoldier, type GameConfig, type GameState } from './sim';
+import { getSoldier, weaponDef, type GameConfig, type GameState } from './sim';
 
 const BANNER_MS = 1800;
 const LOW_HEALTH = 0.3;
@@ -49,7 +49,15 @@ export class Hud {
   private readonly summary: HTMLElement;
   private bannerTimer = 0;
   // Last rendered values, so the DOM is only touched when something changes.
-  private shown = { health: -1, wave: -1, kills: -1, over: false, countdown: '', focus: -1 };
+  private shown = {
+    health: -1,
+    wave: -1,
+    kills: -1,
+    over: false,
+    countdown: '',
+    focus: -1,
+    weapon: '',
+  };
 
   constructor(
     parent: HTMLElement,
@@ -86,7 +94,15 @@ export class Hud {
 
   /** Forces a full refresh on the next update (call after restarting). */
   reset(): void {
-    this.shown = { health: -1, wave: -1, kills: -1, over: false, countdown: '', focus: -1 };
+    this.shown = {
+      health: -1,
+      wave: -1,
+      kills: -1,
+      over: false,
+      countdown: '',
+      focus: -1,
+      weapon: '',
+    };
     this.gameOver.classList.remove('hud__gameover--visible');
     this.banner.classList.remove('hud__banner--visible');
   }
@@ -113,11 +129,17 @@ export class Hud {
       getSoldier(state, focusId) ?? state.soldiers.find((s) => !s.dead) ?? state.soldiers[0];
     const health = Math.ceil(focus?.health ?? 0);
     const focusKey = focus?.id ?? 0;
-    if (health !== this.shown.health || focusKey !== this.shown.focus) {
+    const weapon = focus ? weaponDef(this.config, focus.weapon).name : '';
+    if (
+      health !== this.shown.health ||
+      focusKey !== this.shown.focus ||
+      weapon !== this.shown.weapon
+    ) {
       this.shown.health = health;
       this.shown.focus = focusKey;
+      this.shown.weapon = weapon;
       const max = this.config.player.maxHealth;
-      this.healthLabel.textContent = `${focus?.kind === 'drone' ? 'Drone' : 'Soldier'} ${focusKey} — Health ${health} / ${max}`;
+      this.healthLabel.textContent = `${focus?.kind === 'drone' ? 'Drone' : 'Soldier'} ${focusKey} · ${weapon} — Health ${health} / ${max}`;
       this.healthFill.style.width = `${(health / max) * 100}%`;
       this.healthFill.classList.toggle('hud__bar-fill--low', health / max < LOW_HEALTH);
     }

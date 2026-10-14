@@ -8,6 +8,17 @@ const obstacle = z
   .strict();
 
 /** Schema for data/game.json. Strict so typos in data files fail loudly. */
+const weaponDef = z
+  .object({
+    name: z.string().min(1),
+    fireRate: positive,
+    damage: positive,
+    range: positive,
+    /** Random aim error, in radians (each side). */
+    spread: nonNegative,
+  })
+  .strict();
+
 export const GameConfigSchema = z
   .object({
     arena: z.object({ halfSize: positive, obstacles: z.array(obstacle) }).strict(),
@@ -34,6 +45,21 @@ export const GameConfigSchema = z
         fireRate: positive,
         damage: positive,
         range: positive,
+      })
+      .strict(),
+    inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
+    /** Droppable weapons by id. 'rifle' (the `weapon` section) and the drone cannon are built in. */
+    weapons: z.record(z.string(), weaponDef),
+    drops: z
+      .object({
+        /** Chance (0..1) that a killed zombie drops a crate. */
+        chance: z.number().min(0).max(1),
+        minItems: z.number().int().positive(),
+        maxItems: z.number().int().positive(),
+        /** How close a unit must be to open or use a crate. */
+        pickupRange: positive,
+        maxCrates: z.number().int().positive(),
+        table: z.array(z.object({ weapon: z.string(), weight: positive }).strict()).min(1),
       })
       .strict(),
     weapon: z.object({ fireRate: positive, damage: positive, range: positive }).strict(),
@@ -63,7 +89,20 @@ export const GameConfigSchema = z
       })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((cfg, ctx) => {
+    if (cfg.drops.maxItems < cfg.drops.minItems) {
+      ctx.addIssue({ code: 'custom', message: 'drops.maxItems must be >= drops.minItems' });
+    }
+    for (const entry of cfg.drops.table) {
+      if (entry.weapon !== 'rifle' && !(entry.weapon in cfg.weapons)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `drops.table references unknown weapon "${entry.weapon}"`,
+        });
+      }
+    }
+  });
 
 export type GameConfig = z.infer<typeof GameConfigSchema>;
 export type Obstacle = GameConfig['arena']['obstacles'][number];
