@@ -1,6 +1,7 @@
 import { rayAabb, resolveStatic } from './collision';
 import type { GameConfig } from './config';
-import type { GameState, Zombie } from './types';
+import { hurtSoldier } from './soldiers';
+import type { GameState, Soldier, Zombie } from './types';
 import type { Vec2 } from './vec';
 
 export function spawnZombie(state: GameState, config: GameConfig, pos: Vec2): Zombie {
@@ -40,8 +41,6 @@ export function damageZombie(
 
 export function updateZombies(state: GameState, config: GameConfig, dt: number): void {
   const zc = config.zombie;
-  const player = state.player;
-
   for (const z of state.zombies) {
     z.prev.x = z.pos.x;
     z.prev.z = z.pos.z;
@@ -51,16 +50,18 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       continue;
     }
 
-    const dx = player.pos.x - z.pos.x;
-    const dz = player.pos.z - z.pos.z;
+    const target = nearestSoldier(state, z.pos);
+    if (!target) continue; // everyone is dead; the game is about to end
+    const dx = target.pos.x - z.pos.x;
+    const dz = target.pos.z - z.pos.z;
     const d = Math.hypot(dx, dz);
     if (d > 1e-9) z.facing = Math.atan2(dx, dz);
 
     if (d > zc.attackRange) {
       z.state = 'walk';
-      const target = steerTarget(z.pos, player.pos, d, config);
-      const tx = target.x - z.pos.x;
-      const tz = target.z - z.pos.z;
+      const waypoint = steerTarget(z.pos, target.pos, d, config);
+      const tx = waypoint.x - z.pos.x;
+      const tz = waypoint.z - z.pos.z;
       const td = Math.hypot(tx, tz) || 1;
       z.pos.x += (tx / td) * z.speed * dt;
       z.pos.z += (tz / td) * z.speed * dt;
@@ -76,8 +77,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     z.attackTimer -= dt;
     if (z.attackTimer <= 0) {
       z.attackTimer += zc.attackCooldown;
-      player.health = Math.max(0, player.health - zc.damage);
-      state.events.push({ type: 'playerHurt', damage: zc.damage, zombieId: z.id });
+      hurtSoldier(state, target, zc.damage, z.id);
     }
   }
 
@@ -168,4 +168,18 @@ function steerTarget(from: Vec2, to: Vec2, distance: number, config: GameConfig)
     }
   }
   return scratch;
+}
+
+function nearestSoldier(state: GameState, from: Vec2): Soldier | null {
+  let best: Soldier | null = null;
+  let bestD2 = Infinity;
+  for (const s of state.soldiers) {
+    if (s.dead) continue;
+    const d2 = (s.pos.x - from.x) ** 2 + (s.pos.z - from.z) ** 2;
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      best = s;
+    }
+  }
+  return best;
 }

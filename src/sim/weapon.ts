@@ -1,17 +1,32 @@
 import { rayAabb, rayCircle } from './collision';
 import type { GameConfig } from './config';
-import type { GameState, Input, Zombie } from './types';
-import { dirFromAngle } from './vec';
+import type { GameState, Soldier, Zombie } from './types';
+import { dirFromAngle, type Vec2 } from './vec';
 import { damageZombie } from './zombies';
 
-/** Fires one hitscan bullet if the trigger is held and the weapon is ready. */
-export function tryFire(state: GameState, config: GameConfig, input: Input): void {
-  const player = state.player;
-  if (!input.firing || player.fireCooldown > 0) return;
-  player.fireCooldown = 1 / config.weapon.fireRate;
+/** True if an obstacle sits between `origin` and a point `distance` away along `dir`. */
+export function isBlocked(origin: Vec2, dir: Vec2, distance: number, config: GameConfig): boolean {
+  for (const box of config.arena.obstacles) {
+    const t = rayAabb(origin, dir, box);
+    if (t !== null && t < distance) return true;
+  }
+  return false;
+}
 
-  const origin = player.pos;
-  const dir = dirFromAngle(player.facing);
+/**
+ * Fires one hitscan bullet from `soldier` along its facing and starts its cooldown.
+ * `rateScale` slows the fire rate (used for AI soldiers).
+ */
+export function fireWeapon(
+  state: GameState,
+  config: GameConfig,
+  soldier: Soldier,
+  rateScale = 1,
+): void {
+  soldier.fireCooldown = 1 / (config.weapon.fireRate * rateScale);
+
+  const origin = soldier.pos;
+  const dir = dirFromAngle(soldier.facing);
   let nearest = config.weapon.range;
   let target: Zombie | null = null;
 
@@ -34,6 +49,8 @@ export function tryFire(state: GameState, config: GameConfig, input: Input): voi
 
   state.events.push({
     type: 'shot',
+    shooterId: soldier.id,
+    facing: soldier.facing,
     from: { x: origin.x, z: origin.z },
     to: { x: origin.x + dir.x * nearest, z: origin.z + dir.z * nearest },
     hitZombieId: target?.id ?? null,
