@@ -1,5 +1,5 @@
 import './hud.css';
-import type { GameConfig, GameState } from './sim';
+import { getSoldier, type GameConfig, type GameState } from './sim';
 
 const BANNER_MS = 1800;
 const LOW_HEALTH = 0.3;
@@ -44,11 +44,12 @@ export class Hud {
   private readonly damage: HTMLElement;
   private readonly countdown: HTMLElement;
   private readonly pause: HTMLElement;
+  private readonly hint: HTMLElement;
   private readonly gameOver: HTMLElement;
   private readonly summary: HTMLElement;
   private bannerTimer = 0;
   // Last rendered values, so the DOM is only touched when something changes.
-  private shown = { health: -1, wave: -1, kills: -1, over: false, countdown: '' };
+  private shown = { health: -1, wave: -1, kills: -1, over: false, countdown: '', focus: -1 };
 
   constructor(
     parent: HTMLElement,
@@ -67,6 +68,7 @@ export class Hud {
     this.banner = el('div', 'hud__banner', root);
     this.damage = el('div', 'hud__damage', root);
     this.countdown = el('div', 'hud__countdown', root);
+    this.hint = el('div', 'hud__hint', root);
 
     this.pause = el('div', 'hud__pause', root);
     el('h1', '', this.pause, 'PAUSED');
@@ -84,7 +86,7 @@ export class Hud {
 
   /** Forces a full refresh on the next update (call after restarting). */
   reset(): void {
-    this.shown = { health: -1, wave: -1, kills: -1, over: false, countdown: '' };
+    this.shown = { health: -1, wave: -1, kills: -1, over: false, countdown: '', focus: -1 };
     this.gameOver.classList.remove('hud__gameover--visible');
     this.banner.classList.remove('hud__banner--visible');
   }
@@ -92,7 +94,7 @@ export class Hud {
   /** Reacts to events from a simulation step (call after every step). */
   onStep(state: GameState): void {
     for (const e of state.events) {
-      if (e.type === 'playerHurt') this.flashDamage();
+      if (e.type === 'soldierHurt' && e.soldierId === state.controlledId) this.flashDamage();
     }
   }
 
@@ -100,12 +102,22 @@ export class Hud {
     this.pause.classList.toggle('hud__pause--visible', paused);
   }
 
-  update(state: GameState): void {
-    const health = Math.ceil(state.player.health);
-    if (health !== this.shown.health) {
+  /** Text describing the current mode and its keys. */
+  setHint(text: string): void {
+    if (this.hint.textContent !== text) this.hint.textContent = text;
+  }
+
+  /** `focusId` is the soldier whose health is shown (controlled or selected). */
+  update(state: GameState, focusId: number | null): void {
+    const focus =
+      getSoldier(state, focusId) ?? state.soldiers.find((s) => !s.dead) ?? state.soldiers[0];
+    const health = Math.ceil(focus?.health ?? 0);
+    const focusKey = focus?.id ?? 0;
+    if (health !== this.shown.health || focusKey !== this.shown.focus) {
       this.shown.health = health;
+      this.shown.focus = focusKey;
       const max = this.config.player.maxHealth;
-      this.healthLabel.textContent = `Health ${health} / ${max}`;
+      this.healthLabel.textContent = `Soldier ${focusKey} — Health ${health} / ${max}`;
       this.healthFill.style.width = `${(health / max) * 100}%`;
       this.healthFill.classList.toggle('hud__bar-fill--low', health / max < LOW_HEALTH);
     }
