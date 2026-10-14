@@ -18,7 +18,7 @@ const USER_ZOOM_RATE = 10;
 const MOVING_EPSILON = 1e-4;
 
 interface Factories {
-  player: CharacterFactory;
+  soldiers: CharacterFactory[];
   zombie: CharacterFactory;
   drone: CharacterFactory;
 }
@@ -218,11 +218,16 @@ export class GameRenderer {
     }
   }
 
+  private soldierFactory(id: number): CharacterFactory {
+    const list = this.factories.soldiers;
+    return list[(id - 1) % list.length]!;
+  }
+
   private syncSoldiers(state: GameState, alpha: number, dt: number): void {
     for (const s of state.soldiers) {
       let view = this.soldiers.get(s.id);
       if (!view) {
-        view = s.kind === 'drone' ? this.factories.drone() : this.factories.player();
+        view = s.kind === 'drone' ? this.factories.drone() : this.soldierFactory(s.id)();
         this.soldiers.set(s.id, view);
         this.scene.add(view.object);
       }
