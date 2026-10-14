@@ -1,23 +1,19 @@
 import { FIXED_DT } from './constants';
 import type { GameConfig } from './config';
-import { updatePlayer } from './player';
+import { createSquad, updateSoldiers } from './soldiers';
 import { createRng } from './rng';
 import type { GameState, Input } from './types';
-import { tryFire } from './weapon';
 import { updateWaves } from './waves';
 import { updateZombies } from './zombies';
 
 export function createGame(config: GameConfig, seed = 1): GameState {
+  const soldiers = createSquad(config);
   return {
     time: 0,
     status: 'playing',
-    player: {
-      pos: { x: 0, z: 0 },
-      prev: { x: 0, z: 0 },
-      facing: 0,
-      health: config.player.maxHealth,
-      fireCooldown: 0,
-    },
+    soldiers,
+    controlledId: soldiers[0]?.id ?? null,
+    nextSoldierId: soldiers.length + 1,
     zombies: [],
     nextZombieId: 1,
     wave: 0,
@@ -39,15 +35,12 @@ export function step(
   if (state.status === 'gameover') return;
 
   state.time += dt;
-  state.player.prev.x = state.player.pos.x;
-  state.player.prev.z = state.player.pos.z;
 
-  updatePlayer(state, config, input, dt);
-  tryFire(state, config, input);
+  updateSoldiers(state, config, input, dt);
   updateWaves(state, config, dt);
   updateZombies(state, config, dt);
 
-  if (state.player.health <= 0) {
+  if (state.soldiers.every((s) => s.dead)) {
     state.status = 'gameover';
     state.events.push({ type: 'gameOver' });
   }

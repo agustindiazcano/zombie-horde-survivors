@@ -6,5 +6,13 @@ export * from './config';
 export * from './collision';
 export * from './types';
 export { createGame, step } from './game';
+export {
+  controlSoldier,
+  getSoldier,
+  livingSoldiers,
+  orderFollow,
+  orderHold,
+  orderMove,
+} from './soldiers';
 export { spawnZombie } from './zombies';
 export { waveSize } from './waves';

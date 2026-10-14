@@ -23,11 +23,11 @@ describe('zombie AI', () => {
     const { state, config } = makeGame();
     spawnZombie(state, config, { x: 0.9, z: 0 });
     run(state, config, idle, 0.9);
-    expect(state.player.health).toBe(config.player.maxHealth);
+    expect(state.soldiers[0]!.health).toBe(config.player.maxHealth);
     run(state, config, idle, 0.2);
-    expect(state.player.health).toBe(config.player.maxHealth - config.zombie.damage);
+    expect(state.soldiers[0]!.health).toBe(config.player.maxHealth - config.zombie.damage);
     run(state, config, idle, 1);
-    expect(state.player.health).toBe(config.player.maxHealth - 2 * config.zombie.damage);
+    expect(state.soldiers[0]!.health).toBe(config.player.maxHealth - 2 * config.zombie.damage);
   });
 
   it('resumes walking when the player steps out of range', () => {
@@ -55,7 +55,7 @@ describe('zombie AI', () => {
     run(state, config, { ...idle, firing: true }, 1 / 60);
     const at = { ...z.pos };
     run(state, config, idle, 1);
-    expect(state.player.health).toBe(config.player.maxHealth);
+    expect(state.soldiers[0]!.health).toBe(config.player.maxHealth);
     expect(z.pos).toEqual(at);
   });
 });

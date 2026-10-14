@@ -139,3 +139,75 @@
   background: #f2f4f7;
   color: #111;
 }
+
+.hud__hint {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  max-width: 320px;
+  text-align: right;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.squad {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.squad__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 52px;
+  padding: 6px 4px;
+  font:
+    600 14px system-ui,
+    sans-serif;
+  color: #f2f4f7;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.squad__chip--selected {
+  border-color: #5cff7a;
+}
+
+.squad__chip--controlled {
+  border-color: #ffd24a;
+  box-shadow: 0 0 8px #ffd24a;
+}
+
+.squad__chip--dead {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.squad__bar {
+  display: block;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.squad__fill {
+  display: block;
+  height: 100%;
+  background: #4caf50;
+}
+
+.selection-box {
+  position: fixed;
+  display: none;
+  border: 1px solid #5cff7a;
+  background: rgba(92, 255, 122, 0.12);
+  pointer-events: none;
+}

@@ -7,6 +7,7 @@
       { "x": 0, "z": -8, "halfW": 3, "halfD": 1 }
     ]
   },
+  "squad": { "count": 4, "followDistance": 3, "aiRange": 14, "aiFireRateScale": 0.5 },
   "player": { "speed": 6, "maxHealth": 100, "radius": 0.4 },
   "weapon": { "fireRate": 8, "damage": 25, "range": 40 },
   "zombie": {
@@ -19,8 +20,8 @@
     "deathDuration": 1.5
   },
   "waves": {
-    "baseCount": 5,
-    "countPerWave": 3,
+    "baseCount": 8,
+    "countPerWave": 4,
     "spawnInterval": 0.5,
     "intermission": 3,
     "maxAlive": 150,

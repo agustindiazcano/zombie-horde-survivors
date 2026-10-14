@@ -99,8 +99,12 @@ export const createPlaceholderSoldier: CharacterFactory = () =>
   createPlaceholder({
     body: () => materials.player,
     addLimbs: (root, box) => addBox(root, box, materials.gun, [0.12, 0.12, 0.8], [0.3, 1.0, 0.5]),
-    animate({ state, t, root, body }) {
-      if (state === 'run') {
+    animate({ state, t, stateTime, root, body }) {
+      if (state === 'death') {
+        const k = Math.min(stateTime / 0.4, 1);
+        root.rotation.x = -k * (Math.PI / 2);
+        root.position.y = k * RADIUS;
+      } else if (state === 'run') {
         body.position.y = BODY_Y + Math.abs(Math.sin(t * 12)) * 0.08;
         root.rotation.x = 0.15;
       } else {

@@ -11,7 +11,20 @@ const obstacle = z
 export const GameConfigSchema = z
   .object({
     arena: z.object({ halfSize: positive, obstacles: z.array(obstacle) }).strict(),
+    /** Stats shared by every soldier. */
     player: z.object({ speed: positive, maxHealth: positive, radius: positive }).strict(),
+    squad: z
+      .object({
+        /** Soldiers at the start of a game. */
+        count: z.number().int().positive(),
+        /** Radius around the leader where followers hold position. */
+        followDistance: positive,
+        /** AI soldiers engage zombies within this distance (and line of sight). */
+        aiRange: positive,
+        /** AI fire rate as a fraction of the weapon fire rate. */
+        aiFireRateScale: positive,
+      })
+      .strict(),
     weapon: z.object({ fireRate: positive, damage: positive, range: positive }).strict(),
     zombie: z
       .object({

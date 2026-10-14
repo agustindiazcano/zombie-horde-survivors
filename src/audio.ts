@@ -28,9 +28,10 @@ export class Sfx {
   onStep(state: GameState): void {
     if (!this.ctx || this.ctx.state !== 'running') return;
     for (const e of state.events) {
-      if (e.type === 'shot') this.shot();
+      if (e.type === 'shot') this.shot(e.shooterId === state.controlledId ? 1 : 0.35);
       else if (e.type === 'zombieKilled') this.kill();
-      else if (e.type === 'playerHurt') this.hurt();
+      else if (e.type === 'soldierHurt') this.hurt(e.soldierId === state.controlledId ? 1 : 0.4);
+      else if (e.type === 'soldierDied') this.tone('sawtooth', 180, 50, 0.5, 0.5);
       else if (e.type === 'waveStarted') this.wave();
       else if (e.type === 'gameOver') this.gameOver();
     }
@@ -53,9 +54,9 @@ export class Sfx {
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
-  private shot(): void {
-    this.noiseBurst(0.09, 'bandpass', 1800, 0.9);
-    this.tone('sine', 160, 60, 0.1, 0.6);
+  private shot(volume: number): void {
+    this.noiseBurst(0.09, 'bandpass', 1800, 0.9 * volume);
+    this.tone('sine', 160, 60, 0.1, 0.6 * volume);
   }
 
   private kill(): void {
@@ -63,8 +64,8 @@ export class Sfx {
     this.tone('sawtooth', 110, 40, 0.25, 0.3);
   }
 
-  private hurt(): void {
-    this.tone('sawtooth', 140, 55, 0.22, 0.7);
+  private hurt(volume: number): void {
+    this.tone('sawtooth', 140, 55, 0.22, 0.7 * volume);
   }
 
   private wave(): void {
