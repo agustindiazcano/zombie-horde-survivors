@@ -148,5 +148,13 @@
       "weight": 1,
       "minWave": 4
     }
+  },
+  "stance": {
+    "crouchSpeedScale": 0.5,
+    "crouchSpreadScale": 0.4,
+    "crouchDamageScale": 1.1,
+    "sprintSpeedScale": 1.6,
+    "jumpSpeed": 6.5,
+    "gravity": 20
   }
 }

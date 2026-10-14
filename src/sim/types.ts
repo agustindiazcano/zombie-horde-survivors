@@ -8,6 +8,8 @@ export type ZombieState = 'walk' | 'attack' | 'death';
 export type SoldierOrder =
   { type: 'follow' } | { type: 'move'; x: number; z: number } | { type: 'hold' };
 
+export type Stance = 'normal' | 'crouch' | 'sprint';
+
 export type UnitKind = 'soldier' | 'drone';
 
 export interface Soldier {
@@ -21,6 +23,10 @@ export interface Soldier {
   health: number;
   dead: boolean;
   fireCooldown: number;
+  /** Height above the ground (jumping) and vertical speed. */
+  y: number;
+  prevY: number;
+  vy: number;
   order: SoldierOrder;
   /** Equipped weapon id ('rifle', 'pistol', 'heavy_mg', 'drone_cannon'). */
   weapon: string;
@@ -88,6 +94,8 @@ export interface GameState {
   /** The soldier under direct control, or null in RTS mode. */
   controlledId: number | null;
   nextSoldierId: number;
+  /** How the whole squad is moving/shooting, set by the controlled player's keys. */
+  stance: Stance;
   zombies: Zombie[];
   nextZombieId: number;
   crates: Crate[];
@@ -106,4 +114,9 @@ export interface Input {
   /** World-space point on the ground the player is aiming at. */
   aim: Vec2;
   firing: boolean;
+  /** Squad-wide stances: crouch takes priority over sprint. */
+  crouch: boolean;
+  sprint: boolean;
+  /** Only the controlled soldier jumps. */
+  jump: boolean;
 }
