@@ -2,15 +2,43 @@
   "arena": {
     "halfSize": 20,
     "obstacles": [
-      { "x": 5, "z": 5, "halfW": 1.5, "halfD": 1.5 },
-      { "x": -6, "z": 3, "halfW": 1, "halfD": 3 },
-      { "x": 0, "z": -8, "halfW": 3, "halfD": 1 }
+      {
+        "x": 5,
+        "z": 5,
+        "halfW": 1.5,
+        "halfD": 1.5
+      },
+      {
+        "x": -6,
+        "z": 3,
+        "halfW": 1,
+        "halfD": 3
+      },
+      {
+        "x": 0,
+        "z": -8,
+        "halfW": 3,
+        "halfD": 1
+      }
     ]
   },
-  "squad": { "count": 4, "followDistance": 3, "aiRange": 14, "aiFireRateScale": 0.5 },
-  "inventory": { "backpackSlots": 6 },
+  "squad": {
+    "count": 4,
+    "followDistance": 3,
+    "aiRange": 14,
+    "aiFireRateScale": 0.5
+  },
+  "inventory": {
+    "backpackSlots": 6
+  },
   "weapons": {
-    "pistol": { "name": "Pistol", "fireRate": 4, "damage": 20, "range": 25, "spread": 0.02 },
+    "pistol": {
+      "name": "Pistol",
+      "fireRate": 4,
+      "damage": 20,
+      "range": 25,
+      "spread": 0.02
+    },
     "heavy_mg": {
       "name": "Heavy machine gun",
       "fireRate": 14,
@@ -26,13 +54,34 @@
     "pickupRange": 2.2,
     "maxCrates": 12,
     "table": [
-      { "weapon": "pistol", "weight": 3 },
-      { "weapon": "heavy_mg", "weight": 2 }
+      {
+        "weapon": "pistol",
+        "weight": 3
+      },
+      {
+        "weapon": "heavy_mg",
+        "weight": 2
+      }
     ]
   },
-  "drone": { "count": 1, "speed": 7, "height": 3, "fireRate": 1.2, "damage": 45, "range": 30 },
-  "player": { "speed": 6, "maxHealth": 100, "radius": 0.4 },
-  "weapon": { "fireRate": 8, "damage": 25, "range": 40 },
+  "drone": {
+    "count": 1,
+    "speed": 7,
+    "height": 3,
+    "fireRate": 1.2,
+    "damage": 45,
+    "range": 30
+  },
+  "player": {
+    "speed": 6,
+    "maxHealth": 100,
+    "radius": 0.4
+  },
+  "weapon": {
+    "fireRate": 8,
+    "damage": 25,
+    "range": 40
+  },
   "zombie": {
     "speed": 2.5,
     "health": 100,
@@ -50,6 +99,54 @@
     "maxAlive": 150,
     "speedScalePerWave": 0.05,
     "healthScalePerWave": 0.1,
-    "maxSpeedScale": 1.8
+    "maxSpeedScale": 1.8,
+    "baseWeight": 5
+  },
+  "enemies": {
+    "skeleton": {
+      "name": "Skeleton",
+      "speedScale": 0.6,
+      "healthScale": 0.6,
+      "damageScale": 0.8,
+      "radiusScale": 1.0,
+      "weight": 3,
+      "minWave": 1
+    },
+    "alien": {
+      "name": "Alien",
+      "speedScale": 1.5,
+      "healthScale": 0.7,
+      "damageScale": 0.9,
+      "radiusScale": 0.9,
+      "weight": 3,
+      "minWave": 2
+    },
+    "hound": {
+      "name": "Hound",
+      "speedScale": 2.0,
+      "healthScale": 0.5,
+      "damageScale": 0.7,
+      "radiusScale": 1.0,
+      "weight": 3,
+      "minWave": 2
+    },
+    "brute": {
+      "name": "Brute",
+      "speedScale": 0.7,
+      "healthScale": 3.5,
+      "damageScale": 2.5,
+      "radiusScale": 1.5,
+      "weight": 1,
+      "minWave": 3
+    },
+    "worm": {
+      "name": "Giant worm",
+      "speedScale": 0.5,
+      "healthScale": 5,
+      "damageScale": 1.5,
+      "radiusScale": 1.7,
+      "weight": 1,
+      "minWave": 4
+    }
   }
 }

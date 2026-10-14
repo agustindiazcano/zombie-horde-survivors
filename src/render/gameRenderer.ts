@@ -19,11 +19,12 @@ const MOVING_EPSILON = 1e-4;
 
 interface Factories {
   soldiers: CharacterFactory[];
-  zombie: CharacterFactory;
+  enemies: Record<string, CharacterFactory>;
   drone: CharacterFactory;
 }
 
 interface ZombieEntry {
+  type: string;
   view: CharacterView;
   seenFrame: number;
 }
@@ -74,7 +75,7 @@ export class GameRenderer {
   selection: ReadonlySet<number> = new Set();
   private readonly zombies = new Map<number, ZombieEntry>();
   /** Released zombie views kept for reuse instead of being rebuilt. */
-  private readonly pool: CharacterView[] = [];
+  private readonly pools = new Map<string, CharacterView[]>();
   private frame = 0;
   private shake = 0;
   private readonly effects = new ShotEffects();
@@ -266,9 +267,10 @@ export class GameRenderer {
     for (const z of state.zombies) {
       let entry = this.zombies.get(z.id);
       if (!entry) {
-        const view = this.pool.pop() ?? this.factories.zombie();
+        const type = this.factories.enemies[z.type] ? z.type : 'zombie';
+        const view = this.pools.get(type)?.pop() ?? this.factories.enemies[type]!();
         this.scene.add(view.object);
-        entry = { view, seenFrame: this.frame };
+        entry = { type, view, seenFrame: this.frame };
         this.zombies.set(z.id, entry);
       }
       entry.seenFrame = this.frame;
@@ -282,7 +284,9 @@ export class GameRenderer {
     for (const [id, entry] of this.zombies) {
       if (entry.seenFrame === this.frame) continue;
       this.scene.remove(entry.view.object);
-      this.pool.push(entry.view);
+      const pool = this.pools.get(entry.type) ?? [];
+      pool.push(entry.view);
+      this.pools.set(entry.type, pool);
       this.zombies.delete(id);
     }
   }

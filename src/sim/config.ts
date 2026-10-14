@@ -19,6 +19,22 @@ const weaponDef = z
   })
   .strict();
 
+/** Enemy variants, as multipliers on the base `zombie` stats. */
+const enemyType = z
+  .object({
+    name: z.string().min(1),
+    speedScale: positive,
+    healthScale: positive,
+    damageScale: positive,
+    /** Scales the collision radius and the melee reach. */
+    radiusScale: positive,
+    /** Relative spawn likelihood among unlocked types. */
+    weight: positive,
+    /** First wave this type can appear in. */
+    minWave: z.number().int().positive(),
+  })
+  .strict();
+
 export const GameConfigSchema = z
   .object({
     arena: z.object({ halfSize: positive, obstacles: z.array(obstacle) }).strict(),
@@ -47,6 +63,8 @@ export const GameConfigSchema = z
         range: positive,
       })
       .strict(),
+    /** Variants besides the base zombie, by id (e.g. alien, hound). */
+    enemies: z.record(z.string(), enemyType),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
     /** Droppable weapons by id. 'rifle' (the `weapon` section) and the drone cannon are built in. */
     weapons: z.record(z.string(), weaponDef),
@@ -81,6 +99,8 @@ export const GameConfigSchema = z
         spawnInterval: nonNegative,
         intermission: nonNegative,
         maxAlive: z.number().int().positive(),
+        /** Spawn weight of the plain zombie, against the `enemies` weights. */
+        baseWeight: positive,
         /** Zombie speed/health grow by this fraction of the base value per wave after the first. */
         speedScalePerWave: nonNegative,
         healthScalePerWave: nonNegative,

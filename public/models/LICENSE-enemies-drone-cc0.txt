@@ -1,0 +1,12 @@
+Enemy and drone models (enemy-*.glb except enemy-skeleton.glb, drone.glb)
+
+enemy-zombie.glb  Zombie        Quaternius  https://poly.pizza/m/VlXjG0N8Eg
+enemy-alien.glb   Alien         Quaternius  https://poly.pizza/m/HYUUkdugoP
+enemy-hound.glb   Wolf          Quaternius  https://poly.pizza/m/P1gU3Qkr9r
+enemy-brute.glb   Orc           Quaternius  https://poly.pizza/m/5vO2YJsPEf
+enemy-worm.glb    Worm          Quaternius  https://poly.pizza/m/KiNAaBa4cK
+drone.glb         Spaceship     Quaternius  https://poly.pizza/m/DbGajMHrvp
+
+License: Public Domain / Creative Commons Zero (CC0 1.0), as stated on each Poly Pizza page.
+https://creativecommons.org/publicdomain/zero/1.0/
+Attribution is not required.

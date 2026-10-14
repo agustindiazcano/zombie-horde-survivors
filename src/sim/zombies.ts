@@ -5,7 +5,19 @@ import { hurtSoldier } from './soldiers';
 import type { GameState, Soldier, Zombie } from './types';
 import type { Vec2 } from './vec';
 
-export function spawnZombie(state: GameState, config: GameConfig, pos: Vec2): Zombie {
+export function spawnZombie(
+  state: GameState,
+  config: GameConfig,
+  pos: Vec2,
+  type = 'zombie',
+): Zombie {
+  const variant = config.enemies[type];
+  const k = variant ?? {
+    speedScale: 1,
+    healthScale: 1,
+    damageScale: 1,
+    radiusScale: 1,
+  };
   const wavesPlayed = Math.max(0, state.wave - 1);
   const wc = config.waves;
   const speedScale = Math.min(1 + wc.speedScalePerWave * wavesPlayed, wc.maxSpeedScale);
@@ -14,8 +26,12 @@ export function spawnZombie(state: GameState, config: GameConfig, pos: Vec2): Zo
     pos: { ...pos },
     prev: { ...pos },
     facing: 0,
-    health: config.zombie.health * (1 + wc.healthScalePerWave * wavesPlayed),
-    speed: config.zombie.speed * speedScale,
+    type: variant ? type : 'zombie',
+    health: config.zombie.health * k.healthScale * (1 + wc.healthScalePerWave * wavesPlayed),
+    speed: config.zombie.speed * k.speedScale * speedScale,
+    radius: config.zombie.radius * k.radiusScale,
+    damage: config.zombie.damage * k.damageScale,
+    attackRange: config.zombie.attackRange * k.radiusScale,
     state: 'walk',
     attackTimer: 0,
     deathTimer: 0,
@@ -59,15 +75,15 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     const d = Math.hypot(dx, dz);
     if (d > 1e-9) z.facing = Math.atan2(dx, dz);
 
-    if (d > zc.attackRange) {
+    if (d > z.attackRange) {
       z.state = 'walk';
-      const waypoint = steerTarget(z.pos, target.pos, d, config);
+      const waypoint = steerTarget(z.pos, target.pos, d, z.radius, config);
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
       const td = Math.hypot(tx, tz) || 1;
       z.pos.x += (tx / td) * z.speed * dt;
       z.pos.z += (tz / td) * z.speed * dt;
-      resolveStatic(z.pos, zc.radius, config.arena);
+      resolveStatic(z.pos, z.radius, config.arena);
       continue;
     }
 
@@ -79,7 +95,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     z.attackTimer -= dt;
     if (z.attackTimer <= 0) {
       z.attackTimer += zc.attackCooldown;
-      hurtSoldier(state, target, zc.damage, z.id);
+      hurtSoldier(state, target, z.damage, z.id);
     }
   }
 
@@ -100,13 +116,13 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
  */
 function separateZombies(state: GameState, config: GameConfig): void {
   const zombies = state.zombies;
-  const minDist = config.zombie.radius * 2;
   for (let i = 0; i < zombies.length; i++) {
     const a = zombies[i]!;
     if (a.state === 'death') continue;
     for (let j = i + 1; j < zombies.length; j++) {
       const b = zombies[j]!;
       if (b.state === 'death') continue;
+      const minDist = a.radius + b.radius;
       let dx = b.pos.x - a.pos.x;
       let dz = b.pos.z - a.pos.z;
       const d2 = dx * dx + dz * dz;
@@ -128,7 +144,7 @@ function separateZombies(state: GameState, config: GameConfig): void {
     }
   }
   for (const z of zombies) {
-    if (z.state !== 'death') resolveStatic(z.pos, config.zombie.radius, config.arena);
+    if (z.state !== 'death') resolveStatic(z.pos, z.radius, config.arena);
   }
 }
 
@@ -140,8 +156,7 @@ const scratch: Vec2 = { x: 0, z: 0 };
  * Where a chasing zombie should head. Normally the player; if an obstacle blocks the
  * straight path within LOOKAHEAD, the corner of that obstacle giving the shortest detour.
  */
-function steerTarget(from: Vec2, to: Vec2, distance: number, config: GameConfig): Vec2 {
-  const r = config.zombie.radius;
+function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: GameConfig): Vec2 {
   const dir = { x: (to.x - from.x) / distance, z: (to.z - from.z) / distance };
   let blocker: (typeof config.arena.obstacles)[number] | null = null;
   let nearest = Math.min(distance, LOOKAHEAD);

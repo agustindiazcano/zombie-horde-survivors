@@ -218,7 +218,7 @@ function findTarget(state: GameState, config: GameConfig, s: Soldier): Zombie | 
     const d = Math.hypot(z.pos.x - s.pos.x, z.pos.z - s.pos.z);
     if (d >= bestDist) continue;
     const dir = dirFromAngle(Math.atan2(z.pos.x - s.pos.x, z.pos.z - s.pos.z));
-    if (!weapon.ignoresCover && isBlocked(s.pos, dir, d - config.zombie.radius, config)) continue;
+    if (!weapon.ignoresCover && isBlocked(s.pos, dir, d - z.radius, config)) continue;
     best = z;
     bestDist = d;
   }

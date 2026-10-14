@@ -61,6 +61,19 @@ The game pauses while an inventory window is open.
 | Mouse wheel | Zoom in / out (both modes)                                                                              |
 | Right-drag  | Rotate and tilt the camera (both modes). In RTS mode a right _click_ without moving still orders a move |
 
+## Enemies
+
+Variants are defined in `data/game.json` (`enemies`) as multipliers on the base zombie, and each has its own model in `data/characters.json`.
+
+| Enemy             | From wave | Traits                       |
+| ----------------- | --------- | ---------------------------- |
+| Zombie            | 1         | Baseline                     |
+| Skeleton          | 1         | Slow, fragile                |
+| Alien             | 2         | Fast, fragile                |
+| Hound (four legs) | 2         | Very fast, low health        |
+| Brute (monster)   | 3         | Slow, huge health and damage |
+| Giant worm        | 4         | Very slow, very tanky, wide  |
+
 ## Assets
 
 Every third-party asset is listed in `assets.toml` (name, author, source, license, path).
@@ -71,10 +84,16 @@ Run `npm run credits` to regenerate the section below.
 
 <!-- credits:start -->
 
-- **Soldier_Male (Quaternius Ultimate Animated Character Pack)** by Quaternius — [CC0-1.0](https://quaternius.com/packs/ultimatedanimatedcharacter.html)
-- **Soldier_Female (Quaternius Ultimate Animated Character Pack)** by Quaternius — [CC0-1.0](https://quaternius.com/packs/ultimatedanimatedcharacter.html)
-- **Character_Soldier (Quaternius Toon Shooter Game Kit)** by Quaternius — [CC0-1.0](https://quaternius.com/)
-- **Character Soldier (Kenney Mini Arena)** by Kenney — [CC0-1.0](https://kenney.nl/assets/mini-arena)
-- **Skeleton Minion (KayKit Character Pack: Skeletons) - used as the zombie** by Kay Lousberg — [CC0-1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0)
+- **Soldier_Male (Ultimate Animated Character Pack)** by Quaternius — [CC0-1.0](https://quaternius.com/packs/ultimatedanimatedcharacter.html)
+- **Soldier_Female (Ultimate Animated Character Pack)** by Quaternius — [CC0-1.0](https://quaternius.com/packs/ultimatedanimatedcharacter.html)
+- **BlueSoldier_Male (Ultimate Animated Character Pack)** by Quaternius — [CC0-1.0](https://quaternius.com/packs/ultimatedanimatedcharacter.html)
+- **Character_Soldier (Toon Shooter Game Kit)** by Quaternius — [CC0-1.0](https://quaternius.com/)
+- **Zombie (enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/VlXjG0N8Eg)
+- **Skeleton Minion (KayKit Character Pack: Skeletons) (enemy)** by Kay Lousberg — [CC0-1.0](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0)
+- **Alien (enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/HYUUkdugoP)
+- **Wolf (hound enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/P1gU3Qkr9r)
+- **Orc (brute enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/5vO2YJsPEf)
+- **Worm (enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/KiNAaBa4cK)
+- **Spaceship (used as the drone)** by Quaternius — [CC0-1.0](https://poly.pizza/m/DbGajMHrvp)
 
 <!-- credits:end -->
