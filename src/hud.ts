@@ -1,5 +1,5 @@
 import './hud.css';
-import { getSoldier, weaponDef, type GameConfig, type GameState } from './sim';
+import { getSoldier, levelInfo, weaponDef, type GameConfig, type GameState } from './sim';
 
 const BANNER_MS = 1800;
 const LOW_HEALTH = 0.3;
@@ -40,6 +40,9 @@ export class Hud {
   private readonly healthFill: HTMLElement;
   private readonly wave: HTMLElement;
   private readonly kills: HTMLElement;
+  private readonly gold: HTMLElement;
+  private readonly level: HTMLElement;
+  private readonly xpFill: HTMLElement;
   private readonly banner: HTMLElement;
   private readonly damage: HTMLElement;
   private readonly countdown: HTMLElement;
@@ -57,6 +60,8 @@ export class Hud {
     countdown: '',
     focus: -1,
     weapon: '',
+    gold: -1,
+    xp: -1,
   };
 
   constructor(
@@ -73,6 +78,9 @@ export class Hud {
     const stats = el('div', 'hud__stats', root);
     this.wave = el('span', '', stats);
     this.kills = el('span', '', stats);
+    this.gold = el('span', 'hud__gold', stats);
+    this.level = el('span', 'hud__level', stats);
+    this.xpFill = el('div', 'hud__xp-fill', el('div', 'hud__xp', root));
     this.banner = el('div', 'hud__banner', root);
     this.damage = el('div', 'hud__damage', root);
     this.countdown = el('div', 'hud__countdown', root);
@@ -102,6 +110,8 @@ export class Hud {
       countdown: '',
       focus: -1,
       weapon: '',
+      gold: -1,
+      xp: -1,
     };
     this.gameOver.classList.remove('hud__gameover--visible');
     this.banner.classList.remove('hud__banner--visible');
@@ -111,6 +121,7 @@ export class Hud {
   onStep(state: GameState): void {
     for (const e of state.events) {
       if (e.type === 'soldierHurt' && e.soldierId === state.controlledId) this.flashDamage();
+      else if (e.type === 'levelUp') this.showBanner(`LEVEL UP! Lv ${e.level}`);
     }
   }
 
@@ -153,6 +164,17 @@ export class Hud {
     if (state.kills !== this.shown.kills) {
       this.shown.kills = state.kills;
       this.kills.textContent = `Kills ${state.kills}`;
+    }
+
+    if (state.gold !== this.shown.gold) {
+      this.shown.gold = state.gold;
+      this.gold.textContent = `Gold ${state.gold}`;
+    }
+    if (state.xp !== this.shown.xp) {
+      this.shown.xp = state.xp;
+      const info = levelInfo(state.xp, this.config);
+      this.level.textContent = `Lv ${info.level}`;
+      this.xpFill.style.width = `${(info.into / info.needed) * 100}%`;
     }
 
     const countdown =

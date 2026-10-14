@@ -11,6 +11,8 @@ const characterSpec = z
     clips: z.record(z.string(), z.string()),
     /** For models without animation clips: a code-driven motion. */
     procedural: z.enum(['wiggle', 'hover']).optional(),
+    /** Height above the ground where the health bar floats (enemies). */
+    barHeight: z.number().positive().optional(),
     /** States whose clip plays once and holds its last frame (e.g. death). */
     once: z.array(z.string()),
   })

@@ -55,7 +55,8 @@
         "attack": "Idle_Attack",
         "death": "Death"
       },
-      "once": ["death"]
+      "once": ["death"],
+      "barHeight": 2.1
     },
     "skeleton": {
       "model": "models/enemy-skeleton.glb",
@@ -66,7 +67,8 @@
         "attack": "1H_Melee_Attack_Chop",
         "death": "Death_A"
       },
-      "once": ["death"]
+      "once": ["death"],
+      "barHeight": 2.2
     },
     "alien": {
       "model": "models/enemy-alien.glb",
@@ -77,7 +79,8 @@
         "attack": "AlienArmature|Alien_Punch",
         "death": "AlienArmature|Alien_Death"
       },
-      "once": ["death"]
+      "once": ["death"],
+      "barHeight": 2.1
     },
     "hound": {
       "model": "models/enemy-hound.glb",
@@ -88,7 +91,8 @@
         "attack": "Attack",
         "death": "Death"
       },
-      "once": ["death"]
+      "once": ["death"],
+      "barHeight": 1.7
     },
     "brute": {
       "model": "models/enemy-brute.glb",
@@ -99,7 +103,8 @@
         "attack": "CharacterArmature|Punch",
         "death": "CharacterArmature|Death"
       },
-      "once": ["death"]
+      "once": ["death"],
+      "barHeight": 3.0
     },
     "worm": {
       "model": "models/enemy-worm.glb",
@@ -107,7 +112,8 @@
       "yawOffset": 0,
       "clips": {},
       "once": [],
-      "procedural": "wiggle"
+      "procedural": "wiggle",
+      "barHeight": 2.2
     }
   },
   "drone": {

@@ -211,3 +211,30 @@
   background: rgba(92, 255, 122, 0.12);
   pointer-events: none;
 }
+
+.hud__gold {
+  color: #ffc83d;
+}
+
+.hud__level {
+  color: #3de0c8;
+}
+
+.hud__xp {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  width: min(360px, 60vw);
+  height: 6px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hud__xp-fill {
+  height: 100%;
+  width: 0;
+  background: #3de0c8;
+  transition: width 0.2s ease-out;
+}
