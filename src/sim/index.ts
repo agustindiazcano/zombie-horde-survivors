@@ -24,4 +24,5 @@ export {
   takeFromCrate,
 } from './inventory';
 export { weaponDef, type WeaponDef } from './stats';
+export { levelInfo, type LevelInfo } from './loot';
 export { waveSize } from './waves';

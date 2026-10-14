@@ -64,6 +64,10 @@ The game pauses while an inventory window is open.
 | Mouse wheel | Zoom in / out (both modes)                                                                              |
 | Right-drag  | Rotate and tilt the camera (both modes). In RTS mode a right _click_ without moving still orders a move |
 
+## Loot, levels and gore
+
+Enemies drop a gold coin and an XP orb; they're picked up by any of your units (the drone too) walking over them, and vanish after 60 s. XP raises your level (shown at the top). About half of the enemies burst when killed, spraying blood and gibs. Enemies show a health bar and light up when hit. Drop values, the explode chance and level curve are in `data/game.json` (`zombie.gold`/`xp`, `enemies.*.rewardScale`, `loot`, `progress`, `gore`).
+
 ## Enemies
 
 Variants are defined in `data/game.json` (`enemies`) as multipliers on the base zombie, and each has its own model in `data/characters.json`.

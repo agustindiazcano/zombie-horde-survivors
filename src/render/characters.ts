@@ -10,6 +10,8 @@ export interface CharacterView {
   setState(state: string): void;
   /** Advances the view's own animation clock by `dt` seconds. */
   update(dt: number): void;
+  /** Hit flash: 0 = normal, 1 = fully lit up. Optional; views without it just don't flash. */
+  setFlash?(amount: number): void;
 }
 
 export type CharacterFactory = () => CharacterView;

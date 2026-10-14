@@ -29,8 +29,17 @@ export class Sfx {
     if (!this.ctx || this.ctx.state !== 'running') return;
     for (const e of state.events) {
       if (e.type === 'shot') this.shot(e.shooterId === state.controlledId ? 1 : 0.35);
-      else if (e.type === 'zombieKilled') this.kill();
-      else if (e.type === 'crateDropped') this.tone('sine', 500, 900, 0.14, 0.3);
+      else if (e.type === 'zombieKilled') {
+        if (e.exploded) this.splat();
+        else this.kill();
+      } else if (e.type === 'pickupCollected') {
+        if (e.kind === 'gold') this.tone('sine', 1300, 1900, 0.07, 0.25);
+        else this.tone('sine', 700, 1100, 0.09, 0.2);
+      } else if (e.type === 'levelUp') {
+        this.tone('square', 440, 440, 0.1, 0.25);
+        this.tone('square', 660, 660, 0.1, 0.25, 0.1);
+        this.tone('square', 880, 880, 0.2, 0.25, 0.2);
+      } else if (e.type === 'crateDropped') this.tone('sine', 500, 900, 0.14, 0.3);
       else if (e.type === 'soldierHurt') this.hurt(e.soldierId === state.controlledId ? 1 : 0.4);
       else if (e.type === 'soldierDied') this.tone('sawtooth', 180, 50, 0.5, 0.5);
       else if (e.type === 'waveStarted') this.wave();
@@ -58,6 +67,11 @@ export class Sfx {
   private shot(volume: number): void {
     this.noiseBurst(0.09, 'bandpass', 1800, 0.9 * volume);
     this.tone('sine', 160, 60, 0.1, 0.6 * volume);
+  }
+
+  private splat(): void {
+    this.noiseBurst(0.3, 'lowpass', 500, 0.9);
+    this.tone('sine', 120, 35, 0.3, 0.7);
   }
 
   private kill(): void {

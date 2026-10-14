@@ -3,6 +3,9 @@ import { getSoldier, type GameConfig, type GameState, type Vec2 } from '../sim';
 import { buildArena } from './arena';
 import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
+import { Gore } from './gore';
+import { HealthBars } from './healthBars';
+import { PickupMeshes } from './pickups';
 import { SelectionMarkers } from './markers';
 
 /** Default camera: above and behind the focus point (towards +z), at zoom 1. */
@@ -20,6 +23,7 @@ const MOVING_EPSILON = 1e-4;
 interface Factories {
   soldiers: CharacterFactory[];
   enemies: Record<string, CharacterFactory>;
+  barHeights: Record<string, number>;
   drone: CharacterFactory;
 }
 
@@ -41,6 +45,9 @@ const ZOOM_RTS = 1.7;
 /** Exponential smoothing rates (1/s) for following a soldier and for zooming. */
 const FOLLOW_RATE = 12;
 const ZOOM_RATE = 4;
+
+/** Seconds a damaged enemy stays lit up. */
+const FLASH_TIME = 0.14;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -64,6 +71,12 @@ export class GameRenderer {
   private focusInitialized = false;
   /** Smoothed crouch (0..1) and sprint lean (0..1) per soldier id. */
   private readonly stanceVisual = new Map<number, { crouch: number; lean: number }>();
+  private readonly healthBars = new HealthBars();
+  private readonly gore = new Gore();
+  private readonly pickups = new PickupMeshes();
+  /** Remaining hit-flash time per enemy id. */
+  private readonly flash = new Map<number, number>();
+  private readonly config: GameConfig;
   private readonly crates = new Map<number, THREE.Mesh>();
   private readonly crateGeometry = new THREE.BoxGeometry(0.8, 0.5, 0.6);
   private readonly crateMaterial = new THREE.MeshStandardMaterial({
@@ -99,9 +112,16 @@ export class GameRenderer {
     this.scene.add(buildArena(config.arena));
     this.addLights(config.arena.halfSize);
 
+    this.config = config;
     this.halfSize = config.arena.halfSize;
     this.droneHeight = config.drone.height;
-    this.scene.add(this.effects.group, this.markers.group);
+    this.scene.add(
+      this.effects.group,
+      this.markers.group,
+      this.healthBars.group,
+      this.gore.group,
+      this.pickups.group,
+    );
 
     window.addEventListener('resize', this.resize);
     this.resize();
@@ -111,12 +131,15 @@ export class GameRenderer {
   render(state: GameState, alpha: number, dt: number): void {
     this.frame++;
 
+    // Camera first: the health bars face it.
+    this.updateCamera(state, alpha, dt);
     this.syncSoldiers(state, alpha, dt);
     this.syncZombies(state, alpha, dt);
     this.syncCrates(state, dt);
     this.effects.update(dt);
     this.markers.update(state, this.selection, alpha, dt);
-    this.updateCamera(state, alpha, dt);
+    this.pickups.update(state, this.config, dt);
+    this.gore.update(dt);
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -266,6 +289,10 @@ export class GameRenderer {
         if (e.shooterId === state.controlledId) {
           this.shake = Math.min(this.shake + SHOT_SHAKE, MAX_SHAKE);
         }
+        if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
+      } else if (e.type === 'zombieKilled' && e.exploded) {
+        const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
+        this.gore.burst(e.pos.x, e.pos.z, Math.min(Math.max(size, 0.8), 1.8));
       } else if (e.type === 'soldierHurt' && e.soldierId === state.controlledId) {
         this.shake = Math.min(this.shake + HURT_SHAKE, MAX_SHAKE);
       }
@@ -286,6 +313,7 @@ export class GameRenderer {
       if (!entry) {
         const type = this.factories.enemies[z.type] ? z.type : 'zombie';
         const view = this.pools.get(type)?.pop() ?? this.factories.enemies[type]!();
+        view.setFlash?.(0);
         this.scene.add(view.object);
         entry = { type, view, seenFrame: this.frame };
         this.zombies.set(z.id, entry);
@@ -294,8 +322,28 @@ export class GameRenderer {
       const { object } = entry.view;
       object.position.set(lerp(z.prev.x, z.pos.x, alpha), 0, lerp(z.prev.z, z.pos.z, alpha));
       object.rotation.y = z.facing;
+      object.visible = !z.exploded;
       entry.view.setState(z.state);
       entry.view.update(dt);
+
+      const flashLeft = this.flash.get(z.id) ?? 0;
+      entry.view.setFlash?.(flashLeft > 0 ? flashLeft / FLASH_TIME : 0);
+      if (flashLeft > 0) this.flash.set(z.id, flashLeft - dt);
+      else this.flash.delete(z.id);
+
+      if (z.state === 'death') {
+        this.healthBars.hide(z.id);
+      } else {
+        this.healthBars.show(
+          z.id,
+          object.position.x,
+          this.factories.barHeights[entry.type] ?? 2.2,
+          object.position.z,
+          0.6 + z.radius * 1.2,
+          z.health / z.maxHealth,
+          this.camera,
+        );
+      }
     }
 
     for (const [id, entry] of this.zombies) {
@@ -305,6 +353,8 @@ export class GameRenderer {
       pool.push(entry.view);
       this.pools.set(entry.type, pool);
       this.zombies.delete(id);
+      this.healthBars.release(id);
+      this.flash.delete(id);
     }
   }
 

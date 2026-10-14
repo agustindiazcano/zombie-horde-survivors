@@ -16,6 +16,8 @@ export interface CharacterFactories {
   soldiers: CharacterFactory[];
   /** By enemy variant id; always contains 'zombie'. */
   enemies: Record<string, CharacterFactory>;
+  /** Where each enemy's health bar floats, by variant id. */
+  barHeights: Record<string, number>;
   drone: CharacterFactory;
 }
 
@@ -73,6 +75,42 @@ function createHoverView(root: THREE.Group, model: THREE.Object3D): CharacterVie
   };
 }
 
+const DEFAULT_BAR_HEIGHT = 2.2;
+const FLASH_COLOR = new THREE.Color(1, 1, 1);
+
+/**
+ * Gives this clone its own materials (clones share them otherwise) and returns a function
+ * that lights the whole model up, for hit flashes.
+ */
+function makeFlasher(model: THREE.Object3D): (amount: number) => void {
+  const items: {
+    material: THREE.MeshStandardMaterial;
+    emissive: THREE.Color;
+    intensity: number;
+  }[] = [];
+  model.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    const list: THREE.Material[] = Array.isArray(o.material) ? o.material : [o.material];
+    const cloned = list.map((m) => m.clone());
+    o.material = Array.isArray(o.material) ? cloned : cloned[0]!;
+    for (const m of cloned) {
+      if (m instanceof THREE.MeshStandardMaterial) {
+        items.push({ material: m, emissive: m.emissive.clone(), intensity: m.emissiveIntensity });
+      }
+    }
+  });
+
+  let last = 0;
+  return (amount) => {
+    if (amount === last) return;
+    last = amount;
+    for (const it of items) {
+      it.material.emissive.copy(it.emissive).lerp(FLASH_COLOR, amount);
+      it.material.emissiveIntensity = it.intensity + amount * 1.3;
+    }
+  };
+}
+
 function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
   return (): CharacterView => {
     const root = new THREE.Group();
@@ -84,15 +122,19 @@ function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
       if (o instanceof THREE.Mesh) o.castShadow = true;
     });
     root.add(model);
+    const setFlash = makeFlasher(model);
 
-    if (spec.procedural === 'wiggle') return createWiggleView(root, model, spec.scale);
-    if (spec.procedural === 'hover') return createHoverView(root, model);
+    if (spec.procedural === 'wiggle') {
+      return { ...createWiggleView(root, model, spec.scale), setFlash };
+    }
+    if (spec.procedural === 'hover') return { ...createHoverView(root, model), setFlash };
 
     const animation = new AnimationController(model, gltf.animations, spec);
     return {
       object: root,
       setState: (state) => animation.setState(state),
       update: (dt) => animation.update(dt),
+      setFlash,
     };
   };
 }
@@ -109,7 +151,10 @@ export class GltfAssetLoader implements AssetLoader {
       this.load(config.drone, createPlaceholderDrone),
     ]);
     const enemies = Object.fromEntries(enemyIds.map((id, i) => [id, enemyList[i]!]));
-    return { soldiers, enemies, drone };
+    const barHeights = Object.fromEntries(
+      enemyIds.map((id) => [id, config.enemies[id]!.barHeight ?? DEFAULT_BAR_HEIGHT]),
+    );
+    return { soldiers, enemies, barHeights, drone };
   }
 
   private async load(
