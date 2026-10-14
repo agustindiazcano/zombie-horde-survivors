@@ -1,0 +1,109 @@
+.pp {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(340px, 80vw);
+  box-sizing: border-box;
+  padding: 18px 16px;
+  display: none;
+  overflow-y: auto;
+  background: rgba(14, 17, 23, 0.9);
+  border-right: 1px solid #3a4150;
+  font-family: system-ui, sans-serif;
+  color: #fff;
+  z-index: 25;
+}
+
+.pp--open {
+  display: block;
+}
+
+.pp__heading {
+  margin: 0 0 10px;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffd84a;
+}
+
+.pp__heading:not(:first-child) {
+  margin-top: 22px;
+}
+
+.pp__empty {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.pp__perks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pp__perk {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pp__icon {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #262c37;
+  border: 2px solid #ffd84a;
+  border-radius: 6px;
+}
+
+.pp__symbol {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.pp__stacks {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #111;
+  background: #ffd84a;
+  border-radius: 9px;
+}
+
+.pp__name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pp__desc {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.pp__stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  font-size: 13px;
+}
+
+.pp__stat-name {
+  opacity: 0.75;
+}
+
+.pp__stat-value {
+  text-align: right;
+  font-weight: 600;
+}

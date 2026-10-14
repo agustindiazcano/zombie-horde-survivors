@@ -185,7 +185,8 @@
         "description": "+12% damage for the whole squad",
         "stat": "damage",
         "amount": 0.12,
-        "maxStacks": 8
+        "maxStacks": 8,
+        "icon": "🔫"
       },
       {
         "id": "rapid_fire",
@@ -193,7 +194,8 @@
         "description": "+10% fire rate",
         "stat": "fireRate",
         "amount": 0.1,
-        "maxStacks": 8
+        "maxStacks": 8,
+        "icon": "⚡"
       },
       {
         "id": "fleet_foot",
@@ -201,7 +203,8 @@
         "description": "+8% movement speed",
         "stat": "speed",
         "amount": 0.08,
-        "maxStacks": 5
+        "maxStacks": 5,
+        "icon": "👟"
       },
       {
         "id": "tough",
@@ -209,7 +212,8 @@
         "description": "+20% max health (and heals the difference)",
         "stat": "maxHealth",
         "amount": 0.2,
-        "maxStacks": 6
+        "maxStacks": 6,
+        "icon": "❤️"
       },
       {
         "id": "regen",
@@ -217,7 +221,8 @@
         "description": "Soldiers regenerate +0.6 health per second",
         "stat": "regen",
         "amount": 0.6,
-        "maxStacks": 5
+        "maxStacks": 5,
+        "icon": "🩹"
       },
       {
         "id": "magnet",
@@ -225,7 +230,8 @@
         "description": "+40% loot pickup radius",
         "stat": "pickupRadius",
         "amount": 0.4,
-        "maxStacks": 4
+        "maxStacks": 4,
+        "icon": "🧲"
       }
     ]
   },
