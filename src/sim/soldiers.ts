@@ -33,6 +33,8 @@ export function createSquad(config: GameConfig): Soldier[] {
       order: { type: 'follow' },
       weapon: 'rifle',
       backpack: [],
+      xp: 0,
+      kills: 0,
     };
   });
   for (let i = 0; i < config.drone.count; i++) {
@@ -52,6 +54,8 @@ export function createSquad(config: GameConfig): Soldier[] {
       order: { type: 'follow' },
       weapon: 'drone_cannon',
       backpack: [],
+      xp: 0,
+      kills: 0,
     });
   }
   return soldiers;

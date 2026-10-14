@@ -101,6 +101,12 @@ Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop 
 
 Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collects them by walking over them; they vanish after 60 s. XP raises your level (shown at the top). Enemies show a health bar and light up when hit, and about half of them burst when killed, spraying blood and gibs.
 
+## Pause screen and the squad
+
+Pausing (Esc or P) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (click two units to have two windows open at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two.
+
+There are two kinds of experience. The **global** XP comes from the blue orbs and levels the squad up (perks). Each unit also has **its own** XP, which grows when that unit kills an enemy, plus a kill counter.
+
 ## Perks and the shop
 
 Every level-up pauses the game and offers **3 random perks** for the whole squad: pick one with a click or the **1 / 2 / 3** keys. Perks stack up to a limit: damage, fire rate, movement speed, max health, health regeneration and a bigger loot pickup radius.

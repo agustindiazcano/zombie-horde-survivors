@@ -25,6 +25,7 @@ import {
   type Input,
 } from './sim';
 import { SquadPanel } from './squadPanel';
+import { UnitsScreen } from './unitsScreen';
 import { PausePanel } from './pausePanel';
 import { Radar } from './radar';
 import { PerkPicker, Shop } from './upgradesUi';
@@ -58,6 +59,17 @@ async function main(): Promise<void> {
   const cratePrompt = new CratePrompt();
   const pausePanel = new PausePanel(document.body, config);
   const radar = new Radar(document.body);
+  // The pause screen lists the squad: each unit's 3D view comes from the same models as in play.
+  const unitsScreen = new UnitsScreen(
+    document.body,
+    config,
+    () => state,
+    (unit) =>
+      unit.kind === 'drone'
+        ? factories.drone
+        : factories.soldiers[(unit.id - 1) % factories.soldiers.length]!,
+    () => state.controlledId ?? [...rts.selected][0] ?? null,
+  );
   const perks = new PerkPicker(document.body, config, () => state);
   const shop = new Shop(document.body, config, () => state);
   /** Any full-screen menu: the game is frozen and keyboard shortcuts are off. */
@@ -227,6 +239,7 @@ async function main(): Promise<void> {
       if (!paused && !modalOpen()) renderer.look(look.x, look.y);
       perks.update();
       pausePanel.update(paused, state);
+      unitsScreen.update(paused);
       radar.update(state, paused || modalOpen() ? 0 : frameDt);
       hud.setCrosshair(renderer.viewMode !== 'top' && state.controlledId !== null);
       rts.prune();

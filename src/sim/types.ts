@@ -32,6 +32,9 @@ export interface Soldier {
   weapon: string;
   /** Carried weapon ids, up to `inventory.backpackSlots`. */
   backpack: string[];
+  /** This unit's own experience (grows when it kills) and enemies it has killed. */
+  xp: number;
+  kills: number;
 }
 
 export interface Zombie {
@@ -99,7 +102,15 @@ export type SimEvent =
       to: Vec2;
       hitZombieId: number | null;
     }
-  | { type: 'zombieKilled'; id: number; enemy: string; pos: Vec2; exploded: boolean }
+  | {
+      type: 'zombieKilled';
+      id: number;
+      enemy: string;
+      pos: Vec2;
+      exploded: boolean;
+      /** The soldier that landed the killing shot. */
+      killerId: number | null;
+    }
   | { type: 'pickupCollected'; kind: 'gold' | 'xp'; amount: number; pos: Vec2 }
   | { type: 'levelUp'; level: number }
   | { type: 'crateDropped'; crateId: number; pos: Vec2 }

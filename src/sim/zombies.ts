@@ -1,7 +1,7 @@
 import { rayAabb, resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { maybeDropCrate } from './inventory';
-import { dropLoot } from './loot';
+import { dropLoot, rewardOf } from './loot';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
 import type { GameState, Soldier, Zombie } from './types';
@@ -72,6 +72,8 @@ export function damageZombie(
   config: GameConfig,
   zombie: Zombie,
   amount: number,
+  /** The soldier that fired the shot; it gets the kill and the experience. */
+  killer?: Soldier,
 ): void {
   if (zombie.state === 'death') return;
   zombie.health -= amount;
@@ -84,12 +86,17 @@ export function damageZombie(
   // A burst enemy has no death animation to wait for.
   zombie.deathTimer = exploded ? EXPLODED_LINGER : config.zombie.deathDuration;
   state.kills++;
+  if (killer) {
+    killer.kills++;
+    killer.xp += rewardOf(config, zombie).xp;
+  }
   state.events.push({
     type: 'zombieKilled',
     id: zombie.id,
     enemy: zombie.type,
     pos: { x: zombie.pos.x, z: zombie.pos.z },
     exploded,
+    killerId: killer?.id ?? null,
   });
   dropLoot(state, config, zombie);
   maybeDropCrate(state, config, zombie.pos);

@@ -62,5 +62,5 @@ export function fireWeapon(
     to: { x: origin.x + dir.x * nearest, z: origin.z + dir.z * nearest },
     hitZombieId: target?.id ?? null,
   });
-  if (target) damageZombie(state, config, target, weapon.damage);
+  if (target) damageZombie(state, config, target, weapon.damage, soldier);
 }

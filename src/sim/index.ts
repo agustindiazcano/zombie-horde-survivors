@@ -19,11 +19,13 @@ export {
   backpackFull,
   equipFromBackpack,
   getCrate,
+  moveItem,
   nearestCrate,
   stashInCrate,
   takeFromCrate,
 } from './inventory';
 export { weaponDef, type WeaponDef } from './stats';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';
+export type { Slot } from './inventory';
 export { levelInfo, type LevelInfo } from './loot';
 export { waveSize } from './waves';
