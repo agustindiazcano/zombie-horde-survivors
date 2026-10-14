@@ -24,6 +24,8 @@ npm run lint && npm run format:check && npm run typecheck
 | W / A / S / D     | Move (relative to the screen) |
 | Mouse             | Aim                           |
 | Left click (hold) | Fire                          |
+| R (game over)     | Restart                       |
+| M                 | Mute / unmute                 |
 
 ## Assets
 
