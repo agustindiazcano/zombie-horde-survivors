@@ -46,6 +46,23 @@ const ZOOM_RTS = 1.7;
 const FOLLOW_RATE = 12;
 const ZOOM_RATE = 4;
 
+export type ViewMode = 'top' | 'third' | 'first';
+
+/** Over-the-shoulder and eye-level cameras (world units / radians). */
+const THIRD_DISTANCE = 4.2;
+const THIRD_SHOULDER = 0.45;
+const THIRD_TARGET_HEIGHT = 1.5;
+const THIRD_PITCH = -0.18;
+const EYE_HEIGHT = 1.6;
+const CROUCH_EYE_DROP = 0.45;
+const LOOK_SENSITIVITY = 0.0022;
+const MAX_LOOK_PITCH = 1.2;
+const FOV_TOP = 50;
+const FOV_THIRD = 60;
+const FOV_FIRST = 78;
+const MIN_THIRD_ZOOM = 0.5;
+const MAX_THIRD_ZOOM = 2.2;
+
 /** Seconds a damaged enemy stays lit up. */
 const FLASH_TIME = 0.14;
 
@@ -68,6 +85,11 @@ export class GameRenderer {
   private pitch = DEFAULT_PITCH;
   private userZoom = 1;
   private userZoomTarget = 1;
+  /** Camera style. Third/first person only make sense while a soldier is controlled. */
+  viewMode: ViewMode = 'top';
+  private lookPitch = 0;
+  private thirdZoom = 1;
+  private savedTop = { yaw: 0, pitch: DEFAULT_PITCH };
   private focusInitialized = false;
   /** Smoothed crouch (0..1) and sprint lean (0..1) per soldier id. */
   private readonly stanceVisual = new Map<number, { crouch: number; lean: number }>();
@@ -151,16 +173,62 @@ export class GameRenderer {
 
   /** Orbits (`dYaw`) and tilts (`dPitch`) the camera, within the tilt limits. */
   rotate(dYaw: number, dPitch: number): void {
+    if (this.viewMode !== 'top') return; // mouse look drives the camera there
     this.yaw += dYaw;
     this.pitch = Math.min(Math.max(this.pitch + dPitch, MIN_PITCH), MAX_PITCH);
   }
 
   /** Multiplies the player zoom; factors above 1 move the camera away. */
   zoomBy(factor: number): void {
+    if (this.viewMode === 'third') {
+      this.thirdZoom = Math.min(Math.max(this.thirdZoom * factor, MIN_THIRD_ZOOM), MAX_THIRD_ZOOM);
+      return;
+    }
+    if (this.viewMode === 'first') return;
     this.userZoomTarget = Math.min(
       Math.max(this.userZoomTarget * factor, MIN_USER_ZOOM),
       MAX_USER_ZOOM,
     );
+  }
+
+  /** Switches camera style, keeping the facing direction and restoring the top view's angle. */
+  setViewMode(mode: ViewMode, facing = 0): void {
+    if (mode === this.viewMode) return;
+    if (this.viewMode === 'top') this.savedTop = { yaw: this.yaw, pitch: this.pitch };
+    this.viewMode = mode;
+    if (mode === 'top') {
+      this.yaw = this.savedTop.yaw;
+      this.pitch = this.savedTop.pitch;
+    } else {
+      // The orbit yaw sits half a turn from the view direction (the camera is behind).
+      this.yaw = facing - Math.PI;
+      this.lookPitch = mode === 'third' ? THIRD_PITCH : 0;
+    }
+    this.camera.fov = mode === 'first' ? FOV_FIRST : mode === 'third' ? FOV_THIRD : FOV_TOP;
+    this.camera.updateProjectionMatrix();
+  }
+
+  /** Mouse look for first/third person: dx turns right, dy looks down (pixels). */
+  look(dx: number, dy: number): void {
+    if (this.viewMode === 'top') return;
+    this.yaw -= dx * LOOK_SENSITIVITY;
+    this.lookPitch = Math.min(
+      Math.max(this.lookPitch - dy * LOOK_SENSITIVITY, -MAX_LOOK_PITCH),
+      MAX_LOOK_PITCH,
+    );
+  }
+
+  /** The point 20 units ahead of `from` along the current view direction. */
+  lookAimPoint(from: Vec2): Vec2 {
+    const theta = this.yaw + Math.PI;
+    return { x: from.x + Math.sin(theta) * 20, z: from.z + Math.cos(theta) * 20 };
+  }
+
+  /** Screen position of a world point, or null when it is behind the camera. */
+  projectToScreen(x: number, z: number, y = 0): Vec2 | null {
+    const p = new THREE.Vector3(x, y, z).applyMatrix4(this.camera.matrixWorldInverse);
+    if (p.z >= 0) return null;
+    return this.worldToScreen(x, z, y);
   }
 
   /** Converts screen-relative movement (right = +x, down = +z) to a world direction. */
@@ -187,6 +255,11 @@ export class GameRenderer {
 
   private updateCamera(state: GameState, alpha: number, dt: number): void {
     const leader = getSoldier(state, state.controlledId);
+    if (leader && this.viewMode !== 'top') {
+      this.focusInitialized = true;
+      this.updatePersonCamera(leader, alpha, dt);
+      return;
+    }
     if (leader) {
       const tx = lerp(leader.prev.x, leader.pos.x, alpha);
       const tz = lerp(leader.prev.z, leader.pos.z, alpha);
@@ -212,12 +285,57 @@ export class GameRenderer {
       Math.sin(this.pitch) * distance,
       this.focus.z + Math.cos(this.yaw) * flat,
     );
-    if (this.shake > 0) {
-      this.camera.position.x += (Math.random() - 0.5) * 2 * this.shake;
-      this.camera.position.z += (Math.random() - 0.5) * 2 * this.shake;
-      this.shake = Math.max(0, this.shake - SHAKE_DECAY * dt);
-    }
+    this.applyShake(dt);
     this.camera.lookAt(this.focus.x, 0, this.focus.z);
+    this.camera.updateMatrixWorld();
+  }
+
+  private applyShake(dt: number): void {
+    if (this.shake <= 0) return;
+    this.camera.position.x += (Math.random() - 0.5) * 2 * this.shake;
+    this.camera.position.z += (Math.random() - 0.5) * 2 * this.shake;
+    this.shake = Math.max(0, this.shake - SHAKE_DECAY * dt);
+  }
+
+  /** First/third person camera at the controlled unit. */
+  private updatePersonCamera(
+    leader: GameState['soldiers'][number],
+    alpha: number,
+    dt: number,
+  ): void {
+    const px = lerp(leader.prev.x, leader.pos.x, alpha);
+    const pz = lerp(leader.prev.z, leader.pos.z, alpha);
+    const drone = leader.kind === 'drone';
+    const crouch = this.stanceVisual.get(leader.id)?.crouch ?? 0;
+    const baseY = drone ? this.droneHeight : lerp(leader.prevY, leader.y, alpha);
+    const eyeY = baseY + (drone ? 0 : EYE_HEIGHT - CROUCH_EYE_DROP * crouch);
+
+    // Keep the top-down focus under the soldier so leaving this mode is seamless.
+    this.focus.x = px;
+    this.focus.z = pz;
+
+    const theta = this.yaw + Math.PI; // view heading
+    const cp = Math.cos(this.lookPitch);
+    const dir = new THREE.Vector3(
+      Math.sin(theta) * cp,
+      Math.sin(this.lookPitch),
+      Math.cos(theta) * cp,
+    );
+
+    if (this.viewMode === 'first') {
+      this.camera.position.set(px + Math.sin(theta) * 0.15, eyeY, pz + Math.cos(theta) * 0.15);
+    } else {
+      // Over the right shoulder, behind the unit.
+      const right = new THREE.Vector3(-Math.cos(theta), 0, Math.sin(theta));
+      const target = new THREE.Vector3(px, baseY + THIRD_TARGET_HEIGHT, pz).addScaledVector(
+        right,
+        THIRD_SHOULDER,
+      );
+      this.camera.position.copy(target).addScaledVector(dir, -THIRD_DISTANCE * this.thirdZoom);
+      this.camera.position.y = Math.max(this.camera.position.y, 0.3);
+    }
+    this.applyShake(dt);
+    this.camera.lookAt(this.camera.position.clone().add(dir));
     this.camera.updateMatrixWorld();
   }
 
@@ -263,6 +381,8 @@ export class GameRenderer {
       view.object.rotation.y = s.facing;
       view.setState(s.dead ? 'death' : moving ? 'run' : 'idle');
       view.update(dt);
+      // In first person you look out of the controlled unit's head, so hide its model.
+      view.object.visible = !(this.viewMode === 'first' && s.id === state.controlledId);
 
       // Applied after the view's own update, which may reset its root transform.
       view.object.position.y = drone ? this.droneHeight : lerp(s.prevY, s.y, alpha);

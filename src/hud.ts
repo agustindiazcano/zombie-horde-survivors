@@ -48,6 +48,7 @@ export class Hud {
   private readonly countdown: HTMLElement;
   private readonly pause: HTMLElement;
   private readonly hint: HTMLElement;
+  private readonly crosshair: HTMLElement;
   private readonly gameOver: HTMLElement;
   private readonly summary: HTMLElement;
   private bannerTimer = 0;
@@ -85,6 +86,7 @@ export class Hud {
     this.damage = el('div', 'hud__damage', root);
     this.countdown = el('div', 'hud__countdown', root);
     this.hint = el('div', 'hud__hint', root);
+    this.crosshair = el('div', 'hud__crosshair', root);
 
     this.pause = el('div', 'hud__pause', root);
     el('h1', '', this.pause, 'PAUSED');
@@ -127,6 +129,10 @@ export class Hud {
 
   setPaused(paused: boolean): void {
     this.pause.classList.toggle('hud__pause--visible', paused);
+  }
+
+  setCrosshair(visible: boolean): void {
+    this.crosshair.classList.toggle('hud__crosshair--visible', visible);
   }
 
   /** Text describing the current mode and its keys. */

@@ -12,6 +12,8 @@ export class InputController {
   private ndcX = 0;
   private ndcY = 0;
   private firing = false;
+  private lookX = 0;
+  private lookY = 0;
   private readonly current: Input = {
     move: { x: 0, z: 0 },
     aim: { x: 0, z: 1 },
@@ -39,6 +41,8 @@ export class InputController {
       this.firing = false;
     });
     window.addEventListener('mousemove', (e) => {
+      this.lookX += e.movementX;
+      this.lookY += e.movementY;
       this.ndcX = (e.clientX / window.innerWidth) * 2 - 1;
       this.ndcY = -(e.clientY / window.innerHeight) * 2 + 1;
     });
@@ -50,6 +54,14 @@ export class InputController {
     });
     target.addEventListener('contextmenu', (e) => e.preventDefault());
     target.style.cursor = 'crosshair';
+  }
+
+  /** Mouse movement (pixels) since the last call; used for first/third person look. */
+  takeLook(): { x: number; y: number } {
+    const look = { x: this.lookX, y: this.lookY };
+    this.lookX = 0;
+    this.lookY = 0;
+    return look;
   }
 
   /** Samples the current input. The returned object is reused between calls. */
