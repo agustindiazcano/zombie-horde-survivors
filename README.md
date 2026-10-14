@@ -83,6 +83,10 @@ When you take control with **Y**, only the units that were selected follow you. 
 | F3      | Show / hide the FPS counter                                    |
 | R       | Restart (on the game over screen)                              |
 
+## Radar
+
+The minimap in the bottom-right corner is a radar: a sweep turns around the arena and enemies only appear as red blips when it passes over them, fading until the next pass. Your own units are always shown (white: the one you control, green: the squad, blue: the drone). North is up.
+
 ## The squad
 
 - **4 soldiers**, each with its own model, armed with a **rifle**.
