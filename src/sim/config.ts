@@ -30,6 +30,7 @@ const enemyType = z
     radiusScale: positive,
     /** Relative spawn likelihood among unlocked types. */
     weight: positive,
+    rewardScale: positive,
     /** First wave this type can appear in. */
     minWave: z.number().int().positive(),
   })
@@ -78,6 +79,24 @@ export const GameConfigSchema = z
         gravity: positive,
       })
       .strict(),
+    /** Gold coins and XP orbs dropped by dead enemies. */
+    loot: z
+      .object({
+        /** A living unit within this distance collects a pickup. */
+        collectRadius: positive,
+        /** Seconds before an uncollected pickup disappears. */
+        lifetime: positive,
+        maxPickups: z.number().int().positive(),
+      })
+      .strict(),
+    progress: z
+      .object({
+        xpPerLevel: positive,
+        /** Each level needs this many times the XP of the previous one. */
+        growth: z.number().min(1),
+      })
+      .strict(),
+    gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
     /** Droppable weapons by id. 'rifle' (the `weapon` section) and the drone cannon are built in. */
     weapons: z.record(z.string(), weaponDef),
@@ -103,6 +122,9 @@ export const GameConfigSchema = z
         attackRange: positive,
         attackCooldown: positive,
         deathDuration: positive,
+        /** Rewards for killing the base zombie; variants scale them with `rewardScale`. */
+        gold: z.number().int().nonnegative(),
+        xp: z.number().int().nonnegative(),
       })
       .strict(),
     waves: z

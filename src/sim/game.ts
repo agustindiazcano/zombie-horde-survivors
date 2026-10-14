@@ -3,6 +3,7 @@ import type { GameConfig } from './config';
 import { createSquad, updateSoldiers } from './soldiers';
 import { createRng } from './rng';
 import type { GameState, Input } from './types';
+import { updatePickups } from './loot';
 import { updateWaves } from './waves';
 import { updateZombies } from './zombies';
 
@@ -19,6 +20,10 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     nextZombieId: 1,
     crates: [],
     nextCrateId: 1,
+    pickups: [],
+    nextPickupId: 1,
+    gold: 0,
+    xp: 0,
     wave: 0,
     kills: 0,
     spawner: { phase: 'intermission', timer: config.waves.intermission, toSpawn: 0 },
@@ -49,6 +54,7 @@ export function step(
           ? 'sprint'
           : 'normal';
   updateSoldiers(state, config, input, dt);
+  updatePickups(state, config, dt);
   updateWaves(state, config, dt);
   updateZombies(state, config, dt);
 

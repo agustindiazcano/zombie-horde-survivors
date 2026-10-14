@@ -42,6 +42,9 @@ export interface Zombie {
   /** Enemy variant id ('zombie', 'alien', ...). Picks the model and the stats below. */
   type: string;
   health: number;
+  maxHealth: number;
+  /** Killed by bursting: skipped death animation, the renderer shows gore instead. */
+  exploded: boolean;
   /** Chase speed, fixed at spawn from the wave's difficulty scaling. */
   speed: number;
   radius: number;
@@ -57,6 +60,16 @@ export interface Crate {
   id: number;
   pos: Vec2;
   items: string[];
+}
+
+/** A gold coin or XP orb lying on the ground. */
+export interface Pickup {
+  id: number;
+  kind: 'gold' | 'xp';
+  amount: number;
+  pos: Vec2;
+  /** Seconds since it dropped. */
+  age: number;
 }
 
 export type SpawnerPhase = 'intermission' | 'spawning' | 'clearing';
@@ -80,7 +93,9 @@ export type SimEvent =
       to: Vec2;
       hitZombieId: number | null;
     }
-  | { type: 'zombieKilled'; id: number }
+  | { type: 'zombieKilled'; id: number; enemy: string; pos: Vec2; exploded: boolean }
+  | { type: 'pickupCollected'; kind: 'gold' | 'xp'; amount: number; pos: Vec2 }
+  | { type: 'levelUp'; level: number }
   | { type: 'crateDropped'; crateId: number; pos: Vec2 }
   | { type: 'soldierHurt'; soldierId: number; damage: number; zombieId: number }
   | { type: 'soldierDied'; soldierId: number }
@@ -100,6 +115,10 @@ export interface GameState {
   nextZombieId: number;
   crates: Crate[];
   nextCrateId: number;
+  pickups: Pickup[];
+  nextPickupId: number;
+  gold: number;
+  xp: number;
   wave: number;
   kills: number;
   spawner: Spawner;

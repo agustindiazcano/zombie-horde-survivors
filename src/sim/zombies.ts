@@ -1,6 +1,8 @@
 import { rayAabb, resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { maybeDropCrate } from './inventory';
+import { dropLoot } from './loot';
+import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
 import type { GameState, Soldier, Zombie } from './types';
 import type { Vec2 } from './vec';
@@ -21,13 +23,16 @@ export function spawnZombie(
   const wavesPlayed = Math.max(0, state.wave - 1);
   const wc = config.waves;
   const speedScale = Math.min(1 + wc.speedScalePerWave * wavesPlayed, wc.maxSpeedScale);
+  const health = config.zombie.health * k.healthScale * (1 + wc.healthScalePerWave * wavesPlayed);
   const zombie: Zombie = {
     id: state.nextZombieId++,
     pos: { ...pos },
     prev: { ...pos },
     facing: 0,
     type: variant ? type : 'zombie',
-    health: config.zombie.health * k.healthScale * (1 + wc.healthScalePerWave * wavesPlayed),
+    health,
+    maxHealth: health,
+    exploded: false,
     speed: config.zombie.speed * k.speedScale * speedScale,
     radius: config.zombie.radius * k.radiusScale,
     damage: config.zombie.damage * k.damageScale,
@@ -40,6 +45,9 @@ export function spawnZombie(
   return zombie;
 }
 
+/** Seconds an exploded enemy stays in the list (long enough for one rendered frame). */
+const EXPLODED_LINGER = 0.05;
+
 export function damageZombie(
   state: GameState,
   config: GameConfig,
@@ -51,9 +59,20 @@ export function damageZombie(
   if (zombie.health > 0) return;
   zombie.health = 0;
   zombie.state = 'death';
-  zombie.deathTimer = config.zombie.deathDuration;
+  const exploded =
+    config.gore.explodeChance > 0 && nextFloat(state.rng) < config.gore.explodeChance;
+  zombie.exploded = exploded;
+  // A burst enemy has no death animation to wait for.
+  zombie.deathTimer = exploded ? EXPLODED_LINGER : config.zombie.deathDuration;
   state.kills++;
-  state.events.push({ type: 'zombieKilled', id: zombie.id });
+  state.events.push({
+    type: 'zombieKilled',
+    id: zombie.id,
+    enemy: zombie.type,
+    pos: { x: zombie.pos.x, z: zombie.pos.z },
+    exploded,
+  });
+  dropLoot(state, config, zombie);
   maybeDropCrate(state, config, zombie.pos);
 }
 
