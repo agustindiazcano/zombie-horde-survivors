@@ -1,4 +1,5 @@
 import { resolveStatic } from './collision';
+import { isDrone, speedOf, weaponOf } from './stats';
 import type { GameConfig } from './config';
 import type { GameState, Input, Soldier, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
@@ -13,12 +14,13 @@ const FORMATION_SPACING = 1.4;
 
 export function createSquad(config: GameConfig): Soldier[] {
   const n = config.squad.count;
-  return Array.from({ length: n }, (_, i) => {
+  const soldiers: Soldier[] = Array.from({ length: n }, (_, i) => {
     // The first soldier stands at the origin; the rest form a ring around it.
     const angle = ((i - 1) / Math.max(n - 1, 1)) * Math.PI * 2;
     const pos = i === 0 ? { x: 0, z: 0 } : { x: Math.sin(angle) * 1.5, z: Math.cos(angle) * 1.5 };
     return {
       id: i + 1,
+      kind: 'soldier' as const,
       pos,
       prev: { ...pos },
       facing: 0,
@@ -28,6 +30,32 @@ export function createSquad(config: GameConfig): Soldier[] {
       order: { type: 'follow' },
     };
   });
+  for (let i = 0; i < config.drone.count; i++) {
+    const pos = { x: -1 - i, z: 1 };
+    soldiers.push({
+      id: n + i + 1,
+      kind: 'drone',
+      pos,
+      prev: { ...pos },
+      facing: 0,
+      health: config.player.maxHealth,
+      dead: false,
+      fireCooldown: 0,
+      order: { type: 'follow' },
+    });
+  }
+  return soldiers;
+}
+
+/** Keeps a unit inside the arena; ground units are also pushed out of obstacles. */
+function resolveUnit(s: Soldier, config: GameConfig): void {
+  if (isDrone(s)) {
+    const lim = config.arena.halfSize - config.player.radius;
+    s.pos.x = Math.min(Math.max(s.pos.x, -lim), lim);
+    s.pos.z = Math.min(Math.max(s.pos.z, -lim), lim);
+  } else {
+    resolveStatic(s.pos, config.player.radius, config.arena);
+  }
 }
 
 export const getSoldier = (state: GameState, id: number | null): Soldier | undefined =>
@@ -113,9 +141,10 @@ function updateControlled(
   // Normalize only above unit length so analog input keeps its magnitude.
   const l = Math.hypot(move.x, move.z);
   const k = l > 1 ? 1 / l : 1;
-  s.pos.x += move.x * k * config.player.speed * dt;
-  s.pos.z += move.z * k * config.player.speed * dt;
-  resolveStatic(s.pos, config.player.radius, config.arena);
+  const speed = speedOf(config, s);
+  s.pos.x += move.x * k * speed * dt;
+  s.pos.z += move.z * k * speed * dt;
+  resolveUnit(s, config);
 
   const dx = aim.x - s.pos.x;
   const dz = aim.z - s.pos.z;
@@ -133,7 +162,7 @@ function updateAi(
 ): void {
   // Movement destination from the current order.
   let dest: Vec2 | null = null;
-  let speed = config.player.speed;
+  let speed = speedOf(config, s);
   if (s.order.type === 'move') {
     dest = { x: s.order.x, z: s.order.z };
     if (Math.hypot(dest.x - s.pos.x, dest.z - s.pos.z) < ARRIVE_DISTANCE) {
@@ -159,14 +188,16 @@ function updateAi(
     const step = Math.min(speed * dt, d);
     s.pos.x += (dx / d) * step;
     s.pos.z += (dz / d) * step;
-    resolveStatic(s.pos, config.player.radius, config.arena);
+    resolveUnit(s, config);
     moveAngle = Math.atan2(dx, dz);
   }
 
   const target = findTarget(state, config, s);
   if (target) {
     s.facing = Math.atan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
-    if (s.fireCooldown <= 0) fireWeapon(state, config, s, config.squad.aiFireRateScale);
+    if (s.fireCooldown <= 0) {
+      fireWeapon(state, config, s, isDrone(s) ? 1 : config.squad.aiFireRateScale);
+    }
   } else if (moveAngle !== null) {
     s.facing = moveAngle;
   }
@@ -174,14 +205,15 @@ function updateAi(
 
 /** Nearest living zombie within AI range and line of sight. */
 function findTarget(state: GameState, config: GameConfig, s: Soldier): Zombie | null {
+  const weapon = weaponOf(config, s);
   let best: Zombie | null = null;
-  let bestDist = config.squad.aiRange;
+  let bestDist = isDrone(s) ? weapon.range : config.squad.aiRange;
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
     const d = Math.hypot(z.pos.x - s.pos.x, z.pos.z - s.pos.z);
     if (d >= bestDist) continue;
     const dir = dirFromAngle(Math.atan2(z.pos.x - s.pos.x, z.pos.z - s.pos.z));
-    if (isBlocked(s.pos, dir, d - config.zombie.radius, config)) continue;
+    if (!weapon.ignoresCover && isBlocked(s.pos, dir, d - config.zombie.radius, config)) continue;
     best = z;
     bestDist = d;
   }
@@ -194,10 +226,10 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
   const list = state.soldiers;
   for (let i = 0; i < list.length; i++) {
     const a = list[i]!;
-    if (a.dead) continue;
+    if (a.dead || isDrone(a)) continue;
     for (let j = i + 1; j < list.length; j++) {
       const b = list[j]!;
-      if (b.dead) continue;
+      if (b.dead || isDrone(b)) continue;
       const dx = b.pos.x - a.pos.x;
       const dz = b.pos.z - a.pos.z;
       const d = Math.hypot(dx, dz);
@@ -211,5 +243,5 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
       b.pos.z += nz * push;
     }
   }
-  for (const s of list) if (!s.dead) resolveStatic(s.pos, config.player.radius, config.arena);
+  for (const s of list) if (!s.dead && !isDrone(s)) resolveUnit(s, config);
 }

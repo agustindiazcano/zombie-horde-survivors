@@ -8,6 +8,7 @@
     ]
   },
   "squad": { "count": 4, "followDistance": 3, "aiRange": 14, "aiFireRateScale": 0.5 },
+  "drone": { "count": 1, "speed": 7, "height": 3, "fireRate": 1.2, "damage": 45, "range": 30 },
   "player": { "speed": 6, "maxHealth": 100, "radius": 0.4 },
   "weapon": { "fireRate": 8, "damage": 25, "range": 40 },
   "zombie": {

@@ -8,8 +8,11 @@ export type ZombieState = 'walk' | 'attack' | 'death';
 export type SoldierOrder =
   { type: 'follow' } | { type: 'move'; x: number; z: number } | { type: 'hold' };
 
+export type UnitKind = 'soldier' | 'drone';
+
 export interface Soldier {
   id: number;
+  kind: UnitKind;
   pos: Vec2;
   /** Position at the start of the last step, for render interpolation. */
   prev: Vec2;
@@ -48,6 +51,8 @@ export type SimEvent =
       type: 'shot';
       shooterId: number;
       facing: number;
+      /** Muzzle height above the ground. */
+      height: number;
       from: Vec2;
       to: Vec2;
       hitZombieId: number | null;
