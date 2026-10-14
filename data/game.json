@@ -251,7 +251,7 @@
     "maxPickups": 120
   },
   "progress": {
-    "xpPerLevel": 100,
+    "xpPerLevel": 200,
     "growth": 1.35
   },
   "gore": {
