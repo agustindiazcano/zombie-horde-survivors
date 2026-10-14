@@ -28,7 +28,7 @@ import {
 import { SquadPanel } from './squadPanel';
 import { UnitsScreen } from './unitsScreen';
 import { PausePanel } from './pausePanel';
-import { loadSettings, saveSettings, type Settings } from './settings';
+import { DEFAULT_SETTINGS, PRESETS, loadSettings, saveSettings, type Settings } from './settings';
 import { SettingsPanel } from './settingsPanel';
 import { Radar } from './radar';
 import { PerkPicker, Shop } from './upgradesUi';
@@ -56,7 +56,10 @@ async function main(): Promise<void> {
   const fps = new FpsCounter(document.body);
 
   // Player options (graphics, lighting, FPS counter, volume), saved in the browser.
-  let settings = loadSettings();
+  const mobile = isMobile();
+  let settings = loadSettings(
+    mobile ? { ...DEFAULT_SETTINGS, ...PRESETS.low, quality: 'low' } : DEFAULT_SETTINGS,
+  );
   const commitSettings = (next: Settings) => {
     settings = next;
     saveSettings(settings);
@@ -128,7 +131,8 @@ async function main(): Promise<void> {
     shop.close();
   });
   const squad = new SquadPanel(document.body, (id, additive) => {
-    if (state.controlledId === null) rts.toggle(id, additive);
+    if (mobile) setLeader(id);
+    else if (state.controlledId === null) rts.toggle(id, additive);
   });
 
   const setPaused = (value: boolean) => {
@@ -136,10 +140,10 @@ async function main(): Promise<void> {
     hud.setPaused(paused);
   };
 
-  const mobile = isMobile();
+  let mobileUi: MobileControls | null = null;
   if (mobile) {
     // Touch play: one joystick moves the whole squad; the leader auto-aims and everyone fires.
-    new MobileControls(document.body, {
+    mobileUi = new MobileControls(document.body, {
       onMove: (x, z) => input.setTouchMove(x, z),
       onSettings: () => openSettings(),
       onMenu: () => {
@@ -156,19 +160,44 @@ async function main(): Promise<void> {
       onInventory: () => {
         if (!modalOpen()) setPaused(!paused);
       },
+      onCrate: () => {
+        const crate = crateInReach();
+        if (ui.isOpen) ui.close();
+        else if (playable() && !shop.isOpen && crate && state.controlledId !== null) {
+          ui.openCrate(state.controlledId, crate.id);
+        }
+      },
+      onFullscreen: () => {
+        if (document.fullscreenElement) void document.exitFullscreen();
+        else {
+          void document.documentElement
+            .requestFullscreen()
+            .then(() =>
+              (screen.orientation as { lock?: (o: string) => Promise<void> }).lock?.('landscape'),
+            )
+            .catch(() => undefined);
+        }
+      },
+      onAction: (action, on) => input.setTouchAction(action, on),
     });
   }
 
-  /** Mobile: keeps a living soldier in control, with the rest of the squad following it. */
-  const ensureMobileLeader = () => {
-    if (state.status !== 'playing' || state.controlledId !== null) return;
-    const leader = state.soldiers.find((s) => !s.dead && s.kind !== 'drone');
-    if (!leader) return;
+  /** Mobile: makes this soldier the leader; the rest of the squad follows it. */
+  const setLeader = (id: number) => {
+    const leader = state.soldiers.find((s) => s.id === id);
+    if (!leader || leader.dead || leader.kind === 'drone') return;
     controlSoldier(state, leader.id);
     orderFollow(
       state,
       state.soldiers.filter((s) => !s.dead && s.id !== leader.id).map((s) => s.id),
     );
+  };
+
+  /** Mobile: keeps a living soldier in control, with the rest of the squad following it. */
+  const ensureMobileLeader = () => {
+    if (state.status !== 'playing' || state.controlledId !== null) return;
+    const first = state.soldiers.find((s) => !s.dead && s.kind !== 'drone');
+    if (first) setLeader(first.id);
   };
 
   /** Y: take direct control of the first selected soldier, or go back to RTS mode. */
@@ -325,6 +354,7 @@ async function main(): Promise<void> {
       renderer.onStep(state);
       hud.onStep(state);
       sfx.onStep(state);
+      if (state.events.some((e) => e.type === 'soldierHurt')) mobileUi?.vibrate(35);
     },
     (alpha, frameDt) => {
       const rtsMode = state.controlledId === null;
@@ -351,6 +381,7 @@ async function main(): Promise<void> {
       fps.tick(frameDt);
 
       const crate = !modalOpen() && playable() ? crateInReach() : undefined;
+      mobileUi?.setCrateReady(crate !== undefined);
       if (crate) {
         const p = renderer.projectToScreen(crate.pos.x, crate.pos.z, 1.5);
         if (p) cratePrompt.show(p.x, p.z);

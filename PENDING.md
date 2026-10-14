@@ -36,7 +36,8 @@ Claude has no browser, so every visual and feel decision below is an estimate. T
 ### 2b — 🟡 Mobile follow-ups (first version on `feat/mobile-view`, not seen on a real phone)
 
 - Try it on a real phone (landscape) and tune sizes in `src/mobile.css` and `STICK_RADIUS` in `src/mobile.ts`.
-- Ideas not built yet: pinch to zoom; tap-to-open crates (E has no touch button); jump/crouch/sprint buttons; choose the leader by tapping a soldier icon; a RTS mode with tap-to-move; vibration on damage; auto-pause when the browser tab hides; PWA / fullscreen button; a lighter graphics preset by default on phones; the ~16 MB first load on mobile data.
+- Done in the second pass: crate button, tap an icon to choose the leader, jump/crouch/sprint buttons, pinch zoom, full screen, vibration on damage, low graphics preset by default on phones.
+- Not built yet: a RTS mode with tap-to-move; shrinking the ~16 MB first load for mobile data; PWA install.
 
 ### 3 — 🟡 Going public (GitHub Pages is live)
 

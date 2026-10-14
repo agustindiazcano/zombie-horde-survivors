@@ -88,13 +88,17 @@ When you take control with **Y**, only the units that were selected follow you. 
 
 On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the URL to try it on a desktop). Hold the phone sideways.
 
-| Control          | Action                                                                                            |
-| ---------------- | ------------------------------------------------------------------------------------------------- |
-| Joystick (left)  | Drag a thumb anywhere in the lower-left area to move the whole squad; the others follow           |
-| Auto-fire        | The leader aims at the nearest enemy and fires on its own; so does the rest of the squad          |
-| Soldier icons    | Top-left row with each unit's health                                                              |
-| ⚙ / ☰ / 🛒 / 🎒 | Top-right: settings, main menu, shop (between waves), squad screen and inventories                |
-| Inventory        | Tap a weapon, then tap the slot to move it to (drag and drop also works where the browser allows) |
+| Control           | Action                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
+| Joystick (left)   | Drag a thumb anywhere in the lower-left area to move the whole squad; the others follow           |
+| Auto-fire         | The leader aims at the nearest enemy and fires on its own; so does the rest of the squad          |
+| Soldier icons     | Top-left row with each unit's health                                                              |
+| ⚙ / ☰ / 🛒 / 🎒  | Top-right: settings, main menu, shop (between waves), squad screen and inventories                |
+| Inventory         | Tap a weapon, then tap the slot to move it to (drag and drop also works where the browser allows) |
+| 📦 (bottom-right) | Appears when the leader stands next to a crate: tap to open it                                    |
+| 🧎 / 💨 / ⤒       | Crouch and sprint (tap to toggle) and jump (hold)                                                 |
+| Soldier icon      | Tap a soldier icon to make it the leader                                                          |
+| Pinch / ⛶ / buzz  | Two-finger zoom; full screen button; the phone vibrates when a soldier is hurt                    |
 
 ## Radar
 

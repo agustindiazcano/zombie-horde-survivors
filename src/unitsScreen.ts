@@ -112,7 +112,9 @@ export class UnitsScreen {
       card.classList.toggle('us__card--selected', this.selected.includes(s.id));
       card.classList.toggle('us__card--dead', s.dead);
       card.disabled = s.dead;
-      el('div', 'us__name', card, `${unitName(s)}${s.dead ? ' (fallen)' : ''}`);
+      const name = el('div', 'us__name', card);
+      el('span', 'us__icon', name, s.kind === 'drone' ? '◈' : '🪖');
+      el('span', 'us__num', name, `${unitName(s)}${s.dead ? ' (fallen)' : ''}`);
       this.bar(
         card,
         'us__bar--hp',

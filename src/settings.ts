@@ -60,7 +60,7 @@ const clamp = (v: unknown, lo: number, hi: number, fallback: number): number =>
 const bool = (v: unknown, fallback: boolean): boolean => (typeof v === 'boolean' ? v : fallback);
 
 /** Reads saved settings, falling back to the defaults for anything missing or invalid. */
-export function loadSettings(): Settings {
+export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
   let raw: Record<string, unknown> = {};
   try {
     const text = localStorage.getItem(KEY);
@@ -68,7 +68,7 @@ export function loadSettings(): Settings {
   } catch {
     // Unavailable or corrupt storage: just use the defaults.
   }
-  const d = DEFAULT_SETTINGS;
+  const d = defaults;
   const size = SHADOW_SIZES.find((n) => n === raw.shadowMapSize) ?? d.shadowMapSize;
   const s: Settings = {
     quality: d.quality,

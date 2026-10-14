@@ -34,6 +34,9 @@ export interface MobileActions {
   onMenu: () => void;
   onShop: () => void;
   onInventory: () => void;
+  onCrate: () => void;
+  onFullscreen: () => void;
+  onAction: (action: 'jump' | 'sprint' | 'crouch', on: boolean) => void;
 }
 
 /**
@@ -45,6 +48,7 @@ export class MobileControls {
   private readonly root = el('div', 'mob');
   private readonly knob: HTMLElement;
   private readonly base: HTMLElement;
+  private readonly crate: HTMLButtonElement;
   private pointerId: number | null = null;
   private baseX = 0;
   private baseY = 0;
@@ -73,6 +77,16 @@ export class MobileControls {
     this.button(bar, '☰', 'Main menu', actions.onMenu);
     this.button(bar, '🛒', 'Shop', actions.onShop);
     this.button(bar, '🎒', 'Squad & inventory', actions.onInventory);
+    if (document.fullscreenEnabled) this.button(bar, '⛶', 'Full screen', actions.onFullscreen);
+
+    // Action cluster, bottom-right beside the radar.
+    const acts = el('div', 'mob__actions', this.root);
+    this.crate = this.button(acts, '📦', 'Open crate', actions.onCrate);
+    this.crate.classList.add('mob__act--crate');
+    this.crate.hidden = true;
+    this.toggle(acts, '🧎', 'Crouch', (on) => actions.onAction('crouch', on));
+    this.toggle(acts, '💨', 'Sprint', (on) => actions.onAction('sprint', on));
+    this.hold(acts, '⤒', 'Jump', (on) => actions.onAction('jump', on));
 
     const rotate = el('div', 'mob__rotate', this.root);
     el('div', '', rotate, '⟳');
@@ -83,10 +97,48 @@ export class MobileControls {
     parent.appendChild(this.root);
   }
 
-  private button(parent: HTMLElement, icon: string, label: string, onTap: () => void): void {
+  private button(
+    parent: HTMLElement,
+    icon: string,
+    label: string,
+    onTap: () => void,
+  ): HTMLButtonElement {
     const b = el('button', 'mob__btn', parent, icon);
     b.setAttribute('aria-label', label);
     b.addEventListener('click', onTap);
+    return b;
+  }
+
+  /** Tap to switch on, tap again to switch off. */
+  private toggle(parent: HTMLElement, icon: string, label: string, set: (on: boolean) => void) {
+    const b = this.button(parent, icon, label, () => {
+      const on = !b.classList.contains('mob__btn--on');
+      b.classList.toggle('mob__btn--on', on);
+      set(on);
+    });
+  }
+
+  /** Active only while the finger is down. */
+  private hold(parent: HTMLElement, icon: string, label: string, set: (on: boolean) => void) {
+    const b = this.button(parent, icon, label, () => undefined);
+    b.addEventListener('pointerdown', () => set(true));
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) {
+      b.addEventListener(ev, () => set(false));
+    }
+  }
+
+  /** Shows the crate button while the leader stands next to a crate. */
+  setCrateReady(ready: boolean): void {
+    this.crate.hidden = !ready;
+  }
+
+  /** Short buzz when a soldier is hurt (where the browser allows it). */
+  vibrate(ms: number): void {
+    try {
+      navigator.vibrate?.(ms);
+    } catch {
+      // Not supported: skip.
+    }
   }
 
   private down(e: PointerEvent, zone: HTMLElement): void {

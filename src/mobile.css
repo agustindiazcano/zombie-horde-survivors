@@ -244,23 +244,13 @@ body.mobile .us {
   padding: 56px 12px 12px;
 }
 
-body.mobile .us__card {
-  width: 140px;
-}
-
 body.mobile .us__windows {
   gap: 10px;
 }
 
 body.mobile .us__window {
-  flex-direction: column;
-  align-items: center;
   padding: 8px;
-}
-
-body.mobile .us__stage {
-  width: 120px;
-  height: 150px;
+  align-items: flex-start;
 }
 
 body.mobile .us__side {
@@ -317,4 +307,87 @@ body.mobile .set__button {
     padding: 24px;
     pointer-events: auto;
   }
+}
+
+.mob__actions {
+  position: absolute;
+  right: calc(max(8px, env(safe-area-inset-right)) + 128px);
+  bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.mob__actions .mob__btn {
+  width: 50px;
+  height: 50px;
+}
+
+.mob__btn[hidden] {
+  display: none;
+}
+
+.mob__btn--on {
+  background: rgba(255, 210, 74, 0.45);
+  border-color: #ffd24a;
+}
+
+.mob__act--crate {
+  background: rgba(255, 210, 74, 0.7);
+  border-color: #ffd24a;
+  animation: mob-breathe 1.2s ease-in-out infinite;
+}
+
+body.mobile .mob__btn {
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+}
+
+body.mobile .mob__actions .mob__btn {
+  width: 50px;
+  height: 50px;
+  font-size: 22px;
+}
+
+/* Squad screen: soldiers as small icon tiles with a thin health bar. */
+body.mobile .us__list {
+  gap: 6px;
+}
+
+body.mobile .us__card {
+  width: 58px;
+  padding: 5px 4px;
+  gap: 4px;
+  align-items: center;
+  text-align: center;
+}
+
+body.mobile .us__name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 9px;
+  line-height: 1.1;
+}
+
+body.mobile .us__icon {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+body.mobile .us__card .us__bar {
+  width: 100%;
+  height: 6px;
+}
+
+body.mobile .us__card .us__bar-label,
+body.mobile .us__card .us__bar--xp,
+body.mobile .us__card .us__kills {
+  display: none;
+}
+
+body.mobile .us__stage {
+  width: 100px;
+  height: 140px;
 }
