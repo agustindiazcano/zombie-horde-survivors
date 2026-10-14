@@ -14,7 +14,7 @@ export {
   orderHold,
   orderMove,
 } from './soldiers';
-export { spawnZombie } from './zombies';
+export { bossStats, spawnZombie } from './zombies';
 export {
   backpackFull,
   equipFromBackpack,

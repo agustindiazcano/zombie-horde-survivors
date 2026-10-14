@@ -496,6 +496,7 @@ export class GameRenderer {
       const { object } = entry.view;
       object.position.set(lerp(z.prev.x, z.pos.x, alpha), 0, lerp(z.prev.z, z.pos.z, alpha));
       object.rotation.y = z.facing;
+      object.scale.setScalar(z.size);
       object.visible = !z.exploded;
       entry.view.setState(z.state);
       entry.view.update(dt);
@@ -511,7 +512,7 @@ export class GameRenderer {
         this.healthBars.show(
           z.id,
           object.position.x,
-          this.factories.barHeights[entry.type] ?? 2.2,
+          (this.factories.barHeights[entry.type] ?? 2.2) * z.size,
           object.position.z,
           0.6 + z.radius * 1.2,
           z.health / z.maxHealth,

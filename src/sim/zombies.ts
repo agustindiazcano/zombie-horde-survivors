@@ -7,12 +7,23 @@ import { hurtSoldier } from './soldiers';
 import type { GameState, Soldier, Zombie } from './types';
 import type { Vec2 } from './vec';
 
+/** A boss's multipliers: the nth boss (1-based) reads the nth list entry, then keeps growing. */
+export function bossStats(config: GameConfig, nth: number) {
+  const b = config.boss;
+  const pick = (list: number[]) =>
+    list[nth - 1] ?? list[list.length - 1]! * b.growth ** (nth - list.length);
+  const health = pick(b.health);
+  const size = Math.min(b.sizeBase * (health / b.health[0]!) ** b.sizeExponent, b.maxSize);
+  return { health, damage: pick(b.damage), size, reward: b.rewardScale * nth };
+}
+
 export function spawnZombie(
   state: GameState,
   config: GameConfig,
   pos: Vec2,
   type = 'zombie',
-  boss = false,
+  /** 0 for a normal enemy; otherwise which boss this is (1st, 2nd, ...). */
+  bossNumber = 0,
 ): Zombie {
   const variant = config.enemies[type];
   const k = variant ?? {
@@ -25,7 +36,10 @@ export function spawnZombie(
   const wc = config.waves;
   const speedScale = Math.min(1 + wc.speedScalePerWave * wavesPlayed, wc.maxSpeedScale);
   const health = config.zombie.health * k.healthScale * (1 + wc.healthScalePerWave * wavesPlayed);
-  const b = boss ? config.boss : { healthScale: 1, damageScale: 1, speedScale: 1 };
+  const boss = bossNumber > 0;
+  const b = boss
+    ? { ...bossStats(config, bossNumber), speed: config.boss.speedScale }
+    : { health: 1, damage: 1, size: 1, speed: 1, reward: 1 };
   const zombie: Zombie = {
     id: state.nextZombieId++,
     pos: { ...pos },
@@ -33,13 +47,15 @@ export function spawnZombie(
     facing: 0,
     type: variant ? type : 'zombie',
     boss,
-    health: health * b.healthScale,
-    maxHealth: health * b.healthScale,
+    size: b.size,
+    reward: b.reward,
+    health: health * b.health,
+    maxHealth: health * b.health,
     exploded: false,
-    speed: config.zombie.speed * k.speedScale * speedScale * b.speedScale,
-    radius: config.zombie.radius * k.radiusScale,
-    damage: config.zombie.damage * k.damageScale * b.damageScale,
-    attackRange: config.zombie.attackRange * k.radiusScale,
+    speed: config.zombie.speed * k.speedScale * speedScale * b.speed,
+    radius: config.zombie.radius * k.radiusScale * b.size,
+    damage: config.zombie.damage * k.damageScale * b.damage,
+    attackRange: config.zombie.attackRange * k.radiusScale * b.size,
     state: 'walk',
     attackTimer: 0,
     deathTimer: 0,

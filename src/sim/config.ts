@@ -136,11 +136,24 @@ export const GameConfigSchema = z
         everyWaves: z.number().int().positive(),
         /** Enemy types the bosses cycle through, in order. */
         types: z.array(z.string()).min(1),
-        /** Multipliers on that type's normal stats at the current wave. */
-        healthScale: positive,
-        damageScale: positive,
+        /**
+         * Health and damage multipliers (on that type's normal stats at the current wave) for the
+         * 1st boss, the 2nd, and so on. Past the end of a list each further boss multiplies the
+         * last entry by `growth` again.
+         */
+        health: z.array(positive).min(1),
+        damage: z.array(positive).min(1),
+        growth: z.number().min(1),
         speedScale: positive,
+        /** Loot multiplier of the 1st boss; the nth boss pays n times as much. */
         rewardScale: positive,
+        /**
+         * Model and hitbox size: `sizeBase` for the 1st boss, growing with how much more health
+         * a boss has than the 1st one (health ratio ^ `sizeExponent`), up to `maxSize`.
+         */
+        sizeBase: positive,
+        sizeExponent: nonNegative,
+        maxSize: positive,
       })
       .strict(),
     gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),

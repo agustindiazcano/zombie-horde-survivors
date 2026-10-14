@@ -330,9 +330,13 @@
   "boss": {
     "everyWaves": 3,
     "types": ["zombie", "skeleton", "alien", "brute", "hound"],
-    "healthScale": 10,
-    "damageScale": 2,
+    "health": [50, 70, 100, 200, 500],
+    "damage": [2, 3, 4, 6, 8],
+    "growth": 1.6,
     "speedScale": 0.6,
-    "rewardScale": 8
+    "rewardScale": 8,
+    "sizeBase": 2,
+    "sizeExponent": 0.4,
+    "maxSize": 5
   }
 }

@@ -24,8 +24,7 @@ export function levelInfo(xp: number, config: GameConfig): LevelInfo {
 
 /** Drops a gold coin and an XP orb beside a dead enemy, scaled by its type. */
 export function dropLoot(state: GameState, config: GameConfig, zombie: Zombie): void {
-  const scale =
-    (config.enemies[zombie.type]?.rewardScale ?? 1) * (zombie.boss ? config.boss.rewardScale : 1);
+  const scale = (config.enemies[zombie.type]?.rewardScale ?? 1) * zombie.reward;
   const gold = Math.max(1, Math.round(config.zombie.gold * scale));
   const xp = Math.max(1, Math.round(config.zombie.xp * scale));
   const angle = zombie.id * 2.4;

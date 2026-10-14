@@ -122,7 +122,7 @@ Variants are multipliers on the base zombie in `data/game.json` (`enemies`); eac
 
 Zombie speed and health also grow with each wave.
 
-**Mini boss:** every 3rd wave one enemy comes back as a mini boss: a darker copy of one of the models, with glowing red eyes, 10x the health, double the damage and a slower walk. It pays much better gold and XP. The bosses cycle zombie, skeleton, alien, brute, hound (`boss` in `data/game.json`).
+**Mini boss:** every 3rd wave one enemy comes back as a mini boss: a darker copy of one of the models, with glowing red eyes and a slower walk. Each boss is tougher and bigger than the last: health x50, x70, x100, x200, x500 (then x1.6 more each time), damage x2 up to x8, and a size from 2x up to 5x that grows with its health. They pay much better gold and XP. The bosses cycle zombie, skeleton, alien, brute, hound (`boss` in `data/game.json`).
 
 ## Architecture
 

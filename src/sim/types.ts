@@ -45,6 +45,10 @@ export interface Zombie {
   maxHealth: number;
   /** A mini boss: darker, slower, much tougher and harder-hitting than its type. */
   boss: boolean;
+  /** Model and hitbox scale: 1 for normal enemies, bigger for bosses. */
+  size: number;
+  /** Loot multiplier (1 for normal enemies). */
+  reward: number;
   /** Killed by bursting: skipped death animation, the renderer shows gore instead. */
   exploded: boolean;
   /** Chase speed, fixed at spawn from the wave's difficulty scaling. */
