@@ -27,6 +27,9 @@ export function createSquad(config: GameConfig): Soldier[] {
       health: config.player.maxHealth,
       dead: false,
       fireCooldown: 0,
+      y: 0,
+      prevY: 0,
+      vy: 0,
       order: { type: 'follow' },
       weapon: 'rifle',
       backpack: [],
@@ -43,6 +46,9 @@ export function createSquad(config: GameConfig): Soldier[] {
       health: config.player.maxHealth,
       dead: false,
       fireCooldown: 0,
+      y: 0,
+      prevY: 0,
+      vy: 0,
       order: { type: 'follow' },
       weapon: 'drone_cannon',
       backpack: [],
@@ -126,13 +132,26 @@ export function updateSoldiers(
   for (const s of state.soldiers) {
     s.prev.x = s.pos.x;
     s.prev.z = s.pos.z;
+    s.prevY = s.y;
     if (s.dead) continue;
     // May dip up to one step below zero so the leftover time carries into the next shot.
     s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
     if (s.id === state.controlledId) updateControlled(state, config, s, input, dt);
     else updateAi(state, config, s, leader, dt);
+    updateJump(config, s, dt);
   }
   separateSoldiers(state, config);
+}
+
+/** Vertical motion of a jump; runs for every unit so a jump always finishes. */
+function updateJump(config: GameConfig, s: Soldier, dt: number): void {
+  if (s.y === 0 && s.vy === 0) return;
+  s.vy -= config.stance.gravity * dt;
+  s.y += s.vy * dt;
+  if (s.y <= 0) {
+    s.y = 0;
+    s.vy = 0;
+  }
 }
 
 function updateControlled(
@@ -146,7 +165,7 @@ function updateControlled(
   // Normalize only above unit length so analog input keeps its magnitude.
   const l = Math.hypot(move.x, move.z);
   const k = l > 1 ? 1 / l : 1;
-  const speed = speedOf(config, s);
+  const speed = speedOf(config, s, state.stance);
   s.pos.x += move.x * k * speed * dt;
   s.pos.z += move.z * k * speed * dt;
   resolveUnit(s, config);
@@ -154,6 +173,8 @@ function updateControlled(
   const dx = aim.x - s.pos.x;
   const dz = aim.z - s.pos.z;
   if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
+
+  if (input.jump && s.y === 0 && s.vy === 0 && !isDrone(s)) s.vy = config.stance.jumpSpeed;
 
   if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
 }
@@ -167,7 +188,7 @@ function updateAi(
 ): void {
   // Movement destination from the current order.
   let dest: Vec2 | null = null;
-  let speed = speedOf(config, s);
+  let speed = speedOf(config, s, state.stance);
   if (s.order.type === 'move') {
     dest = { x: s.order.x, z: s.order.z };
     if (Math.hypot(dest.x - s.pos.x, dest.z - s.pos.z) < ARRIVE_DISTANCE) {

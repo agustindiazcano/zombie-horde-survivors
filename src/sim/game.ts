@@ -14,6 +14,7 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     soldiers,
     controlledId: soldiers[0]?.id ?? null,
     nextSoldierId: soldiers.length + 1,
+    stance: 'normal',
     zombies: [],
     nextZombieId: 1,
     crates: [],
@@ -38,6 +39,15 @@ export function step(
 
   state.time += dt;
 
+  // The squad only changes stance while a soldier is under direct control.
+  state.stance =
+    state.controlledId === null
+      ? 'normal'
+      : input.crouch
+        ? 'crouch'
+        : input.sprint
+          ? 'sprint'
+          : 'normal';
   updateSoldiers(state, config, input, dt);
   updateWaves(state, config, dt);
   updateZombies(state, config, dt);

@@ -65,6 +65,19 @@ export const GameConfigSchema = z
       .strict(),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
     enemies: z.record(z.string(), enemyType),
+    /** Squad stances (set by the controlled player) and the controlled soldier's jump. */
+    stance: z
+      .object({
+        /** Crouching: slower, tighter spread, harder-hitting shots. */
+        crouchSpeedScale: positive,
+        crouchSpreadScale: nonNegative,
+        crouchDamageScale: positive,
+        sprintSpeedScale: positive,
+        /** Initial upward speed of a jump and the downward pull on it. */
+        jumpSpeed: positive,
+        gravity: positive,
+      })
+      .strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
     /** Droppable weapons by id. 'rifle' (the `weapon` section) and the drone cannon are built in. */
     weapons: z.record(z.string(), weaponDef),

@@ -20,6 +20,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     squad: { ...base.squad, count: 1 },
     drone: { ...base.drone, count: 0 },
     enemies: {},
+    stance: { ...base.stance },
     inventory: { ...base.inventory },
     weapons: { ...base.weapons },
     drops: { ...base.drops, chance: 0, table: [...base.drops.table] },
@@ -39,7 +40,14 @@ export function makeGame(patch: Patch = {}, seed = 1): { state: GameState; confi
   return { state: createGame(config, seed), config };
 }
 
-export const idle: Input = { move: { x: 0, z: 0 }, aim: { x: 0, z: 10 }, firing: false };
+export const idle: Input = {
+  move: { x: 0, z: 0 },
+  aim: { x: 0, z: 10 },
+  firing: false,
+  crouch: false,
+  sprint: false,
+  jump: false,
+};
 
 /** Steps the simulation for `seconds` and returns every event produced. */
 export function run(

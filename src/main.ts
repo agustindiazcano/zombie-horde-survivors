@@ -26,7 +26,7 @@ import { SquadPanel } from './squadPanel';
 const PAN_SPEED = 22;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Y: back to RTS · I: inventory · E: open crate · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · Y: back to RTS · I: inventory · E: open crate · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: inventory · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -115,8 +115,16 @@ async function main(): Promise<void> {
 
   new CameraControls(renderer.domElement, renderer);
 
-  const noInput: Input = { move: { x: 0, z: 0 }, aim: { x: 0, z: 0 }, firing: false };
-  const directInput: Input = { move: { x: 0, z: 0 }, aim: { x: 0, z: 0 }, firing: false };
+  const blank = (): Input => ({
+    move: { x: 0, z: 0 },
+    aim: { x: 0, z: 0 },
+    firing: false,
+    crouch: false,
+    sprint: false,
+    jump: false,
+  });
+  const noInput = blank();
+  const directInput = blank();
 
   /** Keyboard/mouse input with movement rotated to follow the camera's orbit. */
   const readInput = (): Input => {
@@ -124,6 +132,9 @@ async function main(): Promise<void> {
     directInput.move = renderer.screenToWorldDir(raw.move.x, raw.move.z);
     directInput.aim = raw.aim;
     directInput.firing = raw.firing;
+    directInput.crouch = raw.crouch;
+    directInput.sprint = raw.sprint;
+    directInput.jump = raw.jump;
     return directInput;
   };
 
@@ -155,7 +166,8 @@ async function main(): Promise<void> {
 
       const focusId = state.controlledId ?? [...rts.selected][0] ?? null;
       hud.update(state, focusId);
-      hud.setHint(rtsMode ? HINT_RTS : HINT_DIRECT);
+      const stance = state.stance === 'normal' ? '' : `  [${state.stance.toUpperCase()}]`;
+      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance);
       squad.update(state, rts.selected, config.player.maxHealth);
     },
   );
