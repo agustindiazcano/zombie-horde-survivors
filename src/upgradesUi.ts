@@ -27,7 +27,8 @@ function el<K extends keyof HTMLElementTagNameMap>(
  */
 export class PerkPicker {
   private readonly root = el('div', 'up up--perks');
-  private shown = '';
+  /** What the DOM currently shows; null until the first draw (so a closed offer still clears it). */
+  private shown: string | null = null;
 
   constructor(
     parent: HTMLElement,
@@ -83,7 +84,7 @@ export class PerkPicker {
 
   private pick(id: string): void {
     choosePerk(this.getState(), this.config, id);
-    this.shown = '';
+    this.shown = null;
     this.update();
   }
 }
