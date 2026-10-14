@@ -8,7 +8,15 @@ import { GltfAssetLoader } from './render/assetLoader';
 import { parseCharactersConfig } from './render/characterConfig';
 import { GameRenderer } from './render/gameRenderer';
 import { RtsController } from './rts';
-import { controlSoldier, createGame, parseConfig, step, type Input } from './sim';
+import {
+  controlSoldier,
+  createGame,
+  orderFollow,
+  orderHold,
+  parseConfig,
+  step,
+  type Input,
+} from './sim';
 import { SquadPanel } from './squadPanel';
 
 /** Camera pan speed in RTS mode (world units per second). */
@@ -54,10 +62,18 @@ async function main(): Promise<void> {
       controlSoldier(state, null);
       return;
     }
-    const first = [...rts.selected][0];
+    const [first, ...others] = [...rts.selected];
     if (first === undefined) return;
     controlSoldier(state, first);
-    if (state.controlledId !== null) rts.set([state.controlledId]);
+    if (state.controlledId === null) return;
+    // Only the soldiers selected beforehand follow the controlled one; the rest stay put.
+    orderFollow(state, others);
+    orderHold(
+      state,
+      state.soldiers
+        .filter((s) => !rts.selected.has(s.id) && s.order.type === 'follow')
+        .map((s) => s.id),
+    );
   };
 
   window.addEventListener('keydown', (e) => {

@@ -38,7 +38,7 @@ You command a squad of soldiers. The game starts in **direct control** of one so
 | 1-9               | Select soldier by number                          |
 | Y                 | Take direct control of the first selected soldier |
 
-Uncontrolled soldiers shoot the nearest zombie in sight on their own and follow the controlled soldier unless you gave them a move order.
+Uncontrolled soldiers shoot the nearest zombie in sight on their own. When you press Y, only the soldiers selected at that moment follow the controlled one; the others hold their position (or keep their move order).
 
 | Anywhere | Action              |
 | -------- | ------------------- |
