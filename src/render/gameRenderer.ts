@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import type { GameConfig, GameState } from '../sim';
+import type { GameConfig, GameState, Vec2 } from '../sim';
 import { buildArena } from './arena';
 import type { CharacterFactory, CharacterView } from './characters';
+import { ShotEffects } from './effects';
 
 /** Fixed camera offset from the player: above and behind (towards +z). */
 const CAMERA_OFFSET = new THREE.Vector3(0, 13, 9);
@@ -22,6 +23,9 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+  get domElement(): HTMLCanvasElement {
+    return this.renderer.domElement;
+  }
   readonly scene = new THREE.Scene();
   private readonly renderer = new THREE.WebGLRenderer({ antialias: true });
   private readonly playerView: CharacterView;
@@ -29,6 +33,11 @@ export class GameRenderer {
   /** Released zombie views kept for reuse instead of being rebuilt. */
   private readonly pool: CharacterView[] = [];
   private frame = 0;
+  private readonly effects = new ShotEffects();
+  private readonly raycaster = new THREE.Raycaster();
+  private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  private readonly hit = new THREE.Vector3();
+  private readonly ndc = new THREE.Vector2();
 
   constructor(
     private readonly container: HTMLElement,
@@ -44,7 +53,7 @@ export class GameRenderer {
     this.addLights(config.arena.halfSize);
 
     this.playerView = factories.player();
-    this.scene.add(this.playerView.object);
+    this.scene.add(this.playerView.object, this.effects.group);
 
     window.addEventListener('resize', this.resize);
     this.resize();
@@ -64,11 +73,27 @@ export class GameRenderer {
     this.playerView.update(dt);
 
     this.syncZombies(state, alpha, dt);
+    this.effects.update(dt);
 
     this.camera.position.set(px, 0, pz).add(CAMERA_OFFSET);
     this.camera.lookAt(px, 0, pz);
     this.renderer.render(this.scene, this.camera);
   }
+
+  /** Spawns visuals for events produced by a simulation step. Call after each step. */
+  onStep(state: GameState): void {
+    for (const e of state.events) {
+      if (e.type === 'shot') this.effects.spawnShot(e.from, e.to, state.player.facing);
+    }
+  }
+
+  /** Raycasts from the camera through a screen point onto the ground plane (y = 0). */
+  screenToGround = (ndcX: number, ndcY: number): Vec2 | null => {
+    this.ndc.set(ndcX, ndcY);
+    this.raycaster.setFromCamera(this.ndc, this.camera);
+    if (!this.raycaster.ray.intersectPlane(this.groundPlane, this.hit)) return null;
+    return { x: this.hit.x, z: this.hit.z };
+  };
 
   private syncZombies(state: GameState, alpha: number, dt: number): void {
     for (const z of state.zombies) {
