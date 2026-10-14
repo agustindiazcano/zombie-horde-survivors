@@ -25,6 +25,7 @@ export class PausePanel {
   constructor(
     parent: HTMLElement,
     private readonly config: GameConfig,
+    private readonly onSettings: () => void,
   ) {
     parent.appendChild(this.root);
   }
@@ -39,6 +40,8 @@ export class PausePanel {
 
   private render(state: GameState): void {
     this.root.replaceChildren();
+    const settings = el('button', 'pp__settings', this.root, '⚙ Settings (O)');
+    settings.addEventListener('click', this.onSettings);
     this.renderPerks(state);
     this.renderStats(state);
   }

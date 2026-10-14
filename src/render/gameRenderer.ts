@@ -120,6 +120,7 @@ export class GameRenderer {
   viewMode: ViewMode = 'top';
   /** Dark mode: dim lights plus flashlights. Off by default. */
   private dark = false;
+  private goreEnabled = true;
   private hemi = new THREE.HemisphereLight();
   private readonly sun = new THREE.DirectionalLight(0xffffff, DAY_SUN);
   private lookPitch = 0;
@@ -459,7 +460,7 @@ export class GameRenderer {
           this.shake = Math.min(this.shake + SHOT_SHAKE, MAX_SHAKE);
         }
         if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
-      } else if (e.type === 'zombieKilled' && e.exploded) {
+      } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
         const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
         this.gore.burst(e.pos.x, e.pos.z, Math.min(Math.max(size, 0.8), 1.8));
       } else if (e.type === 'soldierHurt' && e.soldierId === state.controlledId) {
@@ -561,6 +562,25 @@ export class GameRenderer {
       eye.add(new THREE.Mesh(core, coreMat), new THREE.Mesh(halo, haloMat));
       eye.position.set(side * 0.1 * k, headHeight * 0.87, 0.22 * k);
       root.add(eye);
+    }
+  }
+
+  /** Applies the graphics options: shadows, shadow resolution, render resolution and gore. */
+  applyGraphics(g: {
+    shadows: boolean;
+    shadowMapSize: number;
+    resolutionScale: number;
+    gore: boolean;
+  }): void {
+    this.goreEnabled = g.gore;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * g.resolutionScale);
+    this.resize();
+    this.sun.castShadow = g.shadows;
+    if (this.sun.shadow.mapSize.x !== g.shadowMapSize) {
+      this.sun.shadow.mapSize.set(g.shadowMapSize, g.shadowMapSize);
+      // The old shadow map has the wrong size; it is rebuilt on the next frame.
+      this.sun.shadow.map?.dispose();
+      this.sun.shadow.map = null;
     }
   }
 

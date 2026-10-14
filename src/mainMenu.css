@@ -72,6 +72,24 @@
   outline: none;
 }
 
+.menu__settings {
+  display: block;
+  margin: 14px auto 0;
+  font: inherit;
+  font-size: 15px;
+  padding: 8px 22px;
+  color: #ddd;
+  background: transparent;
+  border: 1px solid #4a5366;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu__settings:hover {
+  border-color: #ffd84a;
+  color: #fff;
+}
+
 .menu__tips {
   margin: 28px 0 0;
   padding: 0;

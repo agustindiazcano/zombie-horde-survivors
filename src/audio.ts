@@ -1,6 +1,7 @@
 import type { GameState } from './sim';
 
-const MASTER_VOLUME = 0.25;
+/** Master gain at 100% volume. */
+const MASTER_VOLUME = 0.35;
 
 /**
  * Procedural sound effects (Web Audio synthesis), so the game needs no audio assets.
@@ -11,6 +12,7 @@ export class Sfx {
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
   private muted = false;
+  private volume = 0.7;
 
   constructor() {
     const unlock = () => this.ensureContext();
@@ -20,8 +22,18 @@ export class Sfx {
 
   toggleMute(): boolean {
     this.muted = !this.muted;
-    if (this.master) this.master.gain.value = this.muted ? 0 : MASTER_VOLUME;
+    this.applyVolume();
     return this.muted;
+  }
+
+  /** Sets the sound effects volume, from 0 to 1. */
+  setVolume(volume: number): void {
+    this.volume = volume;
+    this.applyVolume();
+  }
+
+  private applyVolume(): void {
+    if (this.master) this.master.gain.value = this.muted ? 0 : MASTER_VOLUME * this.volume;
   }
 
   /** Plays sounds for the events produced by a simulation step. */
@@ -53,7 +65,7 @@ export class Sfx {
       if (!Ctor) return;
       this.ctx = new Ctor();
       this.master = this.ctx.createGain();
-      this.master.gain.value = this.muted ? 0 : MASTER_VOLUME;
+      this.applyVolume();
       this.master.connect(this.ctx.destination);
 
       const length = this.ctx.sampleRate;

@@ -80,6 +80,7 @@ When you take control with **Y**, only the units that were selected follow you. 
 | P / Esc | Pause / resume (the pause screen lists your bonuses and stats) |
 | M       | Mute / unmute                                                  |
 | L       | Dark mode: dim lights and a flashlight per soldier             |
+| O       | Settings (graphics, lighting, FPS counter, volume)             |
 | F3      | Show / hide the FPS counter                                    |
 | R       | Restart (on the game over screen)                              |
 
@@ -106,6 +107,18 @@ Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collec
 Pausing (Esc, P or **I**) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (up to four windows at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two. Drag the equipped weapon to an empty backpack slot to unequip it (an unarmed unit can't shoot).
 
 There are two kinds of experience. The **global** XP comes from the blue orbs and levels the squad up (perks). Each unit also has **its own** XP, which grows when that unit kills an enemy, plus a kill counter.
+
+## Settings
+
+Press **O** (or use the Settings button on the title screen and the pause screen) for the settings window. Opened in the middle of a game it pauses, and gives the game back when you close it. Everything is saved in your browser.
+
+| Section  | Options                                                                                                                                  |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Graphics | Quality preset (Low / Medium / High), shadows on/off, shadow quality, resolution (50-100% of the screen's pixel density), blood and gibs |
+| Lighting | Normal, or dark with a flashlight per soldier (also **L**)                                                                               |
+| Other    | FPS counter (also **F3**), sound volume                                                                                                  |
+
+If the game runs slowly, try the **Low** preset or lower the resolution. Changing any graphics option by hand switches the preset to Custom.
 
 ## Perks and the shop
 

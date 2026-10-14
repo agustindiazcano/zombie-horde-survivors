@@ -29,6 +29,7 @@ export class MainMenu {
     parent: HTMLElement,
     private readonly onStart: () => void,
     preview?: CharacterFactory,
+    onSettings?: () => void,
   ) {
     const panel = el('div', 'menu__panel', this.root);
     el('h1', 'menu__title', panel, 'Zombie Horde Survivors');
@@ -40,6 +41,10 @@ export class MainMenu {
     );
     const start = el('button', 'menu__start', panel, 'Start');
     start.addEventListener('click', () => this.start());
+    if (onSettings) {
+      const settings = el('button', 'menu__settings', panel, '⚙ Settings (O)');
+      settings.addEventListener('click', onSettings);
+    }
     const tips = el('ul', 'menu__tips', panel);
     for (const tip of [
       'WASD move · Mouse aim · Click fire',
