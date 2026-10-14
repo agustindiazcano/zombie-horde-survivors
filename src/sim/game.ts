@@ -40,7 +40,7 @@ export function step(
   updateWaves(state, config, dt);
   updateZombies(state, config, dt);
 
-  if (state.soldiers.every((s) => s.dead)) {
+  if (state.soldiers.every((s) => s.dead || s.kind === 'drone')) {
     state.status = 'gameover';
     state.events.push({ type: 'gameOver' });
   }

@@ -174,7 +174,7 @@ function nearestSoldier(state: GameState, from: Vec2): Soldier | null {
   let best: Soldier | null = null;
   let bestD2 = Infinity;
   for (const s of state.soldiers) {
-    if (s.dead) continue;
+    if (s.dead || s.kind === 'drone') continue; // flying units can't be reached
     const d2 = (s.pos.x - from.x) ** 2 + (s.pos.z - from.z) ** 2;
     if (d2 < bestD2) {
       bestD2 = d2;

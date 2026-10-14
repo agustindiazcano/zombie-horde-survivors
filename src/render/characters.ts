@@ -139,3 +139,34 @@ export const createPlaceholderZombie: CharacterFactory = () =>
       }
     },
   });
+
+const droneMaterials = {
+  body: new THREE.MeshStandardMaterial({ color: 0x6ad0ff, metalness: 0.5, roughness: 0.35 }),
+  eye: new THREE.MeshStandardMaterial({ color: 0x111418 }),
+};
+
+/** A hovering ball with a dark "eye" on the front. The renderer lifts it to flying height. */
+export const createPlaceholderDrone: CharacterFactory = () => {
+  const root = new THREE.Group();
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.35, 20, 14), droneMaterials.body);
+  ball.castShadow = true;
+  const eye = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.12), droneMaterials.eye);
+  eye.position.set(0, 0.05, 0.33);
+  root.add(ball, eye);
+
+  let t = Math.random() * 10;
+  let state = '';
+  return {
+    object: root,
+    setState: (next) => {
+      state = next;
+    },
+    update(dt) {
+      t += dt;
+      // Gentle hover bob; tilts forward while moving.
+      ball.position.y = Math.sin(t * 3) * 0.08;
+      eye.position.y = 0.05 + ball.position.y;
+      root.rotation.x = state === 'run' ? 0.25 : 0;
+    },
+  };
+};

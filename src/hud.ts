@@ -117,7 +117,7 @@ export class Hud {
       this.shown.health = health;
       this.shown.focus = focusKey;
       const max = this.config.player.maxHealth;
-      this.healthLabel.textContent = `Soldier ${focusKey} — Health ${health} / ${max}`;
+      this.healthLabel.textContent = `${focus?.kind === 'drone' ? 'Drone' : 'Soldier'} ${focusKey} — Health ${health} / ${max}`;
       this.healthFill.style.width = `${(health / max) * 100}%`;
       this.healthFill.classList.toggle('hud__bar-fill--low', health / max < LOW_HEALTH);
     }

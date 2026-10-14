@@ -32,11 +32,11 @@ export class SquadPanel {
       if (s.dead) chip.classList.add('squad__chip--dead');
       if (selected.has(s.id)) chip.classList.add('squad__chip--selected');
       if (s.id === state.controlledId) chip.classList.add('squad__chip--controlled');
-      chip.title = `Soldier ${s.id} (${s.order.type})`;
+      chip.title = `${s.kind === 'drone' ? 'Drone' : 'Soldier'} ${s.id} (${s.order.type})`;
       chip.addEventListener('click', (e) => this.onPick(s.id, e.shiftKey));
 
       const label = document.createElement('span');
-      label.textContent = String(s.id);
+      label.textContent = s.kind === 'drone' ? `${s.id} ◈` : String(s.id);
       const bar = document.createElement('span');
       bar.className = 'squad__bar';
       const fill = document.createElement('span');

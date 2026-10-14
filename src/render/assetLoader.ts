@@ -4,6 +4,7 @@ import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AnimationController } from './animationController';
 import type { CharacterSpec, CharactersConfig } from './characterConfig';
 import {
+  createPlaceholderDrone,
   createPlaceholderSoldier,
   createPlaceholderZombie,
   type CharacterFactory,
@@ -13,6 +14,7 @@ import {
 export interface CharacterFactories {
   player: CharacterFactory;
   zombie: CharacterFactory;
+  drone: CharacterFactory;
 }
 
 /** What the game depends on; swap the implementation to change where assets come from. */
@@ -46,11 +48,12 @@ export class GltfAssetLoader implements AssetLoader {
   private readonly loader = new GLTFLoader();
 
   async loadCharacters(config: CharactersConfig): Promise<CharacterFactories> {
-    const [player, zombie] = await Promise.all([
+    const [player, zombie, drone] = await Promise.all([
       this.load(config.player, createPlaceholderSoldier),
       this.load(config.zombie, createPlaceholderZombie),
+      this.load(config.drone, createPlaceholderDrone),
     ]);
-    return { player, zombie };
+    return { player, zombie, drone };
   }
 
   private async load(

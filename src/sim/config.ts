@@ -25,6 +25,17 @@ export const GameConfigSchema = z
         aiFireRateScale: positive,
       })
       .strict(),
+    /** A flying support unit: slow, hard-hitting shots; ignores cover; zombies can't hurt it. */
+    drone: z
+      .object({
+        count: z.number().int().nonnegative(),
+        speed: positive,
+        height: positive,
+        fireRate: positive,
+        damage: positive,
+        range: positive,
+      })
+      .strict(),
     weapon: z.object({ fireRate: positive, damage: positive, range: positive }).strict(),
     zombie: z
       .object({
