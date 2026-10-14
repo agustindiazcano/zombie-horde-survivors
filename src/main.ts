@@ -88,18 +88,7 @@ async function main(): Promise<void> {
   const setView = (mode: ViewMode) => {
     const unit = state.soldiers.find((s) => s.id === state.controlledId);
     renderer.setViewMode(mode, unit?.facing ?? 0);
-    input.takeLook(); // drop movement accumulated before the switch
-    if (mode === 'top') {
-      if (document.pointerLockElement) document.exitPointerLock();
-    } else {
-      // Mouse look wants a locked cursor. Browsers may refuse; it still works unlocked.
-      renderer.domElement.requestPointerLock?.();
-    }
   };
-  document.addEventListener('pointerlockchange', () => {
-    // Leaving the lock (Esc) returns to the normal view.
-    if (!document.pointerLockElement && renderer.viewMode !== 'top') setView('top');
-  });
 
   const playable = () => !paused && state.status === 'playing';
 
@@ -151,9 +140,11 @@ async function main(): Promise<void> {
     const raw = input.read(renderer.screenToGround);
     directInput.move = renderer.screenToWorldDir(raw.move.x, raw.move.z);
     const unit = state.soldiers.find((s) => s.id === state.controlledId);
-    // In first/third person the view direction is the aim; otherwise the cursor on the ground.
+    // In first/third person the aim follows the cursor's bearing; top-down uses the ground point.
     directInput.aim =
-      renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
+      renderer.viewMode !== 'top' && unit
+        ? renderer.lookAimPoint(unit.pos, input.cursor().x)
+        : raw.aim;
     directInput.firing = raw.firing;
     directInput.crouch = raw.crouch;
     directInput.sprint = raw.sprint;
@@ -183,9 +174,10 @@ async function main(): Promise<void> {
       ) {
         setView('top');
       }
-      const look = input.takeLook();
-      if (!paused && !ui.isOpen) renderer.look(look.x, look.y);
-      hud.setCrosshair(renderer.viewMode !== 'top' && state.controlledId !== null);
+      if (renderer.viewMode !== 'top' && !paused && !ui.isOpen) {
+        const cursor = input.cursor();
+        renderer.followCursor(cursor.x, cursor.y, frameDt);
+      }
       rts.prune();
       renderer.render(state, alpha, frameDt);
 
