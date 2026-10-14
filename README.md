@@ -21,16 +21,16 @@ npm run lint && npm run format:check && npm run typecheck
 
 You command a squad of soldiers. The game starts in **direct control** of one soldier; press **Y** to switch to **RTS mode**.
 
-| Direct control    | Action                                                                                                                                                                    |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| W / A / S / D     | Move (relative to the screen)                                                                                                                                             |
-| Mouse             | Aim                                                                                                                                                                       |
-| Left click (hold) | Fire                                                                                                                                                                      |
-| T                 | Cycle the view: third person, first person, back to the normal (top-down) view. The cursor stays free and is your aim; move it towards the screen edge to turn the camera |
-| Ctrl (or C)       | Whole squad crouches: tighter spread, +10% damage, half speed                                                                                                             |
-| Shift             | Whole squad sprints (1.6x speed)                                                                                                                                          |
-| Space             | Jump (only the soldier you control)                                                                                                                                       |
-| Y                 | Back to RTS mode                                                                                                                                                          |
+| Direct control    | Action                                                                                                                                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| W / A / S / D     | Move (relative to the screen)                                                                                                                                                                            |
+| Mouse             | Aim                                                                                                                                                                                                      |
+| Left click (hold) | Fire                                                                                                                                                                                                     |
+| T                 | Cycle the view: third person, first person, back to the normal (top-down) view. In the person views the mouse turns the view 1:1 and instantly (cursor locked, crosshair in the centre); Esc releases it |
+| Ctrl (or C)       | Whole squad crouches: tighter spread, +10% damage, half speed                                                                                                                                            |
+| Shift             | Whole squad sprints (1.6x speed)                                                                                                                                                                         |
+| Space             | Jump (only the soldier you control)                                                                                                                                                                      |
+| Y                 | Back to RTS mode                                                                                                                                                                                         |
 
 | RTS mode          | Action                                            |
 | ----------------- | ------------------------------------------------- |

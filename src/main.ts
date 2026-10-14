@@ -88,7 +88,27 @@ async function main(): Promise<void> {
   const setView = (mode: ViewMode) => {
     const unit = state.soldiers.find((s) => s.id === state.controlledId);
     renderer.setViewMode(mode, unit?.facing ?? 0);
+    input.takeLook(); // drop movement accumulated before the switch
+    if (mode === 'top') {
+      if (document.pointerLockElement) document.exitPointerLock();
+      return;
+    }
+    // A locked cursor never hits the screen edge, so you can keep turning. Ask for raw
+    // (unaccelerated) movement where supported, so the turn matches your hand exactly.
+    const canvas = renderer.domElement;
+    const lock = canvas.requestPointerLock as unknown as (o?: object) => Promise<void> | void;
+    try {
+      void Promise.resolve(lock.call(canvas, { unadjustedMovement: true })).catch(() => {
+        void Promise.resolve(lock.call(canvas)).catch(() => undefined);
+      });
+    } catch {
+      lock.call(canvas);
+    }
   };
+  document.addEventListener('pointerlockchange', () => {
+    // Releasing the lock (Esc) returns to the normal view.
+    if (!document.pointerLockElement && renderer.viewMode !== 'top') setView('top');
+  });
 
   const playable = () => !paused && state.status === 'playing';
 
@@ -140,11 +160,9 @@ async function main(): Promise<void> {
     const raw = input.read(renderer.screenToGround);
     directInput.move = renderer.screenToWorldDir(raw.move.x, raw.move.z);
     const unit = state.soldiers.find((s) => s.id === state.controlledId);
-    // In first/third person the aim follows the cursor's bearing; top-down uses the ground point.
+    // In first/third person the view direction is the aim; top-down uses the cursor on the ground.
     directInput.aim =
-      renderer.viewMode !== 'top' && unit
-        ? renderer.lookAimPoint(unit.pos, input.cursor().x)
-        : raw.aim;
+      renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
     directInput.firing = raw.firing;
     directInput.crouch = raw.crouch;
     directInput.sprint = raw.sprint;
@@ -174,10 +192,9 @@ async function main(): Promise<void> {
       ) {
         setView('top');
       }
-      if (renderer.viewMode !== 'top' && !paused && !ui.isOpen) {
-        const cursor = input.cursor();
-        renderer.followCursor(cursor.x, cursor.y, frameDt);
-      }
+      const look = input.takeLook();
+      if (!paused && !ui.isOpen) renderer.look(look.x, look.y);
+      hud.setCrosshair(renderer.viewMode !== 'top' && state.controlledId !== null);
       rts.prune();
       renderer.render(state, alpha, frameDt);
 
