@@ -35,7 +35,7 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 | Shift             | The whole squad sprints (1.6x speed)                              |
 | Space             | Jump (only the soldier you control)                               |
 | T                 | Change view: normal → third person → first person → normal        |
-| I                 | Open / close the inventory                                        |
+| I                 | Squad screen: units, inventories and bonuses (pauses the game)    |
 | B                 | Open / close the shop (only between waves)                        |
 | E                 | Next to a crate (a yellow **E** floats above it): open it         |
 | Y                 | Go back to RTS mode                                               |
@@ -68,7 +68,7 @@ In third and first person the cursor is locked (so you can keep turning) and W /
 | Squad panel (bottom)     | Click a unit to select it; shows each unit's health                               |
 | Y                        | Take direct control of the first selected unit                                    |
 | Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                 |
-| I                        | Inventory                                                                         |
+| I                        | Squad screen (pauses the game)                                                    |
 | B                        | Shop (only between waves)                                                         |
 
 When you take control with **Y**, only the units that were selected follow you. The rest hold their position (or keep their move order). Every uncontrolled unit shoots the nearest enemy it can see.
@@ -95,7 +95,7 @@ The round display in the bottom-right corner is a motion tracker, like the one f
 
 ## Inventory and weapons
 
-Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop a **crate** with weapons: pistol, rifle, heavy machine gun or the drone gun. Press **E** next to it to take items or stash your own; press **I** to equip weapons. The game pauses while an inventory window is open. Weapon stats, the drop chance and the loot table are in `data/game.json`.
+Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop a **crate** with weapons: pistol, rifle, heavy machine gun or the drone gun. Press **E** next to it to take items or stash your own; to equip weapons and move items between units press **I** (see below). The game pauses while a menu is open. Weapon stats, the drop chance and the loot table are in `data/game.json`.
 
 ## Loot, levels and gore
 
@@ -103,7 +103,7 @@ Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collec
 
 ## Pause screen and the squad
 
-Pausing (Esc or P) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (up to four windows at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two. Drag the equipped weapon to an empty backpack slot to unequip it (an unarmed unit can't shoot).
+Pausing (Esc, P or **I**) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (up to four windows at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two. Drag the equipped weapon to an empty backpack slot to unequip it (an unarmed unit can't shoot).
 
 There are two kinds of experience. The **global** XP comes from the blue orbs and levels the squad up (perks). Each unit also has **its own** XP, which grows when that unit kills an enemy, plus a kill counter.
 

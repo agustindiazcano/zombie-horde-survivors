@@ -34,9 +34,9 @@ import { PerkPicker, Shop } from './upgradesUi';
 const PAN_SPEED = 22;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: inventory · E: open crate · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
-  'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: inventory · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
 async function main(): Promise<void> {
   const config = parseConfig(data);
@@ -170,9 +170,8 @@ async function main(): Promise<void> {
       else if (playable() && !ui.isOpen && shopAvailable(state)) shop.show(inventoryFocus());
     } else if (e.code === 'KeyP' || e.code === 'Escape') setPaused(!paused);
     else if (e.code === 'KeyI') {
-      const focus = inventoryFocus();
-      if (ui.isOpen) ui.close();
-      else if (playable() && !shop.isOpen && focus !== null) ui.openInventory(focus);
+      // The same screen as pausing: the squad, their inventories and your bonuses.
+      if (!modalOpen()) setPaused(!paused);
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
       if (ui.isOpen) ui.close();

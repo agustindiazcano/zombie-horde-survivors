@@ -101,7 +101,7 @@ export class Hud {
 
     this.pause = el('div', 'hud__pause', root);
     el('h1', '', this.pause, 'PAUSED');
-    el('p', '', this.pause, 'Press P or Esc to resume');
+    el('p', '', this.pause, 'Press P, I or Esc to resume');
 
     this.gameOver = el('div', 'hud__gameover', root);
     el('h1', '', this.gameOver, 'GAME OVER');
