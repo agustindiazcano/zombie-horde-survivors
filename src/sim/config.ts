@@ -26,6 +26,8 @@ const perk = z
   .object({
     id: z.string().min(1),
     name: z.string().min(1),
+    /** A short symbol (emoji) shown on the perk's icon. */
+    icon: z.string().min(1),
     description: z.string().min(1),
     stat: perkStat,
     amount: positive,

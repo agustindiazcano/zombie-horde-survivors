@@ -25,6 +25,7 @@ import {
   type Input,
 } from './sim';
 import { SquadPanel } from './squadPanel';
+import { PausePanel } from './pausePanel';
 import { PerkPicker, Shop } from './upgradesUi';
 
 /** Camera pan speed in RTS mode (world units per second). */
@@ -53,6 +54,7 @@ async function main(): Promise<void> {
   });
   const ui = new InventoryUi(document.body, config, () => state);
   const cratePrompt = new CratePrompt();
+  const pausePanel = new PausePanel(document.body, config);
   const perks = new PerkPicker(document.body, config, () => state);
   const shop = new Shop(document.body, config, () => state);
   /** Any full-screen menu: the game is frozen and keyboard shortcuts are off. */
@@ -219,6 +221,7 @@ async function main(): Promise<void> {
       const look = input.takeLook();
       if (!paused && !modalOpen()) renderer.look(look.x, look.y);
       perks.update();
+      pausePanel.update(paused, state);
       hud.setCrosshair(renderer.viewMode !== 'top' && state.controlledId !== null);
       rts.prune();
       renderer.render(state, alpha, frameDt);

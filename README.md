@@ -75,12 +75,12 @@ When you take control with **Y**, only the units that were selected follow you. 
 
 ### Anywhere
 
-| Key     | Action                            |
-| ------- | --------------------------------- |
-| P / Esc | Pause / resume                    |
-| M       | Mute / unmute                     |
-| F3      | Show / hide the FPS counter       |
-| R       | Restart (on the game over screen) |
+| Key     | Action                                                         |
+| ------- | -------------------------------------------------------------- |
+| P / Esc | Pause / resume (the pause screen lists your bonuses and stats) |
+| M       | Mute / unmute                                                  |
+| F3      | Show / hide the FPS counter                                    |
+| R       | Restart (on the game over screen)                              |
 
 ## The squad
 
