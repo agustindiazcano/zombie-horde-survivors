@@ -26,6 +26,7 @@ export function fireWeapon(
   rateScale = 1,
 ): void {
   const weapon = weaponOf(config, soldier, state.mods, state.stance);
+  if (!weapon) return;
   soldier.fireCooldown += 1 / (weapon.fireRate * rateScale);
 
   const origin = soldier.pos;

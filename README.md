@@ -89,13 +89,13 @@ The round display in the bottom-right corner is a motion tracker, like the one f
 
 ## The squad
 
-- **4 soldiers**, each with its own model, armed with a **rifle**.
-- **A drone** (unit 5): a small flying ship with slow, hard-hitting shots that ignore cover. Enemies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
+- **4 soldiers**, each with its own model, starting with a **pistol**.
+- **A drone** (unit 5): a small flying ship that starts **unarmed**. Give it a **Drone gun** (buy one in the shop, or find one in a crate, then drag it into the drone's equipped slot) and it fires slow, hard-hitting shots that ignore cover. Enemies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
 - Crouching, sprinting and jumping are set by the unit you control; crouch and sprint affect the whole squad.
 
 ## Inventory and weapons
 
-Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop a **crate** with a **pistol** and/or a **heavy machine gun**. Press **E** next to it to take items or stash your own; press **I** to equip weapons. The game pauses while an inventory window is open. Weapon stats, the drop chance and the loot table are in `data/game.json`.
+Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop a **crate** with weapons: pistol, rifle, heavy machine gun or the drone gun. Press **E** next to it to take items or stash your own; press **I** to equip weapons. The game pauses while an inventory window is open. Weapon stats, the drop chance and the loot table are in `data/game.json`.
 
 ## Loot, levels and gore
 
@@ -103,7 +103,7 @@ Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collec
 
 ## Pause screen and the squad
 
-Pausing (Esc or P) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (click two units to have two windows open at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two.
+Pausing (Esc or P) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (up to four windows at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two. Drag the equipped weapon to an empty backpack slot to unequip it (an unarmed unit can't shoot).
 
 There are two kinds of experience. The **global** XP comes from the blue orbs and levels the squad up (perks). Each unit also has **its own** XP, which grows when that unit kills an enemy, plus a kill counter.
 

@@ -111,10 +111,19 @@ export function buyItem(
       fallen.prev = { ...fallen.pos };
     }
   } else if (item.kind === 'weapon') {
-    const unit = state.soldiers.find((s) => s.id === unitId && !s.dead);
-    if (!unit) return 'Select a living unit first';
-    if (backpackFull(config, unit)) return 'That unit’s backpack is full';
-    unit.backpack.push(item.target!);
+    // A drone gun goes straight onto an unarmed drone; anything else into the unit's backpack.
+    const drone =
+      item.target === 'drone_cannon'
+        ? state.soldiers.find((s) => s.kind === 'drone' && !s.dead && s.weapon === null)
+        : undefined;
+    if (drone) {
+      drone.weapon = item.target!;
+    } else {
+      const unit = state.soldiers.find((s) => s.id === unitId && !s.dead);
+      if (!unit) return 'Select a living unit first';
+      if (backpackFull(config, unit)) return 'That unit’s backpack is full';
+      unit.backpack.push(item.target!);
+    }
   } else if (!addStack(state, config, item.target!)) {
     return 'Already at the maximum';
   }

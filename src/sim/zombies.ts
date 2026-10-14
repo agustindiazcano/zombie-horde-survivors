@@ -195,6 +195,8 @@ function separateZombies(state: GameState, config: GameConfig): void {
 
 const LOOKAHEAD = 3;
 const CORNER_MARGIN = 0.35;
+/** A zombie this close to a detour corner counts as having reached it. */
+const CORNER_REACHED = 0.8;
 const scratch: Vec2 = { x: 0, z: 0 };
 
 /**
@@ -221,6 +223,9 @@ function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: 
     for (const sz of [-1, 1]) {
       const cx = blocker.x + sx * hw;
       const cz = blocker.z + sz * hd;
+      // Already standing on this corner: aim for the next one along the wall instead of
+      // picking the same corner again and never getting past it.
+      if (Math.hypot(cx - from.x, cz - from.z) < CORNER_REACHED) continue;
       const cost = Math.hypot(cx - from.x, cz - from.z) + Math.hypot(to.x - cx, to.z - cz);
       if (cost < best) {
         best = cost;

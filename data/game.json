@@ -98,7 +98,8 @@
     "count": 4,
     "followDistance": 3,
     "aiRange": 14,
-    "aiFireRateScale": 0.5
+    "aiFireRateScale": 0.5,
+    "startWeapon": "pistol"
   },
   "inventory": {
     "backpackSlots": 6
@@ -128,11 +129,19 @@
     "table": [
       {
         "weapon": "pistol",
-        "weight": 3
+        "weight": 2
+      },
+      {
+        "weapon": "rifle",
+        "weight": 2
       },
       {
         "weapon": "heavy_mg",
         "weight": 2
+      },
+      {
+        "weapon": "drone_cannon",
+        "weight": 1.5
       }
     ]
   },
@@ -325,12 +334,12 @@
         "costGrowth": 1.4
       },
       {
-        "id": "pistol",
-        "name": "Pistol",
-        "description": "Adds a pistol to the selected unit's backpack",
+        "id": "rifle",
+        "name": "Rifle",
+        "description": "Adds a rifle to the selected unit's backpack",
         "kind": "weapon",
-        "target": "pistol",
-        "cost": 40
+        "target": "rifle",
+        "cost": 90
       },
       {
         "id": "heavy_mg",
@@ -339,6 +348,14 @@
         "kind": "weapon",
         "target": "heavy_mg",
         "cost": 140
+      },
+      {
+        "id": "drone_gun",
+        "name": "Drone gun",
+        "description": "A gun for the drone, which has none to start with",
+        "kind": "weapon",
+        "target": "drone_cannon",
+        "cost": 50
       },
       {
         "id": "up_damage",

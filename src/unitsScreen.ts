@@ -13,7 +13,7 @@ import {
 } from './sim';
 
 /** How many unit windows can be open at once. */
-const MAX_OPEN = 2;
+const MAX_OPEN = 4;
 
 const WEAPON_ICON: Record<string, string> = {
   rifle: '🔫',
@@ -188,7 +188,7 @@ export class UnitsScreen {
 
     w.slots.replaceChildren();
     el('div', 'us__label', w.slots, 'Equipped');
-    this.slot(w.slots, unit, 'weapon', unit.weapon);
+    this.slot(w.slots, unit, 'weapon', unit.weapon ?? undefined);
     el('div', 'us__label', w.slots, 'Backpack');
     const grid = el('div', 'us__grid', w.slots);
     for (let i = 0; i < this.config.inventory.backpackSlots; i++) {

@@ -79,6 +79,8 @@ export const GameConfigSchema = z
         followDistance: positive,
         /** AI soldiers engage zombies within this distance (and line of sight). */
         aiRange: positive,
+        /** Weapon every soldier starts with ('rifle' or an id from `weapons`). */
+        startWeapon: z.string().min(1),
         /** AI fire rate as a fraction of the weapon fire rate. */
         aiFireRateScale: positive,
       })
@@ -214,6 +216,11 @@ export const GameConfigSchema = z
         ctx.addIssue({ code: 'custom', message: `boss.types references unknown enemy "${type}"` });
       }
     }
+    const isKnownWeapon = (id: string) =>
+      id === 'rifle' || id === 'drone_cannon' || id in cfg.weapons;
+    if (cfg.squad.startWeapon !== 'rifle' && !(cfg.squad.startWeapon in cfg.weapons)) {
+      ctx.addIssue({ code: 'custom', message: 'squad.startWeapon is not a known soldier weapon' });
+    }
     const perkIds = new Set(cfg.perks.list.map((p) => p.id));
     if (perkIds.size !== cfg.perks.list.length) {
       ctx.addIssue({ code: 'custom', message: 'perks.list ids must be unique' });
@@ -225,7 +232,7 @@ export const GameConfigSchema = z
           message: `shop item "${item.id}" needs a valid perk target`,
         });
       }
-      if (item.kind === 'weapon' && !(item.target && item.target in cfg.weapons)) {
+      if (item.kind === 'weapon' && !(item.target && isKnownWeapon(item.target))) {
         ctx.addIssue({
           code: 'custom',
           message: `shop item "${item.id}" needs a valid weapon target`,
@@ -233,7 +240,7 @@ export const GameConfigSchema = z
       }
     }
     for (const entry of cfg.drops.table) {
-      if (entry.weapon !== 'rifle' && !(entry.weapon in cfg.weapons)) {
+      if (!isKnownWeapon(entry.weapon)) {
         ctx.addIssue({
           code: 'custom',
           message: `drops.table references unknown weapon "${entry.weapon}"`,

@@ -46,9 +46,12 @@ export interface Slot {
 }
 
 const itemAt = (s: Soldier, slot: Slot['slot']): string | undefined =>
-  slot === 'weapon' ? s.weapon : s.backpack[slot];
+  slot === 'weapon' ? (s.weapon ?? undefined) : s.backpack[slot];
 
-/** The drone cannon only fits the drone's weapon slot, and that slot only takes the cannon. */
+/**
+ * The drone gun can be carried by anyone but only equipped by the drone, and the drone
+ * can only equip that gun.
+ */
 function fits(s: Soldier, slot: Slot['slot'], item: string): boolean {
   const isCannon = item === 'drone_cannon';
   if (slot === 'weapon') return (s.kind === 'drone') === isCannon;
@@ -57,8 +60,9 @@ function fits(s: Soldier, slot: Slot['slot'], item: string): boolean {
 
 /**
  * Drags a weapon from one slot to another, between any two living units (or within one).
- * Dropping on an occupied slot swaps the two; dropping on an empty backpack slot moves the
- * weapon there. The equipped slot can never be left empty. Returns false if the move is refused.
+ * Dropping on an occupied slot swaps the two; dropping on an empty slot moves the weapon
+ * there (so dragging the equipped weapon to an empty backpack slot unequips it).
+ * Returns false if the move is refused.
  */
 export function moveItem(state: GameState, config: GameConfig, from: Slot, to: Slot): boolean {
   const a = unit(state, from.unitId);
@@ -78,12 +82,13 @@ export function moveItem(state: GameState, config: GameConfig, from: Slot, to: S
     return true;
   }
 
-  // An empty backpack slot: the weapon leaves its slot and joins the end of that backpack.
-  if (from.slot === 'weapon' || to.slot === 'weapon') return false;
-  const sameBackpack = a === b;
-  if (!sameBackpack && backpackFull(config, b)) return false;
-  a.backpack.splice(from.slot, 1);
-  b.backpack.push(moving);
+  // An empty slot: the weapon leaves its slot, and joins the equipped slot or the end of the backpack.
+  const freesSpace = a === b && from.slot !== 'weapon';
+  if (to.slot !== 'weapon' && !freesSpace && backpackFull(config, b)) return false;
+  if (from.slot === 'weapon') a.weapon = null;
+  else a.backpack.splice(from.slot, 1);
+  if (to.slot === 'weapon') b.weapon = moving;
+  else b.backpack.push(moving);
   return true;
 }
 
@@ -91,8 +96,9 @@ export function moveItem(state: GameState, config: GameConfig, from: Slot, to: S
 export function equipFromBackpack(state: GameState, soldierId: number, index: number): boolean {
   const s = unit(state, soldierId);
   const item = s?.backpack[index];
-  if (!s || s.dead || item === undefined) return false;
-  s.backpack[index] = s.weapon;
+  if (!s || s.dead || item === undefined || !fits(s, 'weapon', item)) return false;
+  if (s.weapon === null) s.backpack.splice(index, 1);
+  else s.backpack[index] = s.weapon;
   s.weapon = item;
   return true;
 }

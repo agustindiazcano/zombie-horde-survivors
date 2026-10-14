@@ -39,7 +39,7 @@ export function speedOf(
 export function weaponDef(config: GameConfig, id: string): WeaponDef {
   if (id === 'drone_cannon') {
     const { fireRate, damage, range } = config.drone;
-    return { id, name: 'Drone cannon', fireRate, damage, range, spread: 0 };
+    return { id, name: 'Drone gun', fireRate, damage, range, spread: 0 };
   }
   const listed = config.weapons[id];
   if (listed) return { id, ...listed };
@@ -47,13 +47,14 @@ export function weaponDef(config: GameConfig, id: string): WeaponDef {
   return { id: 'rifle', name: 'Rifle', fireRate, damage, range, spread: 0 };
 }
 
-/** Stats of a unit's equipped weapon, plus how the unit itself shoots (height, cover). */
+/** Stats of a unit's equipped weapon (null when unarmed), plus how it shoots (height, cover). */
 export function weaponOf(
   config: GameConfig,
   s: Soldier,
   mods: Mods,
   stance: Stance = 'normal',
-): WeaponStats {
+): WeaponStats | null {
+  if (s.weapon === null) return null;
   const def = weaponDef(config, s.weapon);
   def.damage *= mods.damage;
   def.fireRate *= mods.fireRate;

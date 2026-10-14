@@ -28,8 +28,8 @@ export interface Soldier {
   prevY: number;
   vy: number;
   order: SoldierOrder;
-  /** Equipped weapon id ('rifle', 'pistol', 'heavy_mg', 'drone_cannon'). */
-  weapon: string;
+  /** Equipped weapon id ('rifle', 'pistol', 'heavy_mg', 'drone_cannon'), or null if unarmed. */
+  weapon: string | null;
   /** Carried weapon ids, up to `inventory.backpackSlots`. */
   backpack: string[];
   /** This unit's own experience (grows when it kills) and enemies it has killed. */
