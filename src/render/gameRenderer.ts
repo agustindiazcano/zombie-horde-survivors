@@ -49,6 +49,14 @@ export class GameRenderer {
   readonly focus: Vec2 = { x: 0, z: 0 };
   private zoom = ZOOM_DIRECT;
   private focusInitialized = false;
+  private readonly crates = new Map<number, THREE.Mesh>();
+  private readonly crateGeometry = new THREE.BoxGeometry(0.8, 0.5, 0.6);
+  private readonly crateMaterial = new THREE.MeshStandardMaterial({
+    color: 0x7a6532,
+    emissive: 0xffa200,
+    emissiveIntensity: 0.6,
+  });
+  private clock = 0;
   private readonly halfSize: number;
   private readonly droneHeight: number;
   selection: ReadonlySet<number> = new Set();
@@ -90,6 +98,7 @@ export class GameRenderer {
 
     this.syncSoldiers(state, alpha, dt);
     this.syncZombies(state, alpha, dt);
+    this.syncCrates(state, dt);
     this.effects.update(dt);
     this.markers.update(state, this.selection, alpha, dt);
     this.updateCamera(state, alpha, dt);
@@ -146,6 +155,29 @@ export class GameRenderer {
     }
     this.camera.lookAt(this.focus.x, 0, this.focus.z);
     this.camera.updateMatrixWorld();
+  }
+
+  private syncCrates(state: GameState, dt: number): void {
+    this.clock += dt;
+    const live = new Set<number>();
+    for (const c of state.crates) {
+      live.add(c.id);
+      let mesh = this.crates.get(c.id);
+      if (!mesh) {
+        mesh = new THREE.Mesh(this.crateGeometry, this.crateMaterial);
+        mesh.castShadow = true;
+        mesh.position.set(c.pos.x, 0.3, c.pos.z);
+        mesh.rotation.y = c.id * 1.7;
+        this.crates.set(c.id, mesh);
+        this.scene.add(mesh);
+      }
+      mesh.position.y = 0.3 + Math.sin(this.clock * 2 + c.id) * 0.05;
+    }
+    for (const [id, mesh] of this.crates) {
+      if (live.has(id)) continue;
+      this.scene.remove(mesh);
+      this.crates.delete(id);
+    }
   }
 
   private syncSoldiers(state: GameState, alpha: number, dt: number): void {

@@ -30,6 +30,7 @@ export class Sfx {
     for (const e of state.events) {
       if (e.type === 'shot') this.shot(e.shooterId === state.controlledId ? 1 : 0.35);
       else if (e.type === 'zombieKilled') this.kill();
+      else if (e.type === 'crateDropped') this.tone('sine', 500, 900, 0.14, 0.3);
       else if (e.type === 'soldierHurt') this.hurt(e.soldierId === state.controlledId ? 1 : 0.4);
       else if (e.type === 'soldierDied') this.tone('sawtooth', 180, 50, 0.5, 0.5);
       else if (e.type === 'waveStarted') this.wave();

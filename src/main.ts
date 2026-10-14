@@ -3,6 +3,7 @@ import data from '../data/game.json';
 import { Sfx } from './audio';
 import { Hud } from './hud';
 import { InputController } from './input';
+import { CratePrompt, InventoryUi } from './inventoryUi';
 import { startLoop } from './loop';
 import { GltfAssetLoader } from './render/assetLoader';
 import { parseCharactersConfig } from './render/characterConfig';
@@ -11,6 +12,7 @@ import { RtsController } from './rts';
 import {
   controlSoldier,
   createGame,
+  nearestCrate,
   orderFollow,
   orderHold,
   parseConfig,
@@ -22,9 +24,10 @@ import { SquadPanel } from './squadPanel';
 /** Camera pan speed in RTS mode (world units per second). */
 const PAN_SPEED = 22;
 
-const HINT_DIRECT = 'Direct control · WASD move · Mouse aim · Click fire · Y: back to RTS';
+const HINT_DIRECT =
+  'Direct control · WASD move · Mouse aim · Click fire · Y: back to RTS · I: inventory · E: open crate';
 const HINT_RTS =
-  'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected';
+  'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: inventory';
 
 async function main(): Promise<void> {
   const config = parseConfig(data);
@@ -35,17 +38,20 @@ async function main(): Promise<void> {
   const renderer = new GameRenderer(document.body, config, factories);
   const input = new InputController(renderer.domElement);
   const sfx = new Sfx();
+  const ui = new InventoryUi(document.body, config, () => state);
+  const cratePrompt = new CratePrompt();
   const rts = new RtsController(
     renderer.domElement,
     renderer,
     config,
     () => state,
-    () => state.controlledId === null && state.status === 'playing' && !paused,
+    () => state.controlledId === null && state.status === 'playing' && !paused && !ui.isOpen,
   );
   const hud = new Hud(document.body, config, () => {
     state = createGame(config, Date.now());
     hud.reset();
     rts.set([]);
+    ui.close();
   });
   const squad = new SquadPanel(document.body, (id, additive) => {
     if (state.controlledId === null) rts.toggle(id, additive);
@@ -76,10 +82,33 @@ async function main(): Promise<void> {
     );
   };
 
+  const playable = () => !paused && state.status === 'playing';
+
+  /** The unit the inventory opens on: controlled, else first selected, else first alive. */
+  const inventoryFocus = () =>
+    state.controlledId ?? [...rts.selected][0] ?? state.soldiers.find((s) => !s.dead)?.id ?? null;
+
+  /** The crate the controlled unit is close enough to open, if any. */
+  const crateInReach = () => {
+    const unit = state.soldiers.find((s) => s.id === state.controlledId);
+    return unit && !unit.dead ? nearestCrate(state, unit.pos, config.drops.pickupRange) : undefined;
+  };
+
   window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyM') sfx.toggleMute();
+    else if (e.code === 'Escape' && ui.isOpen) ui.close();
     else if (e.code === 'KeyP' || e.code === 'Escape') setPaused(!paused);
-    else if (e.code === 'KeyY' && !paused && state.status === 'playing') toggleControl();
+    else if (e.code === 'KeyI') {
+      const focus = inventoryFocus();
+      if (ui.isOpen) ui.close();
+      else if (playable() && focus !== null) ui.openInventory(focus);
+    } else if (e.code === 'KeyE') {
+      const crate = crateInReach();
+      if (ui.isOpen) ui.close();
+      else if (playable() && crate && state.controlledId !== null) {
+        ui.openCrate(state.controlledId, crate.id);
+      }
+    } else if (e.code === 'KeyY' && playable() && !ui.isOpen) toggleControl();
   });
   window.addEventListener('blur', () => setPaused(true));
 
@@ -87,7 +116,7 @@ async function main(): Promise<void> {
 
   startLoop(
     (dt) => {
-      if (paused) return;
+      if (paused || ui.isOpen) return;
       const direct = state.controlledId !== null;
       step(state, config, direct ? input.read(renderer.screenToGround) : noInput, dt);
       renderer.onStep(state);
@@ -102,6 +131,14 @@ async function main(): Promise<void> {
       }
       rts.prune();
       renderer.render(state, alpha, frameDt);
+
+      const crate = !ui.isOpen && playable() ? crateInReach() : undefined;
+      if (crate) {
+        const p = renderer.worldToScreen(crate.pos.x, crate.pos.z, 1.5);
+        cratePrompt.show(p.x, p.z);
+      } else {
+        cratePrompt.hide();
+      }
 
       const focusId = state.controlledId ?? [...rts.selected][0] ?? null;
       hud.update(state, focusId);
