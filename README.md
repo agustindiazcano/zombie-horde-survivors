@@ -85,7 +85,7 @@ When you take control with **Y**, only the units that were selected follow you. 
 
 ## Radar
 
-The minimap in the bottom-right corner is a radar: a sweep turns around the arena and enemies only appear as red blips when it passes over them, fading until the next pass. Your own units are always shown (white: the one you control, green: the squad, blue: the drone). North is up.
+The round display in the bottom-right corner is a motion tracker, like the one from the film Aliens. A pulse ring spreads out from the middle of your squad and enemies only show up as bright blips when it crosses them, fading until the next ping. It is centred on your living units and only sees about 30 metres around them. The number at the bottom is the distance to the closest contact. Your units are hollow rings (filled for the one you control, a square for the drone). North is up.
 
 ## The squad
 

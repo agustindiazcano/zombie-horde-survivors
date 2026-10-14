@@ -1,12 +1,19 @@
-import type { GameConfig, GameState } from './sim';
+import type { GameState } from './sim';
 
-const SIZE = 190;
-/** Seconds the sweep takes for a full turn. */
-const SWEEP_PERIOD = 3.2;
-/** Seconds a detected blip stays on screen (it fades out), and the trail behind the sweep. */
-const BLIP_LIFE = 2.6;
-const TRAIL = 0.9;
+const SIZE = 210;
+const MARGIN = 8;
+/** How far the radar sees from the squad, in world units. */
+const RANGE = 30;
+/** Seconds between pulses; the ring takes `PULSE_TRAVEL` of that to reach the edge. */
+const PULSE_PERIOD = 2.4;
+const PULSE_TRAVEL = 1.7;
+/** Seconds a detected blip stays on screen (it fades out). */
+const BLIP_LIFE = 2.2;
 const TAU = Math.PI * 2;
+
+/** Light-blue palette. */
+const CYAN = '110, 215, 255';
+const BRIGHT = '200, 246, 255';
 
 interface Blip {
   x: number;
@@ -16,21 +23,24 @@ interface Blip {
 }
 
 /**
- * A radar minimap in the bottom-right corner. A sweep turns around the centre of the arena
- * and enemies only show up when it passes over them; each blip then fades until the next pass.
- * Your own units are always visible. North (-z) is up.
+ * A motion tracker in the bottom-right corner, in the style of the one from Aliens: a pulse
+ * ring spreads out from the centre of the squad, and enemies only show up as blips when the
+ * ring crosses them, then fade until the next ping. It is centred on your living units and
+ * only sees `RANGE` around them. North (-z) is up.
  */
 export class Radar {
   private readonly canvas = document.createElement('canvas');
   private readonly ctx: CanvasRenderingContext2D | null;
-  private readonly scale: number;
-  private angle = 0;
+  private readonly radius = SIZE / 2 - MARGIN;
+  private readonly pxPerUnit = (SIZE / 2 - MARGIN) / RANGE;
+  private cx = 0;
+  private cz = 0;
+  private centred = false;
+  private time = 0;
+  private pulse = 0;
   private blips: Blip[] = [];
 
-  constructor(
-    parent: HTMLElement,
-    private readonly config: GameConfig,
-  ) {
+  constructor(parent: HTMLElement) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.canvas.width = this.canvas.height = Math.round(SIZE * dpr);
     Object.assign(this.canvas.style, {
@@ -41,107 +51,172 @@ export class Radar {
       height: `${SIZE}px`,
       zIndex: '15',
       pointerEvents: 'none',
-      border: '2px solid rgba(90, 255, 140, 0.55)',
-      borderRadius: '6px',
-      boxShadow: '0 0 12px rgba(0, 0, 0, 0.7)',
+      filter: `drop-shadow(0 0 8px rgba(${CYAN}, 0.35))`,
     });
     this.ctx = this.canvas.getContext('2d');
     this.ctx?.scale(dpr, dpr);
-    this.scale = SIZE / (config.arena.halfSize * 2);
     parent.appendChild(this.canvas);
   }
 
-  /** Call every frame. `dt` is 0 while the game is paused, which freezes the sweep. */
+  /** Call every frame. `dt` is 0 while the game is paused, which freezes the radar. */
   update(state: GameState, dt: number): void {
-    const prev = this.angle;
-    this.angle = (this.angle + (TAU * dt) / SWEEP_PERIOD) % TAU;
+    this.follow(state, dt);
+    this.time += dt;
     this.blips = this.blips.filter((b) => (b.age += dt) < BLIP_LIFE);
-    if (dt > 0) this.detect(state, prev, this.angle);
+
+    // The ring runs from the centre to the edge, then rests until the next ping.
+    const phase = this.time % PULSE_PERIOD;
+    const prev = this.pulse;
+    this.pulse = Math.min(phase / PULSE_TRAVEL, 1);
+    if (dt > 0) this.detect(state, phase < dt ? -1 : prev, this.pulse);
     this.draw(state);
   }
 
-  /** Adds a blip for every living enemy the sweep passed over between two angles. */
+  /** Moves the centre to the middle of the living units (eased, so it doesn't jitter). */
+  private follow(state: GameState, dt: number): void {
+    let x = 0;
+    let z = 0;
+    let n = 0;
+    for (const s of state.soldiers) {
+      if (s.dead) continue;
+      x += s.pos.x;
+      z += s.pos.z;
+      n++;
+    }
+    if (n === 0) return;
+    if (!this.centred) {
+      this.cx = x / n;
+      this.cz = z / n;
+      this.centred = true;
+      return;
+    }
+    const k = 1 - Math.exp(-6 * dt);
+    this.cx += (x / n - this.cx) * k;
+    this.cz += (z / n - this.cz) * k;
+  }
+
+  /** Adds a blip for every living enemy the ring crossed between two radii (0..1 of the range). */
   private detect(state: GameState, from: number, to: number): void {
-    const span = (to - from + TAU) % TAU;
     for (const z of state.zombies) {
       if (z.state === 'death') continue;
-      const a = (Math.atan2(z.pos.z, z.pos.x) + TAU) % TAU;
-      if ((a - from + TAU) % TAU > span) continue;
+      const d = Math.hypot(z.pos.x - this.cx, z.pos.z - this.cz) / RANGE;
+      if (d > 1 || d <= from || d > to) continue;
       this.blips.push({ x: z.pos.x, z: z.pos.z, size: z.radius, age: 0 });
     }
   }
 
-  private px(x: number): number {
-    return SIZE / 2 + x * this.scale;
+  private sx(x: number): number {
+    return SIZE / 2 + (x - this.cx) * this.pxPerUnit;
+  }
+
+  private sz(z: number): number {
+    return SIZE / 2 + (z - this.cz) * this.pxPerUnit;
   }
 
   private draw(state: GameState): void {
     const ctx = this.ctx;
     if (!ctx) return;
     const c = SIZE / 2;
+    const r = this.radius;
     ctx.clearRect(0, 0, SIZE, SIZE);
-    ctx.fillStyle = 'rgba(6, 18, 10, 0.82)';
-    ctx.fillRect(0, 0, SIZE, SIZE);
 
-    // Grid and obstacles.
-    ctx.strokeStyle = 'rgba(90, 255, 140, 0.18)';
+    // Screen: a dark glass disc with a glowing rim.
+    ctx.fillStyle = 'rgba(4, 18, 26, 0.86)';
+    ctx.beginPath();
+    ctx.arc(c, c, r, 0, TAU);
+    ctx.fill();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(c, c, r, 0, TAU);
+    ctx.clip();
+
+    // Range rings and crosshair.
+    ctx.strokeStyle = `rgba(${CYAN}, 0.2)`;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(c, 0);
-    ctx.lineTo(c, SIZE);
-    ctx.moveTo(0, c);
-    ctx.lineTo(SIZE, c);
-    ctx.arc(c, c, SIZE * 0.25, 0, TAU);
-    ctx.moveTo(c + SIZE * 0.5, c);
-    ctx.arc(c, c, SIZE * 0.5, 0, TAU);
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(90, 255, 140, 0.22)';
-    for (const o of this.config.arena.obstacles) {
-      ctx.fillRect(
-        this.px(o.x - o.halfW),
-        this.px(o.z - o.halfD),
-        o.halfW * 2 * this.scale,
-        o.halfD * 2 * this.scale,
-      );
+    for (const f of [1 / 3, 2 / 3]) {
+      ctx.moveTo(c + r * f, c);
+      ctx.arc(c, c, r * f, 0, TAU);
     }
+    ctx.moveTo(c - r, c);
+    ctx.lineTo(c + r, c);
+    ctx.moveTo(c, c - r);
+    ctx.lineTo(c, c + r);
+    ctx.stroke();
 
-    // The sweep: a bright arm with a fading trail behind it.
-    const trailAngle = (TAU * TRAIL) / SWEEP_PERIOD;
-    const reach = SIZE * 0.75;
-    const steps = 14;
-    for (let i = 0; i < steps; i++) {
-      const a1 = this.angle - (trailAngle * i) / steps;
-      const a0 = this.angle - (trailAngle * (i + 1)) / steps;
-      ctx.fillStyle = `rgba(90, 255, 140, ${0.28 * (1 - i / steps)})`;
+    // The pulse: a bright ring with a soft glow behind it, fading as it spreads.
+    if (this.pulse > 0 && this.pulse < 1) {
+      const pr = r * this.pulse;
+      const alpha = 1 - this.pulse * 0.75;
+      const glow = ctx.createRadialGradient(c, c, Math.max(pr - r * 0.22, 0), c, c, pr);
+      glow.addColorStop(0, `rgba(${CYAN}, 0)`);
+      glow.addColorStop(1, `rgba(${CYAN}, ${0.3 * alpha})`);
+      ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.moveTo(c, c);
-      ctx.arc(c, c, reach, a0, a1);
-      ctx.closePath();
+      ctx.arc(c, c, pr, 0, TAU);
       ctx.fill();
+      ctx.strokeStyle = `rgba(${BRIGHT}, ${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(c, c, pr, 0, TAU);
+      ctx.stroke();
     }
-    ctx.strokeStyle = 'rgba(150, 255, 190, 0.9)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(c, c);
-    ctx.lineTo(c + Math.cos(this.angle) * reach, c + Math.sin(this.angle) * reach);
-    ctx.stroke();
 
-    // Enemy blips, as seen when the sweep last passed.
+    // Detected enemies, as seen when the ring last crossed them.
+    let nearest = Infinity;
     for (const b of this.blips) {
       const fade = 1 - b.age / BLIP_LIFE;
-      ctx.fillStyle = `rgba(255, 70, 60, ${fade})`;
+      const px = this.sx(b.x);
+      const pz = this.sz(b.z);
+      const size = Math.max(2.4, b.size * this.pxPerUnit * 1.3);
+      if (b.age < 0.35) {
+        ctx.strokeStyle = `rgba(${BRIGHT}, ${(1 - b.age / 0.35) * 0.8})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(px, pz, size + b.age * 28, 0, TAU);
+        ctx.stroke();
+      }
+      ctx.fillStyle = `rgba(${BRIGHT}, ${fade})`;
+      ctx.shadowColor = `rgba(${CYAN}, ${fade})`;
+      ctx.shadowBlur = 6;
       ctx.beginPath();
-      ctx.arc(this.px(b.x), this.px(b.z), Math.max(2, b.size * this.scale * 1.4), 0, TAU);
+      ctx.arc(px, pz, size, 0, TAU);
       ctx.fill();
+      ctx.shadowBlur = 0;
+      nearest = Math.min(nearest, Math.hypot(b.x - this.cx, b.z - this.cz));
     }
 
-    // Your units are always known.
+    // Your own units: hollow rings, the controlled one filled.
     for (const s of state.soldiers) {
       if (s.dead) continue;
-      ctx.fillStyle = s.kind === 'drone' ? '#6cf' : s.id === state.controlledId ? '#fff' : '#7f7';
+      const px = this.sx(s.pos.x);
+      const pz = this.sz(s.pos.z);
+      if (Math.hypot(px - c, pz - c) > r) continue;
+      const mine = s.id === state.controlledId;
+      ctx.strokeStyle = `rgba(${mine ? BRIGHT : CYAN}, 0.95)`;
+      ctx.fillStyle = `rgba(${BRIGHT}, 0.95)`;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(this.px(s.pos.x), this.px(s.pos.z), s.id === state.controlledId ? 3.5 : 3, 0, TAU);
-      ctx.fill();
+      if (s.kind === 'drone') {
+        ctx.rect(px - 3, pz - 3, 6, 6);
+      } else {
+        ctx.arc(px, pz, mine ? 3.6 : 3, 0, TAU);
+      }
+      if (mine) ctx.fill();
+      else ctx.stroke();
     }
+    ctx.restore();
+
+    // Rim and the distance readout of the closest contact, like the original's display.
+    ctx.strokeStyle = `rgba(${CYAN}, 0.7)`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(c, c, r, 0, TAU);
+    ctx.stroke();
+    ctx.fillStyle = `rgba(${BRIGHT}, 0.9)`;
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(nearest === Infinity ? '-- m' : `${Math.round(nearest)} m`, c, SIZE - 2);
   }
 }

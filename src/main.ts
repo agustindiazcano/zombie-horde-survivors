@@ -57,7 +57,7 @@ async function main(): Promise<void> {
   const ui = new InventoryUi(document.body, config, () => state);
   const cratePrompt = new CratePrompt();
   const pausePanel = new PausePanel(document.body, config);
-  const radar = new Radar(document.body, config);
+  const radar = new Radar(document.body);
   const perks = new PerkPicker(document.body, config, () => state);
   const shop = new Shop(document.body, config, () => state);
   /** Any full-screen menu: the game is frozen and keyboard shortcuts are off. */
