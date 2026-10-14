@@ -1,0 +1,10 @@
+# Manifest of every third-party asset used by the game.
+# Allowed licenses: CC0-1.0, CC-BY-3.0, CC-BY-4.0 (enforced by `npm run check:assets`, also in CI).
+# `path` is relative to the repository root and must exist.
+#
+# [[asset]]
+# name = "Example Model"
+# author = "Some Author"
+# source = "https://example.com/page"
+# license = "CC0-1.0"
+# path = "public/models/example.glb"

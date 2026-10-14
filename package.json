@@ -12,7 +12,9 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:assets": "node scripts/check-assets.mjs",
+    "credits": "node scripts/generate-credits.mjs"
   },
   "dependencies": {
     "three": "^0.186.1",
@@ -26,6 +28,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
     "prettier": "^3.9.10",
+    "smol-toml": "^1.9.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.2",
     "vite": "^8.3.4",

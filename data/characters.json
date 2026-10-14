@@ -1,0 +1,16 @@
+{
+  "player": {
+    "model": null,
+    "scale": 1,
+    "yawOffset": 0,
+    "clips": { "idle": "Idle", "run": "Run" },
+    "once": []
+  },
+  "zombie": {
+    "model": null,
+    "scale": 1,
+    "yawOffset": 0,
+    "clips": { "walk": "Walk", "attack": "Attack", "death": "Death" },
+    "once": ["death"]
+  }
+}
