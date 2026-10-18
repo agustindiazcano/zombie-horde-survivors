@@ -117,7 +117,12 @@ export class UnitsScreen {
       card.disabled = s.dead;
       const name = el('div', 'us__name', card);
       el('span', 'us__icon', name, s.kind === 'drone' ? '◈' : '🪖');
-      el('span', 'us__num', name, `${unitName(s)}${s.dead ? ' (fallen)' : ''}`);
+      el(
+        'span',
+        'us__num',
+        name,
+        `${unitName(s)}${s.dead ? ' (fallen)' : s.downed ? ` (down ${Math.ceil(s.bleedOut)} s)` : ''}`,
+      );
       this.bar(
         card,
         'us__bar--hp',

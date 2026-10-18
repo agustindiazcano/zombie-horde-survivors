@@ -67,6 +67,7 @@ export class Hud {
   private bannerTimer = 0;
   // Last rendered values, so the DOM is only touched when something changes.
   private shown = {
+    downed: false,
     health: -1,
     wave: -1,
     kills: -1,
@@ -118,6 +119,7 @@ export class Hud {
   /** Forces a full refresh on the next update (call after restarting). */
   reset(): void {
     this.shown = {
+      downed: false,
       health: -1,
       wave: -1,
       kills: -1,
@@ -166,13 +168,16 @@ export class Hud {
     if (
       health !== this.shown.health ||
       focusKey !== this.shown.focus ||
-      weapon !== this.shown.weapon
+      weapon !== this.shown.weapon ||
+      Boolean(focus?.downed) !== this.shown.downed
     ) {
       this.shown.health = health;
       this.shown.focus = focusKey;
       this.shown.weapon = weapon;
+      this.shown.downed = Boolean(focus?.downed);
       const max = Math.round(maxHealthOf(state, this.config));
-      this.healthLabel.textContent = `${focus?.kind === 'drone' ? 'Drone' : 'Soldier'} ${focusKey} · ${weapon} — Health ${health} / ${max}`;
+      const down = focus?.downed ? ' — DOWN' : '';
+      this.healthLabel.textContent = `${focus?.kind === 'drone' ? 'Drone' : 'Soldier'} ${focusKey} · ${weapon} — Health ${health} / ${max}${down}`;
       this.healthFill.style.width = `${(health / max) * 100}%`;
       this.healthFill.classList.toggle('hud__bar-fill--low', health / max < LOW_HEALTH);
     }

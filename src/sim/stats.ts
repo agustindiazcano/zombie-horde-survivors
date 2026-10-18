@@ -29,6 +29,7 @@ export function speedOf(
   stance: Stance = 'normal',
 ): number {
   if (isDrone(s)) return config.drone.speed * mods.speed;
+  if (s.downed) return config.player.speed * config.downed.crawlSpeedScale * mods.speed;
   const scale =
     stance === 'crouch'
       ? config.stance.crouchSpeedScale
@@ -74,6 +75,11 @@ export function weaponOf(
   const gun = gunOf(config, s);
   if (gun === null) return null;
   const def = weaponDef(config, gun);
+  // From the floor only a one-handed gun can be used, and badly.
+  if (s.downed) {
+    if (def.hands === 2) return null;
+    def.spread += config.downed.extraSpread;
+  }
   def.damage *= mods.damage;
   def.fireRate *= mods.fireRate;
   if (isDrone(s)) return { ...def, height: config.drone.height, ignoresCover: true };

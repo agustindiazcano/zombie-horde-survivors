@@ -13,7 +13,11 @@
       "damage": 6,
       "range": 1.2,
       "spread": 0,
-      "mocked": { "noise": 1, "weight": 0, "accessorySlots": [] }
+      "mocked": {
+        "noise": 1,
+        "weight": 0,
+        "accessorySlots": []
+      }
     },
     "pistol": {
       "type": "weapon",
@@ -88,7 +92,11 @@
       "damage": 45,
       "range": 30,
       "spread": 0,
-      "mocked": { "noise": 4, "weight": 2, "accessorySlots": [] }
+      "mocked": {
+        "noise": 4,
+        "weight": 2,
+        "accessorySlots": []
+      }
     },
     "armor_plate": {
       "type": "plate",
@@ -102,7 +110,10 @@
       "icon": "🦺",
       "stack": 1,
       "slot": "chest",
-      "mocked": { "armor": 25, "weight": 3 }
+      "mocked": {
+        "armor": 25,
+        "weight": 3
+      }
     },
     "medkit_s": {
       "type": "medical",
@@ -110,7 +121,9 @@
       "icon": "🩹",
       "stack": 5,
       "heal": 25,
-      "mocked": { "useTime": 1.5 }
+      "mocked": {
+        "useTime": 1.5
+      }
     },
     "medkit_m": {
       "type": "medical",
@@ -118,7 +131,9 @@
       "icon": "💊",
       "stack": 3,
       "heal": 50,
-      "mocked": { "useTime": 3 }
+      "mocked": {
+        "useTime": 3
+      }
     },
     "medkit_l": {
       "type": "medical",
@@ -126,7 +141,9 @@
       "icon": "🧰",
       "stack": 2,
       "heal": 100,
-      "mocked": { "useTime": 5 }
+      "mocked": {
+        "useTime": 5
+      }
     },
     "frag_grenade": {
       "type": "grenade",
@@ -148,7 +165,11 @@
       "name": "Defibrillator",
       "icon": "⚡",
       "stack": 1,
-      "mocked": { "channelTime": 4, "reviveWindow": 30, "successChance": 0.8, "weight": 2 }
+      "mocked": {
+        "weight": 2
+      },
+      "channelTime": 4,
+      "reviveWindow": 30
     },
     "scope": {
       "type": "accessory",
@@ -156,7 +177,13 @@
       "icon": "🔭",
       "stack": 1,
       "slot": "optic",
-      "mocked": { "modifiers": { "accuracy": 0.05, "range": 0.05 }, "weight": 0.4 }
+      "mocked": {
+        "modifiers": {
+          "accuracy": 0.05,
+          "range": 0.05
+        },
+        "weight": 0.4
+      }
     },
     "suppressor": {
       "type": "accessory",
@@ -164,7 +191,13 @@
       "icon": "🔇",
       "stack": 1,
       "slot": "barrel",
-      "mocked": { "modifiers": { "noise": -0.6, "damage": -0.1 }, "weight": 0.6 }
+      "mocked": {
+        "modifiers": {
+          "noise": -0.6,
+          "damage": -0.1
+        },
+        "weight": 0.6
+      }
     },
     "foregrip": {
       "type": "accessory",
@@ -172,7 +205,12 @@
       "icon": "🪝",
       "stack": 1,
       "slot": "grip",
-      "mocked": { "modifiers": { "recoil": -0.15 }, "weight": 0.3 }
+      "mocked": {
+        "modifiers": {
+          "recoil": -0.15
+        },
+        "weight": 0.3
+      }
     }
   }
 }

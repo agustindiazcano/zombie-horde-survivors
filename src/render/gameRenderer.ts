@@ -428,7 +428,7 @@ export class GameRenderer {
       }
       this.visYaw.set(s.id, heading);
       view.object.rotation.y = heading;
-      view.setState(s.dead ? 'death' : moving ? 'run' : 'idle');
+      view.setState(s.dead || s.downed ? 'death' : moving ? 'run' : 'idle');
       view.update(dt);
       this.updateFlashlight(s.id, view.object, heading, !s.dead);
       // In first person you look out of the controlled unit's head, so hide its model.
@@ -445,7 +445,7 @@ export class GameRenderer {
         this.stanceVisual.set(s.id, vis);
       }
       const k = 1 - Math.exp(-14 * dt);
-      const alive = !s.dead;
+      const alive = !s.dead && !s.downed;
       vis.crouch = lerp(vis.crouch, alive && state.stance === 'crouch' ? 1 : 0, k);
       vis.lean = lerp(vis.lean, alive && state.stance === 'sprint' && moving ? 1 : 0, k);
       view.object.scale.set(1 + 0.06 * vis.crouch, 1 - 0.28 * vis.crouch, 1 + 0.06 * vis.crouch);
