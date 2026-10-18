@@ -118,6 +118,7 @@ async function main(): Promise<void> {
   /** Any full-screen menu: the game is frozen and keyboard shortcuts are off. */
   // A random soldier floats next to the title, a different one on each visit.
   const preview = factories.soldiers[Math.floor(Math.random() * factories.soldiers.length)];
+  // Map 1 is the only map the sim is built for so far; the picked map is ignored until phase 4.
   const menu = new MainMenu(document.body, () => undefined, preview, openSettings);
   const modalOpen = () =>
     menu.isOpen || ui.isOpen || perks.isOpen || shop.isOpen || settingsPanel.isOpen;
