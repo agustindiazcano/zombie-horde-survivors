@@ -82,7 +82,7 @@ const FLASH_COLOR = new THREE.Color(1, 1, 1);
  * Gives this clone its own materials (clones share them otherwise) and returns a function
  * that lights the whole model up, for hit flashes.
  */
-function makeFlasher(model: THREE.Object3D): (amount: number) => void {
+function makeFlasher(model: THREE.Object3D, tint?: string): (amount: number) => void {
   const items: {
     material: THREE.MeshStandardMaterial;
     emissive: THREE.Color;
@@ -95,6 +95,7 @@ function makeFlasher(model: THREE.Object3D): (amount: number) => void {
     o.material = Array.isArray(o.material) ? cloned : cloned[0]!;
     for (const m of cloned) {
       if (m instanceof THREE.MeshStandardMaterial) {
+        if (tint) m.color.multiply(new THREE.Color(tint));
         items.push({ material: m, emissive: m.emissive.clone(), intensity: m.emissiveIntensity });
       }
     }
@@ -122,7 +123,7 @@ function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
       if (o instanceof THREE.Mesh) o.castShadow = true;
     });
     root.add(model);
-    const setFlash = makeFlasher(model);
+    const setFlash = makeFlasher(model, spec.tint);
 
     if (spec.procedural === 'wiggle') {
       return { ...createWiggleView(root, model, spec.scale), setFlash };

@@ -79,3 +79,10 @@ source = "https://poly.pizza/m/DbGajMHrvp"
 license = "CC0-1.0"
 path = "public/models/drone.glb"
 
+
+[[asset]]
+name = "Digital Camo Soldier (marine soldier and infected marine enemy)"
+author = "Meshy AI"
+source = "https://www.meshy.ai"
+license = "CC-BY-4.0"
+path = "public/models/soldier-marine.glb"
