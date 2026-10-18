@@ -46,15 +46,19 @@ Full plan and decisions: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and
 ```text
 Leé CLAUDE.md, LASTCONTEXT.md, PENDING.md y docs/PLAN-modes-and-map-editor.md. Respondeme en español, con tablas y prioridades con semáforo.
 
-Estado: hechas las fases 1 a 4, en seis ramas apiladas sin PR: feat/map-format (1 y 1b), feat/unit-stats (1c), feat/items-equipment (1d), feat/downed-state (1e), feat/menu-flow (2 y 3) y feat/save-maps (4, sale de feat/menu-flow). main sigue en 6c7429f. En la raíz hay un GLB duplicado sin commitear (Meshy_AI_Digital_Camo_Soldier_All_Animations.glb): ignoralo, no lo commitees.
+Estado: hechas las fases 1 a 6, en ocho ramas apiladas sin PR: feat/map-format (1 y 1b), feat/unit-stats (1c), feat/items-equipment (1d), feat/downed-state (1e), feat/menu-flow (2 y 3), feat/save-maps (4), feat/place-units (5) y feat/terrain (6, la última; cada una sale de la anterior). main sigue en 6c7429f. En la raíz hay un GLB duplicado sin commitear (Meshy_AI_Digital_Camo_Soldier_All_Animations.glb): ignoralo, no lo commitees.
 
-Antes de empezar: git status y ramas. Si ya mergeé algo, decime qué falta en main antes de ramificar. Si no, seguí desde feat/save-maps con una rama nueva (feat/place-units) y avisame que los PRs deben ir en orden.
+Antes de empezar: git status y ramas. Si ya mergeé algo, decime qué falta en main antes de ramificar. Si no, seguí desde feat/terrain con una rama nueva (feat/game-logic) y avisame que los PRs deben ir en orden.
 
 Las decisiones están en la sección 8 del plan (no las reabras). Sin tests nuevos, los 48 siguen verdes, nunca pushear a main, PR solo si lo pido.
 
-Empezá por la FASE 5 (colocar unidades y assets): catálogo JSON, clic para colocar, mover, rotar, borrar, deshacer / rehacer; Play spawnea las unidades colocadas. Antes de cada commit: lint, format:check, typecheck, tests (leé el resultado), build y check:assets; commits chicos en inglés con Co-Authored-By. Al terminar actualizá PENDING/LASTCONTEXT (lo hecho a docs/worklog/) y seguí con la fase 6 sin esperar aprobación, salvo que haya una decisión mía.
+Si te cuento que algo de las fases 5 o 6 se ve o se siente mal, arreglalo primero en su rama (feat/place-units o feat/terrain) y rebaseá lo que dependa.
 
-Pendiente de verificar visualmente (yo lo miro): el flujo de menú y el esqueleto del editor (fases 2, 3 y 4: guardar, abrir, exportar mapas), animaciones del marine (Alert, Running, Dead, Unsteady_Walk, Attack), el tinte verde del Infected marine, que Map 1 se vea igual, la ventana de unidad con atributos y habilidades, la columna de equipo con la mochila de 10 (1d) y el estado herido con botiquín y desfibrilador (1e).
+Si no, empezá por la FASE 7 (pestaña Game logic): dificultad, oleadas (cantidad, mezcla de enemigos, jefes) y puntos de spawn por mapa, que reemplazan los valores globales de game.json. Antes de cada commit: lint, format:check, typecheck, tests (leé el resultado), build y check:assets; commits chicos en inglés con Co-Authored-By. Al terminar actualizá PENDING/LASTCONTEXT (lo hecho a docs/worklog/) y esperá mi visto bueno antes de seguir.
+
+Pendiente de verificar visualmente (yo lo miro): el flujo de menú y el editor (fases 2 a 6): poner, mover, rotar y borrar unidades y bloques, deshacer y rehacer, Play con lo colocado, esculpir, pintar, caminos y agua (las unidades no deben entrar al agua; las balas sí la cruzan), colinas bajo las unidades, Map 1 igual que antes, animaciones del marine y su tinte verde, la ventana de unidad con atributos, la mochila de 10 y el estado herido con botiquín y desfibrilador.
+
+Limitaciones conocidas del terreno: los pickups quedan a altura 0, el clic del editor ignora las colinas (usa el plano y = 0), las pendientes no bloquean y los bloques no se inclinan.
 
 Preguntas abiertas que no bloquean: cómo se ven las armas en los modelos (huesos y de dónde salen las mallas: preguntámelo antes de la parte visual), manejo de vehículos (recomendado arcade), primer vehículo terrestre, y si renombro los atributos (hoy: strength, dexterity, constitution, perception, intelligence, charisma).
 ```
