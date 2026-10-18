@@ -13,6 +13,8 @@ const characterSpec = z
     procedural: z.enum(['wiggle', 'hover']).optional(),
     /** Height above the ground where the health bar floats (enemies). */
     barHeight: z.number().positive().optional(),
+    /** Color multiplied over the model's textures (e.g. sickly green for an infected soldier). */
+    tint: z.string().optional(),
     /** States whose clip plays once and holds its last frame (e.g. death). */
     once: z.array(z.string()),
   })

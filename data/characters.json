@@ -34,18 +34,31 @@
       "once": ["death"]
     },
     {
-      "model": "models/soldier-quaternius-toon.glb",
+      "model": "models/soldier-marine.glb",
       "scale": 1.0,
       "yawOffset": 0,
       "clips": {
-        "idle": "Idle",
-        "run": "Run_Gun",
-        "death": "Death"
+        "idle": "Alert",
+        "run": "Running",
+        "death": "Dead"
       },
       "once": ["death"]
     }
   ],
   "enemies": {
+    "marine_zombie": {
+      "model": "models/soldier-marine.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Unsteady_Walk",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#6fa860",
+      "barHeight": 2.1
+    },
     "zombie": {
       "model": "models/enemy-zombie.glb",
       "scale": 1.4,
