@@ -39,6 +39,22 @@ Claude has no browser, so every visual and feel decision below is an estimate. T
 - Done in the second pass: crate button, tap an icon to choose the leader, jump/crouch/sprint buttons, pinch zoom, full screen, vibration on damage, low graphics preset by default on phones.
 - Not built yet: a RTS mode with tap-to-move; shrinking the ~16 MB first load for mobile data; PWA install.
 
+### 2c — 🟡 Game modes, map list and map editor (planned, not built)
+
+Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md). Start → Single Player (Story / Waves; today's arena is "Map 1"), a disabled Multiplayer button, or Editor (starts paused, Play button, right panel with Units / Assets / Terrain / Game logic / Players tabs). Several players own units and the AI is one of them; vehicles need a human operator to move (Men of War style).
+
+- [ ] 🟡 Phase 1: map format (zod schema) + `map-1.json`; the game plays as today.
+- [ ] 🟡 Phase 1b: players and unit ownership (the AI as a player); the game plays as today. Riskiest refactor.
+- [ ] 🟡 Phase 1c: unit stat sheets in `data/units.json` (identity, level, XP, speed, stamina, mocked RPG attributes) and XP per weapon class (melee, pistol, shotgun, rifle, sniper, machinegun, launcher). Mocked fields do nothing yet.
+- [ ] 🟡 Phase 1d: item catalog and equipment: weapon stats and damage types (explosive, fire, experimental mocked), attachments, hand slots (dual wield), helmet / vest slots, 10-slot backpack, fists, medkits, grenades, defibrillator.
+- [ ] 🟢 Phase 1e: downed state (a soldier goes down, keeps shooting, bleeds out, can be revived).
+- [ ] 🟡 Phase 2: menu flow Start → Single Player (Story / Waves) / Multiplayer (disabled) / Editor, map list.
+- [ ] 🟡 Phase 3: editor skeleton (paused, Play / Stop, tabs and collapsible groups that do nothing yet).
+- [ ] 🟡 Phase 4: save / load / export maps: built-in maps in `data/maps/` plus the user's maps in localStorage, listed together.
+- [ ] 🟢 Phases 5–7: place units and assets, terrain (height, water, paint, roads), game logic tab.
+- [ ] ⚪ Phases 8–10: vehicles with crew seats, interaction mechanics (lift and throw objects by strength, climbing, drag or carry a body, fire hazards), animals, Story mode.
+- [ ] 🟡 Answer the open questions in section 8 of the plan (steering model, first vehicle, attribute names, weapon-class XP source, downed rules, defibrillator, equipment on the models).
+
 ### 3 — 🟡 Going public (GitHub Pages is live)
 
 - [ ] 🟡 **Analytics with GoatCounter** (free, no cookies, custom events for waves reached and game over). Needs the user's GoatCounter site name; the script goes in `index.html`.
