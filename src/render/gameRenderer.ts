@@ -20,10 +20,12 @@ import { SelectionMarkers } from './markers';
 const BASE_DISTANCE = Math.hypot(13, 9);
 const DEFAULT_PITCH = Math.atan2(13, 9);
 /** Tilt limits (radians above the horizon) and the range of the player's zoom wheel. */
-const MIN_PITCH = 0.35;
+const MIN_PITCH = -0.6; // below the horizon line the camera looks up at the sky
 const MAX_PITCH = 1.5;
-const MIN_USER_ZOOM = 0.35;
-const MAX_USER_ZOOM = 2.2;
+const MIN_USER_ZOOM = 0.04;
+const MAX_USER_ZOOM = 6;
+/** The orbit camera never sinks below this height (m), so tilting up does not go underground. */
+const MIN_CAMERA_HEIGHT = 0.8;
 const USER_ZOOM_RATE = 10;
 /** Per-frame movement below this (world units) counts as standing still. */
 const MOVING_EPSILON = 1e-4;
@@ -106,7 +108,7 @@ const FLASH_TIME = 0.14;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export class GameRenderer {
-  readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+  readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
   get domElement(): HTMLCanvasElement {
     return this.renderer.domElement;
   }
@@ -198,7 +200,7 @@ export class GameRenderer {
     this.resize();
   }
 
-  private editMarker: THREE.Mesh | null = null;
+  private editMarkers: THREE.Mesh[] | null = null;
   private spawnMarkers: THREE.Group | null = null;
   private goalMarkers: THREE.Group | null = null;
 
@@ -221,25 +223,26 @@ export class GameRenderer {
     this.stanceVisual.clear();
   }
 
-  /** The map editor's selection ring on the ground (null hides it). */
-  setEditMarker(at: Vec2 | null, radius = 1): void {
-    if (!at) {
-      if (this.editMarker) this.editMarker.visible = false;
-      return;
-    }
-    if (!this.editMarker) {
-      this.editMarker = new THREE.Mesh(
+  /** Yellow rings under the selected items while editing (an empty list hides them). */
+  setEditMarkers(marks: { at: Vec2; radius: number }[]): void {
+    this.editMarkers ??= [];
+    while (this.editMarkers.length < marks.length) {
+      const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.9, 1, 32),
         new THREE.MeshBasicMaterial({ color: 0xffd84a, side: THREE.DoubleSide }),
       );
-      this.editMarker.rotation.x = -Math.PI / 2;
-      this.editMarker.position.y = 0.05;
-      this.scene.add(this.editMarker);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.05;
+      this.scene.add(ring);
+      this.editMarkers.push(ring);
     }
-    this.editMarker.visible = true;
-    this.editMarker.position.x = at.x;
-    this.editMarker.position.z = at.z;
-    this.editMarker.scale.setScalar(radius);
+    this.editMarkers.forEach((ring, i) => {
+      const m = marks[i];
+      ring.visible = m !== undefined;
+      if (!m) return;
+      ring.position.set(m.at.x, ring.position.y, m.at.z);
+      ring.scale.setScalar(m.radius);
+    });
   }
 
   /** The enemy spawn points of the map being edited, as red rings on the ground (null hides them). */
@@ -440,13 +443,15 @@ export class GameRenderer {
     this.userZoom = lerp(this.userZoom, this.userZoomTarget, 1 - Math.exp(-USER_ZOOM_RATE * dt));
     const distance = BASE_DISTANCE * this.zoom * this.userZoom;
     const flat = Math.cos(this.pitch) * distance;
+    const height = Math.max(Math.sin(this.pitch) * distance, MIN_CAMERA_HEIGHT);
     this.camera.position.set(
       this.focus.x + Math.sin(this.yaw) * flat,
-      Math.sin(this.pitch) * distance,
+      height,
       this.focus.z + Math.cos(this.yaw) * flat,
     );
     this.applyShake(dt);
-    this.camera.lookAt(this.focus.x, 0, this.focus.z);
+    // Tilted past the horizon the camera keeps its height and aims up at the sky.
+    this.camera.lookAt(this.focus.x, height - Math.sin(this.pitch) * distance, this.focus.z);
     this.camera.updateMatrixWorld();
   }
 

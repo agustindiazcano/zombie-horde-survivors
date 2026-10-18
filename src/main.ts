@@ -146,7 +146,7 @@ async function main(): Promise<void> {
   const editor = new Editor(document.body, {
     canvas: renderer.domElement,
     groundAt: renderer.screenToGround,
-    onMark: (at, radius) => renderer.setEditMarker(at, radius),
+    onMarks: (marks) => renderer.setEditMarkers(marks),
     onSpawnMarks: (points) => renderer.setSpawnMarkers(points),
     onPlay: () => {
       resetGame();
@@ -400,7 +400,7 @@ async function main(): Promise<void> {
     if (!editor.isEditing) setPaused(true);
   });
 
-  new CameraControls(renderer.domElement, renderer);
+  new CameraControls(renderer.domElement, renderer, () => editor.ownsRightDrag);
 
   const blank = (): Input => ({
     move: { x: 0, z: 0 },
@@ -464,7 +464,8 @@ async function main(): Promise<void> {
     },
     (alpha, frameDt) => {
       const rtsMode = localPlayer(state).controlledId === null;
-      if (rtsMode && !paused) {
+      // The editor always pans (loading a map starts a run with a soldier under control).
+      if ((rtsMode || editor.isEditing) && !paused) {
         const move = readInput().move;
         renderer.pan(move.x * PAN_SPEED * frameDt, move.z * PAN_SPEED * frameDt);
       }
