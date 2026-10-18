@@ -188,3 +188,25 @@
   color: #fff;
   outline: none;
 }
+
+.menu__maprow {
+  display: flex;
+  gap: 8px;
+}
+
+.menu__maprow .menu__option {
+  flex: 1;
+}
+
+.menu__delete {
+  font: inherit;
+  padding: 0 14px;
+  background: rgba(30, 36, 48, 0.85);
+  border: 1px solid #4a5366;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu__delete:hover {
+  border-color: #e33;
+}

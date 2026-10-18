@@ -145,8 +145,8 @@ test-game/
 │   ├── audio.ts · fps.ts · settings.ts            procedural SFX, FPS counter, saved options
 │   ├── hud.ts/.css · squadPanel.ts                health, wave, kills, XP, game over; bottom squad bar
 │   ├── mainMenu.ts/.css · menuModel.ts            title screen, mode / Single Player / map-list menus, 3D soldier viewer
-│   ├── maps.ts                                    list of the built-in maps (saved ones join in phase 4)
-│   ├── editor.ts/.css                             map editor shell: paused, Play / Stop, five tabs (placeholders)
+│   ├── maps.ts                                    map store: built-in + localStorage maps, export / import
+│   ├── editor.ts/.css                             map editor shell: paused, Play / Stop, five tabs (placeholders; New / Open / Save / Export / Import work)
 │   ├── pausePanel.ts/.css · unitsScreen.ts/.css   pause screen: bonuses, stats, squad windows
 │   ├── upgradesUi.ts · upgrades.css               level-up perk picker and the shop
 │   ├── inventoryUi.ts · inventory.css             crate window (E)

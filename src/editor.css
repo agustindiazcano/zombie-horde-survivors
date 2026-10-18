@@ -193,3 +193,35 @@ body.editing .radar {
   border-radius: 10px;
   opacity: 0.8;
 }
+
+.editor__dialog {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+
+.editor__dialog-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: min(340px, 90vw);
+  max-height: 80vh;
+  padding: 16px;
+  overflow-y: auto;
+  background: #141922;
+  border: 1px solid #4a5366;
+  border-radius: 10px;
+}
+
+.editor__dialog-title {
+  margin: 0 0 6px;
+}
+
+.editor__dialog-box .editor__item {
+  display: flex;
+  justify-content: space-between;
+}

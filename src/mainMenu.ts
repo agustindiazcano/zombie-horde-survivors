@@ -1,5 +1,5 @@
 import './mainMenu.css';
-import { listMaps, type MapEntry } from './maps';
+import { deleteMap, importMapFile, listMaps, pickMapFile, type MapEntry } from './maps';
 import { MenuModel } from './menuModel';
 import type { CharacterFactory } from './render/characters';
 
@@ -118,8 +118,13 @@ export class MainMenu {
     el('h2', 'menu__heading', panel, TITLES[screen]);
     const list = el('div', 'menu__list', panel);
     let first: HTMLButtonElement | null = null;
-    const option = (label: string, hint: string, action: (() => void) | null) => {
-      const button = el('button', 'menu__option', list);
+    const option = (
+      label: string,
+      hint: string,
+      action: (() => void) | null,
+      into: HTMLElement = list,
+    ) => {
+      const button = el('button', 'menu__option', into);
       el('span', 'menu__option-label', button, label);
       el('span', 'menu__option-hint', button, hint);
       if (action) button.addEventListener('click', action);
@@ -143,13 +148,35 @@ export class MainMenu {
       el('p', 'menu__empty', panel, 'No missions yet. Story mode is coming later.');
     } else {
       for (const map of listMaps()) {
-        const row = option(map.name, `${map.width} × ${map.depth}`, () => this.play(map));
+        const wrap = el('div', 'menu__maprow', list);
+        const row = option(map.name, `${map.width} × ${map.depth}`, () => this.play(map), wrap);
+        if (map.deletable) {
+          const del = el('button', 'menu__delete', wrap, '🗑');
+          del.title = 'Delete this map';
+          del.addEventListener('click', () => {
+            if (!confirm(`Delete "${map.name}"?`)) return;
+            deleteMap(map.id);
+            this.go('maps');
+          });
+        }
         el(
           'span',
           map.builtIn ? 'menu__badge' : 'menu__badge menu__badge--saved',
           row,
         ).textContent = map.builtIn ? 'Built-in' : 'Saved';
       }
+      const imp = el('button', 'menu__back', panel, 'Import a map file…');
+      imp.addEventListener('click', () => {
+        void pickMapFile().then(async (file) => {
+          if (!file) return;
+          try {
+            await importMapFile(file);
+            this.go('maps');
+          } catch (e) {
+            alert((e as Error).message);
+          }
+        });
+      });
     }
 
     const back = el('button', 'menu__back', panel, '← Back');

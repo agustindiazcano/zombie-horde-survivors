@@ -1,6 +1,8 @@
 import './editor.css';
 import { z } from 'zod';
 import catalogData from '../data/catalog.json';
+import { blankMap, exportMap, importMapFile, listMaps, pickMapFile, saveMap } from './maps';
+import type { MapData } from './sim';
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -67,21 +69,36 @@ export class Editor {
   private active = false;
   private playing = false;
   private picked: HTMLElement | null = null;
+  private readonly title: HTMLElement;
+  private current: MapData = blankMap();
 
   constructor(
     parent: HTMLElement,
-    private readonly actions: { onPlay: () => void; onStop: () => void; onMenu: () => void },
+    private readonly actions: {
+      onPlay: () => void;
+      onStop: () => void;
+      onMenu: () => void;
+      /** The map being edited changed (new, opened, imported or saved): load it into the game. */
+      onMapChange: (map: MapData) => void;
+    },
   ) {
     const menu = el('button', 'editor__btn', this.bar, '← Menu');
     menu.addEventListener('click', actions.onMenu);
     this.playButton = el('button', 'editor__btn editor__btn--play', this.bar, '▶ Play');
     this.playButton.addEventListener('click', () => this.setPlaying(true));
-    for (const label of ['New', 'Open', 'Save', 'Export', '↶ Undo', '↷ Redo']) {
+    const file = (label: string, action: () => void) =>
+      el('button', 'editor__btn', this.bar, label).addEventListener('click', action);
+    file('New', () => this.setMap(blankMap()));
+    file('Open', () => this.openDialog());
+    file('Save', () => this.save());
+    file('Export', () => exportMap(this.current));
+    file('Import', () => void this.importFile());
+    for (const label of ['↶ Undo', '↷ Redo']) {
       const button = el('button', 'editor__btn', this.bar, label);
       button.disabled = true;
       button.title = SOON;
     }
-    el('span', 'editor__title', this.bar, 'Map editor · paused');
+    this.title = el('span', 'editor__title', this.bar);
 
     const tabs = el('div', 'editor__tabs', this.side);
     this.side.insertBefore(tabs, this.body);
@@ -108,7 +125,48 @@ export class Editor {
   open(): void {
     this.active = true;
     this.playing = false;
+    this.setMap(blankMap());
     this.refresh();
+  }
+
+  private setMap(map: MapData): void {
+    this.current = map;
+    this.title.textContent = `Map editor · ${map.meta.name}`;
+    this.actions.onMapChange(map);
+  }
+
+  private save(): void {
+    const name = prompt('Map name', this.current.meta.name);
+    if (name === null) return;
+    // A built-in map is saved as a copy, so the editor now works on the copy.
+    this.setMap(saveMap(this.current, name));
+  }
+
+  private async importFile(): Promise<void> {
+    const file = await pickMapFile();
+    if (!file) return;
+    try {
+      this.setMap(await importMapFile(file));
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  }
+
+  /** A small window listing every map (built-in and saved) to open. */
+  private openDialog(): void {
+    const overlay = el('div', 'editor__dialog', this.root);
+    const box = el('div', 'editor__dialog-box', overlay);
+    el('h3', 'editor__dialog-title', box, 'Open a map');
+    for (const entry of listMaps()) {
+      const button = el('button', 'editor__item', box, entry.name);
+      el('span', 'editor__tag', button, entry.builtIn ? 'Built-in' : 'Saved');
+      button.addEventListener('click', () => {
+        overlay.remove();
+        this.setMap(entry.map);
+      });
+    }
+    const cancel = el('button', 'editor__btn', box, 'Cancel');
+    cancel.addEventListener('click', () => overlay.remove());
   }
 
   /** Closes the editor altogether (back to the main menu). */
