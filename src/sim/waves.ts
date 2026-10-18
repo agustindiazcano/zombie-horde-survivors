@@ -4,7 +4,9 @@ import type { GameState } from './types';
 import { spawnZombie } from './zombies';
 
 export const waveSize = (config: GameConfig, wave: number): number =>
-  config.waves.baseCount + config.waves.countPerWave * (wave - 1);
+  Math.round(
+    (config.waves.baseCount + config.waves.countPerWave * (wave - 1)) * config.level.count,
+  );
 
 function livingZombies(state: GameState): number {
   let n = 0;
@@ -30,6 +32,12 @@ function pickEnemyType(state: GameState, config: GameConfig): string {
 function spawnAtEdge(state: GameState, config: GameConfig, forced?: string, bossNumber = 0): void {
   const type = forced ?? pickEnemyType(state, config);
   const radius = config.zombie.radius * (config.enemies[type]?.radiusScale ?? 1);
+  const points = config.spawnPoints;
+  if (points.length > 0) {
+    const at = points[Math.floor(nextFloat(state.rng) * points.length)]!;
+    spawnZombie(state, config, at, type, bossNumber);
+    return;
+  }
   const lim = config.arena.halfSize - radius;
   const side = Math.floor(nextFloat(state.rng) * 4);
   const t = (nextFloat(state.rng) * 2 - 1) * lim;

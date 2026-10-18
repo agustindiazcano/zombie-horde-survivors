@@ -1,8 +1,9 @@
 import './editor.css';
 import { z } from 'zod';
 import catalogData from '../data/catalog.json';
+import gameData from '../data/game.json';
 import { blankMap, exportMap, importMapFile, listMaps, pickMapFile, saveMap } from './maps';
-import type { MapData, Vec2 } from './sim';
+import type { MapData, MapLogic, Vec2 } from './sim';
 import { flatHeights, paintCells, plainPaint, sculpt, type SculptMode } from './terrainBrush';
 import { terrainData } from './terrainData';
 
@@ -147,6 +148,8 @@ export class Editor {
   /** Index of the road being drawn (each click adds a point), or null. */
   private roadIndex: number | null = null;
   private waterDragging = false;
+  /** The Game logic tab is armed: the next map clicks add spawn points. */
+  private spawnTool = false;
   private past: MapData[] = [];
   private future: MapData[] = [];
   private readonly title: HTMLElement;
@@ -165,6 +168,8 @@ export class Editor {
       groundAt: (ndcX: number, ndcY: number) => Vec2 | null;
       /** Shows a ring at the selected item (null hides it). */
       onMark: (at: Vec2 | null, radius: number) => void;
+      /** Shows the map's enemy spawn points while editing (null hides them). */
+      onSpawnMarks: (points: Vec2[] | null) => void;
     },
   ) {
     const menu = el('button', 'editor__btn', this.bar, '← Menu');
@@ -297,11 +302,14 @@ export class Editor {
     const sel = this.selected();
     if (!sel) this.selection = null;
     this.actions.onMark(sel ? sel.at : null, sel?.radius ?? 1);
-    this.info.textContent = this.tool
-      ? `Placing: ${this.tool.name}. Click the map to place; right-click or Esc to stop.`
-      : sel
-        ? `Selected: ${sel.label} (${sel.at.x.toFixed(1)}, ${sel.at.z.toFixed(1)}). Drag moves, R rotates, Delete removes.`
-        : 'Click an item on the map to select it.';
+    this.actions.onSpawnMarks(this.isEditing ? (this.current.logic.spawnPoints ?? []) : null);
+    this.info.textContent = this.spawnTool
+      ? 'Placing spawn points. Click the map to add one; right-click or Esc to stop.'
+      : this.tool
+        ? `Placing: ${this.tool.name}. Click the map to place; right-click or Esc to stop.`
+        : sel
+          ? `Selected: ${sel.label} (${sel.at.x.toFixed(1)}, ${sel.at.z.toFixed(1)}). Drag moves, R rotates, Delete removes.`
+          : 'Click an item on the map to select it.';
     this.undoButton.disabled = this.past.length === 0;
     this.redoButton.disabled = this.future.length === 0;
   }
@@ -349,6 +357,10 @@ export class Editor {
     if (!this.isEditing) return;
     if (this.tab === 'terrain') {
       this.terrainMouseDown(e);
+      return;
+    }
+    if (this.tab === 'logic') {
+      this.logicMouseDown(e);
       return;
     }
     if (this.tab !== 'units' && this.tab !== 'assets') return;
@@ -476,6 +488,11 @@ export class Editor {
     else if (key === 'escape') {
       this.setTool(null);
       this.roadIndex = null;
+      if (this.spawnTool) {
+        this.spawnTool = false;
+        this.syncSelection();
+        if (this.tab === 'logic') this.redrawLogic();
+      }
     }
   };
 
@@ -640,6 +657,7 @@ export class Editor {
   private setTab(tab: TabId): void {
     this.tab = tab;
     this.roadIndex = null;
+    this.spawnTool = false;
     this.setTool(null);
     for (const button of this.side.querySelectorAll<HTMLElement>('.editor__tab')) {
       button.classList.toggle('editor__tab--on', button.dataset.tab === tab);
@@ -774,15 +792,225 @@ export class Editor {
     select.addEventListener('change', () => onPick(select.value));
   }
 
-  private logic(): void {
-    this.note(`Per-map rules replace the global ones later (${SOON.toLowerCase()}).`);
-    this.field('Mode', ['Waves', 'Story']);
-    this.field('Difficulty', ['Easy', 'Normal', 'Hard']);
-    for (const name of ['Waves', 'Spawn points', 'Objectives', 'Win / lose rules']) {
-      const details = el('details', 'editor__group', this.body);
-      el('summary', 'editor__summary', details, name);
-      el('span', 'editor__empty', el('div', 'editor__items', details), 'Empty');
+  /** Adds a spawn point with the armed tool; a right click drops it. */
+  private logicMouseDown(e: MouseEvent): void {
+    if (!this.spawnTool) return;
+    if (e.button === 2) {
+      this.spawnTool = false;
+      this.syncSelection();
+      this.redrawLogic();
+      return;
     }
+    if (e.button !== 0) return;
+    const at = this.ground(e);
+    if (!at) return;
+    const point = { x: Math.round(at.x * 2) / 2, z: Math.round(at.z * 2) / 2 };
+    this.setLogic({ spawnPoints: [...(this.current.logic.spawnPoints ?? []), point] });
+  }
+
+  private redrawLogic(): void {
+    this.body.replaceChildren();
+    this.logic();
+  }
+
+  /** One edit of the map's rules; the tab is redrawn to show the result. */
+  private setLogic(patch: Partial<MapLogic>): void {
+    const m = this.current;
+    this.edit({ ...m, logic: { ...m.logic, ...patch } });
+    this.redrawLogic();
+  }
+
+  /** A number box showing `value` (the map's override or the global one); it commits on change. */
+  private numberRow(
+    parent: HTMLElement,
+    label: string,
+    value: number,
+    min: number,
+    onCommit: (value: number) => void,
+    step = 1,
+  ): void {
+    const row = el('label', 'editor__row', parent, label);
+    const input = el('input', 'editor__number', row);
+    input.type = 'number';
+    input.min = String(min);
+    input.step = String(step);
+    input.value = String(value);
+    input.addEventListener('change', () => {
+      const v = Number(input.value);
+      if (Number.isFinite(v) && v >= min) onCommit(v);
+      else input.value = String(value);
+    });
+  }
+
+  private checkRow(
+    parent: HTMLElement,
+    label: string,
+    checked: boolean,
+    onChange: (checked: boolean) => void,
+  ): void {
+    const row = el('label', 'editor__row', parent, label);
+    const box = el('input', '', row);
+    box.type = 'checkbox';
+    box.checked = checked;
+    box.addEventListener('change', () => onChange(box.checked));
+  }
+
+  private logic(): void {
+    const logic = this.current.logic;
+    const global = gameData;
+    const enemyInfo = global.enemies as Record<
+      string,
+      { name: string; weight: number; minWave: number }
+    >;
+    const enemyIds = Object.keys(enemyInfo);
+    const section = (name: string, open = false) => {
+      const details = el('details', 'editor__group', this.body);
+      details.open = open;
+      el('summary', 'editor__summary', details, name);
+      return el('div', 'editor__items', details);
+    };
+
+    this.note('Rules here replace the ones of game.json for this map only.');
+    const mode = el('label', 'editor__row', this.body, 'Mode');
+    const modeSelect = el('select', 'editor__select', mode);
+    el('option', '', modeSelect, 'Waves');
+    const story = el('option', '', modeSelect, 'Story');
+    story.disabled = true;
+    story.title = SOON;
+    const difficulty = el('label', 'editor__row', this.body, 'Difficulty');
+    const levelSelect = el('select', 'editor__select', difficulty);
+    for (const [id, name] of [
+      ['easy', 'Easy'],
+      ['normal', 'Normal'],
+      ['hard', 'Hard'],
+    ] as const) {
+      el('option', '', levelSelect, name).value = id;
+    }
+    levelSelect.value = logic.difficulty ?? 'normal';
+    levelSelect.addEventListener('change', () =>
+      this.setLogic({ difficulty: levelSelect.value as MapLogic['difficulty'] }),
+    );
+
+    // Waves: size, pace and the cap on living enemies.
+    const waves = section('Waves', true);
+    const w = { ...global.waves, ...logic.waves };
+    const wave = (
+      key: 'baseCount' | 'countPerWave' | 'spawnInterval' | 'intermission' | 'maxAlive',
+      label: string,
+      min: number,
+      step = 1,
+    ) =>
+      this.numberRow(
+        waves,
+        label,
+        w[key],
+        min,
+        (v) => this.setLogic({ waves: { ...logic.waves, [key]: v } }),
+        step,
+      );
+    wave('baseCount', 'First wave size', 1);
+    wave('countPerWave', 'Extra per wave', 0);
+    wave('spawnInterval', 'Seconds between spawns', 0, 0.1);
+    wave('intermission', 'Break between waves (s)', 0);
+    wave('maxAlive', 'Max alive at once', 1);
+
+    // Enemy mix: which types appear, how likely and from which wave.
+    const mix = section('Enemy mix');
+    const active: NonNullable<MapLogic['enemies']> =
+      logic.enemies ?? Object.fromEntries(enemyIds.map((id) => [id, {}]));
+    this.numberRow(
+      mix,
+      'Zombie weight',
+      logic.zombieWeight ?? global.waves.baseWeight,
+      0,
+      (v) => this.setLogic({ zombieWeight: v }),
+      0.5,
+    );
+    for (const id of enemyIds) {
+      const base = enemyInfo[id]!;
+      const over = active[id];
+      this.checkRow(mix, base.name, over !== undefined, (on) => {
+        const next = { ...active };
+        if (on) next[id] = {};
+        else delete next[id];
+        this.setLogic({ enemies: next });
+      });
+      if (!over) continue;
+      this.numberRow(
+        mix,
+        '   weight',
+        over.weight ?? base.weight,
+        0.5,
+        (v) => this.setLogic({ enemies: { ...active, [id]: { ...over, weight: v } } }),
+        0.5,
+      );
+      this.numberRow(mix, '   first wave', over.minWave ?? base.minWave, 1, (v) =>
+        this.setLogic({ enemies: { ...active, [id]: { ...over, minWave: v } } }),
+      );
+    }
+
+    // Bosses: on or off, how often, and which types they cycle through.
+    const bosses = section('Bosses');
+    const boss = logic.boss;
+    this.checkRow(bosses, 'Mini bosses', boss?.enabled !== false, (on) =>
+      this.setLogic({ boss: { ...boss, enabled: on } }),
+    );
+    this.numberRow(bosses, 'Every N waves', boss?.everyWaves ?? global.boss.everyWaves, 1, (v) =>
+      this.setLogic({ boss: { ...boss, everyWaves: v } }),
+    );
+    const types = boss?.types ?? global.boss.types;
+    for (const id of ['zombie', ...enemyIds]) {
+      const name = id === 'zombie' ? 'Zombie' : enemyInfo[id]!.name;
+      this.checkRow(bosses, name, types.includes(id), (on) => {
+        const next = on ? [...types, id] : types.filter((t) => t !== id);
+        // At least one type must stay.
+        if (next.length > 0) this.setLogic({ boss: { ...boss, types: next } });
+        else this.redrawLogic();
+      });
+    }
+
+    // Spawn points: where enemies appear instead of anywhere along the edge.
+    const spawns = section('Spawn points', true);
+    const points = logic.spawnPoints ?? [];
+    el(
+      'span',
+      'editor__empty',
+      spawns,
+      points.length === 0
+        ? 'None: enemies appear along the map edge.'
+        : `${points.length} point(s); enemies pick one at random.`,
+    );
+    const add = el(
+      'button',
+      'editor__item',
+      spawns,
+      this.spawnTool ? 'Stop adding' : '+ Add spawn points',
+    );
+    if (this.spawnTool) add.classList.add('editor__item--on');
+    add.addEventListener('click', () => {
+      this.spawnTool = !this.spawnTool;
+      this.syncSelection();
+      this.redrawLogic();
+    });
+    points.forEach((p, i) => {
+      const row = el('div', 'editor__row', spawns);
+      el('span', '', row, `#${i + 1} (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+      const del = el('button', 'editor__btn', row, 'Remove');
+      del.addEventListener('click', () => {
+        const left = points.filter((_, j) => j !== i);
+        this.setLogic({ spawnPoints: left.length > 0 ? left : undefined });
+      });
+    });
+
+    for (const name of ['Objectives', 'Win / lose rules']) {
+      el('span', 'editor__empty', section(name), `Empty (${SOON.toLowerCase()})`);
+    }
+    const reset = el('button', 'editor__item', this.body, 'Reset to the global rules');
+    reset.addEventListener('click', () => {
+      this.spawnTool = false;
+      this.edit({ ...this.current, logic: { mode: logic.mode } });
+      this.setTab('logic');
+    });
   }
 
   private players(): void {
@@ -813,11 +1041,5 @@ export class Editor {
     input.max = String(max);
     input.value = String(value);
     input.addEventListener('input', () => onInput(Number(input.value)));
-  }
-
-  private field(label: string, options: string[]): void {
-    const row = el('label', 'editor__row', this.body, label);
-    const select = el('select', 'editor__select', row);
-    for (const option of options) el('option', '', select, option);
   }
 }

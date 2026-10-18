@@ -232,3 +232,13 @@ body.editing .radar {
   color: #ffd84a;
   border-top: 1px solid #2c3444;
 }
+
+.editor__number {
+  width: 70px;
+  font: inherit;
+  padding: 3px 6px;
+  color: #fff;
+  background: #1e2430;
+  border: 1px solid #4a5366;
+  border-radius: 6px;
+}
