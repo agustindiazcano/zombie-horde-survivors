@@ -1,5 +1,6 @@
 import data from '../../data/game.json';
 import map1 from '../../data/maps/map-1.json';
+import units from '../../data/units.json';
 import {
   FIXED_DT,
   arenaOf,
@@ -43,7 +44,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
   }
   const { arena, ...settings } = merged;
   return {
-    ...parseConfig(settings, parseMap(map1)),
+    ...parseConfig(settings, parseMap(map1), units),
     arena: arena as unknown as GameConfig['arena'],
   };
 }

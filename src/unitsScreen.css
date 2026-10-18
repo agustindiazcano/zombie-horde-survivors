@@ -240,3 +240,16 @@
   border-color: #5cff7a;
   background: #2f4a37;
 }
+
+.us__sheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.us__sheet > .us__label {
+  flex-basis: 100%;
+}

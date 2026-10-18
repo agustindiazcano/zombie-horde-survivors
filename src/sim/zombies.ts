@@ -5,6 +5,7 @@ import { dropLoot, rewardOf } from './loot';
 import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
+import { weaponDef } from './stats';
 import type { GameState, Soldier, Zombie } from './types';
 import type { Vec2 } from './vec';
 
@@ -90,7 +91,9 @@ export function damageZombie(
   state.kills++;
   if (killer) {
     killer.kills++;
-    killer.xp += rewardOf(config, zombie).xp;
+    const xp = rewardOf(config, zombie).xp;
+    killer.xp += xp;
+    if (killer.weapon !== null) killer.skills[weaponDef(config, killer.weapon).class] += xp;
   }
   state.events.push({
     type: 'zombieKilled',

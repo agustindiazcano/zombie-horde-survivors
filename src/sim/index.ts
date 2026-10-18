@@ -27,7 +27,7 @@ export {
   takeFromCrate,
   unequipWeapon,
 } from './inventory';
-export { weaponDef, type WeaponDef } from './stats';
+export { skillLevel, weaponDef, type WeaponDef } from './stats';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';
 export type { Slot } from './inventory';
 export { levelInfo, type LevelInfo } from './loot';

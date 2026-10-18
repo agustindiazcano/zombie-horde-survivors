@@ -1,9 +1,10 @@
-import type { GameConfig } from './config';
+import type { GameConfig, WeaponClass } from './config';
 import type { Mods, Soldier, Stance } from './types';
 
 export interface WeaponDef {
   id: string;
   name: string;
+  class: WeaponClass;
   fireRate: number;
   damage: number;
   range: number;
@@ -38,13 +39,13 @@ export function speedOf(
 /** Looks up a weapon by id. Unknown ids fall back to the rifle. */
 export function weaponDef(config: GameConfig, id: string): WeaponDef {
   if (id === 'drone_cannon') {
-    const { fireRate, damage, range } = config.drone;
-    return { id, name: 'Drone gun', fireRate, damage, range, spread: 0 };
+    const { fireRate, damage, range, weaponClass: cls } = config.drone;
+    return { id, name: 'Drone gun', class: cls, fireRate, damage, range, spread: 0 };
   }
   const listed = config.weapons[id];
   if (listed) return { id, ...listed };
-  const { fireRate, damage, range } = config.weapon;
-  return { id: 'rifle', name: 'Rifle', fireRate, damage, range, spread: 0 };
+  const { class: cls, fireRate, damage, range } = config.weapon;
+  return { id: 'rifle', name: 'Rifle', class: cls, fireRate, damage, range, spread: 0 };
 }
 
 /** Stats of a unit's equipped weapon (null when unarmed), plus how it shoots (height, cover). */
@@ -65,4 +66,20 @@ export function weaponOf(
     def.damage *= config.stance.crouchDamageScale;
   }
   return { ...def, height: 1 + s.y, ignoresCover: false };
+}
+
+/** Weapon-skill level from XP: each level needs `growth` times more than the one before. */
+export function skillLevel(
+  config: GameConfig,
+  xp: number,
+): { level: number; into: number; needed: number } {
+  let level = 1;
+  let needed = config.units.skills.xpPerLevel;
+  let rest = xp;
+  while (rest >= needed) {
+    rest -= needed;
+    level++;
+    needed = Math.round(needed * config.units.skills.growth);
+  }
+  return { level, into: rest, needed };
 }

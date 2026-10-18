@@ -6,6 +6,7 @@ import {
   maxHealthOf,
   equipFromBackpack,
   moveItem,
+  skillLevel,
   unequipWeapon,
   weaponDef,
   type GameConfig,
@@ -191,6 +192,21 @@ export class UnitsScreen {
       `Lv ${info.level} · XP ${info.into} / ${info.needed}`,
     );
     el('div', 'us__kills', w.info, `☠ ${unit.kills} kills`);
+
+    const attrs = el('div', 'us__sheet', w.info);
+    el('div', 'us__label', attrs, 'Attributes (not active yet)');
+    for (const name of this.config.units.attributes) {
+      el('span', 'us__stat', attrs, `${name.slice(0, 3).toUpperCase()} ${unit.attributes[name]}`);
+    }
+    const skills = Object.entries(unit.skills).filter(([, xp]) => xp > 0);
+    if (skills.length > 0) {
+      const box = el('div', 'us__sheet', w.info);
+      el('div', 'us__label', box, 'Weapon skills (no effect yet)');
+      for (const [cls, xp] of skills) {
+        const lv = skillLevel(this.config, xp);
+        el('span', 'us__stat', box, `${cls} Lv ${lv.level} · ${lv.into}/${lv.needed}`);
+      }
+    }
 
     w.slots.replaceChildren();
     const equipped = el('div', 'us__box', w.slots);
