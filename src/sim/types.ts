@@ -1,6 +1,17 @@
 import type { Rng } from './rng';
 import type { Vec2 } from './vec';
 
+/** A side in the game: a human at this keyboard, or the AI. Teams decide who is hostile to whom. */
+export interface Player {
+  id: string;
+  name: string;
+  kind: 'human' | 'ai';
+  team: number;
+  color: string;
+  /** The unit this player controls directly, or null in RTS mode (always null for the AI). */
+  controlledId: number | null;
+}
+
 /** Animation-relevant zombie states; the renderer maps these to clip names. */
 export type ZombieState = 'walk' | 'attack' | 'death';
 
@@ -14,6 +25,8 @@ export type UnitKind = 'soldier' | 'drone';
 
 export interface Soldier {
   id: number;
+  /** Id of the player that owns this unit. */
+  owner: string;
   kind: UnitKind;
   pos: Vec2;
   /** Position at the start of the last step, for render interpolation. */
@@ -44,6 +57,8 @@ export interface Soldier {
 
 export interface Zombie {
   id: number;
+  /** Id of the player (the AI) that owns this unit. */
+  owner: string;
   pos: Vec2;
   prev: Vec2;
   facing: number;
@@ -139,8 +154,9 @@ export interface GameState {
   time: number;
   status: 'playing' | 'gameover';
   soldiers: Soldier[];
-  /** The soldier under direct control, or null in RTS mode. */
-  controlledId: number | null;
+  players: Player[];
+  /** The player at this keyboard; its `controlledId` is the unit under direct control. */
+  localPlayerId: string;
   nextSoldierId: number;
   /** How the whole squad is moving/shooting, set by the controlled player's keys. */
   stance: Stance;

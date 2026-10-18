@@ -17,6 +17,7 @@ import { RtsController } from './rts';
 import {
   controlSoldier,
   createGame,
+  localPlayer,
   maxHealthOf,
   nearestCrate,
   shopAvailable,
@@ -108,7 +109,7 @@ async function main(): Promise<void> {
       unit.kind === 'drone'
         ? factories.drone
         : factories.soldiers[(unit.id - 1) % factories.soldiers.length]!,
-    () => state.controlledId ?? [...rts.selected][0] ?? null,
+    () => localPlayer(state).controlledId ?? [...rts.selected][0] ?? null,
   );
   const perks = new PerkPicker(document.body, config, () => state);
   const shop = new Shop(document.body, config, () => state);
@@ -123,7 +124,11 @@ async function main(): Promise<void> {
     renderer,
     config,
     () => state,
-    () => state.controlledId === null && state.status === 'playing' && !paused && !modalOpen(),
+    () =>
+      localPlayer(state).controlledId === null &&
+      state.status === 'playing' &&
+      !paused &&
+      !modalOpen(),
   );
   const hud = new Hud(document.body, config, () => {
     state = createGame(config, Date.now());
@@ -134,7 +139,7 @@ async function main(): Promise<void> {
   });
   const squad = new SquadPanel(document.body, config, (id, additive) => {
     // Clicking an icon while playing hands direct control to that unit; in RTS mode it selects.
-    if (mobile || state.controlledId !== null) setLeader(id);
+    if (mobile || localPlayer(state).controlledId !== null) setLeader(id);
     else rts.toggle(id, additive);
   });
 
@@ -165,9 +170,10 @@ async function main(): Promise<void> {
       },
       onCrate: () => {
         const crate = crateInReach();
+        const unitId = localPlayer(state).controlledId;
         if (ui.isOpen) ui.close();
-        else if (playable() && !shop.isOpen && crate && state.controlledId !== null) {
-          ui.openCrate(state.controlledId, crate.id);
+        else if (playable() && !shop.isOpen && crate && unitId !== null) {
+          ui.openCrate(unitId, crate.id);
         }
       },
       onFullscreen: () => {
@@ -198,21 +204,21 @@ async function main(): Promise<void> {
 
   /** Mobile: keeps a living soldier in control, with the rest of the squad following it. */
   const ensureMobileLeader = () => {
-    if (state.status !== 'playing' || state.controlledId !== null) return;
+    if (state.status !== 'playing' || localPlayer(state).controlledId !== null) return;
     const first = state.soldiers.find((s) => !s.dead && s.kind !== 'drone');
     if (first) setLeader(first.id);
   };
 
   /** Y: take direct control of the first selected soldier, or go back to RTS mode. */
   const toggleControl = () => {
-    if (state.controlledId !== null) {
+    if (localPlayer(state).controlledId !== null) {
       controlSoldier(state, null);
       return;
     }
     const [first, ...others] = [...rts.selected];
     if (first === undefined) return;
     controlSoldier(state, first);
-    if (state.controlledId === null) return;
+    if (localPlayer(state).controlledId === null) return;
     // Only the soldiers selected beforehand follow the controlled one; the rest stay put.
     orderFollow(state, others);
     orderHold(
@@ -226,7 +232,7 @@ async function main(): Promise<void> {
   /** Normal -> third person -> first person -> normal. Only while controlling a unit. */
   const NEXT_VIEW: Record<ViewMode, ViewMode> = { top: 'third', third: 'first', first: 'top' };
   const setView = (mode: ViewMode) => {
-    const unit = state.soldiers.find((s) => s.id === state.controlledId);
+    const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
     renderer.setViewMode(mode, unit?.facing ?? 0);
     input.takeLook(); // drop movement accumulated before the switch
     if (mode === 'top') {
@@ -254,11 +260,14 @@ async function main(): Promise<void> {
 
   /** The unit the inventory opens on: controlled, else first selected, else first alive. */
   const inventoryFocus = () =>
-    state.controlledId ?? [...rts.selected][0] ?? state.soldiers.find((s) => !s.dead)?.id ?? null;
+    localPlayer(state).controlledId ??
+    [...rts.selected][0] ??
+    state.soldiers.find((s) => !s.dead)?.id ??
+    null;
 
   /** The crate the controlled unit is close enough to open, if any. */
   const crateInReach = () => {
-    const unit = state.soldiers.find((s) => s.id === state.controlledId);
+    const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
     return unit && !unit.dead ? nearestCrate(state, unit.pos, config.drops.pickupRange) : undefined;
   };
 
@@ -287,11 +296,16 @@ async function main(): Promise<void> {
       if (!modalOpen()) setPaused(!paused);
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
+      const unitId = localPlayer(state).controlledId;
       if (ui.isOpen) ui.close();
-      else if (playable() && !shop.isOpen && crate && state.controlledId !== null) {
-        ui.openCrate(state.controlledId, crate.id);
-      }
-    } else if (e.code === 'KeyT' && playable() && !modalOpen() && state.controlledId !== null) {
+      else if (playable() && !shop.isOpen && crate && unitId !== null)
+        ui.openCrate(unitId, crate.id);
+    } else if (
+      e.code === 'KeyT' &&
+      playable() &&
+      !modalOpen() &&
+      localPlayer(state).controlledId !== null
+    ) {
       setView(NEXT_VIEW[renderer.viewMode]);
     } else if (e.code === 'KeyY' && playable() && !modalOpen()) toggleControl();
   });
@@ -314,7 +328,7 @@ async function main(): Promise<void> {
   const readInput = (): Input => {
     const raw = input.read(renderer.screenToGround);
     directInput.move = renderer.screenToWorldDir(raw.move.x, raw.move.z);
-    const unit = state.soldiers.find((s) => s.id === state.controlledId);
+    const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
     // In first/third person the view direction is the aim; top-down uses the cursor on the ground.
     directInput.aim =
       renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
@@ -352,7 +366,7 @@ async function main(): Promise<void> {
     (dt) => {
       if (paused || modalOpen()) return;
       if (mobile) ensureMobileLeader();
-      const direct = state.controlledId !== null;
+      const direct = localPlayer(state).controlledId !== null;
       step(state, config, direct ? readInput() : noInput, dt);
       renderer.onStep(state);
       hud.onStep(state);
@@ -360,7 +374,7 @@ async function main(): Promise<void> {
       if (state.events.some((e) => e.type === 'soldierHurt')) mobileUi?.vibrate(35);
     },
     (alpha, frameDt) => {
-      const rtsMode = state.controlledId === null;
+      const rtsMode = localPlayer(state).controlledId === null;
       if (rtsMode && !paused) {
         const move = readInput().move;
         renderer.pan(move.x * PAN_SPEED * frameDt, move.z * PAN_SPEED * frameDt);
@@ -368,7 +382,7 @@ async function main(): Promise<void> {
       // Back to the normal view if control ends (RTS mode, death, game over).
       if (
         renderer.viewMode !== 'top' &&
-        (state.controlledId === null || state.status !== 'playing')
+        (localPlayer(state).controlledId === null || state.status !== 'playing')
       ) {
         setView('top');
       }
@@ -378,7 +392,7 @@ async function main(): Promise<void> {
       pausePanel.update(paused, state);
       unitsScreen.update(paused);
       radar.update(state, paused || modalOpen() ? 0 : frameDt);
-      hud.setCrosshair(renderer.viewMode !== 'top' && state.controlledId !== null);
+      hud.setCrosshair(renderer.viewMode !== 'top' && localPlayer(state).controlledId !== null);
       rts.prune();
       renderer.render(state, alpha, frameDt);
       fps.tick(frameDt);
@@ -394,7 +408,7 @@ async function main(): Promise<void> {
         cratePrompt.hide();
       }
 
-      const focusId = state.controlledId ?? [...rts.selected][0] ?? null;
+      const focusId = localPlayer(state).controlledId ?? [...rts.selected][0] ?? null;
       hud.update(state, focusId);
       const stance = state.stance === 'normal' ? '' : `  [${state.stance.toUpperCase()}]`;
       const view =

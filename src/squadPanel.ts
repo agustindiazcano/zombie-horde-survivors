@@ -1,4 +1,4 @@
-import { levelInfo, type GameConfig, type GameState } from './sim';
+import { levelInfo, localPlayer, type GameConfig, type GameState } from './sim';
 
 interface Bars {
   hp: HTMLElement;
@@ -32,7 +32,7 @@ export class SquadPanel {
       .map(
         (s) =>
           `${s.id}:${s.dead ? 1 : 0}:${selected.has(s.id) ? 1 : 0}:${
-            s.id === state.controlledId ? 1 : 0
+            s.id === localPlayer(state).controlledId ? 1 : 0
           }:${s.order.type}:${s.winded ? 1 : 0}`,
       )
       .join('|');
@@ -63,7 +63,7 @@ export class SquadPanel {
       chip.className = 'squad__chip';
       if (s.dead) chip.classList.add('squad__chip--dead');
       if (selected.has(s.id)) chip.classList.add('squad__chip--selected');
-      if (s.id === state.controlledId) chip.classList.add('squad__chip--controlled');
+      if (s.id === localPlayer(state).controlledId) chip.classList.add('squad__chip--controlled');
       if (s.winded) chip.classList.add('squad__chip--winded');
       chip.title = `${s.kind === 'drone' ? 'Drone' : 'Soldier'} ${s.id} (${s.order.type})`;
       // Keep focus off the chip so Space (jump) never "presses" it.

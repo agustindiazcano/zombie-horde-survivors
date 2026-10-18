@@ -199,7 +199,22 @@
     }
   ],
   "surfaces": [],
-  "players": [],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
   "units": [],
   "logic": {
     "mode": "waves"

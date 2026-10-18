@@ -73,6 +73,13 @@ export const MapSchema = z
     if (map.meta.size.width !== map.meta.size.depth) {
       ctx.addIssue({ code: 'custom', message: 'meta.size must be square for now' });
     }
+    if (map.logic.mode === 'waves') {
+      for (const kind of ['human', 'ai'] as const) {
+        if (!map.players.some((p) => p.kind === kind)) {
+          ctx.addIssue({ code: 'custom', message: `a waves map needs a ${kind} player` });
+        }
+      }
+    }
     const ids = new Set(map.players.map((p) => p.id));
     if (ids.size !== map.players.length) {
       ctx.addIssue({ code: 'custom', message: 'players ids must be unique' });
@@ -365,9 +372,14 @@ export type Obstacle = { x: number; z: number; halfW: number; halfD: number };
 /** The playfield the sim runs on, derived from the map (see `arenaOf`). */
 export type Arena = { halfSize: number; obstacles: Obstacle[] };
 /** The balance numbers of game.json plus the arena of the chosen map. */
-export type GameConfig = z.infer<typeof GameConfigSchema> & { arena: Arena };
+export type GameConfig = z.infer<typeof GameConfigSchema> & {
+  arena: Arena;
+  /** The players of the map (who owns what, and the teams). */
+  players: MapData['players'];
+};
 
 export const parseConfig = (raw: unknown, map: MapData): GameConfig => ({
   ...GameConfigSchema.parse(raw),
   arena: arenaOf(map),
+  players: map.players,
 });
