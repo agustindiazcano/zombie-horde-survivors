@@ -49,7 +49,8 @@ Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md
 - [ ] 🟡 Look at phases 2 and 3 in the browser: the menu flow (Start → mode → Single Player → Waves → Map 1), Esc going back, the editor layout (top bar, right panel, tabs, collapsible groups), Play / Stop and WASD panning while editing.
 - [ ] 🟡 Look at phase 4 in the browser: New / Open / Save / Export / Import in the editor, saved maps in the Waves list, delete, and that picking a map swaps the arena. Phase 4 is built; here is what it covers: built-in maps in `data/maps/` plus the user's maps in localStorage, listed together.
 - [ ] 🟡 Look at phase 5 in the browser: place / select / drag / rotate (R) / delete units and blocks, undo / redo, selection ring, Play spawning the placed squad and enemies (see [worklog](docs/worklog/2026-10-18-phase-5-place-units.md)).
-- [ ] 🟢 Phases 6–7: terrain (height, water, paint, roads), game logic tab.
+- [ ] 🟡 Look at phase 6 in the browser: raise / lower / flatten / smooth, paint, roads, water level (units should not walk into water; bullets cross it), hills under units, Map 1 unchanged ([worklog](docs/worklog/2026-10-18-phase-6-terrain.md)).
+- [ ] 🟢 Phase 7: game logic tab.
 - [ ] ⚪ Phases 8–10: vehicles with crew seats, interaction mechanics (lift and throw objects by strength, climbing, drag or carry a body, fire hazards), animals, Story mode.
 - [ ] 🟡 Answer the open questions in section 8 of the plan (steering model, first vehicle, attribute names, weapon-class XP source, downed rules, defibrillator, equipment on the models).
 

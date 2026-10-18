@@ -3,6 +3,8 @@ import { z } from 'zod';
 import catalogData from '../data/catalog.json';
 import { blankMap, exportMap, importMapFile, listMaps, pickMapFile, saveMap } from './maps';
 import type { MapData, Vec2 } from './sim';
+import { flatHeights, paintCells, plainPaint, sculpt, type SculptMode } from './terrainBrush';
+import { terrainData } from './terrainData';
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -86,13 +88,30 @@ const PROP_TURN = Math.PI / 2;
 /** The plain block's collider (half sides), as in the development arena. */
 const BLOCK_HALF = 1.5;
 const HISTORY_LIMIT = 100;
+/** Minimum time (ms) between two applications of a brush while the mouse moves. */
+const BRUSH_INTERVAL = 40;
+/** Metres a height brush moves the ground per application at strength 1. */
+const SCULPT_STEP = 0.05;
+/** Blend per application at strength 1 for the flatten and smooth brushes. */
+const BLEND_STEP = 0.05;
+
+type TerrainTool = SculptMode | 'paint' | 'road';
+const TERRAIN_TOOLS: { id: TerrainTool; label: string }[] = [
+  { id: 'raise', label: 'Raise' },
+  { id: 'lower', label: 'Lower' },
+  { id: 'flatten', label: 'Flatten' },
+  { id: 'smooth', label: 'Smooth' },
+  { id: 'paint', label: 'Paint' },
+  { id: 'road', label: 'Floors and roads' },
+];
 /** A drag shorter than this (metres) is a click, not a move. */
 const DRAG_EPSILON = 0.05;
 
 /**
  * The map editor: a top bar (Play / Stop, file and undo buttons) and a right-hand panel with five
  * tabs. It starts paused. The Units and Assets tabs place, move, rotate and delete things on the
- * map (with undo / redo); the other tabs are placeholders until the next phases. Every edit makes a
+ * map, and the Terrain tab sculpts, paints, floods and lays roads (all with undo / redo); Game
+ * logic and Players are placeholders until the next phases. Every edit makes a
  * new immutable map and hands it to the game, which redraws it.
  */
 export class Editor {
@@ -114,6 +133,20 @@ export class Editor {
   private dragging = false;
   private dragMoved = false;
   private tab: TabId = 'units';
+  private terrainTool: TerrainTool | null = null;
+  private brushSize = 5;
+  private brushStrength = 5;
+  private texture = terrainData.defaultTexture;
+  private roadTexture = terrainData.roads[0]!.id;
+  private roadWidth = 3;
+  /** A brush stroke is going on (mouse held); `strokeHeight` is what flatten pulls towards. */
+  private stroking = false;
+  private strokeRecorded = false;
+  private strokeHeight = 0;
+  private lastBrush = 0;
+  /** Index of the road being drawn (each click adds a point), or null. */
+  private roadIndex: number | null = null;
+  private waterDragging = false;
   private past: MapData[] = [];
   private future: MapData[] = [];
   private readonly title: HTMLElement;
@@ -126,7 +159,7 @@ export class Editor {
       onStop: () => void;
       onMenu: () => void;
       /** The map being edited changed (new, opened, imported, saved or edited): load it into the game. */
-      onMapChange: (map: MapData) => void;
+      onMapChange: (map: MapData, unitsKept: boolean) => void;
       /** The 3D view the map is drawn on, and the ground point under a normalised screen position. */
       canvas: HTMLElement;
       groundAt: (ndcX: number, ndcY: number) => Vec2 | null;
@@ -171,7 +204,10 @@ export class Editor {
       if (this.isEditing) e.preventDefault();
     });
     window.addEventListener('mousemove', this.onMouseMove);
-    window.addEventListener('mouseup', () => (this.dragging = false));
+    window.addEventListener('mouseup', () => {
+      this.dragging = false;
+      this.stroking = false;
+    });
     window.addEventListener('keydown', this.onKeyDown);
   }
 
@@ -194,8 +230,9 @@ export class Editor {
     this.past = [];
     this.future = [];
     this.selection = null;
+    this.roadIndex = null;
     this.title.textContent = `Map editor · ${map.meta.name}`;
-    this.actions.onMapChange(map);
+    this.actions.onMapChange(map, false);
     this.syncSelection();
   }
 
@@ -210,8 +247,9 @@ export class Editor {
   }
 
   private apply(map: MapData): void {
+    const unitsKept = map.units === this.current.units && map.players === this.current.players;
     this.current = map;
-    this.actions.onMapChange(map);
+    this.actions.onMapChange(map, unitsKept);
     this.syncSelection();
   }
 
@@ -308,7 +346,12 @@ export class Editor {
   }
 
   private onMouseDown = (e: MouseEvent): void => {
-    if (!this.isEditing || (this.tab !== 'units' && this.tab !== 'assets')) return;
+    if (!this.isEditing) return;
+    if (this.tab === 'terrain') {
+      this.terrainMouseDown(e);
+      return;
+    }
+    if (this.tab !== 'units' && this.tab !== 'assets') return;
     if (e.button === 2) {
       // A right click drops the tool; dragging with it still rotates the camera.
       this.setTool(null);
@@ -328,6 +371,15 @@ export class Editor {
   };
 
   private onMouseMove = (e: MouseEvent): void => {
+    if (this.stroking && this.isEditing) {
+      const now = performance.now();
+      const at = this.ground(e);
+      if (at && now - this.lastBrush >= BRUSH_INTERVAL) {
+        this.lastBrush = now;
+        this.brush(at);
+      }
+      return;
+    }
     const sel = this.selection;
     const now = this.selected();
     if (!this.dragging || !sel || !now || !this.isEditing) return;
@@ -421,8 +473,105 @@ export class Editor {
       this.redo();
     } else if (key === 'delete' || key === 'backspace') this.deleteSelected();
     else if (key === 'r') this.rotateSelected();
-    else if (key === 'escape') this.setTool(null);
+    else if (key === 'escape') {
+      this.setTool(null);
+      this.roadIndex = null;
+    }
   };
+
+  private terrainMouseDown(e: MouseEvent): void {
+    if (e.button === 2) {
+      // A right click ends the road being drawn; dragging with it still rotates the camera.
+      this.roadIndex = null;
+      return;
+    }
+    if (e.button !== 0 || !this.terrainTool) return;
+    const at = this.ground(e);
+    if (!at) return;
+    if (this.terrainTool === 'road') {
+      this.addRoadPoint(at);
+      return;
+    }
+    this.stroking = true;
+    this.strokeRecorded = false;
+    this.strokeHeight = this.heightsOf().at(at);
+    this.lastBrush = performance.now();
+    this.brush(at);
+  }
+
+  /** The height grid (flat if the map has none yet) and a reader for the vertex nearest a point. */
+  private heightsOf() {
+    const size = this.current.meta.size.width;
+    const heights = this.current.terrain.heights ?? flatHeights(size);
+    return {
+      heights,
+      at: (p: Vec2) => {
+        const gx = Math.min(Math.max(Math.round(p.x + size / 2), 0), size);
+        const gz = Math.min(Math.max(Math.round(p.z + size / 2), 0), size);
+        return heights[gz]![gx]!;
+      },
+    };
+  }
+
+  /** One application of the active brush at a ground point; a stroke is one history step. */
+  private brush(at: Vec2): void {
+    const tool = this.terrainTool;
+    if (!tool || tool === 'road') return;
+    const m = this.current;
+    const size = m.meta.size.width;
+    let terrain = m.terrain;
+    if (tool === 'paint') {
+      const paint = m.terrain.paint ?? plainPaint(size, terrainData.defaultTexture);
+      terrain = {
+        ...terrain,
+        paint: paintCells(paint, size / 2, at, this.brushSize, this.texture),
+      };
+    } else {
+      const amount =
+        tool === 'raise' || tool === 'lower'
+          ? SCULPT_STEP * this.brushStrength
+          : BLEND_STEP * this.brushStrength;
+      const heights = sculpt(
+        this.heightsOf().heights,
+        size / 2,
+        tool,
+        at,
+        this.brushSize,
+        amount,
+        this.strokeHeight,
+        [terrainData.minHeight, terrainData.maxHeight],
+      );
+      terrain = { ...terrain, heights };
+    }
+    this.edit({ ...m, terrain }, !this.strokeRecorded);
+    this.strokeRecorded = true;
+  }
+
+  /** Each click of the road tool adds a point; the first click starts a new road. */
+  private addRoadPoint(at: Vec2): void {
+    const m = this.current;
+    const point = { x: Math.round(at.x), z: Math.round(at.z) };
+    const index = this.roadIndex;
+    const road = index === null ? undefined : m.surfaces[index];
+    if (index === null || !road) {
+      this.roadIndex = m.surfaces.length;
+      const surface = { asset: this.roadTexture, path: [point, point], width: this.roadWidth };
+      this.edit({ ...m, surfaces: [...m.surfaces, surface] });
+      return;
+    }
+    const first = road.path[0]!;
+    const last = road.path[1]!;
+    // The first click made a two-point road at one spot; the second click moves its end.
+    const fresh = road.path.length === 2 && last.x === first.x && last.z === first.z;
+    const path = fresh ? [first, point] : [...road.path, point];
+    this.edit({ ...m, surfaces: m.surfaces.map((r, i) => (i === index ? { ...r, path } : r)) });
+  }
+
+  private setWater(level: number | null, record: boolean): void {
+    const m = this.current;
+    const heights = m.terrain.heights ?? flatHeights(m.meta.size.width);
+    this.edit({ ...m, terrain: { ...m.terrain, heights, water: level } }, record);
+  }
 
   private save(): void {
     const name = prompt('Map name', this.current.meta.name);
@@ -490,6 +639,7 @@ export class Editor {
 
   private setTab(tab: TabId): void {
     this.tab = tab;
+    this.roadIndex = null;
     this.setTool(null);
     for (const button of this.side.querySelectorAll<HTMLElement>('.editor__tab')) {
       button.classList.toggle('editor__tab--on', button.dataset.tab === tab);
@@ -547,30 +697,81 @@ export class Editor {
     this.syncSelection();
   }
 
-  /** Highlights the chosen entry of a tab that has no tool behind it yet. */
-  private pick(item: HTMLElement): void {
-    this.picked?.classList.remove('editor__item--on');
-    this.picked = this.picked === item ? null : item;
-    this.picked?.classList.add('editor__item--on');
+  private terrain(): void {
+    this.note('Pick a tool, then click or drag on the map. Water fills ground below its level.');
+    const tools = el('div', 'editor__items', this.body);
+    for (const { id, label } of TERRAIN_TOOLS) {
+      const button = el('button', 'editor__item', tools, label);
+      if (id === this.terrainTool) button.classList.add('editor__item--on');
+      button.addEventListener('click', () => {
+        this.roadIndex = null;
+        this.terrainTool = this.terrainTool === id ? null : id;
+        this.setTab('terrain');
+      });
+    }
+    const tool = this.terrainTool;
+    if (tool === 'paint') {
+      this.choice('Texture', terrainData.textures, this.texture, (id) => (this.texture = id));
+      this.slider('Brush size', 1, 20, this.brushSize, (v) => (this.brushSize = v));
+    } else if (tool === 'road') {
+      this.choice('Surface', terrainData.roads, this.roadTexture, (id) => (this.roadTexture = id));
+      this.slider('Width', 1, 8, this.roadWidth, (v) => (this.roadWidth = v));
+      this.note('Click to add points; right-click or Esc finishes the road.');
+      const clear = el('button', 'editor__item', this.body, 'Remove all roads');
+      clear.addEventListener('click', () => {
+        this.roadIndex = null;
+        this.edit({ ...this.current, surfaces: [] });
+      });
+    } else if (tool) {
+      this.slider('Brush size', 1, 20, this.brushSize, (v) => (this.brushSize = v));
+      this.slider('Strength', 1, 10, this.brushStrength, (v) => (this.brushStrength = v));
+    }
+    this.waterControls();
   }
 
-  private terrain(): void {
-    this.note(`Brushes and paint do nothing yet (${SOON.toLowerCase()}).`);
-    const tools = el('div', 'editor__items', this.body);
-    for (const name of [
-      'Raise',
-      'Lower',
-      'Flatten',
-      'Smooth',
-      'Water',
-      'Paint',
-      'Floors and roads',
-    ]) {
-      const button = el('button', 'editor__item', tools, name);
-      button.addEventListener('click', () => this.pick(button));
+  /** A checkbox and a level slider: ground below the level is wet and blocks walkers. */
+  private waterControls(): void {
+    const water = this.current.terrain.water;
+    const row = el('label', 'editor__row', this.body, 'Water');
+    const toggle = el('input', '', row);
+    toggle.type = 'checkbox';
+    toggle.checked = water !== null;
+    toggle.addEventListener('change', () => {
+      this.setWater(toggle.checked ? 0 : null, true);
+      this.setTab('terrain');
+    });
+    if (water === null) return;
+    const label = (v: number) => `Level ${v.toFixed(1)} m`;
+    const level = el('label', 'editor__row', this.body, label(water));
+    const input = el('input', 'editor__range', level);
+    input.type = 'range';
+    input.min = String(terrainData.minHeight);
+    input.max = String(terrainData.maxHeight);
+    input.step = '0.1';
+    input.value = String(water);
+    input.addEventListener('input', () => {
+      // The first move of a drag is the history step.
+      this.setWater(Number(input.value), !this.waterDragging);
+      this.waterDragging = true;
+      level.firstChild!.textContent = label(Number(input.value));
+    });
+    input.addEventListener('change', () => (this.waterDragging = false));
+  }
+
+  private choice(
+    label: string,
+    options: { id: string; name: string }[],
+    value: string,
+    onPick: (id: string) => void,
+  ): void {
+    const row = el('label', 'editor__row', this.body, label);
+    const select = el('select', 'editor__select', row);
+    for (const o of options) {
+      const option = el('option', '', select, o.name);
+      option.value = o.id;
     }
-    this.slider('Brush size', 1, 20, 5);
-    this.slider('Strength', 1, 10, 5);
+    select.value = value;
+    select.addEventListener('change', () => onPick(select.value));
   }
 
   private logic(): void {
@@ -598,13 +799,20 @@ export class Editor {
     add.disabled = true;
   }
 
-  private slider(label: string, min: number, max: number, value: number): void {
+  private slider(
+    label: string,
+    min: number,
+    max: number,
+    value: number,
+    onInput: (value: number) => void,
+  ): void {
     const row = el('label', 'editor__row', this.body, label);
     const input = el('input', 'editor__range', row);
     input.type = 'range';
     input.min = String(min);
     input.max = String(max);
     input.value = String(value);
+    input.addEventListener('input', () => onInput(Number(input.value)));
   }
 
   private field(label: string, options: string[]): void {

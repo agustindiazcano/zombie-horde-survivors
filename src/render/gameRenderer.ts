@@ -1,5 +1,12 @@
 import * as THREE from 'three';
-import { getSoldier, localPlayer, type GameConfig, type GameState, type Vec2 } from '../sim';
+import {
+  getSoldier,
+  heightAt,
+  localPlayer,
+  type GameConfig,
+  type GameState,
+  type Vec2,
+} from '../sim';
 import { buildArena } from './arena';
 import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
@@ -190,6 +197,11 @@ export class GameRenderer {
   }
 
   private editMarker: THREE.Mesh | null = null;
+
+  /** Terrain height under a point of the loaded map. */
+  private groundAt(x: number, z: number): number {
+    return heightAt(this.config.arena.terrain.heights, this.halfSize, x, z);
+  }
 
   /** Drops every unit view, for a new map whose units reuse the same ids with other types. */
   resetUnits(): void {
@@ -402,7 +414,8 @@ export class GameRenderer {
     const pz = lerp(leader.prev.z, leader.pos.z, alpha);
     const drone = leader.kind === 'drone';
     const crouch = this.stanceVisual.get(leader.id)?.crouch ?? 0;
-    const baseY = drone ? this.droneHeight : lerp(leader.prevY, leader.y, alpha);
+    const baseY =
+      this.groundAt(px, pz) + (drone ? this.droneHeight : lerp(leader.prevY, leader.y, alpha));
     const eyeY = baseY + (drone ? 0 : EYE_HEIGHT - CROUCH_EYE_DROP * crouch);
 
     // Keep the top-down focus under the soldier so leaving this mode is seamless.
@@ -443,12 +456,13 @@ export class GameRenderer {
       if (!mesh) {
         mesh = new THREE.Mesh(this.crateGeometry, this.crateMaterial);
         mesh.castShadow = true;
-        mesh.position.set(c.pos.x, 0.3, c.pos.z);
+        mesh.position.set(c.pos.x, this.groundAt(c.pos.x, c.pos.z) + 0.3, c.pos.z);
         mesh.rotation.y = c.id * 1.7;
         this.crates.set(c.id, mesh);
         this.scene.add(mesh);
       }
-      mesh.position.y = 0.3 + Math.sin(this.clock * 2 + c.id) * 0.05;
+      mesh.position.y =
+        this.groundAt(c.pos.x, c.pos.z) + 0.3 + Math.sin(this.clock * 2 + c.id) * 0.05;
     }
     for (const [id, mesh] of this.crates) {
       if (live.has(id)) continue;
@@ -494,7 +508,8 @@ export class GameRenderer {
       );
 
       // Applied after the view's own update, which may reset its root transform.
-      view.object.position.y = drone ? this.droneHeight : lerp(s.prevY, s.y, alpha);
+      const ground = this.groundAt(view.object.position.x, view.object.position.z);
+      view.object.position.y = ground + (drone ? this.droneHeight : lerp(s.prevY, s.y, alpha));
       if (drone) continue;
       let vis = this.stanceVisual.get(s.id);
       if (!vis) {
@@ -554,7 +569,9 @@ export class GameRenderer {
       }
       entry.seenFrame = this.frame;
       const { object } = entry.view;
-      object.position.set(lerp(z.prev.x, z.pos.x, alpha), 0, lerp(z.prev.z, z.pos.z, alpha));
+      const zx = lerp(z.prev.x, z.pos.x, alpha);
+      const zz = lerp(z.prev.z, z.pos.z, alpha);
+      object.position.set(zx, this.groundAt(zx, zz), zz);
       object.rotation.y = z.facing;
       object.scale.setScalar(z.size);
       object.visible = !z.exploded;
@@ -572,7 +589,7 @@ export class GameRenderer {
         this.healthBars.show(
           z.id,
           object.position.x,
-          (this.factories.barHeights[entry.type] ?? 2.2) * z.size,
+          object.position.y + (this.factories.barHeights[entry.type] ?? 2.2) * z.size,
           object.position.z,
           0.6 + z.radius * 1.2,
           z.health / z.maxHealth,

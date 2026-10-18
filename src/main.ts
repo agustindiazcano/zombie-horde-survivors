@@ -142,7 +142,7 @@ async function main(): Promise<void> {
       resetGame();
       controlSoldier(state, null);
     },
-    onMapChange: (map) => loadMap(map),
+    onMapChange: (map, unitsKept) => loadMap(map, unitsKept),
     onMenu: () => {
       editor.close();
       menu.show();
@@ -183,11 +183,13 @@ async function main(): Promise<void> {
   };
 
   /** Makes the sim and the 3D scene use another map (the config object is shared, so edit it in place). */
-  const loadMap = (map: MapData) => {
+  const loadMap = (map: MapData, unitsKept = false) => {
     config.arena = arenaOf(map);
     config.players = map.players;
     config.placed = map.units;
     renderer.setArena(config.arena);
+    // An editor edit that left the units alone (terrain, props) only redraws the ground.
+    if (unitsKept) return;
     renderer.resetUnits();
     resetGame();
   };
