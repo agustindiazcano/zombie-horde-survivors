@@ -46,6 +46,22 @@ const mapUnit = z
 
 const difficultyId = z.enum(['easy', 'normal', 'hard']);
 
+/** A story goal. The mission is won when every objective is done; the squad dying still loses. */
+const objective = z.discriminatedUnion('kind', [
+  /** Walk any living soldier to a spot. */
+  z
+    .object({ kind: z.literal('reach'), x: z.number(), z: z.number(), radius: positive.default(3) })
+    .strict(),
+  /** Kill this many enemies. */
+  z.object({ kind: z.literal('kills'), count: z.number().int().positive() }).strict(),
+  /** Clear this wave. */
+  z.object({ kind: z.literal('survive'), wave: z.number().int().positive() }).strict(),
+  /** Kill this many mini bosses. */
+  z.object({ kind: z.literal('boss'), count: z.number().int().positive().default(1) }).strict(),
+]);
+
+export type Objective = z.infer<typeof objective>;
+
 /**
  * Per-map rules. Everything but `mode` is optional: a field that is present replaces the global
  * value of data/game.json for this map, a missing one keeps it.
@@ -86,6 +102,8 @@ const mapLogic = z
       .optional(),
     /** Where enemies appear (picked at random); empty or missing = anywhere along the map edge. */
     spawnPoints: z.array(point).optional(),
+    /** Story missions: the goals to win (a missing or empty list never ends the run). */
+    objectives: z.array(objective).optional(),
   })
   .strict();
 
@@ -145,10 +163,13 @@ export const MapSchema = z
     if (paint && (paint.length !== n || paint.some((r) => r.length !== n))) {
       ctx.addIssue({ code: 'custom', message: 'terrain.paint must be size x size' });
     }
-    if (map.logic.mode === 'waves') {
+    if (map.logic.mode === 'waves' || map.logic.mode === 'story') {
       for (const kind of ['human', 'ai'] as const) {
         if (!map.players.some((p) => p.kind === kind)) {
-          ctx.addIssue({ code: 'custom', message: `a waves map needs a ${kind} player` });
+          ctx.addIssue({
+            code: 'custom',
+            message: `a ${map.logic.mode} map needs a ${kind} player`,
+          });
         }
       }
     }
@@ -694,6 +715,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   level: z.infer<typeof difficultyScale>;
   /** Where enemies appear; empty = along the map edge. */
   spawnPoints: Vec2[];
+  /** Story goals; empty in waves maps and in story maps that set none. */
+  objectives: Objective[];
   /** Stat sheets by unit type (from data/units.json). */
   units: UnitsData;
   /** The item catalog (from data/items.json), by item id. */
@@ -723,7 +746,10 @@ type GlobalRules = Pick<
   z.infer<typeof GameConfigSchema>,
   'waves' | 'boss' | 'enemies' | 'difficulty'
 >;
-type MapRules = Pick<GameConfig, 'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints'>;
+type MapRules = Pick<
+  GameConfig,
+  'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints' | 'objectives'
+>;
 
 /**
  * The wave, enemy and boss rules of one map: the global ones of game.json with the map's overrides
@@ -753,6 +779,7 @@ export function mapRules(global: GlobalRules, logic: MapLogic): MapRules {
     enemies,
     level: global.difficulty[logic.difficulty ?? 'normal'],
     spawnPoints: logic.spawnPoints ?? [],
+    objectives: logic.mode === 'story' ? (logic.objectives ?? []) : [],
   };
 }
 

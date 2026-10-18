@@ -203,6 +203,11 @@ async function main(): Promise<void> {
     config.players = map.players;
     config.placed = map.units;
     renderer.setArena(config.arena);
+    renderer.setGoalMarkers(
+      config.objectives.flatMap((o) =>
+        o.kind === 'reach' ? [{ x: o.x, z: o.z, radius: o.radius }] : [],
+      ),
+    );
     // An editor edit that left the units alone (terrain, props) only redraws the ground.
     if (unitsKept) return;
     renderer.resetUnits();

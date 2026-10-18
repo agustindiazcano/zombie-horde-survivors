@@ -8,6 +8,8 @@ export interface MapEntry {
   width: number;
   depth: number;
   builtIn: boolean;
+  /** Story missions and survival maps are listed on different screens. */
+  mode: MapData['logic']['mode'];
   /** Built-in maps can never be deleted; saved ones can. */
   deletable: boolean;
   map: MapData;
@@ -27,6 +29,7 @@ const entryOf = (map: MapData, builtIn: boolean): MapEntry => ({
   width: map.meta.size.width,
   depth: map.meta.size.depth,
   builtIn,
+  mode: map.logic.mode,
   deletable: !builtIn,
   map,
 });

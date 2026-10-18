@@ -4,10 +4,12 @@ import {
   levelInfo,
   localPlayer,
   maxHealthOf,
+  objectiveProgress,
   gunOf,
   weaponDef,
   type GameConfig,
   type GameState,
+  type Objective,
 } from './sim';
 
 const BANNER_MS = 1800;
@@ -63,6 +65,8 @@ export class Hud {
   private readonly hint: HTMLElement;
   private readonly crosshair: HTMLElement;
   private readonly gameOver: HTMLElement;
+  private readonly gameOverTitle: HTMLElement;
+  private readonly objectives: HTMLElement;
   private readonly summary: HTMLElement;
   private bannerTimer = 0;
   // Last rendered values, so the DOM is only touched when something changes.
@@ -72,6 +76,7 @@ export class Hud {
     wave: -1,
     kills: -1,
     over: false,
+    objectives: '',
     countdown: '',
     focus: -1,
     weapon: '',
@@ -96,6 +101,7 @@ export class Hud {
     this.gold = el('span', 'hud__gold', stats);
     this.level = el('span', 'hud__level', stats);
     this.xpFill = el('div', 'hud__xp-fill', el('div', 'hud__xp', root));
+    this.objectives = el('ul', 'hud__objectives', root);
     this.banner = el('div', 'hud__banner', root);
     this.damage = el('div', 'hud__damage', root);
     this.countdown = el('div', 'hud__countdown', root);
@@ -107,7 +113,7 @@ export class Hud {
     el('p', '', this.pause, 'Press P, I or Esc to resume');
 
     this.gameOver = el('div', 'hud__gameover', root);
-    el('h1', '', this.gameOver, 'GAME OVER');
+    this.gameOverTitle = el('h1', '', this.gameOver, 'GAME OVER');
     this.summary = el('p', '', this.gameOver);
     const button = el('button', '', this.gameOver, 'Restart (R)');
     button.addEventListener('click', onRestart);
@@ -124,6 +130,7 @@ export class Hud {
       wave: -1,
       kills: -1,
       over: false,
+      objectives: '',
       countdown: '',
       focus: -1,
       weapon: '',
@@ -213,15 +220,43 @@ export class Hud {
       this.countdown.textContent = countdown;
     }
 
-    const over = state.status === 'gameover';
+    this.updateObjectives(state);
+
+    const over = state.status !== 'playing';
     if (over !== this.shown.over) {
       this.shown.over = over;
       this.gameOver.classList.toggle('hud__gameover--visible', over);
       if (over) {
+        const won = state.status === 'victory';
+        this.gameOverTitle.textContent = won ? 'MISSION COMPLETE' : 'GAME OVER';
         const best = Math.max(loadBest(), state.kills);
         saveBest(best);
-        this.summary.textContent = `You survived to wave ${state.wave} with ${state.kills} kills. Best: ${best}`;
+        this.summary.textContent = `${won ? 'You cleared the mission at' : 'You survived to'} wave ${state.wave} with ${state.kills} kills. Best: ${best}`;
       }
+    }
+  }
+
+  /** The story goals with their progress; hidden when the map has none. */
+  private updateObjectives(state: GameState): void {
+    const list = this.config.objectives.map((o, i) => {
+      const [now, target] = objectiveProgress(state, o);
+      const done = state.objectivesDone[i] === true;
+      return {
+        text: `${done ? '✔' : '☐'} ${objectiveLabel(o)}${target > 1 ? ` (${now}/${target})` : ''}`,
+        done,
+      };
+    });
+    const key = list.map((l) => l.text).join('|');
+    if (key === this.shown.objectives) return;
+    this.shown.objectives = key;
+    this.objectives.replaceChildren();
+    for (const l of list) {
+      el(
+        'li',
+        l.done ? 'hud__objective hud__objective--done' : 'hud__objective',
+        this.objectives,
+        l.text,
+      );
     }
   }
 
@@ -242,5 +277,19 @@ export class Hud {
       () => this.banner.classList.remove('hud__banner--visible'),
       BANNER_MS,
     );
+  }
+}
+
+/** A short sentence for a story goal, shared by the HUD and the editor. */
+export function objectiveLabel(o: Objective): string {
+  switch (o.kind) {
+    case 'reach':
+      return 'Reach the marked spot';
+    case 'kills':
+      return `Kill ${o.count} enemies`;
+    case 'survive':
+      return `Clear wave ${o.wave}`;
+    case 'boss':
+      return o.count === 1 ? 'Kill a mini boss' : `Kill ${o.count} mini bosses`;
   }
 }

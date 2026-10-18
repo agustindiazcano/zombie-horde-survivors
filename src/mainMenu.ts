@@ -144,10 +144,11 @@ export class MainMenu {
     } else if (screen === 'single') {
       option('Story', 'Missions with objectives', () => this.go('story'));
       option('Waves', 'Survive endless waves on a map', () => this.go('maps'));
-    } else if (screen === 'story') {
-      el('p', 'menu__empty', panel, 'No missions yet. Story mode is coming later.');
     } else {
-      for (const map of listMaps()) {
+      const wanted = screen === 'story' ? 'story' : 'waves';
+      const entries = listMaps().filter((m) => m.mode === wanted);
+      if (entries.length === 0) el('p', 'menu__empty', panel, 'No missions yet.');
+      for (const map of entries) {
         const wrap = el('div', 'menu__maprow', list);
         const row = option(map.name, `${map.width} × ${map.depth}`, () => this.play(map), wrap);
         if (map.deletable) {
@@ -156,7 +157,7 @@ export class MainMenu {
           del.addEventListener('click', () => {
             if (!confirm(`Delete "${map.name}"?`)) return;
             deleteMap(map.id);
-            this.go('maps');
+            this.go(screen);
           });
         }
         el(
@@ -171,7 +172,7 @@ export class MainMenu {
           if (!file) return;
           try {
             await importMapFile(file);
-            this.go('maps');
+            this.go(screen);
           } catch (e) {
             alert((e as Error).message);
           }

@@ -294,3 +294,23 @@
 .squad__fill--armor {
   background: #9fb3c8;
 }
+
+.hud__objectives {
+  position: absolute;
+  top: 56px;
+  left: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  text-shadow: 0 1px 3px #000;
+}
+
+.hud__objectives:empty {
+  display: none;
+}
+
+.hud__objective--done {
+  color: #7be07b;
+  text-decoration: line-through;
+}

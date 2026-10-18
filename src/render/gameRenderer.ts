@@ -200,6 +200,7 @@ export class GameRenderer {
 
   private editMarker: THREE.Mesh | null = null;
   private spawnMarkers: THREE.Group | null = null;
+  private goalMarkers: THREE.Group | null = null;
 
   /** Terrain height under a point of the loaded map. */
   private groundAt(x: number, z: number): number {
@@ -262,6 +263,28 @@ export class GameRenderer {
       ring.rotation.x = -Math.PI / 2;
       ring.position.set(p.x, this.groundAt(p.x, p.z) + 0.06, p.z);
       this.spawnMarkers.add(ring);
+    }
+  }
+
+  /** Green rings on the ground for the "reach this spot" goals of a story map (empty hides them). */
+  setGoalMarkers(goals: { x: number; z: number; radius: number }[]): void {
+    this.goalMarkers ??= new THREE.Group();
+    if (!this.goalMarkers.parent) this.scene.add(this.goalMarkers);
+    for (const child of this.goalMarkers.children) {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        child.material.dispose();
+      }
+    }
+    this.goalMarkers.clear();
+    for (const g of goals) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(Math.max(0.1, g.radius - 0.3), g.radius, 48),
+        new THREE.MeshBasicMaterial({ color: 0x4aff7a, side: THREE.DoubleSide }),
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(g.x, this.groundAt(g.x, g.z) + 0.07, g.z);
+      this.goalMarkers.add(ring);
     }
   }
 

@@ -94,6 +94,7 @@ export function damageZombie(
   // A burst enemy has no death animation to wait for.
   zombie.deathTimer = exploded ? EXPLODED_LINGER : config.zombie.deathDuration;
   state.kills++;
+  if (zombie.boss) state.bossKills++;
   if (killer) {
     killer.kills++;
     const xp = rewardOf(config, zombie).xp;

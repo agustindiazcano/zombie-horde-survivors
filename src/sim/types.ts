@@ -194,6 +194,8 @@ export type SimEvent =
   | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
+  | { type: 'objectiveDone'; index: number }
+  | { type: 'victory' }
   | { type: 'gameOver' };
 
 /** Squad-wide multipliers from perks (all 1 at the start; regen is HP/s). */
@@ -208,7 +210,7 @@ export interface Mods {
 
 export interface GameState {
   time: number;
-  status: 'playing' | 'gameover';
+  status: 'playing' | 'gameover' | 'victory';
   soldiers: Soldier[];
   players: Player[];
   /** The player at this keyboard; its `controlledId` is the unit under direct control. */
@@ -236,6 +238,10 @@ export interface GameState {
   purchases: Record<string, number>;
   wave: number;
   kills: number;
+  /** Mini bosses killed so far (story objectives). */
+  bossKills: number;
+  /** One flag per story objective of the map; a done one stays done. */
+  objectivesDone: boolean[];
   spawner: Spawner;
   rng: Rng;
   /** Events produced by the last step; cleared at the start of each step. */

@@ -3,7 +3,8 @@ import { z } from 'zod';
 import catalogData from '../data/catalog.json';
 import gameData from '../data/game.json';
 import { blankMap, exportMap, importMapFile, listMaps, pickMapFile, saveMap } from './maps';
-import type { MapData, MapLogic, Vec2 } from './sim';
+import { objectiveLabel } from './hud';
+import type { MapData, MapLogic, Objective, Vec2 } from './sim';
 import { flatHeights, paintCells, plainPaint, sculpt, type SculptMode } from './terrainBrush';
 import { terrainData } from './terrainData';
 
@@ -149,7 +150,8 @@ export class Editor {
   private roadIndex: number | null = null;
   private waterDragging = false;
   /** The Game logic tab is armed: the next map clicks add spawn points. */
-  private spawnTool = false;
+  /** Which click-to-place tool of the Game logic tab is armed. */
+  private spawnTool: 'spawn' | 'goal' | null = null;
   private past: MapData[] = [];
   private future: MapData[] = [];
   private readonly title: HTMLElement;
@@ -304,7 +306,7 @@ export class Editor {
     this.actions.onMark(sel ? sel.at : null, sel?.radius ?? 1);
     this.actions.onSpawnMarks(this.isEditing ? (this.current.logic.spawnPoints ?? []) : null);
     this.info.textContent = this.spawnTool
-      ? 'Placing spawn points. Click the map to add one; right-click or Esc to stop.'
+      ? `Placing ${this.spawnTool === 'goal' ? 'a goal spot' : 'spawn points'}. Click the map to add one; right-click or Esc to stop.`
       : this.tool
         ? `Placing: ${this.tool.name}. Click the map to place; right-click or Esc to stop.`
         : sel
@@ -489,7 +491,7 @@ export class Editor {
       this.setTool(null);
       this.roadIndex = null;
       if (this.spawnTool) {
-        this.spawnTool = false;
+        this.spawnTool = null;
         this.syncSelection();
         if (this.tab === 'logic') this.redrawLogic();
       }
@@ -657,7 +659,7 @@ export class Editor {
   private setTab(tab: TabId): void {
     this.tab = tab;
     this.roadIndex = null;
-    this.spawnTool = false;
+    this.spawnTool = null;
     this.setTool(null);
     for (const button of this.side.querySelectorAll<HTMLElement>('.editor__tab')) {
       button.classList.toggle('editor__tab--on', button.dataset.tab === tab);
@@ -796,7 +798,7 @@ export class Editor {
   private logicMouseDown(e: MouseEvent): void {
     if (!this.spawnTool) return;
     if (e.button === 2) {
-      this.spawnTool = false;
+      this.spawnTool = null;
       this.syncSelection();
       this.redrawLogic();
       return;
@@ -805,6 +807,17 @@ export class Editor {
     const at = this.ground(e);
     if (!at) return;
     const point = { x: Math.round(at.x * 2) / 2, z: Math.round(at.z * 2) / 2 };
+    if (this.spawnTool === 'goal') {
+      this.spawnTool = null;
+      this.syncSelection();
+      this.setLogic({
+        objectives: [
+          ...(this.current.logic.objectives ?? []),
+          { kind: 'reach', ...point, radius: 4 },
+        ],
+      });
+      return;
+    }
     this.setLogic({ spawnPoints: [...(this.current.logic.spawnPoints ?? []), point] });
   }
 
@@ -873,10 +886,12 @@ export class Editor {
     this.note('Rules here replace the ones of game.json for this map only.');
     const mode = el('label', 'editor__row', this.body, 'Mode');
     const modeSelect = el('select', 'editor__select', mode);
-    el('option', '', modeSelect, 'Waves');
-    const story = el('option', '', modeSelect, 'Story');
-    story.disabled = true;
-    story.title = SOON;
+    el('option', '', modeSelect, 'Waves').value = 'waves';
+    el('option', '', modeSelect, 'Story').value = 'story';
+    modeSelect.value = logic.mode;
+    modeSelect.addEventListener('change', () =>
+      this.setLogic({ mode: modeSelect.value as MapLogic['mode'] }),
+    );
     const difficulty = el('label', 'editor__row', this.body, 'Difficulty');
     const levelSelect = el('select', 'editor__select', difficulty);
     for (const [id, name] of [
@@ -984,11 +999,11 @@ export class Editor {
       'button',
       'editor__item',
       spawns,
-      this.spawnTool ? 'Stop adding' : '+ Add spawn points',
+      this.spawnTool === 'spawn' ? 'Stop adding' : '+ Add spawn points',
     );
-    if (this.spawnTool) add.classList.add('editor__item--on');
+    if (this.spawnTool === 'spawn') add.classList.add('editor__item--on');
     add.addEventListener('click', () => {
-      this.spawnTool = !this.spawnTool;
+      this.spawnTool = this.spawnTool === 'spawn' ? null : 'spawn';
       this.syncSelection();
       this.redrawLogic();
     });
@@ -1002,13 +1017,51 @@ export class Editor {
       });
     });
 
-    for (const name of ['Objectives', 'Win / lose rules']) {
-      el('span', 'editor__empty', section(name), `Empty (${SOON.toLowerCase()})`);
+    // Story goals: the mission is won when all are done; losing is the squad going down.
+    const goals = section('Objectives', logic.mode === 'story');
+    const objectives = logic.objectives ?? [];
+    if (logic.mode !== 'story') {
+      el('span', 'editor__empty', goals, 'Only used when the mode is Story.');
     }
+    el(
+      'span',
+      'editor__empty',
+      goals,
+      objectives.length === 0
+        ? 'None: the mission never ends by itself.'
+        : 'All of these must be done to win.',
+    );
+    const setObjectives = (next: Objective[]) =>
+      this.setLogic({ objectives: next.length > 0 ? next : undefined });
+    objectives.forEach((o, i) => {
+      const row = el('div', 'editor__row', goals);
+      el('span', '', row, objectiveLabel(o));
+      const del = el('button', 'editor__btn', row, 'Remove');
+      del.addEventListener('click', () => setObjectives(objectives.filter((_, j) => j !== i)));
+    });
+    const addGoal = (label: string, make: () => Objective) => {
+      const b = el('button', 'editor__item', goals, label);
+      b.addEventListener('click', () => setObjectives([...objectives, make()]));
+    };
+    const spot = el(
+      'button',
+      'editor__item',
+      goals,
+      this.spawnTool === 'goal' ? 'Click the map…' : '+ Reach a spot',
+    );
+    if (this.spawnTool === 'goal') spot.classList.add('editor__item--on');
+    spot.addEventListener('click', () => {
+      this.spawnTool = this.spawnTool === 'goal' ? null : 'goal';
+      this.syncSelection();
+      this.redrawLogic();
+    });
+    addGoal('+ Kill 25 enemies', () => ({ kind: 'kills', count: 25 }));
+    addGoal('+ Clear wave 3', () => ({ kind: 'survive', wave: 3 }));
+    addGoal('+ Kill a mini boss', () => ({ kind: 'boss', count: 1 }));
     const reset = el('button', 'editor__item', this.body, 'Reset to the global rules');
     reset.addEventListener('click', () => {
-      this.spawnTool = false;
-      this.edit({ ...this.current, logic: { mode: logic.mode } });
+      this.spawnTool = null;
+      this.edit({ ...this.current, logic: { mode: logic.mode, objectives: logic.objectives } });
       this.setTab('logic');
     });
   }

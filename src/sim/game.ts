@@ -1,6 +1,7 @@
 import { FIXED_DT } from './constants';
 import type { GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
+import { updateObjectives } from './objectives';
 import { updateRevives } from './revive';
 import { createSquad, updateSoldiers } from './soldiers';
 import { createVehicle, updateVehicles } from './vehicles';
@@ -43,6 +44,8 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     purchases: {},
     wave: 0,
     kills: 0,
+    bossKills: 0,
+    objectivesDone: config.objectives.map(() => false),
     spawner: { phase: 'intermission', timer: config.waves.intermission, toSpawn: 0 },
     rng: createRng(seed),
     events: [],
@@ -71,7 +74,7 @@ export function step(
   dt: number = FIXED_DT,
 ): void {
   state.events.length = 0;
-  if (state.status === 'gameover') return;
+  if (state.status !== 'playing') return;
 
   state.time += dt;
 
@@ -90,9 +93,13 @@ export function step(
   updatePickups(state, config, dt);
   updateWaves(state, config, dt);
   updateZombies(state, config, dt);
+  updateObjectives(state, config);
 
   // The run ends when no soldier is left on their feet: a downed soldier needs a standing ally.
-  if (state.soldiers.every((s) => s.dead || s.downed || s.kind === 'drone')) {
+  if (
+    state.status === 'playing' &&
+    state.soldiers.every((s) => s.dead || s.downed || s.kind === 'drone')
+  ) {
     state.status = 'gameover';
     state.events.push({ type: 'gameOver' });
   }
