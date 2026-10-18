@@ -46,21 +46,21 @@ Full plan and decisions: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and
 ```text
 Leé CLAUDE.md, LASTCONTEXT.md, PENDING.md y docs/PLAN-modes-and-map-editor.md. Respondeme en español, con tablas y prioridades con semáforo.
 
-Estado: hechas las fases 1 a 6, en ocho ramas apiladas sin PR: feat/map-format (1 y 1b), feat/unit-stats (1c), feat/items-equipment (1d), feat/downed-state (1e), feat/menu-flow (2 y 3), feat/save-maps (4), feat/place-units (5) y feat/terrain (6, la última; cada una sale de la anterior). main sigue en 6c7429f. En la raíz hay un GLB duplicado sin commitear (Meshy_AI_Digital_Camo_Soldier_All_Animations.glb): ignoralo, no lo commitees.
+Estado: hechas las fases 1 a 8, en diez ramas apiladas sin PR: feat/map-format (1 y 1b), feat/unit-stats (1c), feat/items-equipment (1d), feat/downed-state (1e), feat/menu-flow (2 y 3), feat/save-maps (4), feat/place-units (5), feat/terrain (6), feat/game-logic (7) y feat/vehicles (8, la última; cada una sale de la anterior). main sigue en 6c7429f. En la raíz hay un GLB duplicado sin commitear (Meshy_AI_Digital_Camo_Soldier_All_Animations.glb): ignoralo, no lo commitees.
 
-Antes de empezar: git status y ramas. Si ya mergeé algo, decime qué falta en main antes de ramificar. Si no, seguí desde feat/terrain con una rama nueva (feat/game-logic) y avisame que los PRs deben ir en orden.
+Antes de empezar: git status y ramas. Si ya mergeé algo, decime qué falta en main antes de ramificar. Si no, seguí desde feat/vehicles con una rama nueva y avisame que los PRs deben ir en orden.
 
 Las decisiones están en la sección 8 del plan (no las reabras). Sin tests nuevos, los 48 siguen verdes, nunca pushear a main, PR solo si lo pido.
 
-Si te cuento que algo de las fases 5 o 6 se ve o se siente mal, arreglalo primero en su rama (feat/place-units o feat/terrain) y rebaseá lo que dependa.
+Si te cuento que algo de las fases 5 a 8 se ve o se siente mal, arreglalo primero en su rama y rebaseá lo que dependa.
 
-Si no, empezá por la FASE 7 (pestaña Game logic): dificultad, oleadas (cantidad, mezcla de enemigos, jefes) y puntos de spawn por mapa, que reemplazan los valores globales de game.json. Antes de cada commit: lint, format:check, typecheck, tests (leé el resultado), build y check:assets; commits chicos en inglés con Co-Authored-By. Al terminar actualizá PENDING/LASTCONTEXT (lo hecho a docs/worklog/) y esperá mi visto bueno antes de seguir.
+Si no, proponeme el siguiente paso entre: 8b (mecánicas de interacción: levantar y tirar objetos, trepar, arrastrar cuerpos, fuego), 9 (animales) o 10 (modo Story), con tu recomendación, y esperá mi elección. Antes de cada commit: lint, format:check, typecheck, tests (leé el resultado), build y check:assets; commits chicos en inglés con Co-Authored-By. Al terminar actualizá PENDING/LASTCONTEXT (lo hecho a docs/worklog/) y esperá mi visto bueno antes de seguir.
 
-Pendiente de verificar visualmente (yo lo miro): el flujo de menú y el editor (fases 2 a 6): poner, mover, rotar y borrar unidades y bloques, deshacer y rehacer, Play con lo colocado, esculpir, pintar, caminos y agua (las unidades no deben entrar al agua; las balas sí la cruzan), colinas bajo las unidades, Map 1 igual que antes, animaciones del marine y su tinte verde, la ventana de unidad con atributos, la mochila de 10 y el estado herido con botiquín y desfibrilador.
+Pendiente de verificar visualmente (yo lo miro): menú y editor (fases 2 a 6); pestaña Game logic (dificultad, oleadas, mezcla de enemigos, jefes, puntos de spawn en rojo, Play con eso); el jeep (ponerlo en el editor, V para subir, manejar con WASD, pasajeros que disparan, zombies que muerden el casco, V para bajar); animaciones del marine; ventana de unidad con atributos; mochila de 10; estado herido.
 
-Limitaciones conocidas del terreno: los pickups quedan a altura 0, el clic del editor ignora las colinas (usa el plano y = 0), las pendientes no bloquean y los bloques no se inclinan.
+Limitaciones conocidas: pickups a altura 0; el clic del editor ignora colinas (plano y = 0); las pendientes no bloquean; un punto de spawn puede caer dentro de un obstáculo; el jeep es de cajas (sin modelo), sin órdenes de RTS para subir, sin restos ni efectos al destruirse, sin barra de vida.
 
-Preguntas abiertas que no bloquean: cómo se ven las armas en los modelos (huesos y de dónde salen las mallas: preguntámelo antes de la parte visual), manejo de vehículos (recomendado arcade), primer vehículo terrestre, y si renombro los atributos (hoy: strength, dexterity, constitution, perception, intelligence, charisma).
+Preguntas abiertas que no bloquean: cómo se ven las armas en los modelos (huesos y de dónde salen las mallas: preguntámelo antes de la parte visual), modelo real de vehículo, y si renombro los atributos (hoy: strength, dexterity, constitution, perception, intelligence, charisma).
 ```
 
 ## Gotchas (they bit before)
