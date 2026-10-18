@@ -36,6 +36,8 @@ const mapUnit = z
     ...point.shape,
     /** Id of the owning player. */
     owner: z.string().min(1),
+    /** Heading in radians (0 faces +Z). */
+    rotation: z.number().optional(),
     hold: z.boolean().optional(),
   })
   .strict();
@@ -102,9 +104,13 @@ export const parseMap = (raw: unknown): MapData => MapSchema.parse(raw);
 export function arenaOf(map: MapData): Arena {
   return {
     halfSize: map.meta.size.width / 2,
-    obstacles: map.props.flatMap((p) =>
-      p.collider ? [{ x: p.x, z: p.z, halfW: p.collider.halfW, halfD: p.collider.halfD }] : [],
-    ),
+    obstacles: map.props.flatMap((p) => {
+      if (!p.collider) return [];
+      // Colliders are axis-aligned: a quarter turn swaps the sides.
+      const turned = Math.round(p.rotation / (Math.PI / 2)) % 2 !== 0;
+      const { halfW, halfD } = p.collider;
+      return [{ x: p.x, z: p.z, halfW: turned ? halfD : halfW, halfD: turned ? halfW : halfD }];
+    }),
   };
 }
 
@@ -561,6 +567,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   arena: Arena;
   /** The players of the map (who owns what, and the teams). */
   players: MapData['players'];
+  /** Units placed on the map; the squad and the starting enemies come from here when present. */
+  placed: MapData['units'];
   /** Stat sheets by unit type (from data/units.json). */
   units: UnitsData;
   /** The item catalog (from data/items.json), by item id. */
@@ -599,6 +607,7 @@ export function parseConfig(
     ...game,
     arena: arenaOf(map),
     players: map.players,
+    placed: map.units,
     units: UnitsSchema.parse(units),
     items: catalog,
   };

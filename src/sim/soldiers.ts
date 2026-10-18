@@ -23,69 +23,67 @@ function sheetOf(config: GameConfig, unitType: string) {
   };
 }
 
+/** A fresh soldier or drone at `pos`, ready to follow its leader. */
+function newUnit(
+  config: GameConfig,
+  kind: 'soldier' | 'drone',
+  id: number,
+  owner: string,
+  pos: Vec2,
+  facing = 0,
+): Soldier {
+  return {
+    id,
+    owner,
+    kind,
+    pos: { ...pos },
+    prev: { ...pos },
+    facing,
+    health: config.player.maxHealth,
+    dead: false,
+    fireCooldown: 0,
+    y: 0,
+    prevY: 0,
+    vy: 0,
+    order: { type: 'follow' },
+    equipment: {
+      rightHand: kind === 'soldier' ? config.squad.startWeapon : null,
+      leftHand: null,
+      chest: null,
+    },
+    backpack: [],
+    xp: 0,
+    kills: 0,
+    stamina: config.stance.staminaMax,
+    winded: false,
+    armor: 0,
+    downed: false,
+    bleedOut: 0,
+    deadTime: 0,
+    reviveProgress: 0,
+    ...sheetOf(config, kind),
+  };
+}
+
 export function createSquad(config: GameConfig, owner: string): Soldier[] {
+  const placed = config.placed.filter(
+    (u) => u.owner === owner && (u.type === 'soldier' || u.type === 'drone'),
+  );
+  // A map that places the squad by hand replaces the default ring around the origin.
+  if (placed.length > 0) {
+    return placed.map((u, i) =>
+      newUnit(config, u.type as 'soldier' | 'drone', i + 1, owner, u, u.rotation),
+    );
+  }
   const n = config.squad.count;
   const soldiers: Soldier[] = Array.from({ length: n }, (_, i) => {
     // The first soldier stands at the origin; the rest form a ring around it.
     const angle = ((i - 1) / Math.max(n - 1, 1)) * Math.PI * 2;
     const pos = i === 0 ? { x: 0, z: 0 } : { x: Math.sin(angle) * 1.5, z: Math.cos(angle) * 1.5 };
-    return {
-      id: i + 1,
-      owner,
-      kind: 'soldier' as const,
-      pos,
-      prev: { ...pos },
-      facing: 0,
-      health: config.player.maxHealth,
-      dead: false,
-      fireCooldown: 0,
-      y: 0,
-      prevY: 0,
-      vy: 0,
-      order: { type: 'follow' },
-      equipment: { rightHand: config.squad.startWeapon, leftHand: null, chest: null },
-      backpack: [],
-      xp: 0,
-      kills: 0,
-      stamina: config.stance.staminaMax,
-      winded: false,
-      armor: 0,
-      downed: false,
-      bleedOut: 0,
-      deadTime: 0,
-      reviveProgress: 0,
-      ...sheetOf(config, 'soldier'),
-    };
+    return newUnit(config, 'soldier', i + 1, owner, pos);
   });
   for (let i = 0; i < config.drone.count; i++) {
-    const pos = { x: -1 - i, z: 1 };
-    soldiers.push({
-      id: n + i + 1,
-      owner,
-      kind: 'drone',
-      pos,
-      prev: { ...pos },
-      facing: 0,
-      health: config.player.maxHealth,
-      dead: false,
-      fireCooldown: 0,
-      y: 0,
-      prevY: 0,
-      vy: 0,
-      order: { type: 'follow' },
-      equipment: { rightHand: null, leftHand: null, chest: null },
-      backpack: [],
-      xp: 0,
-      kills: 0,
-      stamina: config.stance.staminaMax,
-      winded: false,
-      armor: 0,
-      downed: false,
-      bleedOut: 0,
-      deadTime: 0,
-      reviveProgress: 0,
-      ...sheetOf(config, 'drone'),
-    });
+    soldiers.push(newUnit(config, 'drone', n + i + 1, owner, { x: -1 - i, z: 1 }));
   }
   return soldiers;
 }

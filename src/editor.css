@@ -225,3 +225,10 @@ body.editing .radar {
   display: flex;
   justify-content: space-between;
 }
+
+.editor__info {
+  padding: 10px;
+  font-size: 13px;
+  color: #ffd84a;
+  border-top: 1px solid #2c3444;
+}

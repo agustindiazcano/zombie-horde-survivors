@@ -131,6 +131,9 @@ async function main(): Promise<void> {
     !mobile,
   );
   const editor = new Editor(document.body, {
+    canvas: renderer.domElement,
+    groundAt: renderer.screenToGround,
+    onMark: (at, radius) => renderer.setEditMarker(at, radius),
     onPlay: () => {
       resetGame();
       setPaused(false);
@@ -183,7 +186,9 @@ async function main(): Promise<void> {
   const loadMap = (map: MapData) => {
     config.arena = arenaOf(map);
     config.players = map.players;
+    config.placed = map.units;
     renderer.setArena(config.arena);
+    renderer.resetUnits();
     resetGame();
   };
 

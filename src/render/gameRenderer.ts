@@ -189,6 +189,41 @@ export class GameRenderer {
     this.resize();
   }
 
+  private editMarker: THREE.Mesh | null = null;
+
+  /** Drops every unit view, for a new map whose units reuse the same ids with other types. */
+  resetUnits(): void {
+    for (const view of this.soldiers.values()) this.scene.remove(view.object);
+    for (const lamp of this.flashlights.values()) this.scene.remove(lamp.group);
+    for (const entry of this.zombies.values()) this.scene.remove(entry.view.object);
+    this.soldiers.clear();
+    this.flashlights.clear();
+    this.zombies.clear();
+    this.visYaw.clear();
+    this.stanceVisual.clear();
+  }
+
+  /** The map editor's selection ring on the ground (null hides it). */
+  setEditMarker(at: Vec2 | null, radius = 1): void {
+    if (!at) {
+      if (this.editMarker) this.editMarker.visible = false;
+      return;
+    }
+    if (!this.editMarker) {
+      this.editMarker = new THREE.Mesh(
+        new THREE.RingGeometry(0.9, 1, 32),
+        new THREE.MeshBasicMaterial({ color: 0xffd84a, side: THREE.DoubleSide }),
+      );
+      this.editMarker.rotation.x = -Math.PI / 2;
+      this.editMarker.position.y = 0.05;
+      this.scene.add(this.editMarker);
+    }
+    this.editMarker.visible = true;
+    this.editMarker.position.x = at.x;
+    this.editMarker.position.z = at.z;
+    this.editMarker.scale.setScalar(radius);
+  }
+
   /** Swaps the floor, walls and obstacles for those of another map (the config is shared and already updated). */
   setArena(arena: GameConfig['arena']): void {
     this.scene.remove(this.arenaGroup);
