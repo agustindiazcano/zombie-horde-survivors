@@ -1,8 +1,11 @@
 import data from '../../data/game.json';
+import map1 from '../../data/maps/map-1.json';
 import {
   FIXED_DT,
+  arenaOf,
   createGame,
   parseConfig,
+  parseMap,
   step,
   type GameConfig,
   type GameState,
@@ -14,7 +17,7 @@ type Patch = { [K in keyof GameConfig]?: Partial<GameConfig[K]> };
 
 /** Real config with no obstacles and waves that never start, unless patched. */
 export function testConfig(patch: Patch = {}): GameConfig {
-  const base = data as unknown as GameConfig;
+  const base = { ...data, arena: arenaOf(parseMap(map1)) } as unknown as GameConfig;
   const merged: Record<string, object> = {
     arena: { ...base.arena, obstacles: [] },
     squad: { ...base.squad, count: 1, startWeapon: 'rifle' },
@@ -38,7 +41,11 @@ export function testConfig(patch: Patch = {}): GameConfig {
   for (const [key, value] of Object.entries(patch)) {
     merged[key] = { ...merged[key], ...value };
   }
-  return parseConfig(merged);
+  const { arena, ...settings } = merged;
+  return {
+    ...parseConfig(settings, parseMap(map1)),
+    arena: arena as unknown as GameConfig['arena'],
+  };
 }
 
 export function makeGame(patch: Patch = {}, seed = 1): { state: GameState; config: GameConfig } {

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import data from '../../data/game.json';
-import { parseConfig } from '../../src/sim';
+import map1 from '../../data/maps/map-1.json';
+import { parseConfig as parse, parseMap } from '../../src/sim';
+
+const parseConfig = (raw: unknown) => parse(raw, parseMap(map1));
 
 describe('game config schema', () => {
   it('accepts data/game.json', () => {
