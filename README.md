@@ -112,7 +112,7 @@ The round display in the bottom-right corner is a motion tracker, like the one f
 
 ## Inventory and weapons
 
-Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop a **crate** with weapons: pistol, rifle, heavy machine gun or the drone gun. Press **E** next to it to take items or stash your own; to equip weapons and move items between units press **I** (see below). The game pauses while a menu is open. Weapon stats, the drop chance and the loot table are in `data/game.json`.
+Every unit has two hands, a vest slot and a 10-slot backpack. Some enemies drop a **crate** with weapons: pistol, rifle, heavy machine gun or the drone gun. Press **E** next to it to take items or stash your own; to equip weapons and move items between units press **I** (see below). The game pauses while a menu is open. Weapon and item stats are in `data/items.json`; the drop chance and the loot table are in `data/game.json`.
 
 ## Loot, levels and gore
 
@@ -120,7 +120,7 @@ Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collec
 
 ## Pause screen and the squad
 
-Pausing (Esc, P or **I**) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (up to four windows at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two. Drag the equipped weapon to an empty backpack slot to unequip it (an unarmed unit can't shoot).
+Pausing (Esc, P or **I**) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (up to four windows at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two. Drag a held weapon to an empty backpack slot to unequip it (an unarmed unit can't shoot). A one-handed weapon fits either hand, a two-handed one only the right hand with the left hand free; stackable items such as medkits share a slot.
 
 There are two kinds of experience. The **global** XP comes from the blue orbs and levels the squad up (perks). Each unit also has **its own** XP, which grows when that unit kills an enemy, plus a kill counter.
 
