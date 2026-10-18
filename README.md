@@ -18,6 +18,8 @@ npm run lint && npm run format:check && npm run typecheck
 
 ## How it plays
 
+**Menus:** Start → **Single Player** (**Story**: no missions yet; **Waves**: pick a map from the list, Map 1 is the built-in arena), **Multiplayer** (coming soon, disabled) or **Editor** (desktop only: a paused map editor with a Play / Stop button and a right-hand panel; its tools are placeholders for now). Esc steps back one menu.
+
 You start in **direct control** of one soldier, with the rest of the squad following you and shooting on their own. Press **Y** to switch to **RTS mode**, select units, send them anywhere on the map, then press **Y** again to take direct control of one of them.
 
 Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The game ends when every soldier is dead (the drone doesn't count).
@@ -172,6 +174,7 @@ Zombie speed and health also grow with each wave.
 - `src/sim` — the pure simulation (squad, enemies, waves, loot). It imports no Three.js; ESLint and a test enforce that, so it can be unit-tested.
 - `src/render` — Three.js rendering (arena, characters, effects, cameras).
 - `src` — input, HUD, audio and the fixed-timestep game loop (the render interpolates between steps).
+- `data/maps/*.json` — the built-in maps (Map 1); `data/catalog.json` — the editor's unit and asset lists.
 - `data/game.json` — all gameplay numbers, validated with a strict schema. `data/characters.json` maps each unit to its model and animation clips.
 
 ## Assets
