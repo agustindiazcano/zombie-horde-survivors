@@ -36,3 +36,4 @@ export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } f
 export type { Slot, SlotRef } from './inventory';
 export { levelInfo, type LevelInfo } from './loot';
 export { waveSize } from './waves';
+export { getVehicle, toggleVehicle, vehicleInReach } from './vehicles';

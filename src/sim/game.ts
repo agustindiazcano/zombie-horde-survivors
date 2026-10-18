@@ -3,6 +3,7 @@ import type { GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
 import { updateRevives } from './revive';
 import { createSquad, updateSoldiers } from './soldiers';
+import { createVehicle, updateVehicles } from './vehicles';
 import { createRng } from './rng';
 import type { GameState, Input } from './types';
 import { updatePickups } from './loot';
@@ -24,6 +25,8 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     players,
     localPlayerId: humanId,
     nextSoldierId: soldiers.length + 1,
+    vehicles: [],
+    nextVehicleId: 1,
     stance: 'normal',
     zombies: [],
     nextZombieId: 1,
@@ -44,6 +47,12 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     rng: createRng(seed),
     events: [],
   };
+  // Vehicles placed in the editor wait for a driver.
+  for (const u of config.placed) {
+    if (u.type in config.vehicles) {
+      state.vehicles.push(createVehicle(config, state.nextVehicleId++, u.type, u, u.rotation));
+    }
+  }
   // Enemies placed in the editor stand waiting from the start.
   const aiId = firstPlayerOf(config.players, 'ai');
   for (const u of config.placed) {
@@ -76,6 +85,7 @@ export function step(
           ? 'sprint'
           : 'normal';
   updateSoldiers(state, config, input, dt);
+  updateVehicles(state, config, input, dt);
   updateRevives(state, config, dt);
   updatePickups(state, config, dt);
   updateWaves(state, config, dt);

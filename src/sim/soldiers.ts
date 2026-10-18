@@ -61,6 +61,7 @@ function newUnit(
     bleedOut: 0,
     deadTime: 0,
     reviveProgress: 0,
+    vehicleId: null,
     ...sheetOf(config, kind),
   };
 }
@@ -211,7 +212,8 @@ export function updateSoldiers(
     // The squad's sprint order only works for a unit that still has breath.
     const stance =
       s.downed || (state.stance === 'sprint' && (s.winded || isDrone(s))) ? 'normal' : state.stance;
-    if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
+    if (s.vehicleId !== null) updateSeated(state, config, s, input, controlledId);
+    else if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
     else updateAi(state, config, s, leader, stance, dt);
     updateStamina(config, s, stance, dt);
     updateJump(config, s, dt);
@@ -242,6 +244,37 @@ function updateJump(config: GameConfig, s: Soldier, dt: number): void {
     s.y = 0;
     s.vy = 0;
   }
+}
+
+/**
+ * A soldier in a vehicle rides along (the vehicle moves it). The driver only drives; passengers
+ * shoot from a vehicle with mounted weapons, aiming with the mouse or at the nearest enemy.
+ */
+function updateSeated(
+  state: GameState,
+  config: GameConfig,
+  s: Soldier,
+  input: Input,
+  controlledId: number | null,
+): void {
+  const v = state.vehicles.find((u) => u.id === s.vehicleId);
+  if (!v) {
+    s.vehicleId = null;
+    return;
+  }
+  s.facing = v.facing;
+  if (v.seats[0] === s.id || !config.vehicles[v.type]!.passengersShoot) return;
+  if (s.id === controlledId) {
+    const dx = input.aim.x - s.pos.x;
+    const dz = input.aim.z - s.pos.z;
+    if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
+    if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
+    return;
+  }
+  const target = findTarget(state, config, s);
+  if (!target) return;
+  s.facing = Math.atan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
+  if (s.fireCooldown <= 0) fireWeapon(state, config, s, config.squad.aiFireRateScale);
 }
 
 function updateControlled(
@@ -356,10 +389,10 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
   const list = state.soldiers;
   for (let i = 0; i < list.length; i++) {
     const a = list[i]!;
-    if (a.dead || isDrone(a)) continue;
+    if (a.dead || isDrone(a) || a.vehicleId !== null) continue;
     for (let j = i + 1; j < list.length; j++) {
       const b = list[j]!;
-      if (b.dead || isDrone(b)) continue;
+      if (b.dead || isDrone(b) || b.vehicleId !== null) continue;
       const dx = b.pos.x - a.pos.x;
       const dz = b.pos.z - a.pos.z;
       const d = Math.hypot(dx, dz);
@@ -373,5 +406,5 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
       b.pos.z += nz * push;
     }
   }
-  for (const s of list) if (!s.dead && !isDrone(s)) resolveUnit(s, config);
+  for (const s of list) if (!s.dead && !isDrone(s) && s.vehicleId === null) resolveUnit(s, config);
 }

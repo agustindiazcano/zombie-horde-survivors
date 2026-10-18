@@ -23,6 +23,10 @@ import {
   localPlayer,
   maxHealthOf,
   nearestCrate,
+  getSoldier,
+  getVehicle,
+  toggleVehicle,
+  vehicleInReach,
   shopAvailable,
   orderFollow,
   orderHold,
@@ -49,7 +53,7 @@ const MOBILE_AIM_RANGE = 22;
 const PAN_SPEED = 22;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -111,6 +115,7 @@ async function main(): Promise<void> {
   });
   const ui = new InventoryUi(document.body, config, () => state);
   const cratePrompt = new CratePrompt();
+  const vehiclePrompt = new CratePrompt('V');
   const pausePanel = new PausePanel(document.body, config, openSettings);
   const radar = new Radar(document.body);
   // The pause screen lists the squad: each unit's 3D view comes from the same models as in play.
@@ -363,6 +368,14 @@ async function main(): Promise<void> {
     } else if (e.code === 'KeyI') {
       // The same screen as pausing: the squad, their inventories and your bonuses.
       if (!modalOpen()) setPaused(!paused);
+    } else if (e.code === 'KeyV') {
+      // Climb into the closest vehicle, or step out of the one you are in.
+      if (playable() && !modalOpen()) {
+        const controlled = localPlayer(state).controlledId;
+        for (const id of controlled !== null ? [controlled] : [...rts.selected]) {
+          toggleVehicle(state, config, id);
+        }
+      }
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
       const unitId = localPlayer(state).controlledId;
@@ -479,12 +492,29 @@ async function main(): Promise<void> {
         cratePrompt.hide();
       }
 
+      const unit = getSoldier(state, localPlayer(state).controlledId);
+      const nearVehicle =
+        !modalOpen() && playable() && unit && !unit.dead && unit.vehicleId === null
+          ? vehicleInReach(state, config, unit.pos)
+          : undefined;
+      if (nearVehicle) {
+        const p = renderer.projectToScreen(nearVehicle.pos.x, nearVehicle.pos.z, 2.5);
+        if (p) vehiclePrompt.show(p.x, p.z);
+        else vehiclePrompt.hide();
+      } else {
+        vehiclePrompt.hide();
+      }
+      const ride = getVehicle(state, unit?.vehicleId ?? null);
+      const rideHint = ride
+        ? `  [${config.vehicles[ride.type]!.name.toUpperCase()} ${Math.round((ride.health / ride.maxHealth) * 100)}% · V: get out]`
+        : '';
+
       const focusId = localPlayer(state).controlledId ?? [...rts.selected][0] ?? null;
       hud.update(state, focusId);
       const stance = state.stance === 'normal' ? '' : `  [${state.stance.toUpperCase()}]`;
       const view =
         renderer.viewMode === 'top' ? '' : `  [${renderer.viewMode.toUpperCase()} PERSON]`;
-      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view);
+      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view + rideHint);
       squad.update(state, rts.selected, maxHealthOf(state, config));
     },
   );

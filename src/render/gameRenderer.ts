@@ -13,6 +13,7 @@ import { ShotEffects } from './effects';
 import { Gore } from './gore';
 import { HealthBars } from './healthBars';
 import { PickupMeshes } from './pickups';
+import { createJeep } from './vehicles';
 import { SelectionMarkers } from './markers';
 
 /** Default camera: above and behind the focus point (towards +z), at zoom 1. */
@@ -112,6 +113,7 @@ export class GameRenderer {
   readonly scene = new THREE.Scene();
   private readonly renderer = new THREE.WebGLRenderer({ antialias: true });
   private readonly soldiers = new Map<number, CharacterView>();
+  private readonly vehicles = new Map<number, { object: THREE.Group; wheels: THREE.Object3D[] }>();
   /** One flashlight per soldier: a group (moved and turned with the unit) holding a spotlight. */
   private readonly flashlights = new Map<number, { group: THREE.Group; light: THREE.SpotLight }>();
   private readonly markers = new SelectionMarkers();
@@ -209,6 +211,8 @@ export class GameRenderer {
     for (const view of this.soldiers.values()) this.scene.remove(view.object);
     for (const lamp of this.flashlights.values()) this.scene.remove(lamp.group);
     for (const entry of this.zombies.values()) this.scene.remove(entry.view.object);
+    for (const entry of this.vehicles.values()) this.scene.remove(entry.object);
+    this.vehicles.clear();
     this.soldiers.clear();
     this.flashlights.clear();
     this.zombies.clear();
@@ -289,6 +293,7 @@ export class GameRenderer {
     this.updateCamera(state, alpha, dt);
     this.syncSoldiers(state, alpha, dt);
     this.syncZombies(state, alpha, dt);
+    this.syncVehicles(state, alpha);
     this.syncCrates(state, dt);
     this.effects.update(dt);
     this.markers.update(state, this.selection, alpha, dt);
@@ -501,6 +506,31 @@ export class GameRenderer {
     return list[(id - 1) % list.length]!;
   }
 
+  /** Draws the vehicles of the state (a jeep for every type until more models exist). */
+  private syncVehicles(state: GameState, alpha: number): void {
+    const live = new Set<number>();
+    for (const v of state.vehicles) {
+      live.add(v.id);
+      let entry = this.vehicles.get(v.id);
+      if (!entry) {
+        entry = createJeep();
+        this.vehicles.set(v.id, entry);
+        this.scene.add(entry.object);
+      }
+      const x = lerp(v.prev.x, v.pos.x, alpha);
+      const z = lerp(v.prev.z, v.pos.z, alpha);
+      entry.object.position.set(x, this.groundAt(x, z), z);
+      const turn = Math.atan2(Math.sin(v.facing - v.prevFacing), Math.cos(v.facing - v.prevFacing));
+      entry.object.rotation.y = v.prevFacing + turn * alpha;
+      for (const wheel of entry.wheels) wheel.rotation.x += v.speed * 0.02;
+    }
+    for (const [id, entry] of this.vehicles) {
+      if (live.has(id)) continue;
+      this.scene.remove(entry.object);
+      this.vehicles.delete(id);
+    }
+  }
+
   private syncSoldiers(state: GameState, alpha: number, dt: number): void {
     for (const s of state.soldiers) {
       let view = this.soldiers.get(s.id);
@@ -528,9 +558,9 @@ export class GameRenderer {
       view.update(dt);
       this.updateFlashlight(s.id, view.object, heading, !s.dead);
       // In first person you look out of the controlled unit's head, so hide its model.
-      view.object.visible = !(
-        this.viewMode === 'first' && s.id === localPlayer(state).controlledId
-      );
+      view.object.visible =
+        s.vehicleId === null &&
+        !(this.viewMode === 'first' && s.id === localPlayer(state).controlledId);
 
       // Applied after the view's own update, which may reset its root transform.
       const ground = this.groundAt(view.object.position.x, view.object.position.z);

@@ -28,21 +28,22 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 
 ### Direct control
 
-| Key / mouse       | Action                                                                                               |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| W / A / S / D     | Move (relative to where the camera looks)                                                            |
-| Mouse             | Aim (see _Views_ below)                                                                              |
-| Left click (hold) | Fire                                                                                                 |
-| Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                    |
-| Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers |
-| Space             | Jump (only the soldier you control)                                                                  |
-| T                 | Change view: normal → third person → first person → normal                                           |
-| I                 | Squad screen: units, inventories and bonuses (pauses the game)                                       |
-| B                 | Open / close the shop (only between waves)                                                           |
-| E                 | Next to a crate (a yellow **E** floats above it): open it                                            |
-| Y                 | Go back to RTS mode                                                                                  |
-| Mouse wheel       | Zoom (normal and third-person views)                                                                 |
-| Right-drag        | Rotate and tilt the camera (normal view only)                                                        |
+| Key / mouse       | Action                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| W / A / S / D     | Move (relative to where the camera looks)                                                                           |
+| Mouse             | Aim (see _Views_ below)                                                                                             |
+| Left click (hold) | Fire                                                                                                                |
+| Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                                   |
+| Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                |
+| Space             | Jump (only the soldier you control)                                                                                 |
+| T                 | Change view: normal → third person → first person → normal                                                          |
+| I                 | Squad screen: units, inventories and bonuses (pauses the game)                                                      |
+| B                 | Open / close the shop (only between waves)                                                                          |
+| V                 | Next to a vehicle (a **V** floats above it): climb in; inside, step out (the driver leaving takes the crew out too) |
+| E                 | Next to a crate (a yellow **E** floats above it): open it                                                           |
+| Y                 | Go back to RTS mode                                                                                                 |
+| Mouse wheel       | Zoom (normal and third-person views)                                                                                |
+| Right-drag        | Rotate and tilt the camera (normal view only)                                                                       |
 
 Ctrl+W closes the browser tab and the browser won't let a page block it, so **C** is provided as an alternative way to crouch.
 

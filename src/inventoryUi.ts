@@ -196,7 +196,12 @@ export class InventoryUi {
 
 /** The floating "E" shown above a crate the controlled unit can open. */
 export class CratePrompt {
-  private readonly node = el('div', 'crate-prompt', document.body, 'E');
+  private readonly node: HTMLElement;
+
+  /** `key` is the letter shown in the little bubble over the thing you can use. */
+  constructor(key = 'E') {
+    this.node = el('div', 'crate-prompt', document.body, key);
+  }
 
   show(x: number, y: number): void {
     this.node.style.display = 'block';
