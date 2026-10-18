@@ -43,8 +43,7 @@ Claude has no browser, so every visual and feel decision below is an estimate. T
 
 Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md). Start → Single Player (Story / Waves; today's arena is "Map 1"), a disabled Multiplayer button, or Editor (starts paused, Play button, right panel with Units / Assets / Terrain / Game logic / Players tabs). Several players own units and the AI is one of them; vehicles need a human operator to move (Men of War style).
 
-- [ ] 🟡 Phase 1: map format (zod schema) + `map-1.json`; the game plays as today.
-- [ ] 🟡 Phase 1b: players and unit ownership (the AI as a player); the game plays as today. Riskiest refactor.
+- [ ] 🟡 Phase 1b (in progress): players and unit ownership (the AI as a player); the game plays as today. Riskiest refactor.
 - [ ] 🟡 Phase 1c: unit stat sheets in `data/units.json` (identity, level, XP, speed, stamina, mocked RPG attributes) and XP per weapon class (melee, pistol, shotgun, rifle, sniper, machinegun, launcher). Mocked fields do nothing yet.
 - [ ] 🟡 Phase 1d: item catalog and equipment: weapon stats and damage types (explosive, fire, experimental mocked), attachments, hand slots (dual wield), helmet / vest slots, 10-slot backpack, fists, medkits, grenades, defibrillator.
 - [ ] 🟢 Phase 1e: downed state (a soldier goes down, keeps shooting, bleeds out, can be revived).

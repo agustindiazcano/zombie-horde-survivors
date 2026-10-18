@@ -39,7 +39,7 @@ Only what is still open: read this first in every session. When an item here is 
 
 Full plan and decisions: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md) (section 8 lists what the user decided; PENDING §2c lists the phases). The mobile version is merged (PR #33). The plan, the PENDING entry and the Meshy AI marine model (CC-BY-4.0, credited in `assets.toml` and the README; it replaces the toon soldier in slot 4 of `data/characters.json` and adds the "Infected marine" enemy with a green `tint`) travel together in the PR from branch `feat/marine-model-and-plan`. Check that this PR is merged and pull `main` before branching.
 
-**Start with Phase 1** (🟡): map format. Zod schema for the map (meta, terrain, props, surfaces, players, units, logic, `version: 1`) in `src/sim/config.ts`; move the `arena` section of `data/game.json` into `data/maps/map-1.json`; sim and render read the arena from the map; the game must play exactly as today. Then 1b (players and ownership), 1c (unit stat sheets), 1d (items and equipment), 1e (downed state), 2 (menu flow), 3 (editor skeleton), 4 (saving maps). No new tests; the 48 must stay green.
+**Phase 1 is done** on branch `feat/map-format` (no PR yet; details in [docs/worklog/2026-10-18-phase-1-map-format.md](docs/worklog/2026-10-18-phase-1-map-format.md)): `MapSchema` in `src/sim/config.ts`, `data/maps/map-1.json`, `parseConfig(raw, map)`. **Next: 1b** (players and ownership). Then (players and ownership), 1c (unit stat sheets), 1d (items and equipment), 1e (downed state), 2 (menu flow), 3 (editor skeleton), 4 (saving maps). No new tests; the 48 must stay green.
 
 **Prompt to paste at the start of the next session:**
 
