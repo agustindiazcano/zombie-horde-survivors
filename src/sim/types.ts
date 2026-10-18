@@ -211,6 +211,8 @@ export interface Mods {
 export interface GameState {
   time: number;
   status: 'playing' | 'gameover' | 'victory';
+  /** The map editor's live preview: units can be driven, but there are no waves and enemies stand still. */
+  sandbox: boolean;
   soldiers: Soldier[];
   players: Player[];
   /** The player at this keyboard; its `controlledId` is the unit under direct control. */

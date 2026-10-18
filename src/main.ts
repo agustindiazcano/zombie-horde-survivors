@@ -19,6 +19,7 @@ import { GameRenderer, type ViewMode } from './render/gameRenderer';
 import { RtsController } from './rts';
 import {
   controlSoldier,
+  isSquadUnit,
   createGame,
   localPlayer,
   maxHealthOf,
@@ -51,6 +52,8 @@ const MOBILE_AIM_RANGE = 22;
 
 /** Camera pan speed in RTS mode (world units per second). */
 const PAN_SPEED = 22;
+/** Editor: how close (m) a soldier must be to the selected unit for Y to drive it. */
+const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
   'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
@@ -190,6 +193,15 @@ async function main(): Promise<void> {
   /** A fresh run of the loaded map (restart, the editor's Play and Stop). */
   const resetGame = () => {
     state = createGame(config, Date.now());
+    // The editor is a live preview: no waves, enemies stand still, and nobody is under control
+    // until Y. It shows only what the map places, so no default squad either.
+    state.sandbox = editor.isEditing;
+    if (editor.isEditing) {
+      if (!config.placed.some((u) => isSquadUnit(config, u.type))) {
+        state.soldiers = [];
+      }
+      controlSoldier(state, null);
+    }
     hud.reset();
     rts.set([]);
     ui.close();
@@ -307,6 +319,21 @@ async function main(): Promise<void> {
     );
   };
 
+  /** Editor, Y: drive the selected soldier (or the first one) in the preview, or let go of it. */
+  const toggleEditorControl = () => {
+    if (localPlayer(state).controlledId !== null) {
+      controlSoldier(state, null);
+      return;
+    }
+    const at = editor.selectedUnitAt();
+    const alive = state.soldiers.filter((s) => !s.dead);
+    const near = at
+      ? alive.find((s) => Math.hypot(s.pos.x - at.x, s.pos.z - at.z) < EDITOR_PICK_RANGE)
+      : undefined;
+    const unit = near ?? alive[0];
+    if (unit) controlSoldier(state, unit.id);
+  };
+
   /** Normal -> third person -> first person -> normal. Only while controlling a unit. */
   const NEXT_VIEW: Record<ViewMode, ViewMode> = { top: 'third', third: 'first', first: 'top' };
   const setView = (mode: ViewMode) => {
@@ -359,7 +386,12 @@ async function main(): Promise<void> {
       return;
     }
     if (menu.onKey(e.code)) return;
-    if (editor.isEditing) return;
+    if (editor.isEditing) {
+      if (e.code === 'KeyY' && !e.repeat && !(e.target instanceof HTMLInputElement)) {
+        toggleEditorControl();
+      }
+      return;
+    }
     if (perks.onKey(e.code)) return;
     if (e.code === 'KeyM') sfx.toggleMute();
     else if (e.code === 'Escape' && ui.isOpen) ui.close();
@@ -421,7 +453,8 @@ async function main(): Promise<void> {
     // In first/third person the view direction is the aim; top-down uses the cursor on the ground.
     directInput.aim =
       renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
-    directInput.firing = raw.firing;
+    // Clicks edit the map in the editor, so the driven unit does not fire there.
+    directInput.firing = raw.firing && !editor.isEditing;
     if (mobile && unit) {
       // No cursor: aim at the nearest enemy and keep firing; otherwise face the way we walk.
       let best: { x: number; z: number } | null = null;
@@ -453,7 +486,10 @@ async function main(): Promise<void> {
 
   startLoop(
     (dt) => {
-      if (paused || modalOpen()) return;
+      const overlay =
+        menu.isOpen || ui.isOpen || perks.isOpen || shop.isOpen || settingsPanel.isOpen;
+      // The editor keeps the sandbox running so a unit can be driven while editing.
+      if (paused || overlay || (modalOpen() && !editor.isEditing)) return;
       if (mobile) ensureMobileLeader();
       const direct = localPlayer(state).controlledId !== null;
       step(state, config, direct ? readInput() : noInput, dt);
@@ -464,8 +500,7 @@ async function main(): Promise<void> {
     },
     (alpha, frameDt) => {
       const rtsMode = localPlayer(state).controlledId === null;
-      // The editor always pans (loading a map starts a run with a soldier under control).
-      if ((rtsMode || editor.isEditing) && !paused) {
+      if (rtsMode && !paused) {
         const move = readInput().move;
         renderer.pan(move.x * PAN_SPEED * frameDt, move.z * PAN_SPEED * frameDt);
       }

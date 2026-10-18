@@ -125,6 +125,8 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       continue;
     }
 
+    if (state.sandbox) continue; // the editor's preview: enemies stand still
+
     const found = nearestTarget(state, config, z.pos);
     if (!found) continue; // everyone is dead; the game is about to end
     const { target, soldier, vehicle } = found;

@@ -5,8 +5,20 @@
       "name": "Humans",
       "items": [
         {
-          "id": "soldier",
-          "name": "Soldier"
+          "id": "marine1",
+          "name": "Marine 1"
+        },
+        {
+          "id": "marine2",
+          "name": "Marine 2"
+        },
+        {
+          "id": "marine3",
+          "name": "Marine 3"
+        },
+        {
+          "id": "marine4",
+          "name": "Marine 4"
         },
         {
           "id": "civilian",
@@ -85,7 +97,12 @@
             {
               "id": "military-land",
               "name": "Land",
-              "items": [{ "id": "jeep", "name": "Jeep" }]
+              "items": [
+                {
+                  "id": "jeep",
+                  "name": "Jeep"
+                }
+              ]
             }
           ]
         },

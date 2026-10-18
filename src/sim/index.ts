@@ -11,6 +11,7 @@ export { createGame, step } from './game';
 export {
   controlSoldier,
   getSoldier,
+  isSquadUnit,
   livingSoldiers,
   orderFollow,
   orderHold,

@@ -22,6 +22,7 @@ export function createGame(config: GameConfig, seed = 1): GameState {
   const state: GameState = {
     time: 0,
     status: 'playing',
+    sandbox: false,
     soldiers,
     players,
     localPlayerId: humanId,
@@ -91,12 +92,13 @@ export function step(
   updateVehicles(state, config, input, dt);
   updateRevives(state, config, dt);
   updatePickups(state, config, dt);
-  updateWaves(state, config, dt);
+  if (!state.sandbox) updateWaves(state, config, dt);
   updateZombies(state, config, dt);
-  updateObjectives(state, config);
+  if (!state.sandbox) updateObjectives(state, config);
 
   // The run ends when no soldier is left on their feet: a downed soldier needs a standing ally.
   if (
+    !state.sandbox &&
     state.status === 'playing' &&
     state.soldiers.every((s) => s.dead || s.downed || s.kind === 'drone')
   ) {

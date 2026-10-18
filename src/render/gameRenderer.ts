@@ -529,9 +529,11 @@ export class GameRenderer {
     }
   }
 
-  private soldierFactory(id: number): CharacterFactory {
+  /** The model of a soldier: the one its unit type names (marine1...), else one by id. */
+  private soldierFactory(s: GameState['soldiers'][number]): CharacterFactory {
     const list = this.factories.soldiers;
-    return list[(id - 1) % list.length]!;
+    const slot = this.config.units.units[s.unitType]?.model ?? s.id - 1;
+    return list[slot % list.length]!;
   }
 
   /** Draws the vehicles of the state (a jeep for every type until more models exist). */
@@ -563,7 +565,7 @@ export class GameRenderer {
     for (const s of state.soldiers) {
       let view = this.soldiers.get(s.id);
       if (!view) {
-        view = s.kind === 'drone' ? this.factories.drone() : this.soldierFactory(s.id)();
+        view = s.kind === 'drone' ? this.factories.drone() : this.soldierFactory(s)();
         this.soldiers.set(s.id, view);
         this.scene.add(view.object);
         if (s.kind === 'soldier') this.flashlights.set(s.id, this.createFlashlight());

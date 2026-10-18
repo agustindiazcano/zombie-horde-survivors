@@ -242,6 +242,8 @@ export const UnitsSchema = z
         .object({
           name: z.string().min(1),
           family: z.enum(UNIT_FAMILIES),
+          /** Which soldier model (slot of data/characters.json) draws this unit; unset = by id. */
+          model: z.number().int().nonnegative().optional(),
           attributes: z.record(z.string(), z.number().nonnegative()),
         })
         .strict(),

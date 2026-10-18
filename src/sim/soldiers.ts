@@ -3,7 +3,7 @@ import { localPlayer } from './players';
 import { rescueTarget } from './revive';
 import { isDrone, speedOf, weaponOf } from './stats';
 import { WEAPON_CLASSES, type GameConfig, type WeaponClass } from './config';
-import type { GameState, Input, Soldier, Stance, Zombie } from './types';
+import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
 import { dirFromAngle, type Vec2 } from './vec';
 
@@ -23,15 +23,20 @@ function sheetOf(config: GameConfig, unitType: string) {
   };
 }
 
+/** Whether a unit type of the map is part of the player's squad (a human of the sheets, or the drone). */
+export const isSquadUnit = (config: GameConfig, type: string): boolean =>
+  type === 'drone' || config.units.units[type]?.family === 'human';
+
 /** A fresh soldier or drone at `pos`, ready to follow its leader. */
 function newUnit(
   config: GameConfig,
-  kind: 'soldier' | 'drone',
+  unitType: string,
   id: number,
   owner: string,
   pos: Vec2,
   facing = 0,
 ): Soldier {
+  const kind: UnitKind = unitType === 'drone' ? 'drone' : 'soldier';
   return {
     id,
     owner,
@@ -62,19 +67,15 @@ function newUnit(
     deadTime: 0,
     reviveProgress: 0,
     vehicleId: null,
-    ...sheetOf(config, kind),
+    ...sheetOf(config, unitType),
   };
 }
 
 export function createSquad(config: GameConfig, owner: string): Soldier[] {
-  const placed = config.placed.filter(
-    (u) => u.owner === owner && (u.type === 'soldier' || u.type === 'drone'),
-  );
+  const placed = config.placed.filter((u) => u.owner === owner && isSquadUnit(config, u.type));
   // A map that places the squad by hand replaces the default ring around the origin.
   if (placed.length > 0) {
-    return placed.map((u, i) =>
-      newUnit(config, u.type as 'soldier' | 'drone', i + 1, owner, u, u.rotation),
-    );
+    return placed.map((u, i) => newUnit(config, u.type, i + 1, owner, u, u.rotation));
   }
   const n = config.squad.count;
   const soldiers: Soldier[] = Array.from({ length: n }, (_, i) => {

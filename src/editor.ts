@@ -114,10 +114,10 @@ const TERRAIN_TOOLS: { id: TerrainTool; label: string }[] = [
 ];
 /** A drag shorter than this (metres) is a click, not a move. */
 const DRAG_EPSILON = 0.05;
+/** An item ignores the pointer while it is closer than this (m): its direction would flicker. */
+const FACE_MIN_DISTANCE = 0.3;
 /** A box drag shorter than this (px) is a click. */
 const BOX_MIN_PX = 5;
-/** Rotating a group needs the pointer at least this far (m) from its centre. */
-const MIN_ROTATE_RADIUS = 0.5;
 
 /**
  * The map editor: a top bar (Play / Stop, file and undo buttons) and a right-hand panel with five
@@ -144,16 +144,17 @@ export class Editor {
   /** What Ctrl+C remembered. */
   private clipboard: { units: MapData['units']; props: MapData['props'] } | null = null;
   private drag: {
-    mode: 'move' | 'rotate' | 'box';
+    mode: 'move' | 'face' | 'box';
     button: number;
     /** The map when the drag began: every step is computed from it, not from the last step. */
     base: MapData;
     from: Vec2;
-    center: Vec2;
-    startAngle: number;
     client: { x: number; y: number };
     additive: boolean;
   } | null = null;
+  /** R is held: a right-drag turns the selection, and letting go without dragging turns one step. */
+  private rHeld = false;
+  private rUsed = false;
   private boxEnd: { x: number; y: number } | null = null;
   private readonly boxEl: HTMLElement;
   /** The mouse is down on the selection; `dragMoved` once it has actually moved. */
@@ -241,6 +242,12 @@ export class Editor {
       this.stroking = false;
     });
     window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', (e) => {
+      if (e.key.toLowerCase() !== 'r' || !this.rHeld) return;
+      this.rHeld = false;
+      if (!this.rUsed && this.isEditing) this.rotateSelected();
+    });
+    window.addEventListener('blur', () => (this.rHeld = false));
   }
 
   /** True while the editor is up and paused (not while testing the map). */
@@ -346,9 +353,9 @@ export class Editor {
       : this.tool
         ? `Placing: ${this.tool.name}. Click the map to place; right-click or Esc to stop.`
         : one
-          ? `Selected: ${one.label} (${one.at.x.toFixed(1)}, ${one.at.z.toFixed(1)}). Drag or right-drag moves, Shift + right-drag rotates, R turns, Ctrl+C / V copies, Delete removes.`
+          ? `Selected: ${one.label} (${one.at.x.toFixed(1)}, ${one.at.z.toFixed(1)}). Drag or right-drag moves, hold R and right-drag to aim it, Ctrl+C / V copies, Delete removes.`
           : items.length > 1
-            ? `${items.length} items selected. Drag or right-drag moves them, Shift + right-drag rotates them, Ctrl+C / V copies, Delete removes.`
+            ? `${items.length} items selected. Drag or right-drag moves them, hold R and right-drag to aim them, Ctrl+C / V copies, Delete removes.`
             : 'Click an item to select it, or drag a box around several (Shift adds).';
     this.undoButton.disabled = this.past.length === 0;
     this.redoButton.disabled = this.future.length === 0;
@@ -405,16 +412,24 @@ export class Editor {
     }
     if (this.tab !== 'units' && this.tab !== 'assets') return;
     if (e.button === 2) {
-      // A right click drops the tool. Dragging from a selected item moves it (Shift: rotates the
-      // group); dragging from anywhere else still orbits the camera.
+      // A right click drops the tool. Dragging from an item moves it (it gets selected first);
+      // with R held, the selection turns to face the pointer. Anywhere else the camera orbits.
       if (this.tool) {
         this.setTool(null);
         return;
       }
       const at = this.ground(e);
       const hit = at ? this.pickAt(at) : null;
-      if (at && hit && this.isSelected(hit)) {
-        this.startDrag(e.shiftKey ? 'rotate' : 'move', 2, at, e);
+      if (!at) return;
+      if (this.rHeld && (hit || this.selection.length > 0)) {
+        if (hit && !this.isSelected(hit)) this.selection = [hit];
+        this.rUsed = true;
+        this.startDrag('face', 2, at, e);
+        this.syncSelection();
+      } else if (hit) {
+        if (!this.isSelected(hit)) this.selection = [hit];
+        this.startDrag('move', 2, at, e);
+        this.syncSelection();
       }
       return;
     }
@@ -441,30 +456,24 @@ export class Editor {
     this.syncSelection();
   };
 
-  private startDrag(
-    mode: 'move' | 'rotate' | 'box',
-    button: number,
-    at: Vec2,
-    e: MouseEvent,
-  ): void {
-    const items = this.selectedItems();
-    const n = Math.max(1, items.length);
-    const center = {
-      x: items.reduce((sum, i) => sum + i.at.x, 0) / n,
-      z: items.reduce((sum, i) => sum + i.at.z, 0) / n,
-    };
+  private startDrag(mode: 'move' | 'face' | 'box', button: number, at: Vec2, e: MouseEvent): void {
     this.drag = {
       mode,
       button,
       base: this.current,
       from: at,
-      center,
-      startAngle: Math.atan2(at.z - center.z, at.x - center.x),
       client: { x: e.clientX, y: e.clientY },
       additive: e.shiftKey,
     };
     this.boxEnd = null;
     this.dragMoved = false;
+  }
+
+  /** Where the first selected unit stands (the editor's Y drives the soldier next to it). */
+  selectedUnitAt(): Vec2 | null {
+    const sel = this.selection.find((s) => s.list === 'units');
+    const u = sel ? this.current.units[sel.index] : undefined;
+    return u ? { x: u.x, z: u.z } : null;
   }
 
   /** True while a right-drag is moving or rotating the selection, so the camera must not orbit. */
@@ -498,47 +507,49 @@ export class Editor {
       if (!this.dragMoved && Math.abs(dx) < DRAG_EPSILON && Math.abs(dz) < DRAG_EPSILON) return;
       next = this.transformed(base, (p, snap) => ({ x: snap(p.x + dx), z: snap(p.z + dz) }));
     } else {
-      const c = drag.center;
-      if (Math.hypot(at.x - c.x, at.z - c.z) < MIN_ROTATE_RADIUS) return;
-      let turn = Math.atan2(at.z - c.z, at.x - c.x) - drag.startAngle;
-      // Props only turn in quarter steps, so a group with props rotates in quarter steps.
-      const hasProps = this.selection.some((s) => s.list === 'props');
-      if (hasProps) turn = Math.round(turn / PROP_TURN) * PROP_TURN;
-      if (!this.dragMoved && Math.abs(turn) < DRAG_EPSILON) return;
-      const cos = Math.cos(turn);
-      const sin = Math.sin(turn);
-      next = this.transformed(
-        base,
-        (p, snap) => ({
-          x: snap(c.x + (p.x - c.x) * cos - (p.z - c.z) * sin),
-          z: snap(c.z + (p.x - c.x) * sin + (p.z - c.z) * cos),
-        }),
-        -turn,
-      );
+      // The selected items look at the pointer (props only in quarter turns).
+      next = this.facing(base, at);
     }
     // Only the first step of a drag goes into the history, so one undo takes the whole move back.
     this.edit(next, !this.dragMoved);
     this.dragMoved = true;
   };
 
-  /** `base` with the selected items moved by `place` (props snap to the grid) and turned by `turn`. */
+  /** `base` with the selected items moved by `place` (props snap to the grid). */
   private transformed(
     base: MapData,
     place: (p: Vec2, snap: (v: number) => number) => Vec2,
-    turn = 0,
   ): MapData {
     const propSnap = (v: number) => Math.round(v / PROP_SNAP) * PROP_SNAP;
-    const chosen = (list: Selection['list']) =>
-      new Set(this.selection.filter((s) => s.list === list).map((s) => s.index));
-    const units = chosen('units');
-    const props = chosen('props');
+    const units = this.chosen('units');
+    const props = this.chosen('props');
+    return {
+      ...base,
+      units: base.units.map((u, i) => (units.has(i) ? { ...u, ...place(u, (v) => v) } : u)),
+      props: base.props.map((p, i) => (props.has(i) ? { ...p, ...place(p, propSnap) } : p)),
+    };
+  }
+
+  private chosen(list: Selection['list']): Set<number> {
+    return new Set(this.selection.filter((s) => s.list === list).map((s) => s.index));
+  }
+
+  /** `base` with every selected item turned to look at `at` (0 faces +Z, like the sim). */
+  private facing(base: MapData, at: Vec2): MapData {
+    const units = this.chosen('units');
+    const props = this.chosen('props');
+    const toward = (p: Vec2) => Math.atan2(at.x - p.x, at.z - p.z);
     return {
       ...base,
       units: base.units.map((u, i) =>
-        units.has(i) ? { ...u, ...place(u, (v) => v), rotation: (u.rotation ?? 0) + turn } : u,
+        units.has(i) && Math.hypot(at.x - u.x, at.z - u.z) > FACE_MIN_DISTANCE
+          ? { ...u, rotation: toward(u) }
+          : u,
       ),
       props: base.props.map((p, i) =>
-        props.has(i) ? { ...p, ...place(p, propSnap), rotation: p.rotation + turn } : p,
+        props.has(i) && Math.hypot(at.x - p.x, at.z - p.z) > FACE_MIN_DISTANCE
+          ? { ...p, rotation: Math.round(toward(p) / PROP_TURN) * PROP_TURN }
+          : p,
       ),
     };
   }
@@ -707,8 +718,12 @@ export class Editor {
       e.preventDefault();
       this.pasteCopied();
     } else if (key === 'delete' || key === 'backspace') this.deleteSelected();
-    else if (key === 'r') this.rotateSelected();
-    else if (key === 'escape') {
+    else if (key === 'r') {
+      if (!e.repeat && !this.rHeld) {
+        this.rHeld = true;
+        this.rUsed = false;
+      }
+    } else if (key === 'escape') {
       this.setTool(null);
       this.roadIndex = null;
       if (this.spawnTool) {
