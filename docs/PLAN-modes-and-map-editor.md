@@ -208,7 +208,7 @@ Panel items are **data-driven**: a catalog JSON (`data/catalog.json`) lists unit
 | 1b  | 🟡 **Players and ownership**      | Player list, `owner` on units, the AI as a player owning the zombies, control state per player. The game plays exactly as today                                                             | 1          |
 | 1c  | 🟡 **Unit stat sheets**           | `data/units.json` + zod schema, weapon `class` in `game.json`, per-unit `stats` and `skills` in the sim, sheet shown in the squad screen. Mocked fields do nothing; the game plays as today | 1b         |
 | 1d  | 🟡 **Items and equipment**        | `data/items.json` catalog, weapon stat sheet and damage types, hand slots and armor slots, 10-slot backpack, fists, medkits, grenades (3d, 3e). Mocked fields do nothing                    | 1c         |
-| 1e  | 🟢 **Downed state**               | Soldiers go down before dying, keep shooting one-handed, bleed out, can be revived (3g)                                                                                                     | 1d         |
+| 1e  | ✅ **Downed state**               | Soldiers go down before dying, keep shooting one-handed, bleed out, can be revived (3g)                                                                                                     | 1d         |
 | 2   | 🟡 **Menu flow**                  | Start → Single Player (Story empty / Waves with the map list), disabled Multiplayer button, Editor placeholder                                                                              | 1          |
 | 3   | 🟡 **Editor skeleton**            | Paused editor, Play / Stop, right panel with the four tabs and collapsible groups, buttons that do nothing yet                                                                              | 2          |
 | 4   | 🟡 **Save / load maps**           | New, Save, Open, Delete in localStorage; export / import `.json`; single-player list shows saved maps                                                                                       | 1, 3       |
@@ -254,6 +254,8 @@ Decided by the user (2026-10-18):
 | Weapons and items   | Weapon stat sheet with damage types (physical, explosive, fire; experimental ones mocked), attachments with percentage modifiers, melee, fists, shield, grenades, medkits S/M/L, defibrillator, 10-slot backpack, two hand slots (1-hand or 2-hand items, dual wield), helmet and vest slots (3d, 3e) |
 | World interaction   | Fire as the first environmental hazard; lift and throw objects by strength; climbing; drag or carry a body (3f)                                                                                                                                                                                       |
 | Downed state        | A soldier at zero health goes down, keeps shooting, bleeds out, and can be revived (3g)                                                                                                                                                                                                               |
+| Downed state (1e)   | Bleed-out 30 s; only a standing ally with a **medkit** revives (automatic, 3 s); enemies prefer standing soldiers (a downed one counts 3x farther, hits shorten its bleed-out); game over when nobody is on their feet                                                                                |
+| Defibrillator (1e)  | Revives a soldier who died less than 30 s ago after a 4 s channel; always works; one use                                                                                                                                                                                                              |
 | Unit stats          | A JSON stat sheet per unit (identity, level, XP, speed, stamina, RPG attributes mocked), plus XP per weapon class: melee, pistol, shotgun, rifle, sniper, machinegun, launcher (section 3c)                                                                                                           |
 
 Still open:
@@ -262,7 +264,7 @@ Still open:
 2. First vehicle: land only (recommended), or air and sea too.
 3. Stats: which attribute names to keep (strength, dexterity, constitution, perception, intelligence, charisma is a proposal), and whether weapon-class XP comes from kills only or also from hits.
 4. Vehicle damage beyond the first version (tank vs. soldier, crew injury).
-5. Downed state: bleed-out length, who can revive, whether enemies ignore downed soldiers, and the game-over rule.
-6. Defibrillator: time window after death, cost per use, success chance.
+5. Downed state: decided in 1e (see the table above).
+6. Defibrillator: decided in 1e (see the table above).
 7. Does friendly fire apply to explosives and fire (recommended: yes)?
 8. How equipment appears on the character models (bone attachment) and where the weapon meshes come from.
