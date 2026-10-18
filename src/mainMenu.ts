@@ -17,7 +17,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 /** The screens of the menu flow: title → mode → single player → story or the map list. */
-type Screen = 'title' | 'mode' | 'single' | 'story' | 'maps' | 'editor';
+type Screen = 'title' | 'mode' | 'single' | 'story' | 'maps';
 
 /** Where "Back" goes from each screen. */
 const BACK: Record<Exclude<Screen, 'title'>, Screen> = {
@@ -25,7 +25,6 @@ const BACK: Record<Exclude<Screen, 'title'>, Screen> = {
   single: 'mode',
   story: 'single',
   maps: 'single',
-  editor: 'mode',
 };
 
 /**
@@ -48,6 +47,8 @@ export class MainMenu {
     private readonly onPlay: (map: MapEntry) => void,
     preview?: CharacterFactory,
     private readonly onSettings?: () => void,
+    private readonly onEditor: () => void = () => undefined,
+    private readonly editorAvailable = true,
   ) {
     parent.appendChild(this.root);
     this.preview = preview;
@@ -130,14 +131,16 @@ export class MainMenu {
     if (screen === 'mode') {
       option('Single Player', 'Story missions or survival waves', () => this.go('single'));
       option('Multiplayer', 'Coming soon', null);
-      option('Editor', 'Build your own maps', () => this.go('editor'));
+      option(
+        'Editor',
+        this.editorAvailable ? 'Build your own maps' : 'Desktop only',
+        this.editorAvailable ? () => this.openEditor() : null,
+      );
     } else if (screen === 'single') {
       option('Story', 'Missions with objectives', () => this.go('story'));
       option('Waves', 'Survive endless waves on a map', () => this.go('maps'));
     } else if (screen === 'story') {
       el('p', 'menu__empty', panel, 'No missions yet. Story mode is coming later.');
-    } else if (screen === 'editor') {
-      el('p', 'menu__empty', panel, 'The map editor is coming soon.');
     } else {
       for (const map of listMaps()) {
         const row = option(map.name, `${map.width} × ${map.depth}`, () => this.play(map));
@@ -156,11 +159,21 @@ export class MainMenu {
 
   private play(map: MapEntry): void {
     if (!this.open) return;
+    this.close();
+    this.onPlay(map);
+  }
+
+  private openEditor(): void {
+    if (!this.open) return;
+    this.close();
+    this.onEditor();
+  }
+
+  private close(): void {
     this.open = false;
     this.model?.stop();
     this.model = null;
     this.root.classList.add('menu--hidden');
-    this.onPlay(map);
   }
 }
 
@@ -169,5 +182,4 @@ const TITLES: Record<Exclude<Screen, 'title'>, string> = {
   single: 'Single Player',
   story: 'Story',
   maps: 'Choose a map',
-  editor: 'Editor',
 };

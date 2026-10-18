@@ -4,6 +4,7 @@ import map1 from '../data/maps/map-1.json';
 import items from '../data/items.json';
 import units from '../data/units.json';
 import { Sfx } from './audio';
+import { Editor } from './editor';
 import { FpsCounter } from './fps';
 import { Hud } from './hud';
 import { MainMenu } from './mainMenu';
@@ -119,9 +120,35 @@ async function main(): Promise<void> {
   // A random soldier floats next to the title, a different one on each visit.
   const preview = factories.soldiers[Math.floor(Math.random() * factories.soldiers.length)];
   // Map 1 is the only map the sim is built for so far; the picked map is ignored until phase 4.
-  const menu = new MainMenu(document.body, () => undefined, preview, openSettings);
+  const menu = new MainMenu(
+    document.body,
+    () => undefined,
+    preview,
+    openSettings,
+    () => openEditor(),
+    !mobile,
+  );
+  const editor = new Editor(document.body, {
+    onPlay: () => {
+      resetGame();
+      setPaused(false);
+    },
+    onStop: () => {
+      resetGame();
+      controlSoldier(state, null);
+    },
+    onMenu: () => {
+      editor.close();
+      menu.show();
+    },
+  });
   const modalOpen = () =>
-    menu.isOpen || ui.isOpen || perks.isOpen || shop.isOpen || settingsPanel.isOpen;
+    menu.isOpen ||
+    editor.isEditing ||
+    ui.isOpen ||
+    perks.isOpen ||
+    shop.isOpen ||
+    settingsPanel.isOpen;
   const rts = new RtsController(
     renderer.domElement,
     renderer,
@@ -133,18 +160,29 @@ async function main(): Promise<void> {
       !paused &&
       !modalOpen(),
   );
-  const hud = new Hud(document.body, config, () => {
-    state = createGame(config, Date.now());
-    hud.reset();
-    rts.set([]);
-    ui.close();
-    shop.close();
-  });
+  const hud = new Hud(document.body, config, () => resetGame());
   const squad = new SquadPanel(document.body, config, (id, additive) => {
     // Clicking an icon while playing hands direct control to that unit; in RTS mode it selects.
     if (mobile || localPlayer(state).controlledId !== null) setLeader(id);
     else rts.toggle(id, additive);
   });
+
+  /** A fresh run of the loaded map (restart, the editor's Play and Stop). */
+  const resetGame = () => {
+    state = createGame(config, Date.now());
+    hud.reset();
+    rts.set([]);
+    ui.close();
+    shop.close();
+  };
+
+  /** The editor opens paused on the map, in RTS mode so WASD pans the camera. */
+  const openEditor = () => {
+    resetGame();
+    controlSoldier(state, null);
+    setPaused(false);
+    editor.open();
+  };
 
   const setPaused = (value: boolean) => {
     paused = value && state.status === 'playing' && !menu.isOpen;
@@ -284,6 +322,7 @@ async function main(): Promise<void> {
       return;
     }
     if (menu.onKey(e.code)) return;
+    if (editor.isEditing) return;
     if (perks.onKey(e.code)) return;
     if (e.code === 'KeyM') sfx.toggleMute();
     else if (e.code === 'Escape' && ui.isOpen) ui.close();
@@ -312,7 +351,9 @@ async function main(): Promise<void> {
       setView(NEXT_VIEW[renderer.viewMode]);
     } else if (e.code === 'KeyY' && playable() && !modalOpen()) toggleControl();
   });
-  window.addEventListener('blur', () => setPaused(true));
+  window.addEventListener('blur', () => {
+    if (!editor.isEditing) setPaused(true);
+  });
 
   new CameraControls(renderer.domElement, renderer);
 

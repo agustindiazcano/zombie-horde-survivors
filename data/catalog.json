@@ -1,0 +1,41 @@
+{
+  "units": [
+    { "id": "humans", "name": "Humans", "items": ["Soldier", "Civilian", "Drone"] },
+    {
+      "id": "zombies",
+      "name": "Zombies",
+      "items": ["Zombie", "Skeleton", "Alien", "Hound", "Brute", "Worm", "Infected marine"]
+    },
+    { "id": "monsters", "name": "Monsters", "items": ["Mini boss"] },
+    {
+      "id": "vehicles",
+      "name": "Vehicles",
+      "groups": [
+        {
+          "id": "military",
+          "name": "Military",
+          "groups": [
+            { "id": "military-air", "name": "Air", "items": [] },
+            { "id": "military-sea", "name": "Sea", "items": [] },
+            { "id": "military-land", "name": "Land", "items": [] }
+          ]
+        },
+        {
+          "id": "civil",
+          "name": "Civil",
+          "groups": [
+            { "id": "civil-air", "name": "Air", "items": [] },
+            { "id": "civil-sea", "name": "Sea", "items": [] },
+            { "id": "civil-land", "name": "Land", "items": [] }
+          ]
+        }
+      ]
+    },
+    { "id": "animals", "name": "Animals", "items": [] }
+  ],
+  "assets": [
+    { "id": "outdoors", "name": "Outdoors", "items": ["Block"] },
+    { "id": "indoors", "name": "Indoors", "items": [] },
+    { "id": "nature", "name": "Nature", "items": [] }
+  ]
+}
