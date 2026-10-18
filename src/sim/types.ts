@@ -24,6 +24,22 @@ export type Stance = 'normal' | 'crouch' | 'sprint';
 
 export type UnitKind = 'soldier' | 'drone';
 
+/** `count` of one item (an item id) sharing a backpack slot, up to the item's `stack`. */
+export interface Stack {
+  item: string;
+  count: number;
+}
+
+/**
+ * Hand and body slots; null is empty. A two-handed weapon sits in `rightHand` and leaves
+ * `leftHand` empty. With both hands empty a unit has fists (not active yet: it does not fight).
+ */
+export interface Equipment {
+  rightHand: string | null;
+  leftHand: string | null;
+  chest: string | null;
+}
+
 export interface Soldier {
   id: number;
   /** Id of the player that owns this unit. */
@@ -42,10 +58,10 @@ export interface Soldier {
   prevY: number;
   vy: number;
   order: SoldierOrder;
-  /** Equipped weapon id ('rifle', 'pistol', 'heavy_mg', 'drone_cannon'), or null if unarmed. */
-  weapon: string | null;
-  /** Carried weapon ids, up to `inventory.backpackSlots`. */
-  backpack: string[];
+  /** What the unit holds and wears (item ids from data/items.json). */
+  equipment: Equipment;
+  /** Carried stacks, up to `inventory.backpackSlots` slots. */
+  backpack: Stack[];
   /** This unit's own experience (grows when it kills) and enemies it has killed. */
   xp: number;
   kills: number;
@@ -91,7 +107,7 @@ export interface Zombie {
   deathTimer: number;
 }
 
-/** A dropped container of weapons on the ground. */
+/** A dropped container of items on the ground. */
 export interface Crate {
   id: number;
   pos: Vec2;

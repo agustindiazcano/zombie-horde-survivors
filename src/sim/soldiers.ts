@@ -42,7 +42,7 @@ export function createSquad(config: GameConfig, owner: string): Soldier[] {
       prevY: 0,
       vy: 0,
       order: { type: 'follow' },
-      weapon: config.squad.startWeapon,
+      equipment: { rightHand: config.squad.startWeapon, leftHand: null, chest: null },
       backpack: [],
       xp: 0,
       kills: 0,
@@ -68,7 +68,7 @@ export function createSquad(config: GameConfig, owner: string): Soldier[] {
       prevY: 0,
       vy: 0,
       order: { type: 'follow' },
-      weapon: null,
+      equipment: { rightHand: null, leftHand: null, chest: null },
       backpack: [],
       xp: 0,
       kills: 0,
@@ -226,7 +226,7 @@ function updateControlled(
 
   if (input.jump && s.y === 0 && s.vy === 0 && !isDrone(s)) s.vy = config.stance.jumpSpeed;
 
-  if (input.firing && s.fireCooldown <= 0 && s.weapon !== null) fireWeapon(state, config, s);
+  if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
 }
 
 function updateAi(

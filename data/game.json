@@ -7,25 +7,7 @@
     "startWeapon": "pistol"
   },
   "inventory": {
-    "backpackSlots": 6
-  },
-  "weapons": {
-    "pistol": {
-      "name": "Pistol",
-      "class": "pistol",
-      "fireRate": 4,
-      "damage": 20,
-      "range": 25,
-      "spread": 0.02
-    },
-    "heavy_mg": {
-      "name": "Heavy machine gun",
-      "class": "machinegun",
-      "fireRate": 14,
-      "damage": 18,
-      "range": 35,
-      "spread": 0.07
-    }
+    "backpackSlots": 10
   },
   "drops": {
     "chance": 0.25,
@@ -35,35 +17,31 @@
     "maxCrates": 12,
     "table": [
       {
-        "weapon": "pistol",
-        "weight": 2
+        "weight": 2,
+        "item": "pistol"
       },
       {
-        "weapon": "rifle",
-        "weight": 2
+        "weight": 2,
+        "item": "rifle"
       },
       {
-        "weapon": "heavy_mg",
-        "weight": 2
+        "weight": 2,
+        "item": "heavy_mg"
       },
       {
-        "weapon": "drone_cannon",
-        "weight": 1.5
+        "weight": 1.5,
+        "item": "drone_cannon"
       },
       {
-        "weapon": "armor_plate",
-        "weight": 2
+        "weight": 2,
+        "item": "armor_plate"
       }
     ]
   },
   "drone": {
     "count": 1,
-    "weaponClass": "machinegun",
     "speed": 7,
-    "height": 3,
-    "fireRate": 1.2,
-    "damage": 45,
-    "range": 30
+    "height": 3
   },
   "player": {
     "speed": 6,
@@ -71,12 +49,6 @@
     "maxArmor": 50,
     "armorPlate": 20,
     "radius": 0.4
-  },
-  "weapon": {
-    "class": "rifle",
-    "fireRate": 8,
-    "damage": 25,
-    "range": 40
   },
   "zombie": {
     "speed": 2.5,
@@ -275,7 +247,7 @@
         "id": "rifle",
         "name": "Rifle",
         "description": "Adds a rifle to the selected unit's backpack",
-        "kind": "weapon",
+        "kind": "item",
         "target": "rifle",
         "cost": 90
       },
@@ -283,7 +255,7 @@
         "id": "heavy_mg",
         "name": "Heavy machine gun",
         "description": "Adds a heavy MG to the selected unit's backpack",
-        "kind": "weapon",
+        "kind": "item",
         "target": "heavy_mg",
         "cost": 140
       },
@@ -291,7 +263,7 @@
         "id": "drone_gun",
         "name": "Drone gun",
         "description": "A gun for the drone, which has none to start with",
-        "kind": "weapon",
+        "kind": "item",
         "target": "drone_cannon",
         "cost": 50
       },

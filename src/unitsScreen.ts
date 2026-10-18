@@ -1,29 +1,29 @@
 import './unitsScreen.css';
+import { itemInfo } from './itemInfo';
 import { MenuModel } from './menuModel';
 import type { CharacterFactory } from './render/characters';
 import {
   levelInfo,
   maxHealthOf,
   equipFromBackpack,
+  itemDef,
   moveItem,
   skillLevel,
-  unequipWeapon,
+  unequipSlot,
+  useItem,
   weaponDef,
   type GameConfig,
   type GameState,
   type Slot,
+  type SlotRef,
   type Soldier,
 } from './sim';
 
 /** How many unit windows can be open at once. */
 const MAX_OPEN = 4;
 
-const WEAPON_ICON: Record<string, string> = {
-  rifle: '🔫',
-  pistol: '🔫',
-  heavy_mg: '💥',
-  drone_cannon: '🛸',
-};
+/** Caption of the right hand when both hands are empty (fists do not fight yet). */
+const FISTS = '✊ Fists';
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -209,43 +209,59 @@ export class UnitsScreen {
     }
 
     w.slots.replaceChildren();
-    const equipped = el('div', 'us__box', w.slots);
-    el('div', 'us__label', equipped, 'Equipped');
-    this.slot(equipped, unit, 'weapon', unit.weapon ?? undefined);
+    const doll = el('div', 'us__box', w.slots);
+    el('div', 'us__label', doll, 'Equipment');
+    const worn = el('div', 'us__doll', doll);
+    const { rightHand, leftHand, chest } = unit.equipment;
+    const twoHanded = rightHand !== null && weaponDef(this.config, rightHand).hands === 2;
+    const empty = rightHand === null && leftHand === null && unit.kind === 'soldier';
+    this.slot(worn, unit, 'rightHand', rightHand, empty ? FISTS : 'Right hand');
+    this.slot(worn, unit, 'leftHand', leftHand, twoHanded ? 'Two-handed' : 'Left hand');
+    this.slot(worn, unit, 'chest', chest, 'Vest');
     const pack = el('div', 'us__box', w.slots);
-    el('div', 'us__label', pack, 'Backpack');
+    el(
+      'div',
+      'us__label',
+      pack,
+      `Backpack ${unit.backpack.length} / ${this.config.inventory.backpackSlots}`,
+    );
     const grid = el('div', 'us__grid', pack);
     for (let i = 0; i < this.config.inventory.backpackSlots; i++) {
-      this.slot(grid, unit, i, unit.backpack[i]);
+      this.slot(grid, unit, i, unit.backpack[i]?.item, 'Empty', unit.backpack[i]?.count);
     }
   }
 
-  /** One weapon slot: draggable when it holds a weapon, and always a drop target. */
+  /**
+   * One slot: draggable when it holds an item, and always a drop target. `caption` names an
+   * empty slot; a backpack stack shows its `count`.
+   */
   private slot(
     parent: HTMLElement,
     unit: Soldier,
-    slot: Slot['slot'],
-    item: string | undefined,
+    slot: SlotRef,
+    item: string | undefined | null,
+    caption: string,
+    count = 1,
   ): void {
     const cell = el('div', 'us__slot', parent);
-    cell.classList.toggle('us__slot--empty', item === undefined);
-    if (item !== undefined) {
-      const def = weaponDef(this.config, item);
-      el('div', 'us__slot-icon', cell, WEAPON_ICON[item] ?? '🔫');
-      el('div', 'us__slot-name', cell, def.name);
-      el('div', 'us__slot-stats', cell, `${def.damage} dmg · ${def.fireRate}/s`);
-      cell.title = `${def.name}: damage ${def.damage}, ${def.fireRate} shots/s, range ${def.range}`;
-      // A small button per weapon: equip from the backpack, or unequip back into it.
-      const toggle = el('button', 'us__equip', cell, slot === 'weapon' ? 'Unequip' : 'Equip');
-      toggle.addEventListener('click', (e) => {
-        e.stopPropagation(); // not a tap-to-move pick
-        const state = this.getState();
-        const done =
-          slot === 'weapon'
-            ? unequipWeapon(state, this.config, unit.id)
-            : equipFromBackpack(state, unit.id, slot);
-        if (done) for (const id of this.open.keys()) this.renderWindow(id);
-      });
+    cell.classList.toggle('us__slot--empty', item === undefined || item === null);
+    if (item === undefined || item === null) {
+      el('div', 'us__slot-name', cell, caption);
+      if (caption === FISTS) el('div', 'us__slot-stats', cell, 'not active yet');
+    } else {
+      const info = itemInfo(this.config, item);
+      el('div', 'us__slot-icon', cell, info.icon);
+      el('div', 'us__slot-name', cell, count > 1 ? `${info.name} ×${count}` : info.name);
+      el('div', 'us__slot-stats', cell, info.stats);
+      cell.title = info.title;
+      const action = this.actionFor(unit, slot, item);
+      if (action) {
+        const toggle = el('button', 'us__equip', cell, action.label);
+        toggle.addEventListener('click', (e) => {
+          e.stopPropagation(); // not a tap-to-move pick
+          if (action.run(this.getState())) for (const id of this.open.keys()) this.renderWindow(id);
+        });
+      }
       cell.draggable = true;
       cell.addEventListener('dragstart', (e) => {
         const from: Slot = { unitId: unit.id, slot };
@@ -255,7 +271,7 @@ export class UnitsScreen {
       });
       cell.addEventListener('dragend', () => cell.classList.remove('us__slot--dragging'));
     }
-    // Tap to pick a weapon, tap another slot to move it there: touch screens can't drag reliably.
+    // Tap to pick an item, tap another slot to move it there: touch screens can't drag reliably.
     cell.addEventListener('click', () => {
       const here: Slot = { unitId: unit.id, slot };
       const picked = this.picked;
@@ -263,7 +279,7 @@ export class UnitsScreen {
       this.picked = null;
       this.pickedCell = null;
       if (!picked) {
-        if (item === undefined) return;
+        if (item === undefined || item === null) return;
         this.picked = here;
         this.pickedCell = cell;
         cell.classList.add('us__slot--picked');
@@ -292,5 +308,24 @@ export class UnitsScreen {
         for (const id of this.open.keys()) this.renderWindow(id);
       }
     });
+  }
+
+  /** The small button of a filled slot: unequip a worn item, equip a weapon or vest, use a medkit. */
+  private actionFor(
+    unit: Soldier,
+    slot: SlotRef,
+    item: string,
+  ): { label: string; run: (state: GameState) => boolean } | null {
+    if (typeof slot === 'string') {
+      return { label: 'Unequip', run: (st) => unequipSlot(st, this.config, unit.id, slot) };
+    }
+    const type = itemDef(this.config, item).type;
+    if (type === 'weapon' || type === 'armor') {
+      return { label: 'Equip', run: (st) => equipFromBackpack(st, this.config, unit.id, slot) };
+    }
+    if (type === 'medical') {
+      return { label: 'Use', run: (st) => useItem(st, this.config, unit.id, slot) };
+    }
+    return null;
   }
 }

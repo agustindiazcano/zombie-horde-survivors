@@ -1,0 +1,59 @@
+import { itemDef, type GameConfig } from './sim';
+
+export interface ItemInfo {
+  icon: string;
+  name: string;
+  /** One short line for a slot. */
+  stats: string;
+  /** Tooltip: what the item is and which of its numbers do nothing yet. */
+  title: string;
+}
+
+/** What the UI shows about an item of data/items.json. */
+export function itemInfo(config: GameConfig, id: string): ItemInfo {
+  const def = itemDef(config, id);
+  const lines = [def.name];
+  let stats = '';
+  switch (def.type) {
+    case 'weapon':
+      stats = `${def.damage} dmg · ${def.fireRate}/s`;
+      lines.push(
+        `${def.class}, ${def.hands === 2 ? 'two-handed' : 'one-handed'}, ${def.damageType} damage`,
+        `damage ${def.damage}, ${def.fireRate} shots/s, range ${def.range}`,
+      );
+      break;
+    case 'medical':
+      stats = `+${def.heal} HP`;
+      lines.push(`Heals ${def.heal} health when used`);
+      break;
+    case 'armor':
+      stats = 'chest armor';
+      lines.push('Worn on the chest');
+      break;
+    case 'plate':
+      stats = `+${config.player.armorPlate} armor`;
+      lines.push('Worn at once from a crate');
+      break;
+    case 'grenade':
+      stats = 'explosive';
+      lines.push('Thrown (throwing is not active yet)');
+      break;
+    case 'defibrillator':
+      stats = 'revives';
+      lines.push('Revives a fallen ally (not active yet)');
+      break;
+    case 'accessory':
+      stats = `${def.slot} accessory`;
+      lines.push(`Fits the ${def.slot} slot of a weapon (not active yet)`);
+      break;
+  }
+  if (def.stack > 1) lines.push(`Stacks up to ${def.stack}`);
+  if ('mocked' in def) {
+    const mocked = Object.entries(def.mocked).map(
+      ([key, value]) =>
+        `${key}: ${Array.isArray(value) ? value.join(', ') || '—' : JSON.stringify(value)}`,
+    );
+    lines.push(`Not active yet: ${mocked.join(' · ')}`);
+  }
+  return { icon: def.icon, name: def.name, stats, title: lines.join('\n') };
+}

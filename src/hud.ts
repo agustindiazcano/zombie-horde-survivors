@@ -4,6 +4,7 @@ import {
   levelInfo,
   localPlayer,
   maxHealthOf,
+  gunOf,
   weaponDef,
   type GameConfig,
   type GameState,
@@ -160,11 +161,8 @@ export class Hud {
       getSoldier(state, focusId) ?? state.soldiers.find((s) => !s.dead) ?? state.soldiers[0];
     const health = Math.ceil(focus?.health ?? 0);
     const focusKey = focus?.id ?? 0;
-    const weapon = focus
-      ? focus.weapon
-        ? weaponDef(this.config, focus.weapon).name
-        : 'Unarmed'
-      : '';
+    const gun = focus ? gunOf(this.config, focus) : null;
+    const weapon = focus ? (gun !== null ? weaponDef(this.config, gun).name : 'Unarmed') : '';
     if (
       health !== this.shown.health ||
       focusKey !== this.shown.focus ||

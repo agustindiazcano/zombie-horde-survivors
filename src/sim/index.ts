@@ -18,17 +18,20 @@ export {
 export { bossStats, spawnZombie } from './zombies';
 export {
   ARMOR_PLATE,
+  addToBackpack,
   backpackFull,
   equipFromBackpack,
   getCrate,
+  itemDef,
   moveItem,
   nearestCrate,
   stashInCrate,
   takeFromCrate,
-  unequipWeapon,
+  unequipSlot,
+  useItem,
 } from './inventory';
-export { skillLevel, weaponDef, type WeaponDef } from './stats';
+export { gunOf, skillLevel, weaponDef, type WeaponDef } from './stats';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';
-export type { Slot } from './inventory';
+export type { Slot, SlotRef } from './inventory';
 export { levelInfo, type LevelInfo } from './loot';
 export { waveSize } from './waves';

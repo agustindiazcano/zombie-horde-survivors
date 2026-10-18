@@ -1,10 +1,12 @@
-import type { GameConfig, WeaponClass } from './config';
+import type { DamageType, GameConfig, WeaponClass, WeaponItem } from './config';
 import type { Mods, Soldier, Stance } from './types';
 
 export interface WeaponDef {
   id: string;
   name: string;
   class: WeaponClass;
+  hands: 1 | 2;
+  damageType: DamageType;
   fireRate: number;
   damage: number;
   range: number;
@@ -36,16 +38,30 @@ export function speedOf(
   return config.player.speed * scale * mods.speed;
 }
 
-/** Looks up a weapon by id. Unknown ids fall back to the rifle. */
+/** Looks up a weapon by item id. Anything that is not a weapon falls back to the rifle. */
 export function weaponDef(config: GameConfig, id: string): WeaponDef {
-  if (id === 'drone_cannon') {
-    const { fireRate, damage, range, weaponClass: cls } = config.drone;
-    return { id, name: 'Drone gun', class: cls, fireRate, damage, range, spread: 0 };
+  const listed = config.items[id];
+  const item = listed?.type === 'weapon' ? listed : (config.items['rifle'] as WeaponItem);
+  const { name, class: cls, hands, damageType, fireRate, damage, range, spread } = item;
+  return {
+    id: listed === item ? id : 'rifle',
+    name,
+    class: cls,
+    hands,
+    damageType,
+    fireRate,
+    damage,
+    range,
+    spread,
+  };
+}
+
+/** The weapon a unit shoots with: the right hand, else the left; melee weapons do not shoot. */
+export function gunOf(config: GameConfig, s: Soldier): string | null {
+  for (const id of [s.equipment.rightHand, s.equipment.leftHand]) {
+    if (id !== null && weaponDef(config, id).class !== 'melee') return id;
   }
-  const listed = config.weapons[id];
-  if (listed) return { id, ...listed };
-  const { class: cls, fireRate, damage, range } = config.weapon;
-  return { id: 'rifle', name: 'Rifle', class: cls, fireRate, damage, range, spread: 0 };
+  return null;
 }
 
 /** Stats of a unit's equipped weapon (null when unarmed), plus how it shoots (height, cover). */
@@ -55,8 +71,9 @@ export function weaponOf(
   mods: Mods,
   stance: Stance = 'normal',
 ): WeaponStats | null {
-  if (s.weapon === null) return null;
-  const def = weaponDef(config, s.weapon);
+  const gun = gunOf(config, s);
+  if (gun === null) return null;
+  const def = weaponDef(config, gun);
   def.damage *= mods.damage;
   def.fireRate *= mods.fireRate;
   if (isDrone(s)) return { ...def, height: config.drone.height, ignoresCover: true };
