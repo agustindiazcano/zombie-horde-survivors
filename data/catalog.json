@@ -1,12 +1,69 @@
 {
   "units": [
-    { "id": "humans", "name": "Humans", "items": ["Soldier", "Civilian", "Drone"] },
+    {
+      "id": "humans",
+      "name": "Humans",
+      "items": [
+        {
+          "id": "soldier",
+          "name": "Soldier"
+        },
+        {
+          "id": "civilian",
+          "name": "Civilian",
+          "mocked": true
+        },
+        {
+          "id": "drone",
+          "name": "Drone"
+        }
+      ]
+    },
     {
       "id": "zombies",
       "name": "Zombies",
-      "items": ["Zombie", "Skeleton", "Alien", "Hound", "Brute", "Worm", "Infected marine"]
+      "items": [
+        {
+          "id": "zombie",
+          "name": "Zombie"
+        },
+        {
+          "id": "skeleton",
+          "name": "Skeleton"
+        },
+        {
+          "id": "alien",
+          "name": "Alien"
+        },
+        {
+          "id": "hound",
+          "name": "Hound"
+        },
+        {
+          "id": "brute",
+          "name": "Brute"
+        },
+        {
+          "id": "worm",
+          "name": "Worm"
+        },
+        {
+          "id": "marine_zombie",
+          "name": "Infected marine"
+        }
+      ]
     },
-    { "id": "monsters", "name": "Monsters", "items": ["Mini boss"] },
+    {
+      "id": "monsters",
+      "name": "Monsters",
+      "items": [
+        {
+          "id": "boss",
+          "name": "Mini boss",
+          "mocked": true
+        }
+      ]
+    },
     {
       "id": "vehicles",
       "name": "Vehicles",
@@ -15,27 +72,72 @@
           "id": "military",
           "name": "Military",
           "groups": [
-            { "id": "military-air", "name": "Air", "items": [] },
-            { "id": "military-sea", "name": "Sea", "items": [] },
-            { "id": "military-land", "name": "Land", "items": [] }
+            {
+              "id": "military-air",
+              "name": "Air",
+              "items": []
+            },
+            {
+              "id": "military-sea",
+              "name": "Sea",
+              "items": []
+            },
+            {
+              "id": "military-land",
+              "name": "Land",
+              "items": []
+            }
           ]
         },
         {
           "id": "civil",
           "name": "Civil",
           "groups": [
-            { "id": "civil-air", "name": "Air", "items": [] },
-            { "id": "civil-sea", "name": "Sea", "items": [] },
-            { "id": "civil-land", "name": "Land", "items": [] }
+            {
+              "id": "civil-air",
+              "name": "Air",
+              "items": []
+            },
+            {
+              "id": "civil-sea",
+              "name": "Sea",
+              "items": []
+            },
+            {
+              "id": "civil-land",
+              "name": "Land",
+              "items": []
+            }
           ]
         }
       ]
     },
-    { "id": "animals", "name": "Animals", "items": [] }
+    {
+      "id": "animals",
+      "name": "Animals",
+      "items": []
+    }
   ],
   "assets": [
-    { "id": "outdoors", "name": "Outdoors", "items": ["Block"] },
-    { "id": "indoors", "name": "Indoors", "items": [] },
-    { "id": "nature", "name": "Nature", "items": [] }
+    {
+      "id": "outdoors",
+      "name": "Outdoors",
+      "items": [
+        {
+          "id": "block",
+          "name": "Block"
+        }
+      ]
+    },
+    {
+      "id": "indoors",
+      "name": "Indoors",
+      "items": []
+    },
+    {
+      "id": "nature",
+      "name": "Nature",
+      "items": []
+    }
   ]
 }

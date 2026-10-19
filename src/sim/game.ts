@@ -8,7 +8,7 @@ import type { GameState, Input } from './types';
 import { updatePickups } from './loot';
 import { baseMods } from './upgrades';
 import { updateWaves } from './waves';
-import { updateZombies } from './zombies';
+import { spawnZombie, updateZombies } from './zombies';
 
 export function createGame(config: GameConfig, seed = 1): GameState {
   const humanId = firstPlayerOf(config.players, 'human');
@@ -17,7 +17,7 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     ...p,
     controlledId: p.id === humanId ? (soldiers[0]?.id ?? null) : null,
   }));
-  return {
+  const state: GameState = {
     time: 0,
     status: 'playing',
     soldiers,
@@ -44,6 +44,14 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     rng: createRng(seed),
     events: [],
   };
+  // Enemies placed in the editor stand waiting from the start.
+  const aiId = firstPlayerOf(config.players, 'ai');
+  for (const u of config.placed) {
+    if (u.owner === aiId && (u.type === 'zombie' || u.type in config.enemies)) {
+      spawnZombie(state, config, u, u.type).facing = u.rotation ?? 0;
+    }
+  }
+  return state;
 }
 
 /** Advances the simulation by one fixed step. Mutates `state` in place. */
