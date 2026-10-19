@@ -178,6 +178,10 @@ Zombie speed and health also grow with each wave.
 - `data/maps/*.json` — the built-in maps (Map 1); `data/catalog.json` — the editor's unit and asset lists.
 - `data/game.json` — all gameplay numbers, validated with a strict schema. `data/characters.json` maps each unit to its model and animation clips.
 
+## License
+
+Copyright © 2026 Agustin Diaz Cano / Wylan Studios. All rights reserved. The game and the Wylan Engine are proprietary; see [LICENSE](LICENSE). Third-party assets keep their own licenses (see Assets and Credits).
+
 ## Assets
 
 Every third-party asset is listed in `assets.toml` (name, author, source, license, path). Allowed licenses: CC0-1.0, CC-BY-3.0, CC-BY-4.0. `npm run check:assets` enforces this and CI runs it. Run `npm run credits` to regenerate the section below.
