@@ -18,7 +18,7 @@ The user raised the market as a reason for decisions (the name, going public); n
 - **Channel and cost:** free to play, no download, no ads or payments. Shared by link with friends first (the user's stated goal: let acquaintances try it), then maybe more widely.
 - **Genre references (inspiration, not copies):** wave survival with level-up perks and a pause panel in the style of Vampire Survivors; the motion-tracker radar of the film Aliens; RTS-action hybrids (command a squad, or take control of one unit).
 - **What makes it different:** the same game plays as a third/first-person shooter _and_ as an RTS; a squad with individual inventories, XP and kill counts; mini bosses that grow each time.
-- **Constraints that shape the product:** only CC0 / CC-BY assets (no budget for art), no backend, a first load of about 16 MB, desktop only.
+- **Constraints that shape the product:** only CC0 / CC-BY assets (no budget for art), no backend yet (a small relay server is planned for online multiplayer: see [docs/PLAN-multiplayer.md](docs/PLAN-multiplayer.md)), a first load of about 16 MB, desktop only.
 - **Open market questions** (not researched): competitors in browser zombie shooters, discoverability, whether to monetize. Do not invent numbers about any of them.
 
 ## 3. Gameplay
