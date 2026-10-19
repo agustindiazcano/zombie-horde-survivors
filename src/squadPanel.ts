@@ -31,7 +31,7 @@ export class SquadPanel {
     const sig = state.soldiers
       .map(
         (s) =>
-          `${s.id}:${s.dead ? 1 : 0}:${selected.has(s.id) ? 1 : 0}:${
+          `${s.id}:${s.dead ? 1 : 0}:${s.downed ? 1 : 0}:${selected.has(s.id) ? 1 : 0}:${
             s.id === localPlayer(state).controlledId ? 1 : 0
           }:${s.order.type}:${s.winded ? 1 : 0}`,
       )
@@ -61,7 +61,7 @@ export class SquadPanel {
     for (const s of state.soldiers) {
       const chip = document.createElement('button');
       chip.className = 'squad__chip';
-      if (s.dead) chip.classList.add('squad__chip--dead');
+      if (s.dead || s.downed) chip.classList.add('squad__chip--dead');
       if (selected.has(s.id)) chip.classList.add('squad__chip--selected');
       if (s.id === localPlayer(state).controlledId) chip.classList.add('squad__chip--controlled');
       if (s.winded) chip.classList.add('squad__chip--winded');

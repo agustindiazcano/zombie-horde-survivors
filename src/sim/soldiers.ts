@@ -1,5 +1,6 @@
 import { resolveStatic } from './collision';
 import { localPlayer } from './players';
+import { rescueTarget } from './revive';
 import { isDrone, speedOf, weaponOf } from './stats';
 import { WEAPON_CLASSES, type GameConfig, type WeaponClass } from './config';
 import type { GameState, Input, Soldier, Stance, Zombie } from './types';
@@ -49,6 +50,10 @@ export function createSquad(config: GameConfig, owner: string): Soldier[] {
       stamina: config.stance.staminaMax,
       winded: false,
       armor: 0,
+      downed: false,
+      bleedOut: 0,
+      deadTime: 0,
+      reviveProgress: 0,
       ...sheetOf(config, 'soldier'),
     };
   });
@@ -75,6 +80,10 @@ export function createSquad(config: GameConfig, owner: string): Soldier[] {
       stamina: config.stance.staminaMax,
       winded: false,
       armor: 0,
+      downed: false,
+      bleedOut: 0,
+      deadTime: 0,
+      reviveProgress: 0,
       ...sheetOf(config, 'drone'),
     });
   }
@@ -130,23 +139,46 @@ export function orderHold(state: GameState, ids: number[]): void {
   for (const s of state.soldiers) if (!s.dead && ids.includes(s.id)) s.order = { type: 'hold' };
 }
 
-/** Applies damage; a soldier at 0 health dies and, if controlled, drops back to RTS mode. */
+/** A unit dies for good and, if controlled, its player drops back to RTS mode. */
+function killSoldier(state: GameState, soldier: Soldier): void {
+  soldier.dead = true;
+  soldier.downed = false;
+  soldier.deadTime = 0;
+  soldier.reviveProgress = 0;
+  state.events.push({ type: 'soldierDied', soldierId: soldier.id });
+  const owner = state.players.find((p) => p.id === soldier.owner);
+  if (owner && owner.controlledId === soldier.id) owner.controlledId = null;
+}
+
+/**
+ * Applies damage. A soldier at 0 health goes down (and bleeds out unless revived); hits on a
+ * downed soldier shorten the bleed-out. A drone at 0 health simply dies.
+ */
 export function hurtSoldier(
   state: GameState,
+  config: GameConfig,
   soldier: Soldier,
   amount: number,
   zombieId: number,
 ): void {
   if (soldier.dead) return;
+  state.events.push({ type: 'soldierHurt', soldierId: soldier.id, damage: amount, zombieId });
+  if (soldier.downed) {
+    soldier.bleedOut -= amount * config.downed.damageBleed;
+    if (soldier.bleedOut <= 0) killSoldier(state, soldier);
+    return;
+  }
   const soaked = Math.min(soldier.armor, amount);
   soldier.armor -= soaked;
   soldier.health = Math.max(0, soldier.health - (amount - soaked));
-  state.events.push({ type: 'soldierHurt', soldierId: soldier.id, damage: amount, zombieId });
   if (soldier.health > 0) return;
-  soldier.dead = true;
-  state.events.push({ type: 'soldierDied', soldierId: soldier.id });
-  const owner = state.players.find((p) => p.id === soldier.owner);
-  if (owner && owner.controlledId === soldier.id) owner.controlledId = null;
+  if (soldier.kind === 'drone') {
+    killSoldier(state, soldier);
+    return;
+  }
+  soldier.downed = true;
+  soldier.bleedOut = config.downed.bleedOut;
+  state.events.push({ type: 'soldierDowned', soldierId: soldier.id });
 }
 
 export function updateSoldiers(
@@ -161,15 +193,26 @@ export function updateSoldiers(
     s.prev.x = s.pos.x;
     s.prev.z = s.pos.z;
     s.prevY = s.y;
-    if (s.dead) continue;
+    if (s.dead) {
+      s.deadTime += dt;
+      continue;
+    }
+    if (s.downed) {
+      s.bleedOut -= dt;
+      if (s.bleedOut <= 0) {
+        killSoldier(state, s);
+        continue;
+      }
+    }
     // May dip up to one step below zero so the leftover time carries into the next shot.
     s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
-    if (state.mods.regen > 0 && !isDrone(s)) {
+    if (state.mods.regen > 0 && !isDrone(s) && !s.downed) {
       const max = config.player.maxHealth * state.mods.maxHealth;
       s.health = Math.min(max, s.health + state.mods.regen * dt);
     }
     // The squad's sprint order only works for a unit that still has breath.
-    const stance = state.stance === 'sprint' && (s.winded || isDrone(s)) ? 'normal' : state.stance;
+    const stance =
+      s.downed || (state.stance === 'sprint' && (s.winded || isDrone(s))) ? 'normal' : state.stance;
     if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
     else updateAi(state, config, s, leader, stance, dt);
     updateStamina(config, s, stance, dt);
@@ -224,7 +267,9 @@ function updateControlled(
   const dz = aim.z - s.pos.z;
   if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
 
-  if (input.jump && s.y === 0 && s.vy === 0 && !isDrone(s)) s.vy = config.stance.jumpSpeed;
+  if (input.jump && s.y === 0 && s.vy === 0 && !isDrone(s) && !s.downed) {
+    s.vy = config.stance.jumpSpeed;
+  }
 
   if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
 }
@@ -256,6 +301,15 @@ function updateAi(
     if (d > SLOT_TOLERANCE) dest = slot;
     if (d > config.squad.followDistance * 2.5) speed *= CATCH_UP_SPEED;
   }
+
+  // Walk to a downed ally (with a medkit) or a fallen one (with a defibrillator) and stay there.
+  const patient = s.order.type === 'follow' ? rescueTarget(state, config, s) : null;
+  if (patient) {
+    const near = Math.hypot(patient.pos.x - s.pos.x, patient.pos.z - s.pos.z);
+    dest = near > config.downed.reviveRange * 0.7 ? { ...patient.pos } : null;
+  }
+  // A downed unit cannot walk on its own; it can still shoot.
+  if (s.downed) dest = null;
 
   let moveAngle: number | null = null;
   if (dest) {

@@ -114,6 +114,12 @@ The round display in the bottom-right corner is a motion tracker, like the one f
 
 Every unit has two hands, a vest slot and a 10-slot backpack. Some enemies drop a **crate** with weapons: pistol, rifle, heavy machine gun or the drone gun. Press **E** next to it to take items or stash your own; to equip weapons and move items between units press **I** (see below). The game pauses while a menu is open. Weapon and item stats are in `data/items.json`; the drop chance and the loot table are in `data/game.json`.
 
+## Downed soldiers
+
+A soldier who reaches zero health does not die at once: it goes **down** (lies on the floor, "DOWN" in the health line, greyed icon) and bleeds out in **30 seconds**. From the floor it can crawl slowly and shoot a **one-handed** weapon (a pistol) with poor aim; a rifle or machine gun will not fire. Enemies prefer soldiers on their feet, but every hit on a downed one shortens its time.
+
+An ally on their feet who carries a **medkit** and stays within reach for 3 seconds uses it automatically and stands the soldier back up with the kit's health (small 25, medium 50, large 100); soldiers on `follow` walk over to help. Without a medkit the soldier dies when the timer ends. A soldier who died less than 30 seconds ago can be brought back by an ally with a **defibrillator** (4 seconds next to the body, one use, half health). The game is over when nobody is left on their feet. Medkits and the defibrillator come from crates and the shop; a medkit can also be used from the squad screen to heal yourself.
+
 ## Loot, levels and gore
 
 Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collects them by walking over them; they vanish after 60 s. XP raises your level (shown at the top). Enemies show a health bar and light up when hit, and about half of them burst when killed, spraying blood and gibs.

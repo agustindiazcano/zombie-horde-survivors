@@ -35,6 +35,18 @@
       {
         "weight": 2,
         "item": "armor_plate"
+      },
+      {
+        "item": "medkit_s",
+        "weight": 2
+      },
+      {
+        "item": "medkit_m",
+        "weight": 1
+      },
+      {
+        "item": "defibrillator",
+        "weight": 0.6
       }
     ]
   },
@@ -293,6 +305,31 @@
         "target": "fleet_foot",
         "cost": 60,
         "costGrowth": 1.5
+      },
+      {
+        "id": "medkit_s",
+        "name": "Medkit (S)",
+        "description": "Adds a small medkit to the selected unit's backpack",
+        "kind": "item",
+        "target": "medkit_s",
+        "cost": 25
+      },
+      {
+        "id": "medkit_m",
+        "name": "Medkit (M)",
+        "description": "Adds a medium medkit to the selected unit's backpack",
+        "kind": "item",
+        "target": "medkit_m",
+        "cost": 45
+      },
+      {
+        "id": "defibrillator",
+        "name": "Defibrillator",
+        "description": "Adds a defibrillator to the selected unit's backpack",
+        "kind": "item",
+        "target": "defibrillator",
+        "cost": 90,
+        "costGrowth": 1.3
       }
     ]
   },
@@ -307,5 +344,15 @@
     "sizeBase": 2,
     "sizeExponent": 0.4,
     "maxSize": 5
+  },
+  "downed": {
+    "bleedOut": 30,
+    "damageBleed": 0.3,
+    "crawlSpeedScale": 0.2,
+    "extraSpread": 0.06,
+    "reviveRange": 2,
+    "reviveTime": 3,
+    "defibHealth": 0.5,
+    "targetDistanceScale": 3
   }
 }

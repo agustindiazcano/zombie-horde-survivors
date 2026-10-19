@@ -119,7 +119,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       continue;
     }
 
-    const target = nearestSoldier(state, z.pos);
+    const target = nearestSoldier(state, config, z.pos);
     if (!target) continue; // everyone is dead; the game is about to end
     const dx = target.pos.x - z.pos.x;
     const dz = target.pos.z - z.pos.z;
@@ -146,7 +146,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     z.attackTimer -= dt;
     if (z.attackTimer <= 0) {
       z.attackTimer += zc.attackCooldown;
-      hurtSoldier(state, target, z.damage, z.id);
+      hurtSoldier(state, config, target, z.damage, z.id);
     }
   }
 
@@ -243,14 +243,16 @@ function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: 
   return scratch;
 }
 
-function nearestSoldier(state: GameState, from: Vec2): Soldier | null {
+/** The closest soldier; a downed one counts as farther away, so standing soldiers come first. */
+function nearestSoldier(state: GameState, config: GameConfig, from: Vec2): Soldier | null {
   let best: Soldier | null = null;
-  let bestD2 = Infinity;
+  let bestD = Infinity;
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone') continue; // flying units can't be reached
-    const d2 = (s.pos.x - from.x) ** 2 + (s.pos.z - from.z) ** 2;
-    if (d2 < bestD2) {
-      bestD2 = d2;
+    const d = Math.hypot(s.pos.x - from.x, s.pos.z - from.z);
+    const felt = s.downed ? d * config.downed.targetDistanceScale : d;
+    if (felt < bestD) {
+      bestD = felt;
       best = s;
     }
   }

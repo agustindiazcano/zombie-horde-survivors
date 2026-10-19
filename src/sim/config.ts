@@ -263,14 +263,10 @@ const itemDef = z.discriminatedUnion('type', [
     .object({
       ...itemBase,
       type: z.literal('defibrillator'),
-      mocked: z
-        .object({
-          channelTime: nonNegative,
-          reviveWindow: nonNegative,
-          successChance: z.number().min(0).max(1),
-          weight: nonNegative,
-        })
-        .strict(),
+      /** Seconds a standing carrier must stay next to the body, and how long after death it works. */
+      channelTime: positive,
+      reviveWindow: positive,
+      mocked: z.object({ weight: nonNegative }).strict(),
     })
     .strict(),
   z
@@ -463,6 +459,27 @@ export const GameConfigSchema = z
         sizeBase: positive,
         sizeExponent: nonNegative,
         maxSize: positive,
+      })
+      .strict(),
+    /** A soldier at zero health goes down instead of dying (see sim/revive.ts). */
+    downed: z
+      .object({
+        /** Seconds a downed soldier lives, unless revived. */
+        bleedOut: positive,
+        /** Seconds of bleed-out each point of damage to a downed soldier takes away. */
+        damageBleed: nonNegative,
+        /** Crawl speed, as a fraction of walking speed. */
+        crawlSpeedScale: positive,
+        /** Aim error added to a one-handed weapon fired from the floor (radians). */
+        extraSpread: nonNegative,
+        /** An ally this close with a medkit starts reviving; also how close a rescuer walks. */
+        reviveRange: positive,
+        /** Seconds an ally needs with a medkit. */
+        reviveTime: positive,
+        /** Health fraction of a soldier brought back by a defibrillator. */
+        defibHealth: z.number().min(0).max(1),
+        /** Enemies see a downed soldier this many times farther away than a standing one. */
+        targetDistanceScale: z.number().min(1),
       })
       .strict(),
     gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),

@@ -1,6 +1,7 @@
 import { FIXED_DT } from './constants';
 import type { GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
+import { updateRevives } from './revive';
 import { createSquad, updateSoldiers } from './soldiers';
 import { createRng } from './rng';
 import type { GameState, Input } from './types';
@@ -67,11 +68,13 @@ export function step(
           ? 'sprint'
           : 'normal';
   updateSoldiers(state, config, input, dt);
+  updateRevives(state, config, dt);
   updatePickups(state, config, dt);
   updateWaves(state, config, dt);
   updateZombies(state, config, dt);
 
-  if (state.soldiers.every((s) => s.dead || s.kind === 'drone')) {
+  // The run ends when no soldier is left on their feet: a downed soldier needs a standing ally.
+  if (state.soldiers.every((s) => s.dead || s.downed || s.kind === 'drone')) {
     state.status = 'gameover';
     state.events.push({ type: 'gameOver' });
   }

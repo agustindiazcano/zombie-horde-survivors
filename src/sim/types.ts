@@ -76,6 +76,14 @@ export interface Soldier {
   skills: Record<WeaponClass, number>;
   /** Absorbs damage before health does (0 to `player.maxArmor`); units start with none. */
   armor: number;
+  /** On the floor at zero health: crawls, shoots a one-handed gun, bleeds out (soldiers only). */
+  downed: boolean;
+  /** Seconds left to live while downed. */
+  bleedOut: number;
+  /** Seconds since death (a defibrillator only works within its window). */
+  deadTime: number;
+  /** Seconds an ally has spent reviving this unit; resets when none is in reach. */
+  reviveProgress: number;
 }
 
 export interface Zombie {
@@ -158,6 +166,8 @@ export type SimEvent =
   | { type: 'levelUp'; level: number }
   | { type: 'crateDropped'; crateId: number; pos: Vec2 }
   | { type: 'soldierHurt'; soldierId: number; damage: number; zombieId: number }
+  | { type: 'soldierDowned'; soldierId: number }
+  | { type: 'soldierRevived'; soldierId: number; byId: number }
   | { type: 'soldierDied'; soldierId: number }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }

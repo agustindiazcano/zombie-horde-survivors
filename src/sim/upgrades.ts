@@ -37,7 +37,7 @@ function addStack(state: GameState, config: GameConfig, perkId: string): boolean
   state.upgrades[perkId] = stacks + 1;
   state.mods = computeMods(state, config);
   const gained = maxHealthOf(state, config) - oldMax;
-  if (gained > 0) for (const s of state.soldiers) if (!s.dead) s.health += gained;
+  if (gained > 0) for (const s of state.soldiers) if (!s.dead && !s.downed) s.health += gained;
   return true;
 }
 
@@ -95,14 +95,18 @@ export function buyItem(
 
   if (item.kind === 'heal') {
     const max = maxHealthOf(state, config);
-    const hurt = state.soldiers.filter((s) => !s.dead && s.kind === 'soldier' && s.health < max);
+    const hurt = state.soldiers.filter(
+      (s) => !s.dead && !s.downed && s.kind === 'soldier' && s.health < max,
+    );
     if (hurt.length === 0) return 'Everyone is already at full health';
     for (const s of hurt) s.health = max;
   } else if (item.kind === 'revive') {
     const fallen = state.soldiers.find((s) => s.dead && s.kind === 'soldier');
-    const anchor = state.soldiers.find((s) => !s.dead && s.kind === 'soldier');
+    const anchor = state.soldiers.find((s) => !s.dead && !s.downed && s.kind === 'soldier');
     if (!fallen) return 'No fallen soldier to bring back';
     fallen.dead = false;
+    fallen.deadTime = 0;
+    fallen.reviveProgress = 0;
     fallen.health = maxHealthOf(state, config) / 2;
     fallen.armor = 0;
     fallen.order = { type: 'follow' };

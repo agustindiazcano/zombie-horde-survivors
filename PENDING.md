@@ -43,11 +43,10 @@ Claude has no browser, so every visual and feel decision below is an estimate. T
 
 Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md). Start → Single Player (Story / Waves; today's arena is "Map 1"), a disabled Multiplayer button, or Editor (starts paused, Play button, right panel with Units / Assets / Terrain / Game logic / Players tabs). Several players own units and the AI is one of them; vehicles need a human operator to move (Men of War style).
 
-- [ ] 🟡 Phase 1e (next): downed state (a soldier goes down, keeps shooting, bleeds out, can be revived). Needs the user's rules for the downed state and the defibrillator.
-- [ ] 🟡 Visual check of phase 1d: the equipment column and the 10-slot backpack in the squad screen unit window (layout, drag and drop between hands, vest and backpack). Also still unseen from phases 1 to 1c: the Meshy marine animations, the Infected marine tint, Map 1 looking as before, and the attributes and skills layout.
+- [ ] 🟡 Play-test of phase 1e: go down, wait for an ally with a medkit, bleed out, defibrillate (the crate odds and the shop prices of medkits and the defibrillator are guesses). Visual check of phase 1d: the equipment column and the 10-slot backpack in the squad screen unit window (layout, drag and drop between hands, vest and backpack). Also still unseen from phases 1 to 1c: the Meshy marine animations, the Infected marine tint, Map 1 looking as before, and the attributes and skills layout.
 - [ ] 🟡 Ask the user before the visual part of equipment: how weapons show on the models (bones to attach to, where the meshes come from).
-- [ ] 🟢 Follow-ups of 1d, not built: helmet slot, dual-wield firing, fists and melee combat, grenade throwing, accessory fitting, ammo and reload, a way to obtain medkits, grenades, the vest and the defibrillator.
-- [ ] 🟡 Phase 2: menu flow Start → Single Player (Story / Waves) / Multiplayer (disabled) / Editor, map list.
+- [ ] 🟢 Follow-ups of 1d and 1e, not built: helmet slot, dual-wield firing, fists and melee combat, grenade throwing, accessory fitting, ammo and reload, a way to obtain grenades, the vest and accessories, a manual revive key, crawl and bleeding visuals.
+- [ ] 🟡 Phase 2 (next): menu flow Start → Single Player (Story / Waves) / Multiplayer (disabled) / Editor, map list.
 - [ ] 🟡 Phase 3: editor skeleton (paused, Play / Stop, tabs and collapsible groups that do nothing yet).
 - [ ] 🟡 Phase 4: save / load / export maps: built-in maps in `data/maps/` plus the user's maps in localStorage, listed together.
 - [ ] 🟢 Phases 5–7: place units and assets, terrain (height, water, paint, roads), game logic tab.
