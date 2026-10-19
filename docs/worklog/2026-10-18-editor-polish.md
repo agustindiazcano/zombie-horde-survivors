@@ -10,3 +10,5 @@ Branch `feat/editor-polish`, cut from `feat/story-mode` (twelfth in the stack; P
 - **Mission briefing:** `logic.briefing` (story maps, up to 600 characters), a textarea in the Objectives section, shown as a card when the mission starts from the menu or with Play in the editor; a click closes it. `story-1` has one.
 - **Cliffs block:** a grid cell whose corners differ by more than `MAX_CELL_RISE` (1.2 m, `sim/terrain.ts`) becomes a blocking box like water (`steepObstacles`; walkers stop, bullets cross). Gentle hills stay walkable. Tune the constant after looking at the hills.
 - Still open: a real vehicle model.
+- **Fire (8b, first step):** `hazards.fire` in `game.json` (20 dps, 2.5 m), `logic.fires` in the map, `src/sim/hazards.ts` (half-second bursts; soldiers on foot and enemies, not the drone or riders), flames in the renderer, Fire section in the Game logic tab. Not done: spreading, fire grenades, explosive barrels.
+- **Wylan Engine / licence:** tab title, a footer on the main menu, `LICENSE` (all rights reserved, Wylan Studios), `"license": "UNLICENSED"`, README License section. Open: an in-game credits screen for the CC-BY assets before Steam.

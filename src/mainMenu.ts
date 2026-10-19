@@ -56,6 +56,7 @@ export class MainMenu {
       this.stage = el('div', 'menu__stage', this.root);
       this.model = new MenuModel(this.stage, preview);
     }
+    el('div', 'menu__footer', this.root, 'Wylan Engine · © 2026 Wylan Studios');
     this.go('title');
   }
 
