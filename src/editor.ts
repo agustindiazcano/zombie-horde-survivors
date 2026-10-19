@@ -5,7 +5,15 @@ import gameData from '../data/game.json';
 import { blankMap, exportMap, importMapFile, listMaps, pickMapFile, saveMap } from './maps';
 import { objectiveLabel } from './hud';
 import { isDialogOpen, openInventory, openStats } from './unitDialogs';
-import { spawnerEnemy, type MapData, type MapLogic, type Objective, type Vec2 } from './sim';
+import {
+  defaultEnvironment,
+  spawnerEnemy,
+  type Environment,
+  type MapData,
+  type MapLogic,
+  type Objective,
+  type Vec2,
+} from './sim';
 import { flatHeights, paintCells, plainPaint, sculpt, type SculptMode } from './terrainBrush';
 import { terrainData } from './terrainData';
 
@@ -58,17 +66,39 @@ const catalog = z
   .strict()
   .parse(catalogData);
 
-type TabId = 'units' | 'assets' | 'terrain' | 'logic' | 'players';
+type TabId = 'units' | 'assets' | 'terrain' | 'logic' | 'sky' | 'players';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'units', label: 'Units' },
   { id: 'assets', label: 'Assets' },
   { id: 'terrain', label: 'Terrain' },
   { id: 'logic', label: 'Game logic' },
+  { id: 'sky', label: 'Environment' },
   { id: 'players', label: 'Players' },
 ];
 
 const SOON = 'Not built yet';
+
+/** "14:30 · Day" for the time-of-day slider. */
+function hourLabel(hour: number): string {
+  const h = Math.floor(hour) % 24;
+  const m = Math.round((hour - Math.floor(hour)) * 60);
+  const phase =
+    hour < 4.5 || hour >= 21
+      ? 'Night'
+      : hour < 7.5
+        ? 'Dawn'
+        : hour < 16.5
+          ? 'Day'
+          : hour < 19.5
+            ? 'Dusk'
+            : 'Evening';
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} · ${phase}`;
+}
+
+/** Off / Light / Medium / Heavy / Extreme for a 0 to 1 weather strength. */
+const strengthLabel = (v: number): string =>
+  v <= 0 ? 'Off' : v < 0.3 ? 'Light' : v < 0.6 ? 'Medium' : v < 0.85 ? 'Heavy' : 'Extreme';
 
 /** What the next click on the map places; `owner` is the kind of player that owns a unit. */
 interface Tool {
@@ -156,6 +186,8 @@ export class Editor {
   /** R is held: a right-drag turns the selection, and letting go without dragging turns one step. */
   private rHeld = false;
   private rUsed = false;
+  /** A slider or colour drag is in progress: its steps after the first are not undo steps. */
+  private sliding = false;
   private boxEnd: { x: number; y: number } | null = null;
   private readonly boxEl: HTMLElement;
   /** The mouse is down on the selection; `dragMoved` once it has actually moved. */
@@ -968,6 +1000,7 @@ export class Editor {
       this.groups(catalog.assets, 'Click an asset, then click the map.', 'prop');
     else if (tab === 'terrain') this.terrain();
     else if (tab === 'logic') this.logic();
+    else if (tab === 'sky') this.environmentTab();
     else this.players();
   }
 
@@ -1150,6 +1183,126 @@ export class Editor {
       if (Number.isFinite(v) && v >= min) onCommit(v);
       else input.value = String(value);
     });
+  }
+
+  /** The sky, time of day, light colour and weather of the map; every change shows at once. */
+  private environmentTab(): void {
+    const env = this.current.environment ?? defaultEnvironment();
+    this.note('How the map looks. Nothing here changes the rules; Play uses it too.');
+    const set = (patch: Partial<Environment>, record = true) =>
+      this.edit(
+        {
+          ...this.current,
+          environment: { ...(this.current.environment ?? defaultEnvironment()), ...patch },
+        },
+        record,
+      );
+
+    const sky = el('details', 'editor__group', this.body);
+    sky.open = true;
+    el('summary', 'editor__summary', sky, 'Sky and light');
+    const skyBody = el('div', 'editor__items', sky);
+    this.checkRow(skyBody, 'Sky', env.sky, (on) => set({ sky: on }));
+    this.checkRow(skyBody, 'Sun', env.sun, (on) => set({ sun: on }));
+    this.checkRow(skyBody, 'Moon', env.moon, (on) => set({ moon: on }));
+    const phase = el('span', 'editor__empty', skyBody, hourLabel(env.timeOfDay));
+    this.rangeRow(skyBody, 'Time of day', env.timeOfDay, 0, 24, 0.25, (v) => {
+      phase.textContent = hourLabel(v);
+      set({ timeOfDay: v }, !this.sliding);
+    });
+    const quick = el('div', 'editor__row', skyBody);
+    for (const [name, hour] of [
+      ['Dawn', 6],
+      ['Noon', 12],
+      ['Dusk', 18],
+      ['Night', 0],
+    ] as const) {
+      el('button', 'editor__btn', quick, name).addEventListener('click', () => {
+        set({ timeOfDay: hour });
+        this.setTab('sky');
+      });
+    }
+    const colorRow = el('label', 'editor__row', skyBody, 'Light colour');
+    const color = el('input', 'editor__color', colorRow);
+    color.type = 'color';
+    color.value = env.lightColor ?? '#ffffff';
+    color.addEventListener('input', () => {
+      set({ lightColor: color.value }, !this.sliding);
+      this.sliding = true;
+    });
+    color.addEventListener('change', () => (this.sliding = false));
+    el('button', 'editor__btn', colorRow, 'Auto').addEventListener('click', () => {
+      set({ lightColor: null });
+      this.setTab('sky');
+    });
+    this.rangeRow(
+      skyBody,
+      'Clouds',
+      env.clouds,
+      0,
+      1,
+      0.05,
+      (v) => set({ clouds: v }, !this.sliding),
+      true,
+    );
+
+    const weather = el('details', 'editor__group', this.body);
+    weather.open = true;
+    el('summary', 'editor__summary', weather, 'Weather');
+    const weatherBody = el('div', 'editor__items', weather);
+    for (const [key, name] of [
+      ['rain', 'Rain'],
+      ['snow', 'Snow'],
+      ['sand', 'Sandstorm'],
+      ['fog', 'Fog'],
+    ] as const) {
+      this.rangeRow(
+        weatherBody,
+        name,
+        env[key],
+        0,
+        1,
+        0.05,
+        (v) => set({ [key]: v }, !this.sliding),
+        true,
+      );
+    }
+    const reset = el('button', 'editor__item', this.body, 'Back to noon, clear weather');
+    reset.addEventListener('click', () => {
+      this.edit({ ...this.current, environment: undefined });
+      this.setTab('sky');
+    });
+  }
+
+  /**
+   * A range input that previews as it moves. The first move of a drag is one undo step; the rest of
+   * the drag is not recorded (`sliding` is true until the mouse is let go).
+   */
+  private rangeRow(
+    parent: HTMLElement,
+    label: string,
+    value: number,
+    min: number,
+    max: number,
+    step: number,
+    onInput: (value: number) => void,
+    strength = false,
+  ): void {
+    const row = el('label', 'editor__row', parent, label);
+    const input = el('input', 'editor__range', row);
+    input.type = 'range';
+    input.min = String(min);
+    input.max = String(max);
+    input.step = String(step);
+    input.value = String(value);
+    const shown = el('span', 'editor__value', row, strength ? strengthLabel(value) : String(value));
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      shown.textContent = strength ? strengthLabel(v) : String(v);
+      onInput(v);
+      this.sliding = true;
+    });
+    input.addEventListener('change', () => (this.sliding = false));
   }
 
   private checkRow(

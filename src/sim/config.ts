@@ -151,6 +151,40 @@ const mapLogic = z
 
 export type MapLogic = z.infer<typeof mapLogic>;
 
+const unit01 = z.number().min(0).max(1);
+
+/**
+ * How the map looks: sky, time of day, light colour and weather. Every field has a default, and a
+ * map without this section looks like noon with clear weather. Nothing here changes the rules.
+ */
+export const EnvironmentSchema = z
+  .object({
+    /** Draws the sky (gradient, sun, moon, clouds); off shows a plain dark background. */
+    sky: z.boolean().default(true),
+    /** Hours from 0 to 24: 0 midnight, 6 dawn, 12 noon, 18 dusk. Sets the sun angle and the light. */
+    timeOfDay: z.number().min(0).max(24).default(12),
+    /** A "#rrggbb" colour for the main light, or null for the colour the time of day gives. */
+    lightColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .nullable()
+      .default(null),
+    sun: z.boolean().default(true),
+    moon: z.boolean().default(true),
+    /** From 0 (none) to 1 (overcast). */
+    clouds: unit01.default(0),
+    /** Weather strengths from 0 (off) to 1 (heaviest). */
+    rain: unit01.default(0),
+    snow: unit01.default(0),
+    sand: unit01.default(0),
+    fog: unit01.default(0),
+  })
+  .strict();
+
+export type Environment = z.infer<typeof EnvironmentSchema>;
+
+export const defaultEnvironment = (): Environment => EnvironmentSchema.parse({});
+
 export const MapSchema = z
   .object({
     version: z.literal(1),
@@ -191,6 +225,8 @@ export const MapSchema = z
     players: z.array(mapPlayer),
     units: z.array(mapUnit),
     logic: mapLogic,
+    /** Sky, time of day and weather (see EnvironmentSchema); missing = noon, clear. */
+    environment: EnvironmentSchema.optional(),
   })
   .strict()
   .superRefine((map, ctx) => {

@@ -19,6 +19,7 @@ import { GameRenderer, type ViewMode } from './render/gameRenderer';
 import { RtsController } from './rts';
 import {
   controlSoldier,
+  defaultEnvironment,
   isSquadUnit,
   createGame,
   localPlayer,
@@ -208,12 +209,19 @@ async function main(): Promise<void> {
   };
 
   /** Makes the sim and the 3D scene use another map (the config object is shared, so edit it in place). */
+  let groundOf: unknown[] = [];
   const loadMap = (map: MapData, unitsKept = false) => {
     Object.assign(config, mapRules(globalRules, map.logic, map.units));
-    config.arena = arenaOf(map);
     config.players = map.players;
     config.placed = map.units;
-    renderer.setArena(config.arena);
+    renderer.setEnvironment(map.environment ?? defaultEnvironment());
+    // Dragging an environment slider changes neither the ground nor the props: skip the rebuild.
+    const ground = [map.meta.size, map.terrain, map.props, map.surfaces];
+    if (!ground.every((part, i) => part === groundOf[i])) {
+      groundOf = ground;
+      config.arena = arenaOf(map);
+      renderer.setArena(config.arena);
+    }
     renderer.setGoalMarkers(
       config.objectives.flatMap((o) =>
         o.kind === 'reach' ? [{ x: o.x, z: o.z, radius: o.radius }] : [],

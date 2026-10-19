@@ -279,3 +279,23 @@ body.editing .radar {
 .editor__text {
   width: 160px;
 }
+
+.editor__range {
+  flex: 1;
+  min-width: 80px;
+}
+
+.editor__value {
+  min-width: 56px;
+  text-align: right;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.editor__color {
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid #4a5366;
+  background: none;
+}

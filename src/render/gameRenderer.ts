@@ -4,6 +4,7 @@ import {
   heightAt,
   localPlayer,
   type GameConfig,
+  type Environment,
   type GameState,
   type Vec2,
 } from '../sim';
@@ -12,6 +13,7 @@ import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
 import { Gore } from './gore';
 import { HealthBars } from './healthBars';
+import { EnvironmentView } from './environment';
 import { PickupMeshes } from './pickups';
 import { createJeep } from './vehicles';
 import { SelectionMarkers } from './markers';
@@ -86,10 +88,7 @@ const DAY_AMBIENT = 1.2;
 const DAY_SUN = 2.2;
 const DAY_BACKGROUND = 0x14171c;
 
-/** Dusk lighting (toggle with setDark): dimmed moonlight and ambient, flashlights on. */
-const AMBIENT_INTENSITY = 0.75;
-const MOON_INTENSITY = 1.1;
-const NIGHT_BACKGROUND = 0x10141a;
+/** Flashlights (on in the dark mode and at night; the night lighting itself is in environment.ts). */
 const FLASHLIGHT_INTENSITY = 160;
 const FLASHLIGHT_RANGE = 24;
 const FLASHLIGHT_ANGLE = 0.5;
@@ -131,6 +130,7 @@ export class GameRenderer {
   viewMode: ViewMode = 'top';
   /** Dark mode: dim lights plus flashlights. Off by default. */
   private dark = false;
+  private readonly environment: EnvironmentView;
   private goreEnabled = true;
   private hemi = new THREE.HemisphereLight();
   private readonly sun = new THREE.DirectionalLight(0xffffff, DAY_SUN);
@@ -184,6 +184,7 @@ export class GameRenderer {
     this.arenaGroup = buildArena(config.arena);
     this.scene.add(this.arenaGroup);
     this.addLights(config.arena.halfSize);
+    this.environment = new EnvironmentView(this.scene, this.hemi, this.sun);
 
     this.config = config;
     this.halfSize = config.arena.halfSize;
@@ -325,6 +326,7 @@ export class GameRenderer {
     this.markers.update(state, this.selection, alpha, dt);
     this.pickups.update(state, this.config, dt);
     this.gore.update(dt);
+    this.environment.update(this.camera.position, this.clock);
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -752,12 +754,12 @@ export class GameRenderer {
   /** Switches between normal lighting and the dark mode with a flashlight per soldier. */
   setDark(dark: boolean): void {
     this.dark = dark;
-    this.hemi.color.set(dark ? 0x8fa6d8 : 0xbfd4ff);
-    this.hemi.groundColor.set(dark ? 0x1a1d24 : 0x30343a);
-    this.hemi.intensity = dark ? AMBIENT_INTENSITY : DAY_AMBIENT;
-    this.sun.color.set(dark ? 0x9db4ff : 0xffffff);
-    this.sun.intensity = dark ? MOON_INTENSITY : DAY_SUN;
-    (this.scene.background as THREE.Color).set(dark ? NIGHT_BACKGROUND : DAY_BACKGROUND);
+    this.environment.setDark(dark);
+  }
+
+  /** The sky, time of day, light colour and weather of the map. */
+  setEnvironment(env: Environment): void {
+    this.environment.set(env);
   }
 
   /** A warm spotlight held at chest height, pointing at the ground ahead of the soldier. */
@@ -788,7 +790,7 @@ export class GameRenderer {
     lamp.group.position.set(unit.position.x, 0, unit.position.z);
     lamp.group.rotation.y = heading;
     // Dimming to zero (not hiding) keeps the light count, and so the shaders, unchanged.
-    lamp.light.intensity = on && this.dark ? FLASHLIGHT_INTENSITY : 0;
+    lamp.light.intensity = on && this.environment.isNight ? FLASHLIGHT_INTENSITY : 0;
   }
 
   private addLights(halfSize: number): void {
