@@ -12,6 +12,7 @@
   "weapons": {
     "pistol": {
       "name": "Pistol",
+      "class": "pistol",
       "fireRate": 4,
       "damage": 20,
       "range": 25,
@@ -19,6 +20,7 @@
     },
     "heavy_mg": {
       "name": "Heavy machine gun",
+      "class": "machinegun",
       "fireRate": 14,
       "damage": 18,
       "range": 35,
@@ -56,6 +58,7 @@
   },
   "drone": {
     "count": 1,
+    "weaponClass": "machinegun",
     "speed": 7,
     "height": 3,
     "fireRate": 1.2,
@@ -70,6 +73,7 @@
     "radius": 0.4
   },
   "weapon": {
+    "class": "rifle",
     "fireRate": 8,
     "damage": 25,
     "range": 40

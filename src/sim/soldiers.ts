@@ -1,7 +1,7 @@
 import { resolveStatic } from './collision';
 import { localPlayer } from './players';
 import { isDrone, speedOf, weaponOf } from './stats';
-import type { GameConfig } from './config';
+import { WEAPON_CLASSES, type GameConfig, type WeaponClass } from './config';
 import type { GameState, Input, Soldier, Stance, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
 import { dirFromAngle, type Vec2 } from './vec';
@@ -12,6 +12,15 @@ const ARRIVE_DISTANCE = 0.3;
 const SLOT_TOLERANCE = 0.6;
 const CATCH_UP_SPEED = 1.2;
 const FORMATION_SPACING = 1.4;
+
+/** The sheet fields of a new unit: its type, a copy of the attributes and empty weapon skills. */
+function sheetOf(config: GameConfig, unitType: string) {
+  return {
+    unitType,
+    attributes: { ...config.units.units[unitType]!.attributes },
+    skills: Object.fromEntries(WEAPON_CLASSES.map((c) => [c, 0])) as Record<WeaponClass, number>,
+  };
+}
 
 export function createSquad(config: GameConfig, owner: string): Soldier[] {
   const n = config.squad.count;
@@ -40,6 +49,7 @@ export function createSquad(config: GameConfig, owner: string): Soldier[] {
       stamina: config.stance.staminaMax,
       winded: false,
       armor: 0,
+      ...sheetOf(config, 'soldier'),
     };
   });
   for (let i = 0; i < config.drone.count; i++) {
@@ -65,6 +75,7 @@ export function createSquad(config: GameConfig, owner: string): Soldier[] {
       stamina: config.stance.staminaMax,
       winded: false,
       armor: 0,
+      ...sheetOf(config, 'drone'),
     });
   }
   return soldiers;

@@ -108,10 +108,62 @@ export function arenaOf(map: MapData): Arena {
   };
 }
 
+/** Weapon classes: a unit earns weapon-skill XP in the class of the weapon it kills with. */
+export const WEAPON_CLASSES = [
+  'melee',
+  'pistol',
+  'shotgun',
+  'rifle',
+  'sniper',
+  'machinegun',
+  'launcher',
+] as const;
+export type WeaponClass = (typeof WEAPON_CLASSES)[number];
+const weaponClass = z.enum(WEAPON_CLASSES);
+
+/** Schema for data/units.json: one stat sheet per unit type. Attributes are mocked (nothing reads them yet). */
+export const UNIT_FAMILIES = ['human', 'zombie', 'monster', 'machine', 'animal'] as const;
+
+export const UnitsSchema = z
+  .object({
+    /** Attribute names every sheet must define, in display order. */
+    attributes: z.array(z.string().min(1)).min(1),
+    /** Weapon-skill levels: the first needs `xpPerLevel`, each next one `growth` times more. */
+    skills: z.object({ xpPerLevel: positive, growth: z.number().min(1) }).strict(),
+    units: z.record(
+      z.string(),
+      z
+        .object({
+          name: z.string().min(1),
+          family: z.enum(UNIT_FAMILIES),
+          attributes: z.record(z.string(), z.number().nonnegative()),
+        })
+        .strict(),
+    ),
+  })
+  .strict()
+  .superRefine((u, ctx) => {
+    for (const [id, unit] of Object.entries(u.units)) {
+      const keys = Object.keys(unit.attributes);
+      if (keys.length !== u.attributes.length || !u.attributes.every((a) => keys.includes(a))) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `unit "${id}" must define exactly the attributes`,
+        });
+      }
+    }
+    for (const id of ['soldier', 'drone']) {
+      if (!u.units[id]) ctx.addIssue({ code: 'custom', message: `units.${id} is missing` });
+    }
+  });
+
+export type UnitsData = z.infer<typeof UnitsSchema>;
+
 /** Schema for data/game.json. Strict so typos in data files fail loudly. */
 const weaponDef = z
   .object({
     name: z.string().min(1),
+    class: weaponClass,
     fireRate: positive,
     damage: positive,
     range: positive,
@@ -201,6 +253,7 @@ export const GameConfigSchema = z
     drone: z
       .object({
         count: z.number().int().nonnegative(),
+        weaponClass,
         speed: positive,
         height: positive,
         fireRate: positive,
@@ -292,7 +345,9 @@ export const GameConfigSchema = z
         table: z.array(z.object({ weapon: z.string(), weight: positive }).strict()).min(1),
       })
       .strict(),
-    weapon: z.object({ fireRate: positive, damage: positive, range: positive }).strict(),
+    weapon: z
+      .object({ class: weaponClass, fireRate: positive, damage: positive, range: positive })
+      .strict(),
     zombie: z
       .object({
         speed: positive,
@@ -376,10 +431,13 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   arena: Arena;
   /** The players of the map (who owns what, and the teams). */
   players: MapData['players'];
+  /** Stat sheets by unit type (from data/units.json). */
+  units: UnitsData;
 };
 
-export const parseConfig = (raw: unknown, map: MapData): GameConfig => ({
+export const parseConfig = (raw: unknown, map: MapData, units: unknown): GameConfig => ({
   ...GameConfigSchema.parse(raw),
   arena: arenaOf(map),
   players: map.players,
+  units: UnitsSchema.parse(units),
 });
