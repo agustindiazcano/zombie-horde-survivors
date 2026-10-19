@@ -220,6 +220,11 @@ export interface Zombie {
   attackTimer: number;
   /** Seconds left stunned by a melee blow: it neither moves nor bites. */
   stagger: number;
+  /** Acrobats: height above the ground, seconds left in the hop, side (-1, 0 up, 1) and the wait for the next. */
+  y: number;
+  hopLeft: number;
+  hopSide: number;
+  hopTimer: number;
   deathTimer: number;
 }
 

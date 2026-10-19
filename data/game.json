@@ -210,6 +210,17 @@
       "rewardScale": 1.0,
       "height": 1.0
     },
+    "marine_acrobat": {
+      "name": "Acrobat marine",
+      "speedScale": 1.9,
+      "healthScale": 0.7,
+      "damageScale": 0.8,
+      "radiusScale": 1.0,
+      "weight": 4,
+      "minWave": 1,
+      "rewardScale": 1.5,
+      "acrobat": { "range": 12, "interval": 1.1, "duration": 0.55, "sideSpeed": 5, "height": 1.3 }
+    },
     "brute": {
       "name": "Brute",
       "speedScale": 0.7,

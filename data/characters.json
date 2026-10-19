@@ -76,16 +76,17 @@
       "barHeight": 1.7
     },
     "brute": {
-      "model": "models/enemy-brute.glb",
-      "scale": 0.8,
+      "model": "models/soldier-marine.glb",
+      "scale": 1.4,
       "yawOffset": 0,
       "clips": {
-        "walk": "CharacterArmature|Walk",
-        "attack": "CharacterArmature|Punch",
-        "death": "CharacterArmature|Death"
+        "walk": "Slow_Orc_Walk",
+        "attack": "Attack",
+        "death": "Dead"
       },
       "once": ["death"],
-      "barHeight": 3.0
+      "tint": "#c0605a",
+      "barHeight": 2.9
     },
     "worm": {
       "model": "models/enemy-worm.glb",
@@ -95,6 +96,19 @@
       "once": [],
       "procedural": "wiggle",
       "barHeight": 2.2
+    },
+    "marine_acrobat": {
+      "model": "models/soldier-marine.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Run_03",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#9b6bd6",
+      "barHeight": 2.1
     }
   },
   "animals": {

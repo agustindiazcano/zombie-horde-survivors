@@ -586,6 +586,20 @@ const enemyType = z
     height: positive.optional(),
     /** False for an enemy with no head to hit (a worm). */
     headshots: z.boolean().optional(),
+    /** An acrobat: while it runs at the squad it hops up and sideways every so often. */
+    acrobat: z
+      .object({
+        /** It only hops while its target is closer than this (metres). */
+        range: positive,
+        /** Seconds between hops (varied by up to 30% either way). */
+        interval: positive,
+        /** Seconds a hop lasts, and how fast it moves sideways and how high it jumps. */
+        duration: positive,
+        sideSpeed: nonNegative,
+        height: nonNegative,
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 

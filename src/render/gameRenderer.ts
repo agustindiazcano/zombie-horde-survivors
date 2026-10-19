@@ -875,8 +875,16 @@ export class GameRenderer {
       const { object } = entry.view;
       const zx = lerp(z.prev.x, z.pos.x, alpha);
       const zz = lerp(z.prev.z, z.pos.z, alpha);
-      object.position.set(zx, this.groundAt(zx, zz), zz);
+      object.position.set(zx, this.groundAt(zx, zz) + z.y, zz);
       object.rotation.y = z.facing;
+      const acrobat = this.config.enemies[entry.type]?.acrobat;
+      if (acrobat) {
+        // A hop turns the body once over: a cartwheel to the side, a somersault when straight up.
+        const t = z.hopLeft > 0 ? 1 - z.hopLeft / acrobat.duration : 0;
+        object.rotation.order = 'YXZ';
+        object.rotation.x = z.hopSide === 0 ? -2 * Math.PI * t : 0;
+        object.rotation.z = -z.hopSide * 2 * Math.PI * t;
+      }
       object.scale.setScalar(z.size);
       object.visible = !z.exploded;
       entry.view.setState(z.state);

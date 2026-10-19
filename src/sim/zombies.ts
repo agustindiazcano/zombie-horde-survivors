@@ -72,6 +72,10 @@ export function spawnZombie(
     stagger: 0,
     deathTimer: 0,
     loot: [],
+    y: 0,
+    hopLeft: 0,
+    hopSide: 0,
+    hopTimer: variant?.acrobat ? variant.acrobat.interval * (0.5 + nextFloat(state.rng)) : 0,
   };
   if (loadout) {
     if (loadout.name) zombie.name = loadout.name;
@@ -175,10 +179,14 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       const td = Math.hypot(tx, tz) || 1;
       z.pos.x += (tx / td) * z.speed * dt;
       z.pos.z += (tz / td) * z.speed * dt;
+      const acrobat = config.enemies[z.type]?.acrobat;
+      if (acrobat) hop(state, z, acrobat, dx / d, dz / d, d, reach, dt);
       resolveStatic(z.pos, z.radius, config.arena);
       continue;
     }
 
+    z.y = 0;
+    z.hopLeft = 0;
     // Entering melee range starts a full cooldown, so the first hit is not instant.
     if (z.state !== 'attack') {
       z.state = 'attack';
@@ -201,6 +209,39 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     state.zombies[kept++] = z;
   }
   state.zombies.length = kept;
+}
+
+/**
+ * An acrobat's hops: every so often, while it runs at its target, it jumps up and either goes
+ * sideways (left or right of the line to the target) or straight up. (`ux`, `uz`) is the unit
+ * direction to the target; it never starts a hop right next to the target.
+ */
+function hop(
+  state: GameState,
+  z: Zombie,
+  ac: NonNullable<GameConfig['enemies'][string]['acrobat']>,
+  ux: number,
+  uz: number,
+  distance: number,
+  reach: number,
+  dt: number,
+): void {
+  if (z.hopLeft > 0) {
+    z.hopLeft = Math.max(0, z.hopLeft - dt);
+    const t = 1 - z.hopLeft / ac.duration;
+    z.y = ac.height * 4 * t * (1 - t);
+    // Perpendicular to the way to the target: +1 is to its right.
+    z.pos.x += uz * z.hopSide * ac.sideSpeed * dt;
+    z.pos.z -= ux * z.hopSide * ac.sideSpeed * dt;
+    return;
+  }
+  z.y = 0;
+  z.hopTimer -= dt;
+  if (z.hopTimer > 0 || distance > ac.range || distance < reach + 2) return;
+  z.hopLeft = ac.duration;
+  const roll = nextFloat(state.rng);
+  z.hopSide = roll < 1 / 3 ? -1 : roll < 2 / 3 ? 1 : 0;
+  z.hopTimer = ac.interval * (0.7 + 0.6 * nextFloat(state.rng));
 }
 
 /**

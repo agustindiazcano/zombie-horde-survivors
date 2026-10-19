@@ -83,6 +83,7 @@ Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). S
 
 Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zombies-and-dismemberment.md). Enemies become variants of the Meshy marine (brown, bloody, burgundy, bleeder, crawler, runner, wanderer), mini bosses too; heads and limbs come off, shot-off legs make a crawler, some zombies climb. **First measure**: the marine has 61k triangles, so a light copy comes before any replacement. Open questions are in section 11 of the plan.
 
+- [ ] 🟡 Look at the first two steps, built early: the violet **acrobat marine** (runs, hops up and sideways, cartwheels) and the **marine brute** (bigger, burgundy) ([worklog](docs/worklog/2026-10-19-acrobat-and-marine-brute.md)), and the new **weapon poses** (two-handed aim in third person, the first-person gun with aim down the sights; [worklog](docs/worklog/2026-10-19-weapons-poses.md)). Tune `WEAPON_POSES`, `armPose.ts` and `viewModel.ts` constants.
 - [ ] ⚪ The user answers section 11 of the plan, then phase M0 (measure and the light marine).
 
 ### 3 — 🟡 Going public (GitHub Pages is live)
