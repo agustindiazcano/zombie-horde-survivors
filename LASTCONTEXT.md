@@ -33,24 +33,30 @@ Only what is still open: read this first in every session. When an item here is 
 - 🟡 Waiting on the user: the main-menu **carousel** (the request was cut off), what a **soldier's own level** should do, whether **gold persists between runs** (PENDING §2).
 - 🟡 Going public: GoatCounter needs a site name; an Open Graph image needs a 1200×630 screenshot; Search Console is the user's (PENDING §3).
 - 🟢 Models are ~15 MB: compression is the next performance win (PENDING §4).
-- 🟡 Modes, map editor, players, stats and equipment: planned, starts with Phase 1 (PENDING §2c, section below).
+- 🟡 Modes, map editor, players, stats and equipment: phases 1 to 1d are built; 1e is next (PENDING §2c, section below).
 
 ## Next big work: modes, map editor, players, stats (planned 2026-10-18, no code yet)
 
 Full plan and decisions: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md) (section 8 lists what the user decided; PENDING §2c lists the phases). The mobile version is merged (PR #33). The plan, the PENDING entry and the Meshy AI marine model (CC-BY-4.0, credited in `assets.toml` and the README; it replaces the toon soldier in slot 4 of `data/characters.json` and adds the "Infected marine" enemy with a green `tint`) travel together in the PR from branch `feat/marine-model-and-plan`. Check that this PR is merged and pull `main` before branching.
 
-**Phases 1, 1b and 1c are done** (1 and 1b on `feat/map-format`, 1c on `feat/unit-stats`, stacked on it; no PR yet; [phase 1c](docs/worklog/2026-10-18-phase-1c-unit-stats.md), details in [phase 1](docs/worklog/2026-10-18-phase-1-map-format.md), [phase 1b](docs/worklog/2026-10-18-phase-1b-players.md)): `MapSchema` in `src/sim/config.ts`, `data/maps/map-1.json`, `parseConfig(raw, map)`. **Next: 1d** (items and equipment), 1e (downed state), 2 (menu flow), 3 (editor skeleton), 4 (saving maps). No new tests; the 48 must stay green.
+**Phases 1, 1b, 1c and 1d are done** (three stacked branches, no PR yet, `main` still at `6c7429f`; the PRs must go in order): `feat/map-format` (1 and 1b), `feat/unit-stats` (1c, cut from it) and `feat/items-equipment` (1d, cut from `feat/unit-stats`). Details: [phase 1](docs/worklog/2026-10-18-phase-1-map-format.md), [1b](docs/worklog/2026-10-18-phase-1b-players.md), [1c](docs/worklog/2026-10-18-phase-1c-unit-stats.md), [1d](docs/worklog/2026-10-18-phase-1d-items-equipment.md). In short: `MapSchema` and `data/maps/map-1.json`; players and unit ownership; `data/units.json` stat sheets; `data/items.json` (weapon sheets, armor, medkits, grenade, defibrillator, accessories; weapons live only there), `Soldier.equipment` (right hand, left hand, chest) and a 10-slot backpack of stacks. `parseConfig(raw, map, units, items)`. Anything without a rule is mocked and marked "not active yet". **Next: 1e** (downed state, blocked on the user's rules, see the prompt), then 2 (menu flow), 3 (editor skeleton), 4 (saving maps). No new tests; the 48 must stay green. A duplicate `Meshy_AI_Digital_Camo_Soldier_All_Animations.glb` sits uncommitted in the repo root: ignore it, do not commit it.
 
 **Prompt to paste at the start of the next session:**
 
 ```text
 Leé CLAUDE.md, LASTCONTEXT.md, PENDING.md y docs/PLAN-modes-and-map-editor.md. Respondeme en español, con tablas y prioridades con semáforo.
 
-Las decisiones están en la sección 8 del plan (no las reabras): Map 1 = la arena de desarrollo actual; Single Player con Historia y Waves; botón Multiplayer que no hace nada; mapas en la app (data/maps/) y en localStorage; varios jugadores con la IA como un jugador más; vehículos neutrales que necesitan un operador humano, pasajeros disparan solo en vehículos militares con torreta, solo el vehículo recibe daño por ahora; fichas de stats por unidad en JSON con atributos RPG mockeados y XP por clase de arma; armas con accesorios, daño explosivo, melee, puños, escudo, mochila de 10 slots, dos manos, casco y chaleco, botiquines, desfibrilador, granadas; fuego como peligro del entorno; levantar objetos según fuerza, escalar, cargar cuerpos; estado herido antes de morir. Orden confirmado: fases 1 a 4 primero. Sin tests nuevos, los 48 siguen verdes, nunca pushear a main.
+Estado: hechas las fases 1, 1b, 1c y 1d, en tres ramas apiladas sin PR: feat/map-format (1 y 1b), feat/unit-stats (1c) y feat/items-equipment (1d, sale de feat/unit-stats). main sigue en 6c7429f. En la raíz hay un GLB duplicado sin commitear (Meshy_AI_Digital_Camo_Soldier_All_Animations.glb): ignoralo, no lo commitees.
 
-Empezá por la FASE 1: (1) git status y ramas; si feat/mobile-view no está en main, preguntame cómo seguir antes de ramificar. (2) Rama nueva. (3) Schema zod del mapa y mover la arena de game.json a data/maps/map-1.json; el juego debe jugarse igual que hoy. (4) lint, format:check, typecheck, tests (leé el resultado), build, check:assets; commits chicos en inglés. (5) Actualizá PENDING/LASTCONTEXT, mostrame una tabla de estado y seguí con la fase 1b sin esperar aprobación salvo que haya una decisión mía.
+Antes de empezar: git status y ramas. Si ya mergeé algo, decime qué falta en main antes de ramificar. Si no, seguí desde feat/items-equipment con una rama nueva (feat/downed-state) y avisame que los PRs deben ir en orden.
 
-Preguntas abiertas que no bloquean: manejo de vehículos (recomendado arcade), primer vehículo terrestre, nombres de atributos, XP de arma por kills, reglas del estado herido y del desfibrilador, cómo se ven las armas en los modelos.
+Las decisiones están en la sección 8 del plan (no las reabras). Sin tests nuevos, los 48 siguen verdes, nunca pushear a main, PR solo si lo pido.
+
+Empezá por la FASE 1e (estado herido, sección 3g del plan; desfibrilador en 3e). Las reglas del herido y del desfibrilador son mías: si no están escritas en la sección 8 del plan, preguntámelas antes de codear. Después: antes de cada commit lint, format:check, typecheck, tests (leé el resultado), build y check:assets; commits chicos en inglés con Co-Authored-By. Al terminar actualizá PENDING/LASTCONTEXT (lo hecho a docs/worklog/) y seguí con la fase 2 sin esperar aprobación, salvo que haya una decisión mía.
+
+Pendiente de verificar visualmente (yo lo miro): animaciones del marine (Alert, Running, Dead, Unsteady_Walk, Attack), el tinte verde del Infected marine, que Map 1 se vea igual, la ventana de unidad con atributos y habilidades, y la columna de equipo con la mochila de 10 de la fase 1d.
+
+Preguntas abiertas que no bloquean: cómo se ven las armas en los modelos (huesos y de dónde salen las mallas: preguntámelo antes de la parte visual), manejo de vehículos (recomendado arcade), primer vehículo terrestre, y si renombro los atributos (hoy: strength, dexterity, constitution, perception, intelligence, charisma).
 ```
 
 ## Gotchas (they bit before)

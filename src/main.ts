@@ -1,6 +1,7 @@
 import characters from '../data/characters.json';
 import data from '../data/game.json';
 import map1 from '../data/maps/map-1.json';
+import items from '../data/items.json';
 import units from '../data/units.json';
 import { Sfx } from './audio';
 import { FpsCounter } from './fps';
@@ -49,7 +50,7 @@ const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
 async function main(): Promise<void> {
-  const config = parseConfig(data, parseMap(map1), units);
+  const config = parseConfig(data, parseMap(map1), units, items);
   const factories = await new GltfAssetLoader().loadCharacters(parseCharactersConfig(characters));
 
   let state = createGame(config, Date.now());

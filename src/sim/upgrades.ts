@@ -1,5 +1,5 @@
 import type { GameConfig } from './config';
-import { backpackFull } from './inventory';
+import { addToBackpack, itemDef } from './inventory';
 import { nextFloat } from './rng';
 import type { GameState, Mods } from './types';
 
@@ -116,19 +116,21 @@ export function buyItem(
     const bare = state.soldiers.filter((s) => !s.dead && s.kind === 'soldier' && s.armor < cap);
     if (bare.length === 0) return 'Everyone already has full armor';
     for (const s of bare) s.armor = Math.min(cap, s.armor + (item.amount ?? 0));
-  } else if (item.kind === 'weapon') {
+  } else if (item.kind === 'item') {
     // A drone gun goes straight onto an unarmed drone; anything else into the unit's backpack.
+    const def = itemDef(config, item.target!);
     const drone =
-      item.target === 'drone_cannon'
-        ? state.soldiers.find((s) => s.kind === 'drone' && !s.dead && s.weapon === null)
+      def.type === 'weapon' && def.droneOnly
+        ? state.soldiers.find(
+            (s) => s.kind === 'drone' && !s.dead && s.equipment.rightHand === null,
+          )
         : undefined;
     if (drone) {
-      drone.weapon = item.target!;
+      drone.equipment.rightHand = item.target!;
     } else {
       const unit = state.soldiers.find((s) => s.id === unitId && !s.dead);
       if (!unit) return 'Select a living unit first';
-      if (backpackFull(config, unit)) return 'That unit’s backpack is full';
-      unit.backpack.push(item.target!);
+      if (!addToBackpack(config, unit, item.target!)) return 'That unit’s backpack is full';
     }
   } else if (!addStack(state, config, item.target!)) {
     return 'Already at the maximum';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { spawnZombie } from '../../src/sim';
+import { spawnZombie, weaponDef } from '../../src/sim';
 import { idle, makeGame, run } from './helpers';
 
 const fire = { ...idle, aim: { x: 0, z: 10 }, firing: true };
@@ -17,7 +17,7 @@ describe('hitscan shooting', () => {
   it('damages a zombie on the aim line', () => {
     const { state, config, zombie } = setup();
     run(state, config, fire, ONE_STEP);
-    expect(zombie.health).toBe(config.zombie.health - config.weapon.damage);
+    expect(zombie.health).toBe(config.zombie.health - weaponDef(config, 'rifle').damage);
   });
 
   it('emits a shot event ending at the zombie surface', () => {

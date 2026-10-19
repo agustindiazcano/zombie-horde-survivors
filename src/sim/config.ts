@@ -159,19 +159,159 @@ export const UnitsSchema = z
 
 export type UnitsData = z.infer<typeof UnitsSchema>;
 
-/** Schema for data/game.json. Strict so typos in data files fail loudly. */
-const weaponDef = z
-  .object({
-    name: z.string().min(1),
-    class: weaponClass,
-    fireRate: positive,
-    damage: positive,
-    range: positive,
-    /** Random aim error, in radians (each side). */
-    spread: nonNegative,
-  })
-  .strict();
+/** Damage types of a weapon or explosive. Only `physical` has a rule today; the rest are mocked. */
+export const DAMAGE_TYPES = [
+  'physical',
+  'explosive',
+  'fire',
+  'energy',
+  'psychic',
+  'magic',
+  'scifi',
+] as const;
+export type DamageType = (typeof DAMAGE_TYPES)[number];
 
+/** Places on a weapon where an accessory can be fitted (mocked: nothing fits them yet). */
+export const ACCESSORY_SLOTS = [
+  'optic',
+  'barrel',
+  'magazine',
+  'grip',
+  'stock',
+  'underbarrel',
+] as const;
+export type AccessorySlot = (typeof ACCESSORY_SLOTS)[number];
+
+const itemBase = {
+  name: z.string().min(1),
+  /** A short symbol (emoji) shown on the item's slot. */
+  icon: z.string().min(1),
+  /** How many fit in one backpack slot. */
+  stack: z.number().int().positive(),
+};
+
+/**
+ * Schema for data/items.json: the catalog of everything a unit can hold. Every field under
+ * `mocked` is design data that no rule reads yet (the squad screen marks it "not active yet").
+ */
+const itemDef = z.discriminatedUnion('type', [
+  z
+    .object({
+      ...itemBase,
+      type: z.literal('weapon'),
+      /** Never leaves the unit and never sits in a slot: what a unit fights with when empty-handed. */
+      innate: z.boolean().optional(),
+      /** Only a drone can equip it (and a drone can equip nothing else). */
+      droneOnly: z.boolean().optional(),
+      class: weaponClass,
+      /** 1 takes a hand; 2 takes both (so no dual wielding it). */
+      hands: z.union([z.literal(1), z.literal(2)]),
+      damageType: z.enum(DAMAGE_TYPES),
+      fireRate: positive,
+      damage: positive,
+      range: positive,
+      /** Random aim error, in radians (each side). */
+      spread: nonNegative,
+      mocked: z
+        .object({
+          magazine: z.number().int().positive().optional(),
+          reloadTime: nonNegative.optional(),
+          noise: nonNegative,
+          weight: nonNegative,
+          accessorySlots: z.array(z.enum(ACCESSORY_SLOTS)),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      ...itemBase,
+      type: z.literal('armor'),
+      slot: z.literal('chest'),
+      mocked: z.object({ armor: positive, weight: nonNegative }).strict(),
+    })
+    .strict(),
+  /** Armor plate: worn at once from a crate (adds `player.armorPlate` to the armor bar). */
+  z.object({ ...itemBase, type: z.literal('plate') }).strict(),
+  z
+    .object({
+      ...itemBase,
+      type: z.literal('medical'),
+      /** Health restored when used from the backpack. */
+      heal: positive,
+      mocked: z.object({ useTime: nonNegative }).strict(),
+    })
+    .strict(),
+  z
+    .object({
+      ...itemBase,
+      type: z.literal('grenade'),
+      damageType: z.enum(DAMAGE_TYPES),
+      mocked: z
+        .object({
+          blastRadius: positive,
+          blastDamage: positive,
+          falloff: z.number().min(0).max(1),
+          fuse: nonNegative,
+          throwRange: positive,
+          weight: nonNegative,
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      ...itemBase,
+      type: z.literal('defibrillator'),
+      mocked: z
+        .object({
+          channelTime: nonNegative,
+          reviveWindow: nonNegative,
+          successChance: z.number().min(0).max(1),
+          weight: nonNegative,
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      ...itemBase,
+      type: z.literal('accessory'),
+      slot: z.enum(ACCESSORY_SLOTS),
+      mocked: z
+        .object({ modifiers: z.record(z.string(), z.number()), weight: nonNegative })
+        .strict(),
+    })
+    .strict(),
+]);
+
+export type ItemDef = z.infer<typeof itemDef>;
+export type WeaponItem = Extract<ItemDef, { type: 'weapon' }>;
+
+export const ItemsSchema = z
+  .object({ items: z.record(z.string(), itemDef) })
+  .strict()
+  .superRefine((data, ctx) => {
+    const fists = data.items['fists'];
+    if (fists?.type !== 'weapon' || !fists.innate) {
+      ctx.addIssue({ code: 'custom', message: 'items.fists must be an innate weapon' });
+    }
+    if (data.items['rifle']?.type !== 'weapon') {
+      ctx.addIssue({ code: 'custom', message: 'items.rifle must be a weapon' });
+    }
+    if (data.items['armor_plate']?.type !== 'plate') {
+      ctx.addIssue({ code: 'custom', message: 'items.armor_plate must be a plate' });
+    }
+    for (const [id, item] of Object.entries(data.items)) {
+      if (item.type === 'weapon' && item.stack !== 1) {
+        ctx.addIssue({ code: 'custom', message: `weapon "${id}" cannot stack` });
+      }
+    }
+  });
+
+export type ItemsData = z.infer<typeof ItemsSchema>;
+
+/** Schema for data/game.json. Strict so typos in data files fail loudly. */
 /** What a perk improves for the whole squad. `amount` is a fraction per stack, except regen (HP/s). */
 const perkStat = z.enum(['damage', 'fireRate', 'speed', 'maxHealth', 'regen', 'pickupRadius']);
 
@@ -193,10 +333,10 @@ const shopItem = z
     id: z.string().min(1),
     name: z.string().min(1),
     description: z.string().min(1),
-    kind: z.enum(['heal', 'revive', 'weapon', 'perk', 'armor']),
+    kind: z.enum(['heal', 'revive', 'item', 'perk', 'armor']),
     /** Armor points given to every living soldier, for 'armor'. */
     amount: positive.optional(),
-    /** Weapon id for 'weapon', perk id for 'perk'. */
+    /** Item id (data/items.json) for 'item', perk id for 'perk'. */
     target: z.string().optional(),
     cost: z.number().int().positive(),
     /** The price is multiplied by this after each purchase. */
@@ -243,22 +383,18 @@ export const GameConfigSchema = z
         followDistance: positive,
         /** AI soldiers engage zombies within this distance (and line of sight). */
         aiRange: positive,
-        /** Weapon every soldier starts with ('rifle' or an id from `weapons`). */
+        /** Item id of the weapon every soldier starts with (a weapon in data/items.json). */
         startWeapon: z.string().min(1),
         /** AI fire rate as a fraction of the weapon fire rate. */
         aiFireRateScale: positive,
       })
       .strict(),
-    /** A flying support unit: slow, hard-hitting shots; ignores cover; zombies can't hurt it. */
+    /** A flying support unit that ignores cover; zombies can't hurt it. Its gun is `drone_cannon`. */
     drone: z
       .object({
         count: z.number().int().nonnegative(),
-        weaponClass,
         speed: positive,
         height: positive,
-        fireRate: positive,
-        damage: positive,
-        range: positive,
       })
       .strict(),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
@@ -331,8 +467,6 @@ export const GameConfigSchema = z
       .strict(),
     gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
-    /** Droppable weapons by id. 'rifle' (the `weapon` section) and the drone cannon are built in. */
-    weapons: z.record(z.string(), weaponDef),
     drops: z
       .object({
         /** Chance (0..1) that a killed zombie drops a crate. */
@@ -342,11 +476,9 @@ export const GameConfigSchema = z
         /** How close a unit must be to open or use a crate. */
         pickupRange: positive,
         maxCrates: z.number().int().positive(),
-        table: z.array(z.object({ weapon: z.string(), weight: positive }).strict()).min(1),
+        /** Crate contents: an item id from data/items.json and its relative likelihood. */
+        table: z.array(z.object({ item: z.string(), weight: positive }).strict()).min(1),
       })
-      .strict(),
-    weapon: z
-      .object({ class: weaponClass, fireRate: positive, damage: positive, range: positive })
       .strict(),
     zombie: z
       .object({
@@ -389,11 +521,6 @@ export const GameConfigSchema = z
         ctx.addIssue({ code: 'custom', message: `boss.types references unknown enemy "${type}"` });
       }
     }
-    const isKnownWeapon = (id: string) =>
-      id === 'rifle' || id === 'drone_cannon' || id in cfg.weapons;
-    if (cfg.squad.startWeapon !== 'rifle' && !(cfg.squad.startWeapon in cfg.weapons)) {
-      ctx.addIssue({ code: 'custom', message: 'squad.startWeapon is not a known soldier weapon' });
-    }
     const perkIds = new Set(cfg.perks.list.map((p) => p.id));
     if (perkIds.size !== cfg.perks.list.length) {
       ctx.addIssue({ code: 'custom', message: 'perks.list ids must be unique' });
@@ -403,20 +530,6 @@ export const GameConfigSchema = z
         ctx.addIssue({
           code: 'custom',
           message: `shop item "${item.id}" needs a valid perk target`,
-        });
-      }
-      if (item.kind === 'weapon' && !(item.target && isKnownWeapon(item.target))) {
-        ctx.addIssue({
-          code: 'custom',
-          message: `shop item "${item.id}" needs a valid weapon target`,
-        });
-      }
-    }
-    for (const entry of cfg.drops.table) {
-      if (entry.weapon !== 'armor_plate' && !isKnownWeapon(entry.weapon)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: `drops.table references unknown weapon "${entry.weapon}"`,
         });
       }
     }
@@ -433,11 +546,43 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   players: MapData['players'];
   /** Stat sheets by unit type (from data/units.json). */
   units: UnitsData;
+  /** The item catalog (from data/items.json), by item id. */
+  items: ItemsData['items'];
 };
 
-export const parseConfig = (raw: unknown, map: MapData, units: unknown): GameConfig => ({
-  ...GameConfigSchema.parse(raw),
-  arena: arenaOf(map),
-  players: map.players,
-  units: UnitsSchema.parse(units),
-});
+/** Checks that the ids game.json uses (start weapon, shop targets, crate table) are real items. */
+function checkItemRefs(cfg: z.infer<typeof GameConfigSchema>, items: ItemsData['items']): void {
+  const problems: string[] = [];
+  const start = items[cfg.squad.startWeapon];
+  if (start?.type !== 'weapon' || start.droneOnly || start.innate) {
+    problems.push('squad.startWeapon is not a known soldier weapon');
+  }
+  for (const item of cfg.shop.items) {
+    if (item.kind === 'item' && !(item.target && item.target in items)) {
+      problems.push(`shop item "${item.id}" needs a valid item target`);
+    }
+  }
+  for (const entry of cfg.drops.table) {
+    if (!(entry.item in items))
+      problems.push(`drops.table references unknown item "${entry.item}"`);
+  }
+  if (problems.length > 0) throw new Error(problems.join('; '));
+}
+
+export function parseConfig(
+  raw: unknown,
+  map: MapData,
+  units: unknown,
+  items: unknown,
+): GameConfig {
+  const game = GameConfigSchema.parse(raw);
+  const catalog = ItemsSchema.parse(items).items;
+  checkItemRefs(game, catalog);
+  return {
+    ...game,
+    arena: arenaOf(map),
+    players: map.players,
+    units: UnitsSchema.parse(units),
+    items: catalog,
+  };
+}
