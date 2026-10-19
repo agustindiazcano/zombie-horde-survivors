@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AnimationController } from './animationController';
+import { stainTextures } from './bloodTexture';
 import { ArmPose } from './armPose';
 import { createWeaponModel } from './weaponModels';
 import type { CharacterSpec, CharactersConfig } from './characterConfig';
@@ -20,6 +21,8 @@ export interface CharacterFactories {
   enemies: Record<string, CharacterFactory>;
   /** Where each enemy's health bar floats, by variant id. */
   barHeights: Record<string, number>;
+  /** Seconds between blood spurts of the enemies that bleed, by variant id. */
+  spurts: Record<string, number>;
   drone: CharacterFactory;
   /** By animal id. */
   animals: Record<string, CharacterFactory>;
@@ -86,7 +89,11 @@ const FLASH_COLOR = new THREE.Color(1, 1, 1);
  * Gives this clone its own materials (clones share them otherwise) and returns a function
  * that lights the whole model up, for hit flashes.
  */
-function makeFlasher(model: THREE.Object3D, tint?: string): (amount: number) => void {
+function makeFlasher(
+  model: THREE.Object3D,
+  tint?: string,
+  stained?: Map<THREE.Texture, THREE.Texture>,
+): (amount: number) => void {
   const items: {
     material: THREE.MeshStandardMaterial;
     emissive: THREE.Color;
@@ -100,6 +107,8 @@ function makeFlasher(model: THREE.Object3D, tint?: string): (amount: number) => 
     for (const m of cloned) {
       if (m instanceof THREE.MeshStandardMaterial) {
         if (tint) m.color.multiply(new THREE.Color(tint));
+        const painted = m.map ? stained?.get(m.map) : undefined;
+        if (painted) m.map = painted;
         items.push({ material: m, emissive: m.emissive.clone(), intensity: m.emissiveIntensity });
       }
     }
@@ -172,6 +181,7 @@ function createHolder(model: THREE.Object3D, root: THREE.Object3D): Holder | und
 }
 
 function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
+  const stained = spec.blood ? stainTextures(gltf.scene, spec.blood) : undefined;
   return (): CharacterView => {
     const root = new THREE.Group();
     // Skinned meshes need SkeletonUtils.clone; a plain clone would share one skeleton.
@@ -182,7 +192,7 @@ function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
       if (o instanceof THREE.Mesh) o.castShadow = true;
     });
     root.add(model);
-    const setFlash = makeFlasher(model, spec.tint);
+    const setFlash = makeFlasher(model, spec.tint, stained);
 
     if (spec.procedural === 'wiggle') {
       return { ...createWiggleView(root, model, spec.scale), setFlash };
@@ -222,8 +232,14 @@ export class GltfAssetLoader implements AssetLoader {
     const barHeights = Object.fromEntries(
       enemyIds.map((id) => [id, config.enemies[id]!.barHeight ?? DEFAULT_BAR_HEIGHT]),
     );
+    const spurts = Object.fromEntries(
+      enemyIds.flatMap((id) => {
+        const every = config.enemies[id]!.spurts;
+        return every === undefined ? [] : [[id, every]];
+      }),
+    );
     const animals = Object.fromEntries(animalIds.map((id, i) => [id, animalList[i]!]));
-    return { soldiers, enemies, barHeights, drone, animals };
+    return { soldiers, enemies, barHeights, spurts, drone, animals };
   }
 
   private async load(

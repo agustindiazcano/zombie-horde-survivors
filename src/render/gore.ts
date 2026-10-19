@@ -10,6 +10,7 @@ const SPLAT_FADE = 5;
 
 const DROPLETS = 30;
 const CHUNKS = 9;
+const SPURT_DROPLETS = 8;
 
 type Mode = 0 | 1 | 2; // inactive, flying, settled on the ground
 
@@ -92,6 +93,27 @@ export class Gore {
     splat.mesh.visible = true;
     splat.life = SPLAT_LIFE;
     splat.material.opacity = 0.85;
+  }
+
+  /** A short jet of blood from a wound at (x, y, z), leaning along `facing`; `scale` is the enemy's size. */
+  spurt(x: number, y: number, z: number, facing: number, scale = 1): void {
+    for (let i = 0; i < SPURT_DROPLETS; i++) {
+      const k = this.next;
+      this.next = (this.next + 1) % MAX_PARTICLES;
+      const angle = facing + (Math.random() - 0.5) * 1.6;
+      const speed = (1.5 + Math.random() * 2.5) * scale;
+      this.pos.set([x, y, z], k * 3);
+      this.vel.set(
+        [Math.sin(angle) * speed, 1.5 + Math.random() * 2.5, Math.cos(angle) * speed],
+        k * 3,
+      );
+      this.size[k] = (0.05 + Math.random() * 0.05) * scale;
+      this.mode[k] = 1;
+      this.life[k] = 0;
+      this.color.setHex(0xb01010).offsetHSL(0, 0, (Math.random() - 0.5) * 0.12);
+      this.mesh.setColorAt(k, this.color);
+    }
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
   }
 
   update(dt: number): void {

@@ -43,6 +43,7 @@ interface Factories {
   soldiers: CharacterFactory[];
   enemies: Record<string, CharacterFactory>;
   barHeights: Record<string, number>;
+  spurts?: Record<string, number>;
   drone: CharacterFactory;
   animals: Record<string, CharacterFactory>;
 }
@@ -53,6 +54,8 @@ interface ZombieEntry {
   type: string;
   view: CharacterView;
   seenFrame: number;
+  /** Seconds until the next blood spurt of a bleeder. */
+  spurtIn?: number;
 }
 
 /** Camera shake amplitude (world units) added per event, its cap, and decay per second. */
@@ -900,6 +903,14 @@ export class GameRenderer {
       object.visible = !z.exploded;
       entry.view.setState(z.state);
       entry.view.update(dt);
+      const every = this.factories.spurts?.[entry.type];
+      if (every !== undefined && this.goreEnabled && z.state !== 'death') {
+        entry.spurtIn = (entry.spurtIn ?? every * Math.random()) - dt;
+        if (entry.spurtIn <= 0) {
+          entry.spurtIn = every * (0.6 + Math.random() * 0.8);
+          this.gore.spurt(zx, 1.3 * z.size, zz, z.facing, z.size);
+        }
+      }
 
       const flashLeft = this.flash.get(z.id) ?? 0;
       entry.view.setFlash?.(flashLeft > 0 ? flashLeft / FLASH_TIME : 0);

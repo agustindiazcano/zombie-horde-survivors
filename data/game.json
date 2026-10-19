@@ -212,7 +212,7 @@
       "rewardScale": 1.2
     },
     "skeleton": {
-      "name": "Skeleton",
+      "name": "Rotten marine",
       "speedScale": 0.6,
       "healthScale": 0.6,
       "damageScale": 0.8,
@@ -222,7 +222,7 @@
       "rewardScale": 0.8
     },
     "alien": {
-      "name": "Alien",
+      "name": "Gory marine",
       "speedScale": 1.5,
       "healthScale": 0.7,
       "damageScale": 0.9,
@@ -260,7 +260,7 @@
       }
     },
     "brute": {
-      "name": "Brute",
+      "name": "Burgundy marine",
       "speedScale": 0.7,
       "healthScale": 3.5,
       "damageScale": 2.5,
@@ -299,6 +299,16 @@
       "weight": 4,
       "minWave": 2,
       "rewardScale": 1.2
+    },
+    "marine_bleeder": {
+      "name": "Bleeder marine",
+      "speedScale": 0.9,
+      "healthScale": 2.5,
+      "damageScale": 1.0,
+      "radiusScale": 1.0,
+      "weight": 2,
+      "minWave": 4,
+      "rewardScale": 2.0
     }
   },
   "stance": {

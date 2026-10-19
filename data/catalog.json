@@ -41,11 +41,11 @@
         },
         {
           "id": "skeleton",
-          "name": "Skeleton"
+          "name": "Rotten marine"
         },
         {
           "id": "alien",
-          "name": "Alien"
+          "name": "Gory marine"
         },
         {
           "id": "hound",
@@ -53,7 +53,7 @@
         },
         {
           "id": "brute",
-          "name": "Brute"
+          "name": "Burgundy marine"
         },
         {
           "id": "worm",
@@ -74,6 +74,10 @@
         {
           "id": "marine_fast",
           "name": "Fast infected marine"
+        },
+        {
+          "id": "marine_bleeder",
+          "name": "Bleeder marine"
         }
       ]
     },
@@ -87,11 +91,11 @@
         },
         {
           "id": "spawner:skeleton",
-          "name": "Spawner: Skeleton"
+          "name": "Spawner: Rotten marine"
         },
         {
           "id": "spawner:alien",
-          "name": "Spawner: Alien"
+          "name": "Spawner: Gory marine"
         },
         {
           "id": "spawner:hound",
@@ -99,7 +103,7 @@
         },
         {
           "id": "spawner:brute",
-          "name": "Spawner: Brute"
+          "name": "Spawner: Burgundy marine"
         },
         {
           "id": "spawner:worm",
@@ -120,6 +124,10 @@
         {
           "id": "spawner:marine_fast",
           "name": "Spawner: Fast infected marine"
+        },
+        {
+          "id": "spawner:marine_bleeder",
+          "name": "Spawner: Bleeder marine"
         }
       ]
     },

@@ -87,11 +87,14 @@ Variants are multipliers on the base zombie in `data/game.json` (`enemies`); eac
 | Enemy             | From wave | Traits                       |
 | ----------------- | --------- | ---------------------------- |
 | Zombie            | 1         | Baseline                     |
-| Skeleton          | 1         | Slow, fragile                |
-| Alien             | 2         | Fast, fragile                |
+| Rotten marine     | 1         | Brown, slow, fragile         |
+| Gory marine       | 2         | Blood-soaked, fast, fragile  |
 | Hound (four legs) | 2         | Very fast, low health        |
-| Brute (monster)   | 3         | Slow, huge health and damage |
+| Burgundy marine   | 3         | Slow, huge health and damage |
 | Giant worm        | 4         | Very slow, very tanky, wide  |
+| Bleeder marine    | 4         | Spurts blood, 2.5x health    |
+
+The infected marine, the acrobat (violet, hops), the runner (pale, fast) and the fast infected marine (green, quick steps) are variants of the same marine model too.
 
 Zombie speed and health also grow with each wave.
 
