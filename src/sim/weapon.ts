@@ -92,5 +92,6 @@ export function fireWeapon(
     hit: roll ? { kind: roll.kind, damage } : null,
   });
   hearShot(state, config, origin, weapon.noise);
-  if (target && roll) damageZombie(state, config, target, damage, soldier, roll.kind);
+  if (target && roll)
+    damageZombie(state, config, target, damage, soldier, roll.kind, weapon.damage);
 }

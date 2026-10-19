@@ -286,6 +286,8 @@ export type SimEvent =
       enemy: string;
       pos: Vec2;
       exploded: boolean;
+      /** What became of the head when a head hit killed: it burst or flew off; null if it stayed. */
+      head: 'burst' | 'fly' | null;
       /** The soldier that landed the killing shot. */
       killerId: number | null;
       /** The kind of the killing hit. */

@@ -11,6 +11,8 @@ const SPLAT_FADE = 5;
 const DROPLETS = 30;
 const CHUNKS = 9;
 const SPURT_DROPLETS = 8;
+const HEAD_DROPLETS = 22;
+const HEAD_CHUNKS = 5;
 
 type Mode = 0 | 1 | 2; // inactive, flying, settled on the ground
 
@@ -93,6 +95,28 @@ export class Gore {
     splat.mesh.visible = true;
     splat.life = SPLAT_LIFE;
     splat.material.opacity = 0.85;
+  }
+
+  /** A head bursts at (x, y, z): a spray of droplets and a few chunks, no puddle. */
+  headBurst(x: number, y: number, z: number, scale = 1): void {
+    for (let i = 0; i < HEAD_DROPLETS + HEAD_CHUNKS; i++) {
+      const chunk = i >= HEAD_DROPLETS;
+      const k = this.next;
+      this.next = (this.next + 1) % MAX_PARTICLES;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = (chunk ? 1.5 + Math.random() * 2.5 : 2 + Math.random() * 5) * scale;
+      this.pos.set([x, y, z], k * 3);
+      this.vel.set(
+        [Math.cos(angle) * speed, 2 + Math.random() * 5, Math.sin(angle) * speed],
+        k * 3,
+      );
+      this.size[k] = (chunk ? 0.14 + Math.random() * 0.1 : 0.05 + Math.random() * 0.07) * scale;
+      this.mode[k] = 1;
+      this.life[k] = 0;
+      this.color.setHex(chunk ? 0x5a0a0a : 0xb01010).offsetHSL(0, 0, (Math.random() - 0.5) * 0.12);
+      this.mesh.setColorAt(k, this.color);
+    }
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
   }
 
   /** A short jet of blood from a wound at (x, y, z), leaning along `facing`; `scale` is the enemy's size. */

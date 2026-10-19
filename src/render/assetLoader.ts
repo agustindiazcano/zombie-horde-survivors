@@ -3,6 +3,7 @@ import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AnimationController } from './animationController';
 import { stainTextures } from './bloodTexture';
+import { createHeadControl, splitHead } from './headSplit';
 import { ArmPose } from './armPose';
 import { createWeaponModel } from './weaponModels';
 import type { CharacterSpec, CharactersConfig } from './characterConfig';
@@ -181,6 +182,7 @@ function createHolder(model: THREE.Object3D, root: THREE.Object3D): Holder | und
 }
 
 function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
+  const splittable = spec.dismember === true && splitHead(gltf.scene);
   const stained = spec.blood ? stainTextures(gltf.scene, spec.blood) : undefined;
   return (): CharacterView => {
     const root = new THREE.Group();
@@ -201,7 +203,10 @@ function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
 
     const animation = new AnimationController(model, gltf.animations, spec);
     const holder = createHolder(model, root);
+    const head = splittable ? createHeadControl(model, root) : undefined;
     return {
+      removeHead: head?.removeHead,
+      restoreHead: head?.restoreHead,
       hold: holder?.hold,
       aim: holder?.aim,
       object: root,

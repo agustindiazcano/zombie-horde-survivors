@@ -88,7 +88,8 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [x] Decisions of section 11 taken (2026-10-19, recommendations accepted; a head hit only does extra damage, and a killing head hit bursts or flies off by weapon strength).
 - [x] Phase M0 built: the light marine (4,900 triangles, 1.8 MB) is used by the horde ([worklog](docs/worklog/2026-10-19-marine-m0.md)).
 - [ ] 🟡 Measure with F3 and Chrome's profiler in a heavy wave and compare the light marine's look with a soldier.
-- [x] M1 built (variants, procedural blood, bleeder) and M1b built (wanderers that sleep, sense, see and shout; climbers over boxes): [worklog](docs/worklog/2026-10-19-marine-m1b.md). Look at the pale **wanderer** and the orange **climber**; next is M2 (head).
+- [x] M1 built (variants, procedural blood, bleeder) and M1b built (wanderers that sleep, sense, see and shout; climbers over boxes): [worklog](docs/worklog/2026-10-19-marine-m1b.md). Look at the pale **wanderer** and the orange **climber**.
+- [x] M2 built: a killing head hit bursts or knocks off the head by weapon strength ([worklog](docs/worklog/2026-10-19-marine-m2.md)). Look at it in the browser (stump size, flying head, neck spray, `dismember.headBurstDamage`); next is M3 (limbs and zones).
 
 ### 3 — 🟡 Going public (GitHub Pages is live)
 

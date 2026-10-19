@@ -49,7 +49,7 @@ export class Sfx {
         this.shot(mine ? 1 : 0.35);
         if (e.hit) this.hitMark(e.hit.kind, mine ? 1 : 0.4);
       } else if (e.type === 'zombieKilled') {
-        if (e.exploded) this.splat();
+        if (e.exploded || e.head === 'burst') this.splat();
         else this.kill();
       } else if (e.type === 'pickupCollected') {
         if (e.kind === 'gold') this.tone('sine', 1300, 1900, 0.07, 0.25);

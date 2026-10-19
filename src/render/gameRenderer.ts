@@ -8,12 +8,14 @@ import {
   type GameConfig,
   type Environment,
   type GameState,
+  type SimEvent,
   type Vec2,
 } from '../sim';
 import { buildArena } from './arena';
 import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
 import { Gore } from './gore';
+import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
 import { PickupMeshes } from './pickups';
@@ -56,7 +58,12 @@ interface ZombieEntry {
   seenFrame: number;
   /** Seconds until the next blood spurt of a bleeder. */
   spurtIn?: number;
+  /** Seconds left of the jet from a neck that lost its head. */
+  neckSpurt?: number;
 }
+
+/** Seconds a headless body keeps spraying from the neck. */
+const NECK_SPURT_TIME = 1.2;
 
 /** Camera shake amplitude (world units) added per event, its cap, and decay per second. */
 const SHOT_SHAKE = 0.03;
@@ -175,6 +182,7 @@ export class GameRenderer {
   private readonly stanceVisual = new Map<number, { crouch: number; lean: number }>();
   private readonly healthBars = new HealthBars();
   private readonly gore = new Gore();
+  private readonly looseParts = new LooseParts();
   private readonly pickups = new PickupMeshes();
   /** Remaining hit-flash time per enemy id. */
   private readonly flash = new Map<number, number>();
@@ -229,6 +237,7 @@ export class GameRenderer {
       this.grenades.group,
       this.healthBars.group,
       this.gore.group,
+      this.looseParts.group,
       this.pickups.group,
     );
 
@@ -408,6 +417,7 @@ export class GameRenderer {
     this.markers.update(state, this.selection, alpha, dt);
     this.pickups.update(state, this.config, dt);
     this.gore.update(dt);
+    this.looseParts.update(dt, (x, z) => this.groundAt(x, z));
     this.environment.update(this.camera.position, this.clock);
     for (const fire of this.fireMarkers?.children ?? []) {
       for (const flame of fire.children) {
@@ -820,6 +830,8 @@ export class GameRenderer {
           this.shake = Math.min(this.shake + SHOT_SHAKE + e.cameraKick, MAX_SHAKE);
         }
         if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
+      } else if (e.type === 'zombieKilled' && e.head) {
+        this.loseHead(state, e);
       } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
         const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
         this.gore.burst(e.pos.x, e.pos.z, Math.min(Math.max(size, 0.8), 1.8));
@@ -869,6 +881,32 @@ export class GameRenderer {
     return { x: origin.x + direction.x * far, z: origin.z + direction.z * far };
   };
 
+  /** A killing head hit: the head bursts or flies off, and the neck sprays for a moment. */
+  private loseHead(state: GameState, e: Extract<SimEvent, { type: 'zombieKilled' }>): void {
+    const entry = this.zombies.get(e.id);
+    if (!entry?.view.removeHead) return;
+    const gore = this.goreEnabled;
+    const cut = entry.view.removeHead({ loose: gore && e.head === 'fly', stump: gore });
+    if (!cut || !gore) return;
+    const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
+    entry.neckSpurt = NECK_SPURT_TIME;
+    if (cut.loose) {
+      // Away from the shooter, upwards, with some spread.
+      const killer = state.soldiers.find((s) => s.id === e.killerId);
+      const angle = killer
+        ? Math.atan2(e.pos.x - killer.pos.x, e.pos.z - killer.pos.z)
+        : Math.random() * Math.PI * 2;
+      const away = angle + (Math.random() - 0.5) * 0.8;
+      const speed = 3 + Math.random() * 3;
+      this.looseParts.throw(
+        cut.loose,
+        new THREE.Vector3(Math.sin(away) * speed, 4 + Math.random() * 3, Math.cos(away) * speed),
+      );
+    } else {
+      this.gore.headBurst(cut.at.x, cut.at.y, cut.at.z, Math.min(Math.max(size, 0.8), 1.8));
+    }
+  }
+
   private syncZombies(state: GameState, alpha: number, dt: number): void {
     for (const z of state.zombies) {
       let entry = this.zombies.get(z.id);
@@ -915,6 +953,16 @@ export class GameRenderer {
         }
       }
 
+      if (entry.neckSpurt !== undefined && entry.neckSpurt > 0) {
+        // The neck sinks with the body as it falls.
+        const left = entry.neckSpurt - dt;
+        entry.neckSpurt = left;
+        if (Math.floor(left * 8) !== Math.floor((left + dt) * 8)) {
+          const height = (1.5 - 1.1 * (1 - left / NECK_SPURT_TIME)) * z.size;
+          this.gore.spurt(zx, this.groundAt(zx, zz) + height, zz, z.facing, z.size);
+        }
+      }
+
       const flashLeft = this.flash.get(z.id) ?? 0;
       entry.view.setFlash?.(flashLeft > 0 ? flashLeft / FLASH_TIME : 0);
       if (flashLeft > 0) this.flash.set(z.id, flashLeft - dt);
@@ -938,6 +986,8 @@ export class GameRenderer {
     for (const [id, entry] of this.zombies) {
       if (entry.seenFrame === this.frame) continue;
       this.scene.remove(entry.view.object);
+      entry.view.restoreHead?.();
+      entry.neckSpurt = undefined;
       const pool = this.pools.get(entry.poolKey) ?? [];
       pool.push(entry.view);
       this.pools.set(entry.poolKey, pool);

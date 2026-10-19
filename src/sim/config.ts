@@ -924,6 +924,12 @@ export const GameConfigSchema = z
       })
       .strict(),
     gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),
+    dismember: z
+      .object({
+        /** A killing head hit bursts the head when the weapon's base damage is at least this; weaker weapons knock it off. */
+        headBurstDamage: positive,
+      })
+      .strict(),
     wander: z
       .object({
         /** Shots wake wanderers within `noiseMetres` per point of the weapon's noise (off until balanced). */

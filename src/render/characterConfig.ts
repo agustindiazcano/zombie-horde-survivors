@@ -17,6 +17,8 @@ const characterSpec = z
     tint: z.string().optional(),
     /** 0 to 1: how much blood is painted over the model's texture (stains, splatter, drips). */
     blood: z.number().min(0).max(1).optional(),
+    /** The model's head can be shot off: its mesh is split by bone at load (marine models only). */
+    dismember: z.boolean().optional(),
     /** Seconds between spurts of blood from the body of a living enemy (a bleeder). */
     spurts: z.number().positive().optional(),
     /** Playback speed of the walk and run clips (1 = as authored); a faster zombie steps quicker. */

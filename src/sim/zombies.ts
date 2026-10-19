@@ -114,6 +114,8 @@ export function damageZombie(
   killer?: Soldier,
   /** What kind of hit it was, reported with the kill. */
   hit: HitKind = 'body',
+  /** Base damage of the weapon that struck: a strong one bursts a head, a weak one knocks it off. */
+  force = 0,
 ): void {
   if (zombie.state === 'death') return;
   zombie.health -= amount;
@@ -140,6 +142,12 @@ export function damageZombie(
     enemy: zombie.type,
     pos: { x: zombie.pos.x, z: zombie.pos.z },
     exploded,
+    head:
+      hit === 'head' && !exploded
+        ? force >= config.dismember.headBurstDamage
+          ? 'burst'
+          : 'fly'
+        : null,
     killerId: killer?.id ?? null,
     hit,
   });

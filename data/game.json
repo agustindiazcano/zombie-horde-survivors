@@ -370,6 +370,9 @@
   "gore": {
     "explodeChance": 0.5
   },
+  "dismember": {
+    "headBurstDamage": 25
+  },
   "wander": {
     "noiseAttracts": false,
     "noiseMetres": 4,
