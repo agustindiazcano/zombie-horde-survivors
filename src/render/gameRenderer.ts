@@ -37,6 +37,7 @@ interface Factories {
   enemies: Record<string, CharacterFactory>;
   barHeights: Record<string, number>;
   drone: CharacterFactory;
+  animals: Record<string, CharacterFactory>;
 }
 
 interface ZombieEntry {
@@ -206,6 +207,7 @@ export class GameRenderer {
   private goalMarkers: THREE.Group | null = null;
   private fireMarkers: THREE.Group | null = null;
   private vehicleModel: THREE.Object3D | null = null;
+  private readonly animals = new Map<number, CharacterView>();
 
   /** Terrain height under a point of the loaded map. */
   private groundAt(x: number, z: number): number {
@@ -219,6 +221,8 @@ export class GameRenderer {
     for (const entry of this.zombies.values()) this.scene.remove(entry.view.object);
     for (const entry of this.vehicles.values()) this.scene.remove(entry.object);
     this.vehicles.clear();
+    for (const view of this.animals.values()) this.scene.remove(view.object);
+    this.animals.clear();
     this.soldiers.clear();
     this.flashlights.clear();
     this.zombies.clear();
@@ -362,6 +366,7 @@ export class GameRenderer {
     this.syncSoldiers(state, alpha, dt);
     this.syncZombies(state, alpha, dt);
     this.syncVehicles(state, alpha);
+    this.syncAnimals(state, alpha, dt);
     this.syncCrates(state, dt);
     this.effects.update(dt);
     this.markers.update(state, this.selection, alpha, dt);
@@ -583,6 +588,32 @@ export class GameRenderer {
     const list = this.factories.soldiers;
     const slot = this.config.units.units[s.unitType]?.model ?? s.id - 1;
     return list[slot % list.length]!;
+  }
+
+  /** Draws the wandering animals: the walk clip while they move, idle while they stand. */
+  private syncAnimals(state: GameState, alpha: number, dt: number): void {
+    const live = new Set<number>();
+    for (const a of state.animals) {
+      live.add(a.id);
+      let view = this.animals.get(a.id);
+      if (!view) {
+        const make = this.factories.animals[a.type] ?? this.factories.enemies.zombie!;
+        view = make();
+        this.animals.set(a.id, view);
+        this.scene.add(view.object);
+      }
+      const x = lerp(a.prev.x, a.pos.x, alpha);
+      const z = lerp(a.prev.z, a.pos.z, alpha);
+      view.object.position.set(x, this.groundAt(x, z), z);
+      view.object.rotation.y = a.facing;
+      view.setState(a.dest ? 'walk' : 'idle');
+      view.update(dt);
+    }
+    for (const [id, view] of this.animals) {
+      if (live.has(id)) continue;
+      this.scene.remove(view.object);
+      this.animals.delete(id);
+    }
   }
 
   /** Draws the vehicles of the state (a jeep for every type until more models exist). */

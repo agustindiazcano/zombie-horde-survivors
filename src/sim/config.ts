@@ -621,6 +621,22 @@ export const GameConfigSchema = z
           .strict(),
       })
       .strict(),
+    /** Harmless wandering animals by id (placed in the editor under Units > Animals). */
+    animals: z.record(
+      z.string(),
+      z
+        .object({
+          name: z.string().min(1),
+          speed: positive,
+          radius: positive,
+          /** How far from where it was placed it strolls (metres). */
+          wanderRadius: positive,
+          /** Seconds it stands still between walks, chosen between these two. */
+          pauseMin: nonNegative,
+          pauseMax: nonNegative,
+        })
+        .strict(),
+    ),
     /** Drivable vehicle types by id (placed in the editor, entered with V). */
     vehicles: z.record(z.string(), vehicleType),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
