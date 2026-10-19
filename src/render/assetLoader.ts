@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AnimationController } from './animationController';
+import { ArmPose } from './armPose';
 import { createWeaponModel } from './weaponModels';
 import type { CharacterSpec, CharactersConfig } from './characterConfig';
 import {
@@ -131,27 +132,42 @@ function findRightHand(model: THREE.Object3D): THREE.Object3D | null {
  */
 const GRIP_OFFSET = new THREE.Vector3(0, 0.08, 0);
 const GRIP_ROLL = 0;
-function createHolder(model: THREE.Object3D): CharacterView['hold'] {
+interface Holder {
+  hold: NonNullable<CharacterView['hold']>;
+  aim: NonNullable<CharacterView['aim']>;
+  /** Poses the arms after the animation has run; call once per frame. */
+  pose(): void;
+}
+function createHolder(model: THREE.Object3D, root: THREE.Object3D): Holder | undefined {
   const hand = findRightHand(model);
   if (!hand) return undefined;
   const holder = new THREE.Group();
   holder.rotation.set(-Math.PI / 2, 0, GRIP_ROLL);
   hand.add(holder);
+  const arms = ArmPose.create(model, root, holder);
   let shown: string | null = null;
+  let weapon: THREE.Object3D | null = null;
+  let amount = 0;
   const scale = new THREE.Vector3();
-  return (item) => {
-    if (item === shown) return;
-    shown = item;
-    holder.clear();
-    const weapon = item === null ? null : createWeaponModel(item);
-    if (!weapon) return;
-    // Undo the bone's world scale so the weapon is measured in metres.
-    model.updateMatrixWorld(true);
-    hand.getWorldScale(scale);
-    const k = scale.x > 1e-6 ? 1 / scale.x : 1;
-    holder.scale.setScalar(k);
-    holder.position.copy(GRIP_OFFSET).multiplyScalar(k);
-    holder.add(weapon);
+  return {
+    hold: (item) => {
+      if (item === shown) return;
+      shown = item;
+      holder.clear();
+      weapon = item === null ? null : createWeaponModel(item);
+      if (!weapon) return;
+      // Undo the bone's world scale so the weapon is measured in metres.
+      model.updateMatrixWorld(true);
+      hand.getWorldScale(scale);
+      const k = scale.x > 1e-6 ? 1 / scale.x : 1;
+      holder.scale.setScalar(k);
+      holder.position.copy(GRIP_OFFSET).multiplyScalar(k);
+      holder.add(weapon);
+    },
+    aim: (a) => {
+      amount = a;
+    },
+    pose: () => arms?.apply(amount, shown, weapon),
   };
 }
 
@@ -174,11 +190,16 @@ function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
     if (spec.procedural === 'hover') return { ...createHoverView(root, model), setFlash };
 
     const animation = new AnimationController(model, gltf.animations, spec);
+    const holder = createHolder(model, root);
     return {
-      hold: createHolder(model),
+      hold: holder?.hold,
+      aim: holder?.aim,
       object: root,
       setState: (state) => animation.setState(state),
-      update: (dt) => animation.update(dt),
+      update: (dt) => {
+        animation.update(dt);
+        holder?.pose();
+      },
       setFlash,
     };
   };

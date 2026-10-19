@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {
+  FIXED_DT,
   getSoldier,
   heightAt,
   localPlayer,
@@ -19,6 +20,7 @@ import { PickupMeshes } from './pickups';
 import { createJeep } from './vehicles';
 import { GrenadeEffects, type GrenadePreview } from './grenades';
 import { SelectionMarkers } from './markers';
+import { ViewModel } from './viewModel';
 
 /** Default camera: above and behind the focus point (towards +z), at zoom 1. */
 const BASE_DISTANCE = Math.hypot(13, 9);
@@ -110,6 +112,9 @@ const MAX_THIRD_ZOOM = 2.2;
 const FLASH_TIME = 0.14;
 /** Seconds a soldier plays the strike clip after a melee blow. */
 const STRIKE_TIME = 0.5;
+/** A soldier keeps the gun at the shoulder this long after a shot, and raises it at this rate (1/s). */
+const GUN_RAISED_TIME = 0.8;
+const GUN_RAISE_RATE = 12;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -150,6 +155,11 @@ export class GameRenderer {
   private readonly visYaw = new Map<number, number>();
   /** Seconds left of the strike pose, by soldier id. */
   private readonly strikeLeft = new Map<number, number>();
+  /** Seconds each soldier keeps its gun raised after firing, and how raised it is now (0 to 1). */
+  private readonly shotLeft = new Map<number, number>();
+  private readonly gunRaise = new Map<number, number>();
+  /** The gun seen in first person. */
+  private readonly viewModel = new ViewModel();
   private thirdZoom = 1;
   private savedTop = { yaw: 0, pitch: DEFAULT_PITCH };
   private focusInitialized = false;
@@ -398,6 +408,7 @@ export class GameRenderer {
       }
     }
     this.renderer.render(this.scene, this.camera);
+    if (this.viewMode === 'first') this.viewModel.render(this.renderer);
   }
 
   /** Moves the RTS camera, keeping the focus inside the arena. */
@@ -734,10 +745,32 @@ export class GameRenderer {
       view.setState(
         s.dead || s.downed ? 'death' : striking > 0 ? 'attack' : moving ? 'run' : 'idle',
       );
-      view.hold?.(
-        s.dead || s.downed || drone ? null : (s.equipment.rightHand ?? s.equipment.leftHand),
+      const held =
+        s.dead || s.downed || drone ? null : (s.equipment.rightHand ?? s.equipment.leftHand);
+      view.hold?.(held);
+      // Arms come up to the gun while it fires or aims, and drop back to the clip afterwards.
+      const raised = Math.max(this.shotLeft.get(s.id) ?? 0, s.aiming ? 1 : 0);
+      this.shotLeft.set(s.id, Math.max((this.shotLeft.get(s.id) ?? 0) - dt, 0));
+      const wantRaise = held !== null && striking <= 0 && raised > 0 ? 1 : 0;
+      const raise = lerp(
+        this.gunRaise.get(s.id) ?? 0,
+        wantRaise,
+        1 - Math.exp(-GUN_RAISE_RATE * dt),
       );
+      this.gunRaise.set(s.id, raise);
+      view.aim?.(raise);
       view.update(dt);
+      if (s.id === localPlayer(state).controlledId) {
+        const speed = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) / FIXED_DT;
+        this.viewModel.update(
+          dt,
+          this.viewMode === 'first' && s.vehicleId === null,
+          held,
+          s.aiming,
+          s.reload !== null,
+          Math.min(speed / this.config.player.speed, 1.5),
+        );
+      }
       this.updateFlashlight(s.id, view.object, heading, !s.dead);
       // In first person you look out of the controlled unit's head, so hide its model.
       view.object.visible =
@@ -767,7 +800,9 @@ export class GameRenderer {
     for (const e of state.events) {
       if (e.type === 'shot') {
         this.effects.spawnShot(e.from, e.to, e.facing, e.height, e.hitZombieId !== null);
+        this.shotLeft.set(e.shooterId, GUN_RAISED_TIME);
         if (e.shooterId === localPlayer(state).controlledId) {
+          this.viewModel.kick(0.8 + e.cameraKick * 4);
           this.shake = Math.min(this.shake + SHOT_SHAKE + e.cameraKick, MAX_SHAKE);
         }
         if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
@@ -1002,5 +1037,6 @@ export class GameRenderer {
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.viewModel.resize(w / h);
   };
 }

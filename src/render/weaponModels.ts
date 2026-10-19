@@ -19,6 +19,26 @@ function part(
   group.add(mesh);
 }
 
+/** How a held gun is posed: with one hand, or with two (the second on the foregrip). */
+export interface WeaponPose {
+  /** Where the off hand goes, in the weapon's own space; none for a one-handed weapon. */
+  foregrip?: [number, number, number];
+  /**
+   * The weapon's place in the first-person view (metres in front of the camera, +X right, +Y up,
+   * -Z ahead) carried at the hip and raised to the sights, and the hand positions on the weapon.
+   */
+  hip: [number, number, number];
+  ads: [number, number, number];
+}
+
+/** Pose data of the weapons that are shown in hand; knives have a hip place only. */
+export const WEAPON_POSES: Record<string, WeaponPose> = {
+  pistol: { hip: [0.17, -0.17, -0.4], ads: [0, -0.075, -0.3] },
+  rifle: { foregrip: [0, -0.03, 0.38], hip: [0.2, -0.2, -0.42], ads: [0, -0.095, -0.3] },
+  heavy_mg: { foregrip: [0, -0.04, 0.42], hip: [0.2, -0.23, -0.5], ads: [0, -0.125, -0.38] },
+  knife: { hip: [0.22, -0.2, -0.36], ads: [0.22, -0.2, -0.36] },
+};
+
 /**
  * A simple procedural model of a weapon, in metres, with the grip at the origin, the muzzle
  * towards +Z and the top towards +Y. Items without a model here are not drawn.
