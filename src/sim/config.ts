@@ -408,9 +408,13 @@ const itemDef = z.discriminatedUnion('type', [
       spread: nonNegative,
       /** `auto` fires while the button is held; `semi` once per click. */
       fireMode: z.enum(FIRE_MODES),
-      /** Rounds in a full magazine (none for fists and the drone gun). */
+      /** Rounds in a full magazine (none for fists and the drone gun, which never run dry). */
       magazine: z.number().int().positive().optional(),
-      /** Seconds to reload (no rule uses it before the ammo phase). */
+      /** Item id of the ammo it loads from the backpack (an `ammo` item). */
+      ammo: z.string().optional(),
+      /** Reloads from nothing: the spare magazines never run out (the pistol, at first). */
+      infiniteSpare: z.boolean().optional(),
+      /** Seconds a reload takes. */
       reloadTime: nonNegative.optional(),
       /** Radius in metres a shot can be heard from (no rule uses it yet). */
       noise: nonNegative,
@@ -419,6 +423,8 @@ const itemDef = z.discriminatedUnion('type', [
       mocked: z.object({ weight: nonNegative }).strict(),
     })
     .strict(),
+  /** Ammo: a stack counts rounds; one crate or shop unit gives `pack` rounds. */
+  z.object({ ...itemBase, type: z.literal('ammo'), pack: z.number().int().positive() }).strict(),
   z
     .object({
       ...itemBase,
@@ -497,6 +503,12 @@ export const ItemsSchema = z
     for (const [id, item] of Object.entries(data.items)) {
       if (item.type === 'weapon' && item.stack !== 1) {
         ctx.addIssue({ code: 'custom', message: `weapon "${id}" cannot stack` });
+      }
+      if (item.type === 'weapon' && item.ammo && data.items[item.ammo]?.type !== 'ammo') {
+        ctx.addIssue({ code: 'custom', message: `weapon "${id}" needs "${item.ammo}" to be ammo` });
+      }
+      if (item.type === 'weapon' && item.magazine && !item.ammo && !item.infiniteSpare) {
+        ctx.addIssue({ code: 'custom', message: `weapon "${id}" has a magazine but no ammo` });
       }
     }
   });
@@ -638,6 +650,13 @@ export const GameConfigSchema = z
         cooldown: nonNegative,
         /** Share of the blast damage that hurts allies, including the thrower (0 = none). */
         friendlyFire: z.number().min(0).max(1),
+      })
+      .strict(),
+    /** Ammo and reloading (the magazine, reload time and calibre are on each weapon). */
+    ammo: z
+      .object({
+        /** Seconds before the next trigger pull after an empty click. */
+        dryFireDelay: positive,
       })
       .strict(),
     /** Dragging a downed or dead ally by the shoulders. */

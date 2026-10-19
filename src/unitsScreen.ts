@@ -3,6 +3,7 @@ import { itemInfo } from './itemInfo';
 import { MenuModel } from './menuModel';
 import type { CharacterFactory } from './render/characters';
 import {
+  cellAt,
   levelInfo,
   maxHealthOf,
   equipFromBackpack,
@@ -236,6 +237,13 @@ export class UnitsScreen {
     }
   }
 
+  /** ` · 12/12` for a weapon with a magazine (a weapon never loaded counts as full). */
+  private roundsText(unit: Soldier, slot: SlotRef, item: string): string {
+    const def = itemDef(this.config, item);
+    if (def.type !== 'weapon' || !def.magazine) return '';
+    return ` · ${cellAt(unit, slot)?.state?.loaded ?? def.magazine}/${def.magazine}`;
+  }
+
   /**
    * One slot: draggable when it holds an item, and always a drop target. `caption` names an
    * empty slot; a backpack stack shows its `count`.
@@ -257,7 +265,7 @@ export class UnitsScreen {
       const info = itemInfo(this.config, item);
       el('div', 'us__slot-icon', cell, info.icon);
       el('div', 'us__slot-name', cell, count > 1 ? `${info.name} ×${count}` : info.name);
-      el('div', 'us__slot-stats', cell, info.stats);
+      el('div', 'us__slot-stats', cell, `${info.stats}${this.roundsText(unit, slot, item)}`);
       cell.title = info.title;
       const action = this.actionFor(unit, slot, item);
       if (action) {

@@ -5,6 +5,7 @@ import { dirFromAngle, type Vec2 } from './vec';
 import { nextFloat } from './rng';
 import { weaponOf } from './stats';
 import { damageZombie } from './zombies';
+import { gunState } from './ammo';
 
 /** True if an obstacle sits between `origin` and a point `distance` away along `dir`. */
 export function isBlocked(origin: Vec2, dir: Vec2, distance: number, config: GameConfig): boolean {
@@ -27,7 +28,17 @@ export function fireWeapon(
   rateScale = 1,
 ): void {
   const weapon = weaponOf(config, soldier, state.mods, state.stance);
-  if (!weapon) return;
+  if (!weapon || soldier.reload) return;
+  const rounds = gunState(config, soldier);
+  if (rounds) {
+    if (rounds.loaded <= 0) {
+      // Empty: the trigger clicks and the next pull has to wait a moment.
+      soldier.fireCooldown += config.ammo.dryFireDelay;
+      state.events.push({ type: 'dryFire', shooterId: soldier.id });
+      return;
+    }
+    rounds.loaded--;
+  }
   soldier.fireCooldown += 1 / (weapon.fireRate * rateScale);
 
   const origin = soldier.pos;

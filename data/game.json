@@ -51,6 +51,14 @@
       {
         "item": "defibrillator",
         "weight": 0.6
+      },
+      {
+        "item": "ammo_556",
+        "weight": 2.5
+      },
+      {
+        "item": "ammo_belt",
+        "weight": 1
       }
     ]
   },
@@ -108,7 +116,10 @@
     }
   },
   "hazards": {
-    "fire": { "dps": 20, "radius": 2.5 }
+    "fire": {
+      "dps": 20,
+      "radius": 2.5
+    }
   },
   "vehicles": {
     "jeep": {
@@ -126,9 +137,21 @@
     }
   },
   "difficulty": {
-    "easy": { "health": 0.7, "speed": 0.9, "count": 0.7 },
-    "normal": { "health": 1, "speed": 1, "count": 1 },
-    "hard": { "health": 1.4, "speed": 1.1, "count": 1.4 }
+    "easy": {
+      "health": 0.7,
+      "speed": 0.9,
+      "count": 0.7
+    },
+    "normal": {
+      "health": 1,
+      "speed": 1,
+      "count": 1
+    },
+    "hard": {
+      "health": 1.4,
+      "speed": 1.1,
+      "count": 1.4
+    }
   },
   "waves": {
     "baseCount": 8,
@@ -397,6 +420,22 @@
         "target": "defibrillator",
         "cost": 90,
         "costGrowth": 1.3
+      },
+      {
+        "id": "ammo_556",
+        "name": "Rifle ammo",
+        "description": "30 rifle rounds into the selected unit's backpack",
+        "kind": "item",
+        "target": "ammo_556",
+        "cost": 15
+      },
+      {
+        "id": "ammo_belt",
+        "name": "Machine gun belt",
+        "description": "100 machine gun rounds into the selected unit's backpack",
+        "kind": "item",
+        "target": "ammo_belt",
+        "cost": 40
       }
     ]
   },
@@ -421,5 +460,8 @@
     "reviveTime": 3,
     "defibHealth": 0.5,
     "targetDistanceScale": 3
+  },
+  "ammo": {
+    "dryFireDelay": 0.4
   }
 }

@@ -28,6 +28,14 @@ export type Stance = 'normal' | 'crouch' | 'sprint';
 export type UnitKind = 'soldier' | 'drone';
 
 /** `count` of one item (an item id) sharing a backpack slot, up to the item's `stack`. */
+export interface Reload {
+  hand: Hand;
+  /** The weapon being loaded; the reload is dropped if the hand holds anything else. */
+  state: WeaponState;
+  /** Seconds left. */
+  left: number;
+}
+
 export interface Stack {
   item: string;
   count: number;
@@ -74,6 +82,8 @@ export interface Soldier {
   /** Whether the fire button was down last step, and a semi-automatic click waiting for the cooldown. */
   triggerHeld: boolean;
   triggerQueued: boolean;
+  /** The reload in progress, if any (the gun cannot fire meanwhile). */
+  reload: Reload | null;
   /** Height above the ground (jumping) and vertical speed. */
   y: number;
   prevY: number;
@@ -192,6 +202,8 @@ export interface Crate {
   id: number;
   pos: Vec2;
   items: string[];
+  /** State of a weapon in `items`, by the same index (a stashed weapon keeps its rounds). */
+  states?: (WeaponState | undefined)[];
 }
 
 /** A gold coin or XP orb lying on the ground. */
@@ -242,6 +254,8 @@ export type SimEvent =
   | { type: 'soldierRevived'; soldierId: number; byId: number }
   | { type: 'soldierDied'; soldierId: number }
   | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
+  | { type: 'dryFire'; shooterId: number }
+  | { type: 'reloadStarted'; soldierId: number }
   | { type: 'grenadeThrown'; throwerId: number }
   | { type: 'explosion'; pos: Vec2; radius: number }
   | { type: 'waveStarted'; wave: number }

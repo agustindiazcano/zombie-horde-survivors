@@ -28,6 +28,7 @@ import {
   nearestCrate,
   getSoldier,
   getVehicle,
+  startReload,
   throwGrenade,
   toggleDrag,
   toggleVehicle,
@@ -60,7 +61,7 @@ const PAN_SPEED = 22;
 const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · R: reload · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -444,6 +445,10 @@ async function main(): Promise<void> {
       if (playable() && !modalOpen() && controlled !== null && !e.repeat) {
         throwGrenade(state, config, controlled, readInput().aim);
       }
+    } else if (e.code === 'KeyR') {
+      // Direct control: reload the gun in hand from the backpack's ammo.
+      const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
+      if (playable() && !modalOpen() && unit && !e.repeat) startReload(state, config, unit);
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
       const unitId = localPlayer(state).controlledId;

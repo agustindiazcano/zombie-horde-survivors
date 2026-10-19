@@ -46,6 +46,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     animals: { ...base.animals },
     drag: { ...base.drag },
     grenades: { ...base.grenades },
+    ammo: { ...base.ammo },
     difficulty: { ...base.difficulty },
     waves: { ...base.waves, intermission: 1e9 },
   };

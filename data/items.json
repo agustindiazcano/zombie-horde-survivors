@@ -39,7 +39,8 @@
       "accessorySlots": ["optic", "barrel", "magazine"],
       "mocked": {
         "weight": 1
-      }
+      },
+      "infiniteSpare": true
     },
     "rifle": {
       "type": "weapon",
@@ -60,7 +61,8 @@
       "accessorySlots": ["optic", "barrel", "magazine", "grip", "underbarrel"],
       "mocked": {
         "weight": 3.5
-      }
+      },
+      "ammo": "ammo_556"
     },
     "heavy_mg": {
       "type": "weapon",
@@ -81,7 +83,8 @@
       "accessorySlots": ["optic", "barrel", "grip"],
       "mocked": {
         "weight": 9
-      }
+      },
+      "ammo": "ammo_belt"
     },
     "drone_cannon": {
       "type": "weapon",
@@ -216,6 +219,20 @@
         },
         "weight": 0.3
       }
+    },
+    "ammo_556": {
+      "type": "ammo",
+      "name": "5.56 rounds",
+      "icon": "🟨",
+      "stack": 120,
+      "pack": 30
+    },
+    "ammo_belt": {
+      "type": "ammo",
+      "name": "Machine gun belt",
+      "icon": "🟧",
+      "stack": 300,
+      "pack": 100
     }
   }
 }

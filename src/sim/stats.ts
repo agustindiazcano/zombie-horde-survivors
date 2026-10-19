@@ -1,5 +1,5 @@
 import type { DamageType, FireMode, GameConfig, WeaponClass, WeaponItem } from './config';
-import type { GameState, Mods, Soldier, Stance } from './types';
+import type { GameState, Hand, Mods, Soldier, Stance } from './types';
 
 export interface WeaponDef {
   id: string;
@@ -62,8 +62,15 @@ export function weaponDef(config: GameConfig, id: string): WeaponDef {
 
 /** The weapon a unit shoots with: the right hand, else the left; melee weapons do not shoot. */
 export function gunOf(config: GameConfig, s: Soldier): string | null {
-  for (const id of [s.equipment.rightHand, s.equipment.leftHand]) {
-    if (id !== null && weaponDef(config, id).class !== 'melee') return id;
+  const hand = gunHand(config, s);
+  return hand === null ? null : s.equipment[hand];
+}
+
+/** The hand that holds the gun the unit shoots with, or null. */
+export function gunHand(config: GameConfig, s: Soldier): Hand | null {
+  for (const hand of ['rightHand', 'leftHand'] as const) {
+    const id = s.equipment[hand];
+    if (id !== null && weaponDef(config, id).class !== 'melee') return hand;
   }
   return null;
 }

@@ -6,6 +6,7 @@ import {
   maxHealthOf,
   objectiveProgress,
   gunOf,
+  ammoLabel,
   weaponDef,
   type GameConfig,
   type GameState,
@@ -185,7 +186,12 @@ export class Hud {
     const health = Math.ceil(focus?.health ?? 0);
     const focusKey = focus?.id ?? 0;
     const gun = focus ? gunOf(this.config, focus) : null;
-    const weapon = focus ? (gun !== null ? weaponDef(this.config, gun).name : 'Unarmed') : '';
+    const ammo = focus && gun !== null ? ammoLabel(this.config, focus) : '';
+    const weapon = focus
+      ? gun !== null
+        ? `${weaponDef(this.config, gun).name}${ammo ? ` ${ammo}` : ''}`
+        : 'Unarmed'
+      : '';
     if (
       health !== this.shown.health ||
       focusKey !== this.shown.focus ||

@@ -3,6 +3,7 @@ import { localPlayer } from './players';
 import { rescueTarget } from './revive';
 import { getVehicle, toggleVehicle } from './vehicles';
 import { gunOf, isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
+import { maintainAmmo, updateReload } from './ammo';
 import { triggerPulled } from './weaponState';
 import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from './config';
 import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
@@ -42,6 +43,7 @@ export function applyLoadout(config: GameConfig, s: Soldier, l: Loadout): Soldie
   if (l.equipment) {
     s.equipment = { ...s.equipment, ...l.equipment };
     s.weaponStates = {};
+    s.reload = null;
   }
   if (l.backpack) {
     s.backpack = l.backpack
@@ -79,6 +81,7 @@ function newUnit(
     fireCooldown: 0,
     triggerHeld: false,
     triggerQueued: false,
+    reload: null,
     y: 0,
     prevY: 0,
     vy: 0,
@@ -250,6 +253,7 @@ export function updateSoldiers(
     }
     // May dip up to one step below zero so the leftover time carries into the next shot.
     s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
+    updateReload(config, s, dt);
     if (state.mods.regen > 0 && !isDrone(s) && !s.downed) {
       const max = maxHealthOf(state, config, s);
       s.health = Math.min(max, s.health + state.mods.regen * dt);
@@ -349,6 +353,7 @@ function updateSeated(
     return;
   }
   const target = findTarget(state, config, s);
+  maintainAmmo(state, config, s, target !== null);
   if (!target) return;
   s.facing = Math.atan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
   if (s.fireCooldown <= 0) fireWeapon(state, config, s, config.squad.aiFireRateScale);
@@ -384,6 +389,8 @@ function updateControlled(
   if (triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)) {
     fireWeapon(state, config, s);
   }
+  // Touch play has no reload button: the gun reloads itself.
+  if (input.autoTrigger) maintainAmmo(state, config, s, input.firing);
 }
 
 function updateAi(
@@ -449,6 +456,7 @@ function updateAi(
   }
 
   const target = findTarget(state, config, s);
+  maintainAmmo(state, config, s, target !== null);
   if (target) {
     s.facing = Math.atan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
     if (s.fireCooldown <= 0) {

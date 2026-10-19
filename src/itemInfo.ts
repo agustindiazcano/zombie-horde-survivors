@@ -24,9 +24,13 @@ export function itemInfo(config: GameConfig, id: string): ItemInfo {
       );
       if (def.magazine) {
         lines.push(
-          `Magazine ${def.magazine}${def.reloadTime ? `, reload ${def.reloadTime} s` : ''} (no ammo rule yet)`,
+          `Magazine ${def.magazine}${def.reloadTime ? `, reload ${def.reloadTime} s` : ''}`,
         );
       }
+      break;
+    case 'ammo':
+      stats = `${def.pack} rounds`;
+      lines.push(`Loads into a gun on R; a crate or shop unit gives ${def.pack} rounds`);
       break;
     case 'medical':
       stats = `+${def.heal} HP`;
