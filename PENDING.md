@@ -91,6 +91,19 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [x] M1 built (variants, procedural blood, bleeder) and M1b built (wanderers that sleep, sense, see and shout; climbers over boxes): [worklog](docs/worklog/2026-10-19-marine-m1b.md). Look at the pale **wanderer** and the orange **climber**.
 - [x] M2 built: a killing head hit bursts or knocks off the head by weapon strength ([worklog](docs/worklog/2026-10-19-marine-m2.md)). Look at it in the browser (stump size, flying head, neck spray, `dismember.headBurstDamage`); - [x] M3 built: body zones, arms and legs come off, grenades tear limbs, legless enemies drag themselves ([worklog](docs/worklog/2026-10-19-marine-m3.md)). Look at it in the browser (stump sizes, throw, the pitched-forward crawl, `dismember.*` numbers); next is M4 (real crawl, `marine_crawler`).
 
+### 2h — ⚪ Phase B: WebGPU engine, VAT crowd, ragdoll pool, mocap (noted 2026-10-19, nothing decided or built)
+
+Full note: [docs/PLAN-webgpu-engine.md](docs/PLAN-webgpu-engine.md). The user's brief for a 1,000+ unit engine (three.js `WebGPURenderer` + TSL, `SharedArrayBuffer`, Rapier worker, VAT animation, ragdoll ring pool, flow fields, Tauri + Steam, Blender asset pipeline). It conflicts with several decisions already taken (no new tests, CC0 / CC-BY assets only, no backend, Steam is outward-facing); section 5 of the note lists them.
+
+- [ ] ⚪ Answer the four questions of section 6 of the note (rewrite or migrate, Steam yes / no, WebGL fallback, Meshy license for a paid release).
+- [x] Audit of `src/` against the plan and the detailed plan B0 to B11 are written (sections 9 and 10 of the note, 2026-10-19).
+- [ ] 🔴 B0: build the heavy scenario (300 / 600 / 1000 marines), profile it on the user's machine and a low-end laptop, and choose the order of B1 to B5 from the numbers. This also unblocks the performance item in 2d.
+- [ ] 🟡 B1 render snapshot boundary, B2 WebGPU renderer swap, B3 tiered instanced VAT crowd (soldiers and dismembered units stay skinned).
+- [ ] 🟢 B4 unit spatial hash and boids, B5 sim in a worker (transferable buffers by default; `SharedArrayBuffer` only where COOP/COEP exist), B6 Rapier props and vehicles, B7 ragdoll pool.
+- [ ] ⚪ B8 GPU VFX and environment, B9 wave director, B10 asset pipeline and KTX2, B11 Tauri and Steam (ask the user before every outward-facing step).
+- [ ] ⚪ Prototype `InstancedMesh` + VAT for one enemy type on a branch and compare with the pooled `SkinnedMesh` views.
+- [ ] ⚪ Mocap experiment: a standalone page with MediaPipe + Kalidokit driving the marine, record and download a clip (section 7 of the note); check the marine's bone names first.
+
 ### 3 — 🟡 Going public (GitHub Pages is live)
 
 - [ ] 🟡 **Analytics with GoatCounter** (free, no cookies, custom events for waves reached and game over). Needs the user's GoatCounter site name; the script goes in `index.html`.

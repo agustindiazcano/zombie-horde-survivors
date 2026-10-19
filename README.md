@@ -2,7 +2,21 @@
 
 A browser-based 3D squad shooter: command a small squad of soldiers and a drone against waves of zombies, skeletons, aliens, hounds, brutes and giant worms. Play it **hands-on** (direct control of one soldier, in top-down, third-person or first-person view) or **from above** (RTS mode: select units and give orders).
 
-Built with Three.js + Vite + TypeScript. No backend: it runs in the browser.
+## Tech stack
+
+| Layer               | Technology                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------- |
+| Language and build  | TypeScript 6, Vite 8                                                                      |
+| 3D rendering        | Three.js 0.186 (WebGL today; a WebGPU + TSL migration is planned)                         |
+| Simulation          | pure TypeScript in `src/sim` (no Three.js, no DOM), fixed 60 Hz step, seeded RNG          |
+| Data and validation | JSON in `data/`, validated with a strict zod schema                                       |
+| Models              | GLB (glTF binary) with skeletal animation clips, Quaternius, KayKit, Kenney and Meshy AI  |
+| Audio               | procedural sound effects (Web Audio)                                                      |
+| Saved data          | the browser's localStorage (best score, settings, your own maps); no backend, no accounts |
+| Tests and checks    | Vitest (48 sim tests), ESLint, Prettier, `tsc`, an asset-license check                    |
+| Hosting             | GitHub Pages, redeployed on every push to `main`                                          |
+
+Where the engine is heading (WebGPU, instanced animated crowds of 1,000+ units, a physics worker, ragdolls, Tauri + Steam): [docs/PLAN-webgpu-engine.md](docs/PLAN-webgpu-engine.md). Nothing of that is built yet.
 
 **Play online:** https://agustindiazcano.github.io/zombie-horde-survivors/ (desktop browser, keyboard and mouse).
 
