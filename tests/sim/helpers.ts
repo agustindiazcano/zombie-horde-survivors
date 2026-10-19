@@ -17,7 +17,7 @@ import {
 } from '../../src/sim';
 
 /** Config sections to override; `weapon` overrides the rifle, the test squad's weapon. */
-type Patch = { [K in Exclude<keyof GameConfig, 'items'>]?: Partial<GameConfig[K]> } & {
+type Patch = { [K in Exclude<keyof GameConfig, 'items' | 'briefing'>]?: Partial<GameConfig[K]> } & {
   weapon?: Partial<WeaponItem>;
 };
 

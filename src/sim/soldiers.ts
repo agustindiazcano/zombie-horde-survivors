@@ -1,6 +1,7 @@
 import { resolveStatic } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
+import { getVehicle, toggleVehicle } from './vehicles';
 import { isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
 import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from './config';
 import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
@@ -150,6 +151,14 @@ export function orderMove(state: GameState, config: GameConfig, ids: number[], t
       z: Math.min(Math.max(target.z + oz, -lim), lim),
     };
   });
+}
+
+/** Sends soldiers to a vehicle; each climbs in when it arrives, if a seat is still free. */
+export function orderBoard(state: GameState, ids: number[], vehicleId: number): void {
+  for (const s of state.soldiers) {
+    if (s.dead || s.kind !== 'soldier' || !ids.includes(s.id)) continue;
+    s.order = { type: 'board', vehicleId };
+  }
 }
 
 export function orderFollow(state: GameState, ids: number[]): void {
@@ -343,6 +352,19 @@ function updateAi(
     if (Math.hypot(dest.x - s.pos.x, dest.z - s.pos.z) < ARRIVE_DISTANCE) {
       s.order = { type: 'hold' };
       dest = null;
+    }
+  } else if (s.order.type === 'board') {
+    const v = getVehicle(state, s.order.vehicleId);
+    if (!v || !v.seats.includes(null)) {
+      s.order = { type: 'hold' };
+    } else {
+      const reach = config.vehicles[v.type]!;
+      if (Math.hypot(v.pos.x - s.pos.x, v.pos.z - s.pos.z) <= reach.enterRange + reach.radius) {
+        s.order = { type: 'hold' };
+        toggleVehicle(state, config, s.id);
+      } else {
+        dest = { ...v.pos };
+      }
     }
   } else if (s.order.type === 'follow' && leader) {
     const a = s.id * SLOT_ANGLE;

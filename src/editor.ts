@@ -1481,6 +1481,16 @@ export class Editor {
         ? 'None: the mission never ends by itself.'
         : 'All of these must be done to win.',
     );
+    if (logic.mode === 'story') {
+      const brief = el('textarea', 'editor__number', goals);
+      brief.placeholder = 'Mission briefing (shown at the start)';
+      brief.maxLength = 600;
+      brief.rows = 3;
+      brief.value = logic.briefing ?? '';
+      brief.addEventListener('change', () =>
+        this.setLogic({ briefing: brief.value.trim() === '' ? undefined : brief.value }),
+      );
+    }
     const setObjectives = (next: Objective[]) =>
       this.setLogic({ objectives: next.length > 0 ? next : undefined });
     objectives.forEach((o, i) => {
@@ -1521,7 +1531,10 @@ export class Editor {
     const reset = el('button', 'editor__item', this.body, 'Reset to the global rules');
     reset.addEventListener('click', () => {
       this.spawnTool = null;
-      this.edit({ ...this.current, logic: { mode: logic.mode, objectives: logic.objectives } });
+      this.edit({
+        ...this.current,
+        logic: { mode: logic.mode, objectives: logic.objectives, briefing: logic.briefing },
+      });
       this.setTab('logic');
     });
   }

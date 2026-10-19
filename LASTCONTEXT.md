@@ -58,7 +58,7 @@ Si no, proponeme el siguiente paso entre: 8b (mecánicas de interacción: levant
 
 Pendiente de verificar visualmente (yo lo miro): menú y editor (fases 2 a 6); pestaña Game logic; modo Story (Mission 1, objetivos, anillo verde, MISSION COMPLETE, objetivos en el editor); el jeep (V para subir/bajar, pasajeros, zombies al casco); el editor: barra de Stop oculta al editar, WASD, Y para manejar una unidad en la vista previa, caja de selección, mover con botón derecho, R + botón derecho para orientar, Ctrl+C/V, Supr, diálogo de mapa nuevo (tamaño y textura), I (inventario) y O (stats) por unidad, spawners de enemigos; marines 1 a 4; pestaña Environment (hora, color de luz, nubes, lluvia, nieve, tormenta de arena, niebla; rendimiento de partículas); cámara libre (mirar al cielo, más zoom).
 
-Limitaciones conocidas: las pendientes no bloquean; el jeep es de cajas, sin órdenes de RTS para subir ni barra de vida; los objetivos de Story no tienen briefing; un spawner con vida editada no escala con la oleada; los atributos no los lee ninguna regla; faltan rayos, sonido de clima y estrellas; las constantes de partículas y colores del clima son estimaciones.
+Limitaciones conocidas: las pendientes no bloquean; el jeep es de cajas (sin modelo real); un spawner con vida editada no escala con la oleada; los atributos no los lee ninguna regla; faltan rayos, sonido de clima y estrellas; las constantes de partículas y colores del clima son estimaciones.
 
 Preguntas abiertas que no bloquean: cómo se ven las armas en los modelos (huesos y de dónde salen las mallas: preguntámelo antes de la parte visual), modelo real de vehículo, y si renombro los atributos (strength, dexterity, constitution, perception, intelligence, charisma).
 ```

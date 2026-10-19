@@ -555,10 +555,25 @@ export class GameRenderer {
       const turn = Math.atan2(Math.sin(v.facing - v.prevFacing), Math.cos(v.facing - v.prevFacing));
       entry.object.rotation.y = v.prevFacing + turn * alpha;
       for (const wheel of entry.wheels) wheel.rotation.x += v.speed * 0.02;
+      // Only a vehicle with a crew can be hurt, so only then does it show a bar.
+      if (v.seats.some((id) => id !== null)) {
+        this.healthBars.show(
+          -v.id - 1,
+          x,
+          this.groundAt(x, z) + 2.6,
+          z,
+          2.2,
+          v.health / v.maxHealth,
+          this.camera,
+        );
+      } else {
+        this.healthBars.hide(-v.id - 1);
+      }
     }
     for (const [id, entry] of this.vehicles) {
       if (live.has(id)) continue;
       this.scene.remove(entry.object);
+      this.healthBars.release(-id - 1);
       this.vehicles.delete(id);
     }
   }

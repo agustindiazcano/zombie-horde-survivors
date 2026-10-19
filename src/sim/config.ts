@@ -146,6 +146,8 @@ const mapLogic = z
     spawnPoints: z.array(point).optional(),
     /** Story missions: the goals to win (a missing or empty list never ends the run). */
     objectives: z.array(objective).optional(),
+    /** Story missions: a text shown when the mission starts. */
+    briefing: z.string().max(600).optional(),
   })
   .strict();
 
@@ -797,6 +799,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   spawnPoints: SpawnPoint[];
   /** Story goals; empty in waves maps and in story maps that set none. */
   objectives: Objective[];
+  /** Story missions: shown on a card when the mission starts. */
+  briefing?: string | undefined;
   /** Stat sheets by unit type (from data/units.json). */
   units: UnitsData;
   /** The item catalog (from data/items.json), by item id. */
@@ -828,7 +832,7 @@ type GlobalRules = Pick<
 >;
 type MapRules = Pick<
   GameConfig,
-  'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints' | 'objectives'
+  'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints' | 'objectives' | 'briefing'
 >;
 
 /**
@@ -871,6 +875,7 @@ export function mapRules(
       }),
     ],
     objectives: logic.mode === 'story' ? (logic.objectives ?? []) : [],
+    briefing: logic.mode === 'story' ? logic.briefing : undefined,
   };
 }
 

@@ -141,7 +141,10 @@ async function main(): Promise<void> {
   // Map 1 is the only map the sim is built for so far; the picked map is ignored until phase 4.
   const menu = new MainMenu(
     document.body,
-    (entry) => loadMap(entry.map),
+    (entry) => {
+      loadMap(entry.map);
+      hud.showBriefing(config.briefing ?? '');
+    },
     preview,
     openSettings,
     () => openEditor(),
@@ -154,6 +157,7 @@ async function main(): Promise<void> {
     onSpawnMarks: (points) => renderer.setSpawnMarkers(points),
     onPlay: () => {
       resetGame();
+      hud.showBriefing(config.briefing ?? '');
       setPaused(false);
     },
     onStop: () => {

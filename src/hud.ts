@@ -67,6 +67,7 @@ export class Hud {
   private readonly gameOver: HTMLElement;
   private readonly gameOverTitle: HTMLElement;
   private readonly objectives: HTMLElement;
+  private readonly briefing: HTMLElement;
   private readonly summary: HTMLElement;
   private bannerTimer = 0;
   // Last rendered values, so the DOM is only touched when something changes.
@@ -102,6 +103,8 @@ export class Hud {
     this.level = el('span', 'hud__level', stats);
     this.xpFill = el('div', 'hud__xp-fill', el('div', 'hud__xp', root));
     this.objectives = el('ul', 'hud__objectives', root);
+    this.briefing = el('div', 'hud__briefing', root);
+    this.briefing.addEventListener('click', () => this.showBriefing(''));
     this.banner = el('div', 'hud__banner', root);
     this.damage = el('div', 'hud__damage', root);
     this.countdown = el('div', 'hud__countdown', root);
@@ -138,6 +141,7 @@ export class Hud {
       xp: -1,
     };
     this.gameOver.classList.remove('hud__gameover--visible');
+    this.showBriefing('');
     this.banner.classList.remove('hud__banner--visible');
   }
 
@@ -149,6 +153,16 @@ export class Hud {
       else if (e.type === 'levelUp') this.showBanner(`LEVEL UP! Lv ${e.level}`);
       else if (e.type === 'bossSpawned') this.showBanner('MINI BOSS!');
     }
+  }
+
+  /** A mission card over the game; a click closes it. An empty text hides it. */
+  showBriefing(text: string): void {
+    this.briefing.replaceChildren();
+    this.briefing.classList.toggle('hud__briefing--visible', text !== '');
+    if (text === '') return;
+    el('h2', '', this.briefing, 'Mission briefing');
+    el('p', '', this.briefing, text);
+    el('small', '', this.briefing, 'Click to start');
   }
 
   setPaused(paused: boolean): void {

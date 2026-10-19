@@ -18,7 +18,10 @@ export type ZombieState = 'walk' | 'attack' | 'death';
 
 /** What an AI-driven soldier is doing. Only the controlled soldier ignores its order. */
 export type SoldierOrder =
-  { type: 'follow' } | { type: 'move'; x: number; z: number } | { type: 'hold' };
+  | { type: 'follow' }
+  | { type: 'move'; x: number; z: number }
+  | { type: 'board'; vehicleId: number }
+  | { type: 'hold' };
 
 export type Stance = 'normal' | 'crouch' | 'sprint';
 

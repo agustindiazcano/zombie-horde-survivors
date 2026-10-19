@@ -13,6 +13,7 @@ export {
   getSoldier,
   isSquadUnit,
   livingSoldiers,
+  orderBoard,
   orderFollow,
   orderHold,
   orderMove,
