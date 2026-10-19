@@ -98,3 +98,142 @@
   line-height: 1.8;
   opacity: 0.65;
 }
+
+.menu__heading {
+  margin: 0 0 20px;
+  font-size: 28px;
+}
+
+.menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: min(360px, 80vw);
+}
+
+.menu__option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 18px;
+  font: inherit;
+  color: #fff;
+  text-align: left;
+  background: rgba(30, 36, 48, 0.85);
+  border: 1px solid #4a5366;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu__option:hover:not(:disabled),
+.menu__option:focus-visible {
+  border-color: #ffd84a;
+  outline: none;
+}
+
+.menu__option:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.menu__option-label {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.menu__option-hint {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.menu__badge {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #9fd0ff;
+  border: 1px solid #4a6a8a;
+  border-radius: 10px;
+}
+
+.menu__badge--saved {
+  color: #b6ffb0;
+  border-color: #4a8a4a;
+}
+
+.menu__empty {
+  margin: 0 0 8px;
+  opacity: 0.75;
+}
+
+.menu__back {
+  display: block;
+  margin: 18px auto 0;
+  font: inherit;
+  font-size: 15px;
+  padding: 8px 22px;
+  color: #ddd;
+  background: transparent;
+  border: 1px solid #4a5366;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu__back:hover,
+.menu__back:focus-visible {
+  border-color: #ffd84a;
+  color: #fff;
+  outline: none;
+}
+
+.menu__maprow {
+  display: flex;
+  gap: 8px;
+}
+
+.menu__maprow .menu__option {
+  flex: 1;
+}
+
+.menu__delete {
+  font: inherit;
+  padding: 0 14px;
+  background: rgba(30, 36, 48, 0.85);
+  border: 1px solid #4a5366;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu__delete:hover {
+  border-color: #e33;
+}
+
+.menu__footer {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.menu__credits {
+  max-height: 46vh;
+  margin: 0 0 12px;
+  padding: 0 8px;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: left;
+}
+
+.menu__credits a {
+  color: #8fc4ff;
+}

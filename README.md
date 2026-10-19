@@ -18,6 +18,8 @@ npm run lint && npm run format:check && npm run typecheck
 
 ## How it plays
 
+**Menus:** Start → **Single Player** (**Story**: no missions yet; **Waves**: pick a map from the list, Map 1 is the built-in arena), **Multiplayer** (coming soon, disabled) or **Editor** (desktop only: a paused map editor with a Play / Stop button and a right-hand panel; New / Open / Save / Export / Import work, its drawing tools are placeholders for now; saved maps appear in the Waves list). Esc steps back one menu.
+
 You start in **direct control** of one soldier, with the rest of the squad following you and shooting on their own. Press **Y** to switch to **RTS mode**, select units, send them anywhere on the map, then press **Y** again to take direct control of one of them.
 
 Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The game ends when every soldier is dead (the drone doesn't count).
@@ -26,21 +28,23 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 
 ### Direct control
 
-| Key / mouse       | Action                                                                                               |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| W / A / S / D     | Move (relative to where the camera looks)                                                            |
-| Mouse             | Aim (see _Views_ below)                                                                              |
-| Left click (hold) | Fire                                                                                                 |
-| Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                    |
-| Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers |
-| Space             | Jump (only the soldier you control)                                                                  |
-| T                 | Change view: normal → third person → first person → normal                                           |
-| I                 | Squad screen: units, inventories and bonuses (pauses the game)                                       |
-| B                 | Open / close the shop (only between waves)                                                           |
-| E                 | Next to a crate (a yellow **E** floats above it): open it                                            |
-| Y                 | Go back to RTS mode                                                                                  |
-| Mouse wheel       | Zoom (normal and third-person views)                                                                 |
-| Right-drag        | Rotate and tilt the camera (normal view only)                                                        |
+| Key / mouse       | Action                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| W / A / S / D     | Move (relative to where the camera looks)                                                                           |
+| Mouse             | Aim (see _Views_ below)                                                                                             |
+| Left click (hold) | Fire                                                                                                                |
+| Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                                   |
+| Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                |
+| Space             | Jump (only the soldier you control); walking into a box, it vaults up onto it (30 stamina)                          |
+| G                 | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go        |
+| T                 | Change view: normal → third person → first person → normal                                                          |
+| I                 | Squad screen: units, inventories and bonuses (pauses the game)                                                      |
+| B                 | Open / close the shop (only between waves)                                                                          |
+| V                 | Next to a vehicle (a **V** floats above it): climb in; inside, step out (the driver leaving takes the crew out too) |
+| E                 | Next to a crate (a yellow **E** floats above it): open it                                                           |
+| Y                 | Go back to RTS mode                                                                                                 |
+| Mouse wheel       | Zoom (normal and third-person views)                                                                                |
+| Right-drag        | Rotate and tilt the camera (normal view only)                                                                       |
 
 Ctrl+W closes the browser tab and the browser won't let a page block it, so **C** is provided as an alternative way to crouch.
 
@@ -56,20 +60,20 @@ In third and first person the cursor is locked (so you can keep turning) and W /
 
 ### RTS mode
 
-| Key / mouse              | Action                                                                            |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| W / A / S / D            | Pan the camera                                                                    |
-| Left click               | Select a soldier                                                                  |
-| Left-drag                | Box select (hold **Shift** to add to the selection)                               |
-| Right click              | Send the selected units to that point (a right _drag_ rotates the camera instead) |
-| F                        | Selected units follow the controlled soldier again                                |
-| E                        | Select all                                                                        |
-| 1 – 9                    | Select a unit by number (Shift adds)                                              |
-| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                               |
-| Y                        | Take direct control of the first selected unit                                    |
-| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                 |
-| I                        | Squad screen (pauses the game)                                                    |
-| B                        | Shop (only between waves)                                                         |
+| Key / mouse              | Action                                                                                                                |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| W / A / S / D            | Pan the camera                                                                                                        |
+| Left click               | Select a soldier                                                                                                      |
+| Left-drag                | Box select (hold **Shift** to add to the selection)                                                                   |
+| Right click              | Send the selected units to that point, or into a vehicle with a free seat (a right _drag_ rotates the camera instead) |
+| F                        | Selected units follow the controlled soldier again                                                                    |
+| E                        | Select all                                                                                                            |
+| 1 – 9                    | Select a unit by number (Shift adds)                                                                                  |
+| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                                                                   |
+| Y                        | Take direct control of the first selected unit                                                                        |
+| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                                                     |
+| I                        | Squad screen (pauses the game)                                                                                        |
+| B                        | Shop (only between waves)                                                                                             |
 
 When you take control with **Y**, only the units that were selected follow you. The rest hold their position (or keep their move order). Every uncontrolled unit shoots the nearest enemy it can see.
 
@@ -112,7 +116,13 @@ The round display in the bottom-right corner is a motion tracker, like the one f
 
 ## Inventory and weapons
 
-Every unit carries one equipped weapon and a 6-slot backpack. Some enemies drop a **crate** with weapons: pistol, rifle, heavy machine gun or the drone gun. Press **E** next to it to take items or stash your own; to equip weapons and move items between units press **I** (see below). The game pauses while a menu is open. Weapon stats, the drop chance and the loot table are in `data/game.json`.
+Every unit has two hands, a vest slot and a 10-slot backpack. Some enemies drop a **crate** with weapons: pistol, rifle, heavy machine gun or the drone gun. Press **E** next to it to take items or stash your own; to equip weapons and move items between units press **I** (see below). The game pauses while a menu is open. Weapon and item stats are in `data/items.json`; the drop chance and the loot table are in `data/game.json`.
+
+## Downed soldiers
+
+A soldier who reaches zero health does not die at once: it goes **down** (lies on the floor, "DOWN" in the health line, greyed icon) and bleeds out in **30 seconds**. From the floor it can crawl slowly and shoot a **one-handed** weapon (a pistol) with poor aim; a rifle or machine gun will not fire. Enemies prefer soldiers on their feet, but every hit on a downed one shortens its time.
+
+An ally on their feet who carries a **medkit** and stays within reach for 3 seconds uses it automatically and stands the soldier back up with the kit's health (small 25, medium 50, large 100); soldiers on `follow` walk over to help. Without a medkit the soldier dies when the timer ends. A soldier who died less than 30 seconds ago can be brought back by an ally with a **defibrillator** (4 seconds next to the body, one use, half health). The game is over when nobody is left on their feet. Medkits and the defibrillator come from crates and the shop; a medkit can also be used from the squad screen to heal yourself.
 
 ## Loot, levels and gore
 
@@ -120,7 +130,7 @@ Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collec
 
 ## Pause screen and the squad
 
-Pausing (Esc, P or **I**) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (up to four windows at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two. Drag the equipped weapon to an empty backpack slot to unequip it (an unarmed unit can't shoot).
+Pausing (Esc, P or **I**) shows your bonuses and stats on the left and the whole squad on the right: each unit's health, level, experience and kills. Click a unit to open its window with a 3D view of the model and its inventory (up to four windows at once). Drag weapons between slots to equip them, stash them or hand them to another unit, even across windows; dropping on a taken slot swaps the two. Drag a held weapon to an empty backpack slot to unequip it (an unarmed unit can't shoot). A one-handed weapon fits either hand, a two-handed one only the right hand with the left hand free; stackable items such as medkits share a slot.
 
 There are two kinds of experience. The **global** XP comes from the blue orbs and levels the squad up (perks). Each unit also has **its own** XP, which grows when that unit kills an enemy, plus a kill counter.
 
@@ -166,7 +176,12 @@ Zombie speed and health also grow with each wave.
 - `src/sim` — the pure simulation (squad, enemies, waves, loot). It imports no Three.js; ESLint and a test enforce that, so it can be unit-tested.
 - `src/render` — Three.js rendering (arena, characters, effects, cameras).
 - `src` — input, HUD, audio and the fixed-timestep game loop (the render interpolates between steps).
+- `data/maps/*.json` — the built-in maps (Map 1); `data/catalog.json` — the editor's unit and asset lists.
 - `data/game.json` — all gameplay numbers, validated with a strict schema. `data/characters.json` maps each unit to its model and animation clips.
+
+## License
+
+Copyright © 2026 Agustin Diaz Cano / Wylan Studios. All rights reserved. The game and the Wylan Engine are proprietary; see [LICENSE](LICENSE). Third-party assets keep their own licenses (see Assets and Credits).
 
 ## Assets
 
@@ -188,5 +203,8 @@ Every third-party asset is listed in `assets.toml` (name, author, source, licens
 - **Worm (enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/KiNAaBa4cK)
 - **Spaceship (used as the drone)** by Quaternius — [CC0-1.0](https://poly.pizza/m/DbGajMHrvp)
 - **Digital Camo Soldier (marine soldier and infected marine enemy)** by Meshy AI — [CC-BY-4.0](https://www.meshy.ai)
+- **SUV (Car Kit)** by Kenney — [CC0-1.0](https://kenney.nl/assets/car-kit)
+- **Dog (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
+- **Cat (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
 
 <!-- credits:end -->

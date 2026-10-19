@@ -294,3 +294,58 @@
 .squad__fill--armor {
   background: #9fb3c8;
 }
+
+.hud__objectives {
+  position: absolute;
+  top: 56px;
+  left: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  text-shadow: 0 1px 3px #000;
+}
+
+.hud__objectives:empty {
+  display: none;
+}
+
+.hud__objective--done {
+  color: #7be07b;
+  text-decoration: line-through;
+}
+
+.hud__briefing {
+  display: none;
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  width: min(480px, 86vw);
+  transform: translateX(-50%);
+  padding: 18px 22px;
+  background: rgba(10, 14, 20, 0.88);
+  border: 1px solid #4a6a8a;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+  white-space: pre-wrap;
+}
+
+.hud__briefing--visible {
+  display: block;
+}
+
+.hud__briefing h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.hud__briefing p {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.hud__briefing small {
+  opacity: 0.7;
+}

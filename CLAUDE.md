@@ -25,35 +25,37 @@ The user raised the market as a reason for decisions (the name, going public); n
 
 **Loop:** you start in direct control of soldier 1 with three followers and a drone. Waves of enemies spawn at the arena edge and chase the squad. Between waves an 8 s calm lets you shop. The run ends when every soldier is dead (the drone does not count). The best kill count is saved.
 
-| System                    | How it works                                                                                                                                                                                                                                                                                  |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Squad**                 | 4 soldiers (distinct models, start with a pistol) and a drone (unit 5, starts unarmed, needs a Drone gun; flies, ignores cover, cannot be hurt). Uncontrolled units follow the leader, hold, or walk to an order, and shoot the nearest visible enemy                                         |
-| **Control modes**         | Direct control of one unit, or RTS (select, box select, orders). `Y` switches; only units selected before taking control follow it                                                                                                                                                            |
-| **Stances**               | The controlled player's keys set the squad's stance: crouch (tighter spread, +10% damage, half speed), sprint (1.6x speed); only the controlled unit jumps                                                                                                                                    |
-| **Enemies**               | Zombie, skeleton (wave 1), alien, hound (wave 2), brute (wave 3), worm (wave 4): multipliers on the base zombie, unlocked by wave. Speed and health also grow every wave. About half burst into blood and gibs when killed                                                                    |
-| **Mini boss**             | Every 3rd wave one enemy is a darker copy with glowing red eyes, slower, with health x50 / x70 / x100 / x200 / x500 (then x1.6 each), damage x2 to x8 and a size of 2x up to 5x that grows with its health; much better loot                                                                  |
-| **Loot and XP**           | Dead enemies drop gold and blue XP orbs (collected by any unit walking over them) and sometimes a weapon crate. Global XP levels the squad up; each unit also earns its own XP and a kill counter when it lands the killing shot (display only for now)                                       |
-| **Perks**                 | Each level-up pauses and offers 3 random squad-wide perks (damage, fire rate, speed, max health, regeneration, loot radius), up to a stack limit                                                                                                                                              |
-| **Shop**                  | `B` between waves: field kit (heal), reinforcement (revive), weapons, drone gun, permanent upgrades; prices grow per purchase. Gold resets every run                                                                                                                                          |
-| **Weapons and inventory** | Each unit has an equipped weapon and a 6-slot backpack. Pistol, rifle, heavy machine gun, drone gun. Weapons come from crates (open with `E`) or the shop and move between units by drag and drop on the squad screen; the equipped weapon can be unequipped (an unarmed unit does not shoot) |
-| **Radar**                 | A round light-blue motion tracker bottom-right: a pulse ring spreads from the squad and enemies appear as blips only when it crosses them; 30 m range                                                                                                                                         |
-| **Lighting**              | Normal by default; a dark mode with a flashlight per soldier on `L`                                                                                                                                                                                                                           |
+| System                    | How it works                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Squad**                 | 4 soldiers (distinct models, start with a pistol) and a drone (unit 5, starts unarmed, needs a Drone gun; flies, ignores cover, cannot be hurt). Uncontrolled units follow the leader, hold, or walk to an order, and shoot the nearest visible enemy                                                                                                                                                                                                |
+| **Control modes**         | Direct control of one unit, or RTS (select, box select, orders). `Y` switches; only units selected before taking control follow it                                                                                                                                                                                                                                                                                                                   |
+| **Stances**               | The controlled player's keys set the squad's stance: crouch (tighter spread, +10% damage, half speed), sprint (1.6x speed); only the controlled unit jumps                                                                                                                                                                                                                                                                                           |
+| **Downed state**          | At zero health a soldier goes down instead of dying: crawls, shoots a one-handed gun badly, bleeds out in 30 s. A standing ally with a medkit revives it automatically (3 s); a defibrillator revives a soldier dead less than 30 s. Enemies prefer standing soldiers. Game over when nobody is on their feet                                                                                                                                        |
+| **Enemies**               | Zombie, skeleton (wave 1), alien, hound (wave 2), brute (wave 3), worm (wave 4): multipliers on the base zombie, unlocked by wave. Speed and health also grow every wave. About half burst into blood and gibs when killed                                                                                                                                                                                                                           |
+| **Mini boss**             | Every 3rd wave one enemy is a darker copy with glowing red eyes, slower, with health x50 / x70 / x100 / x200 / x500 (then x1.6 each), damage x2 to x8 and a size of 2x up to 5x that grows with its health; much better loot                                                                                                                                                                                                                         |
+| **Loot and XP**           | Dead enemies drop gold and blue XP orbs (collected by any unit walking over them) and sometimes a weapon crate. Global XP levels the squad up; each unit also earns its own XP and a kill counter when it lands the killing shot (display only for now)                                                                                                                                                                                              |
+| **Perks**                 | Each level-up pauses and offers 3 random squad-wide perks (damage, fire rate, speed, max health, regeneration, loot radius), up to a stack limit                                                                                                                                                                                                                                                                                                     |
+| **Shop**                  | `B` between waves: field kit (heal), reinforcement (revive), weapons, drone gun, permanent upgrades; prices grow per purchase. Gold resets every run                                                                                                                                                                                                                                                                                                 |
+| **Weapons and inventory** | Each unit has two hands, a vest slot and a 10-slot backpack of stacks. Items are in `data/items.json` (pistol, rifle, heavy machine gun, drone gun, medkits and defibrillator are playable; the grenade, vest and accessories are mocked and not obtainable yet). Weapons come from crates (open with `E`) or the shop and move between units by drag and drop on the squad screen; a held weapon can be unequipped (an unarmed unit does not shoot) |
+| **Radar**                 | A round light-blue motion tracker bottom-right: a pulse ring spreads from the squad and enemies appear as blips only when it crosses them; 30 m range                                                                                                                                                                                                                                                                                                |
+| **Lighting**              | Normal by default; a dark mode with a flashlight per soldier on `L`                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ## 4. Controls
 
 **Direct control**
 
-| Key / mouse               | Action                                             |
-| ------------------------- | -------------------------------------------------- |
-| W A S D                   | Move (relative to the camera)                      |
-| Mouse / left click (hold) | Aim / fire                                         |
-| Ctrl or C                 | Crouch (the whole squad)                           |
-| Shift                     | Sprint (the whole squad)                           |
-| Space                     | Jump (only the controlled soldier)                 |
-| T                         | Cycle view: top-down → third person → first person |
-| Mouse wheel / right-drag  | Zoom / rotate and tilt (top-down)                  |
-| E                         | Open a crate next to you                           |
-| Y                         | Back to RTS mode                                   |
+| Key / mouse               | Action                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| W A S D                   | Move (relative to the camera)                                                                                |
+| Mouse / left click (hold) | Aim / fire                                                                                                   |
+| Ctrl or C                 | Crouch (the whole squad)                                                                                     |
+| Shift                     | Sprint (the whole squad)                                                                                     |
+| Space                     | Jump; into a box: climb onto it                                                                              |
+| G                         | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go |
+| T                         | Cycle view: top-down → third person → first person                                                           |
+| Mouse wheel / right-drag  | Zoom / rotate and tilt (top-down)                                                                            |
+| E                         | Open a crate next to you                                                                                     |
+| Y                         | Back to RTS mode                                                                                             |
 
 In third and first person the mouse turns the view 1:1 and instantly (the cursor is locked, the crosshair is the aim); `Esc` releases it.
 
@@ -79,6 +81,7 @@ In third and first person the mouse turns the view 1:1 and instantly (the cursor
 | `npm run dev -- --host 127.0.0.1 --port 5173`                 | Dev server, http://127.0.0.1:5173/ (usually already running in the background; do not start a second one) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` | The static checks CI runs                                                                                 |
 | `npm test`                                                    | The 48 existing sim tests (Vitest)                                                                        |
+| `npm run bench:sim`                                           | Stress benchmark of the sim step with 100 to 1000 zombies (ms per step); not a test, prints numbers       |
 | `npm run build`                                               | `tsc --noEmit` + Vite build into `dist/`                                                                  |
 | `npm run check:assets`                                        | Fails if an asset in `assets.toml` has a license other than CC0-1.0, CC-BY-3.0 or CC-BY-4.0               |
 | `npm run credits`                                             | Regenerates the README credits block from `assets.toml`                                                   |
@@ -112,7 +115,9 @@ test-game/
 │   ├── ci.yml                 lint, format, typecheck, tests, build, asset check (on PRs)
 │   └── pages.yml              build and deploy to GitHub Pages (on push to main)
 ├── data/
-│   ├── game.json              all gameplay numbers (arena, squad, weapons, waves, perks, shop, boss...)
+│   ├── game.json              all gameplay numbers (squad, waves, perks, shop, boss...)
+│   ├── items.json             item catalog: weapon sheets, armor, medkits, grenades, accessories
+│   ├── catalog.json           the editor panel's unit and asset groups (names only for now)
 │   └── characters.json        model path, scale, clips and procedural motion per character
 ├── docs/worklog/              snapshots of what was done (moved out of LASTCONTEXT / PENDING)
 ├── public/
@@ -130,7 +135,8 @@ test-game/
 │   │   ├── zombies.ts         spawn, chase and steering, damage, bosses
 │   │   ├── waves.ts           spawner, enemy mix, boss waves
 │   │   ├── weapon.ts · stats.ts   shooting, weapon and speed stats
-│   │   ├── inventory.ts       crates, moving weapons between slots
+│   │   ├── revive.ts          downed soldiers: medkit and defibrillator revives, rescue walking
+│   ├── inventory.ts       crates, typed slots (hands, chest, backpack stacks), moving items
 │   │   ├── loot.ts            gold and XP, levels
 │   │   └── upgrades.ts        perks, shop, multipliers
 │   ├── render/                Three.js rendering
@@ -140,10 +146,13 @@ test-game/
 │   ├── input.ts · cameraControls.ts · rts.ts      keyboard, mouse, RTS selection and orders
 │   ├── audio.ts · fps.ts · settings.ts            procedural SFX, FPS counter, saved options
 │   ├── hud.ts/.css · squadPanel.ts                health, wave, kills, XP, game over; bottom squad bar
-│   ├── mainMenu.ts/.css · menuModel.ts            title screen and its 3D soldier viewer
+│   ├── mainMenu.ts/.css · menuModel.ts            title screen, mode / Single Player / map-list menus, 3D soldier viewer
+│   ├── maps.ts                                    map store: built-in + localStorage maps, export / import
+│   ├── editor.ts/.css                             map editor shell: paused, Play / Stop, five tabs (placeholders; New / Open / Save / Export / Import work)
 │   ├── pausePanel.ts/.css · unitsScreen.ts/.css   pause screen: bonuses, stats, squad windows
 │   ├── upgradesUi.ts · upgrades.css               level-up perk picker and the shop
 │   ├── inventoryUi.ts · inventory.css             crate window (E)
+│   ├── itemInfo.ts                                item names, stats and tooltips for the UI
 │   ├── settingsPanel.ts/.css                      settings window
 │   └── radar.ts                                   motion-tracker minimap
 └── tests/
@@ -186,4 +195,4 @@ Not in git: `node_modules/`, `dist/`.
 
 ## 12. Balance knobs (all in `data/game.json`)
 
-`waves` (count, health and speed growth, intermission 8 s), `squad.startWeapon` (pistol), `weapons`, `drops`, `perks`, `shop`, `progress.xpPerLevel` (200) and `growth`, `boss` (every 3 waves; health, damage and growth lists; speed; size), `enemies` (per-type multipliers), `arena` (80×80 with obstacles). The numbers come from headless simulations of a passive squad, not from play: expect to retune them after the user plays.
+`waves` (count, health and speed growth, intermission 8 s), `squad.startWeapon` (pistol), `weapons`, `drops`, `perks`, `shop`, `progress.xpPerLevel` (200) and `growth`, `downed` (bleed-out, revive time and range, enemy preference), `boss` (every 3 waves; health, damage and growth lists; speed; size), `enemies` (per-type multipliers), `arena` (80×80 with obstacles). The numbers come from headless simulations of a passive squad, not from play: expect to retune them after the user plays.

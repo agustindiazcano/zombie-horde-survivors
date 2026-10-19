@@ -1,10 +1,13 @@
 import type { GameConfig } from './config';
+import { resolveStatic } from './collision';
 import { nextFloat } from './rng';
 import type { GameState } from './types';
 import { spawnZombie } from './zombies';
 
 export const waveSize = (config: GameConfig, wave: number): number =>
-  config.waves.baseCount + config.waves.countPerWave * (wave - 1);
+  Math.round(
+    (config.waves.baseCount + config.waves.countPerWave * (wave - 1)) * config.level.count,
+  );
 
 function livingZombies(state: GameState): number {
   let n = 0;
@@ -30,6 +33,24 @@ function pickEnemyType(state: GameState, config: GameConfig): string {
 function spawnAtEdge(state: GameState, config: GameConfig, forced?: string, bossNumber = 0): void {
   const type = forced ?? pickEnemyType(state, config);
   const radius = config.zombie.radius * (config.enemies[type]?.radiusScale ?? 1);
+  const points = config.spawnPoints;
+  if (points.length > 0) {
+    const chosen = points[Math.floor(nextFloat(state.rng) * points.length)]!;
+    // A point drawn inside an obstacle or water is pushed out to its edge.
+    const at = { ...chosen };
+    resolveStatic(at, radius, config.arena);
+    // A placed spawner makes its own enemy, with what the map gave it; a boss keeps its type.
+    const own = at.enemy === 'zombie' || (at.enemy && at.enemy in config.enemies) ? at.enemy : null;
+    spawnZombie(
+      state,
+      config,
+      at,
+      forced === undefined && own ? own : type,
+      bossNumber,
+      at.loadout,
+    );
+    return;
+  }
   const lim = config.arena.halfSize - radius;
   const side = Math.floor(nextFloat(state.rng) * 4);
   const t = (nextFloat(state.rng) * 2 - 1) * lim;

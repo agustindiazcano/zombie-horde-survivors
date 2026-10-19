@@ -1,6 +1,7 @@
 import type { GameConfig } from './config';
-import { backpackFull } from './inventory';
+import { addToBackpack, itemDef } from './inventory';
 import { nextFloat } from './rng';
+import { maxHealthOf } from './stats';
 import type { GameState, Mods } from './types';
 
 export const baseMods = (): Mods => ({
@@ -24,9 +25,6 @@ function computeMods(state: GameState, config: GameConfig): Mods {
   return mods;
 }
 
-export const maxHealthOf = (state: GameState, config: GameConfig): number =>
-  config.player.maxHealth * state.mods.maxHealth;
-
 /** Takes one stack of a perk, refreshing the multipliers and healing for a max health gain. */
 function addStack(state: GameState, config: GameConfig, perkId: string): boolean {
   const perk = config.perks.list.find((p) => p.id === perkId);
@@ -37,7 +35,7 @@ function addStack(state: GameState, config: GameConfig, perkId: string): boolean
   state.upgrades[perkId] = stacks + 1;
   state.mods = computeMods(state, config);
   const gained = maxHealthOf(state, config) - oldMax;
-  if (gained > 0) for (const s of state.soldiers) if (!s.dead) s.health += gained;
+  if (gained > 0) for (const s of state.soldiers) if (!s.dead && !s.downed) s.health += gained;
   return true;
 }
 
@@ -94,16 +92,20 @@ export function buyItem(
   if (state.gold < cost) return 'Not enough gold';
 
   if (item.kind === 'heal') {
-    const max = maxHealthOf(state, config);
-    const hurt = state.soldiers.filter((s) => !s.dead && s.kind === 'soldier' && s.health < max);
+    const hurt = state.soldiers.filter(
+      (s) =>
+        !s.dead && !s.downed && s.kind === 'soldier' && s.health < maxHealthOf(state, config, s),
+    );
     if (hurt.length === 0) return 'Everyone is already at full health';
-    for (const s of hurt) s.health = max;
+    for (const s of hurt) s.health = maxHealthOf(state, config, s);
   } else if (item.kind === 'revive') {
     const fallen = state.soldiers.find((s) => s.dead && s.kind === 'soldier');
-    const anchor = state.soldiers.find((s) => !s.dead && s.kind === 'soldier');
+    const anchor = state.soldiers.find((s) => !s.dead && !s.downed && s.kind === 'soldier');
     if (!fallen) return 'No fallen soldier to bring back';
     fallen.dead = false;
-    fallen.health = maxHealthOf(state, config) / 2;
+    fallen.deadTime = 0;
+    fallen.reviveProgress = 0;
+    fallen.health = maxHealthOf(state, config, fallen) / 2;
     fallen.armor = 0;
     fallen.order = { type: 'follow' };
     fallen.fireCooldown = 0;
@@ -116,19 +118,21 @@ export function buyItem(
     const bare = state.soldiers.filter((s) => !s.dead && s.kind === 'soldier' && s.armor < cap);
     if (bare.length === 0) return 'Everyone already has full armor';
     for (const s of bare) s.armor = Math.min(cap, s.armor + (item.amount ?? 0));
-  } else if (item.kind === 'weapon') {
+  } else if (item.kind === 'item') {
     // A drone gun goes straight onto an unarmed drone; anything else into the unit's backpack.
+    const def = itemDef(config, item.target!);
     const drone =
-      item.target === 'drone_cannon'
-        ? state.soldiers.find((s) => s.kind === 'drone' && !s.dead && s.weapon === null)
+      def.type === 'weapon' && def.droneOnly
+        ? state.soldiers.find(
+            (s) => s.kind === 'drone' && !s.dead && s.equipment.rightHand === null,
+          )
         : undefined;
     if (drone) {
-      drone.weapon = item.target!;
+      drone.equipment.rightHand = item.target!;
     } else {
       const unit = state.soldiers.find((s) => s.id === unitId && !s.dead);
       if (!unit) return 'Select a living unit first';
-      if (backpackFull(config, unit)) return 'That unit’s backpack is full';
-      unit.backpack.push(item.target!);
+      if (!addToBackpack(config, unit, item.target!)) return 'That unit’s backpack is full';
     }
   } else if (!addStack(state, config, item.target!)) {
     return 'Already at the maximum';
@@ -138,3 +142,5 @@ export function buyItem(
   state.purchases[item.id] = (state.purchases[item.id] ?? 0) + 1;
   return null;
 }
+
+export { maxHealthOf };

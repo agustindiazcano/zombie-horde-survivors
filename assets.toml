@@ -86,3 +86,24 @@ author = "Meshy AI"
 source = "https://www.meshy.ai"
 license = "CC-BY-4.0"
 path = "public/models/soldier-marine.glb"
+
+[[asset]]
+name = "SUV (Car Kit)"
+author = "Kenney"
+source = "https://kenney.nl/assets/car-kit"
+license = "CC0-1.0"
+path = "public/models/vehicle-suv.glb"
+
+[[asset]]
+name = "Dog (Animal Pack Vol.2)"
+author = "Quaternius"
+source = "https://opengameart.org/content/animated-animales-low-poly"
+license = "CC0-1.0"
+path = "public/models/animal-dog.glb"
+
+[[asset]]
+name = "Cat (Animal Pack Vol.2)"
+author = "Quaternius"
+source = "https://opengameart.org/content/animated-animales-low-poly"
+license = "CC0-1.0"
+path = "public/models/animal-cat.glb"

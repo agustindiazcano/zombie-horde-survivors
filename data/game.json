@@ -7,23 +7,7 @@
     "startWeapon": "pistol"
   },
   "inventory": {
-    "backpackSlots": 6
-  },
-  "weapons": {
-    "pistol": {
-      "name": "Pistol",
-      "fireRate": 4,
-      "damage": 20,
-      "range": 25,
-      "spread": 0.02
-    },
-    "heavy_mg": {
-      "name": "Heavy machine gun",
-      "fireRate": 14,
-      "damage": 18,
-      "range": 35,
-      "spread": 0.07
-    }
+    "backpackSlots": 10
   },
   "drops": {
     "chance": 0.25,
@@ -33,34 +17,43 @@
     "maxCrates": 12,
     "table": [
       {
-        "weapon": "pistol",
+        "weight": 2,
+        "item": "pistol"
+      },
+      {
+        "weight": 2,
+        "item": "rifle"
+      },
+      {
+        "weight": 2,
+        "item": "heavy_mg"
+      },
+      {
+        "weight": 1.5,
+        "item": "drone_cannon"
+      },
+      {
+        "weight": 2,
+        "item": "armor_plate"
+      },
+      {
+        "item": "medkit_s",
         "weight": 2
       },
       {
-        "weapon": "rifle",
-        "weight": 2
+        "item": "medkit_m",
+        "weight": 1
       },
       {
-        "weapon": "heavy_mg",
-        "weight": 2
-      },
-      {
-        "weapon": "drone_cannon",
-        "weight": 1.5
-      },
-      {
-        "weapon": "armor_plate",
-        "weight": 2
+        "item": "defibrillator",
+        "weight": 0.6
       }
     ]
   },
   "drone": {
     "count": 1,
     "speed": 7,
-    "height": 3,
-    "fireRate": 1.2,
-    "damage": 45,
-    "range": 30
+    "height": 3
   },
   "player": {
     "speed": 6,
@@ -68,11 +61,6 @@
     "maxArmor": 50,
     "armorPlate": 20,
     "radius": 0.4
-  },
-  "weapon": {
-    "fireRate": 8,
-    "damage": 25,
-    "range": 40
   },
   "zombie": {
     "speed": 2.5,
@@ -84,6 +72,52 @@
     "deathDuration": 1.5,
     "gold": 5,
     "xp": 10
+  },
+  "drag": {
+    "range": 1.8,
+    "ropeLength": 1.1,
+    "speedScale": 0.5
+  },
+  "animals": {
+    "dog": {
+      "name": "Dog",
+      "speed": 1.8,
+      "radius": 0.4,
+      "wanderRadius": 6,
+      "pauseMin": 1.5,
+      "pauseMax": 5
+    },
+    "cat": {
+      "name": "Cat",
+      "speed": 1.4,
+      "radius": 0.3,
+      "wanderRadius": 4,
+      "pauseMin": 2,
+      "pauseMax": 7
+    }
+  },
+  "hazards": {
+    "fire": { "dps": 20, "radius": 2.5 }
+  },
+  "vehicles": {
+    "jeep": {
+      "name": "Jeep",
+      "health": 600,
+      "maxSpeed": 13,
+      "accel": 14,
+      "turnRate": 3.2,
+      "radius": 1.5,
+      "seats": 4,
+      "passengersShoot": true,
+      "enterRange": 2.5,
+      "ramDps": 400,
+      "ramSpeed": 5
+    }
+  },
+  "difficulty": {
+    "easy": { "health": 0.7, "speed": 0.9, "count": 0.7 },
+    "normal": { "health": 1, "speed": 1, "count": 1 },
+    "hard": { "health": 1.4, "speed": 1.1, "count": 1.4 }
   },
   "waves": {
     "baseCount": 8,
@@ -168,7 +202,9 @@
     "staminaRegen": 14,
     "staminaResume": 30,
     "jumpSpeed": 6.5,
-    "gravity": 20
+    "gravity": 20,
+    "climbMaxHeight": 2.2,
+    "climbStamina": 30
   },
   "loot": {
     "collectRadius": 1.2,
@@ -271,7 +307,7 @@
         "id": "rifle",
         "name": "Rifle",
         "description": "Adds a rifle to the selected unit's backpack",
-        "kind": "weapon",
+        "kind": "item",
         "target": "rifle",
         "cost": 90
       },
@@ -279,7 +315,7 @@
         "id": "heavy_mg",
         "name": "Heavy machine gun",
         "description": "Adds a heavy MG to the selected unit's backpack",
-        "kind": "weapon",
+        "kind": "item",
         "target": "heavy_mg",
         "cost": 140
       },
@@ -287,7 +323,7 @@
         "id": "drone_gun",
         "name": "Drone gun",
         "description": "A gun for the drone, which has none to start with",
-        "kind": "weapon",
+        "kind": "item",
         "target": "drone_cannon",
         "cost": 50
       },
@@ -317,6 +353,31 @@
         "target": "fleet_foot",
         "cost": 60,
         "costGrowth": 1.5
+      },
+      {
+        "id": "medkit_s",
+        "name": "Medkit (S)",
+        "description": "Adds a small medkit to the selected unit's backpack",
+        "kind": "item",
+        "target": "medkit_s",
+        "cost": 25
+      },
+      {
+        "id": "medkit_m",
+        "name": "Medkit (M)",
+        "description": "Adds a medium medkit to the selected unit's backpack",
+        "kind": "item",
+        "target": "medkit_m",
+        "cost": 45
+      },
+      {
+        "id": "defibrillator",
+        "name": "Defibrillator",
+        "description": "Adds a defibrillator to the selected unit's backpack",
+        "kind": "item",
+        "target": "defibrillator",
+        "cost": 90,
+        "costGrowth": 1.3
       }
     ]
   },
@@ -331,5 +392,15 @@
     "sizeBase": 2,
     "sizeExponent": 0.4,
     "maxSize": 5
+  },
+  "downed": {
+    "bleedOut": 30,
+    "damageBleed": 0.3,
+    "crawlSpeedScale": 0.2,
+    "extraSpread": 0.06,
+    "reviveRange": 2,
+    "reviveTime": 3,
+    "defibHealth": 0.5,
+    "targetDistanceScale": 3
   }
 }

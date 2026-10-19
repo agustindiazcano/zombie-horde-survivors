@@ -1,11 +1,14 @@
 import { rayAabb, resolveStatic } from './collision';
-import type { GameConfig } from './config';
+import type { GameConfig, Loadout, Obstacle } from './config';
+import { CELL, PointGrid, obstaclesNear } from './grid';
 import { maybeDropCrate } from './inventory';
 import { dropLoot, rewardOf } from './loot';
 import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
-import type { GameState, Soldier, Zombie } from './types';
+import { gunOf, weaponDef } from './stats';
+import type { GameState, Soldier, Vehicle, Zombie } from './types';
+import { hurtVehicle, isOccupied } from './vehicles';
 import type { Vec2 } from './vec';
 
 /** A boss's multipliers: the nth boss (1-based) reads the nth list entry, then keeps growing. */
@@ -25,6 +28,8 @@ export function spawnZombie(
   type = 'zombie',
   /** 0 for a normal enemy; otherwise which boss this is (1st, 2nd, ...). */
   bossNumber = 0,
+  /** What the map changed about this enemy (name, health, attributes, carried items). */
+  loadout?: Loadout,
 ): Zombie {
   const variant = config.enemies[type];
   const k = variant ?? {
@@ -36,7 +41,11 @@ export function spawnZombie(
   const wavesPlayed = Math.max(0, state.wave - 1);
   const wc = config.waves;
   const speedScale = Math.min(1 + wc.speedScalePerWave * wavesPlayed, wc.maxSpeedScale);
-  const health = config.zombie.health * k.healthScale * (1 + wc.healthScalePerWave * wavesPlayed);
+  const health =
+    config.zombie.health *
+    k.healthScale *
+    (1 + wc.healthScalePerWave * wavesPlayed) *
+    config.level.health;
   const boss = bossNumber > 0;
   const b = boss
     ? { ...bossStats(config, bossNumber), speed: config.boss.speedScale }
@@ -54,14 +63,28 @@ export function spawnZombie(
     health: health * b.health,
     maxHealth: health * b.health,
     exploded: false,
-    speed: config.zombie.speed * k.speedScale * speedScale * b.speed,
+    speed: config.zombie.speed * k.speedScale * speedScale * config.level.speed * b.speed,
     radius: config.zombie.radius * k.radiusScale * b.size,
     damage: config.zombie.damage * k.damageScale * b.damage,
     attackRange: config.zombie.attackRange * k.radiusScale * b.size,
     state: 'walk',
     attackTimer: 0,
     deathTimer: 0,
+    loot: [],
   };
+  if (loadout) {
+    if (loadout.name) zombie.name = loadout.name;
+    if (loadout.attributes) zombie.attributes = { ...loadout.attributes };
+    if (loadout.maxHealth) {
+      zombie.health = loadout.maxHealth;
+      zombie.maxHealth = loadout.maxHealth;
+    }
+    // Its carried stacks and equipped items all drop where it dies.
+    zombie.loot = [
+      ...(loadout.backpack ?? []).flatMap((st) => Array<string>(st.count).fill(st.item)),
+      ...Object.values(loadout.equipment ?? {}).flatMap((id) => (id ? [id] : [])),
+    ].filter((id) => id in config.items);
+  }
   state.zombies.push(zombie);
   return zombie;
 }
@@ -88,9 +111,13 @@ export function damageZombie(
   // A burst enemy has no death animation to wait for.
   zombie.deathTimer = exploded ? EXPLODED_LINGER : config.zombie.deathDuration;
   state.kills++;
+  if (zombie.boss) state.bossKills++;
   if (killer) {
     killer.kills++;
-    killer.xp += rewardOf(config, zombie).xp;
+    const xp = rewardOf(config, zombie).xp;
+    killer.xp += xp;
+    const gun = gunOf(config, killer);
+    if (gun !== null) killer.skills[weaponDef(config, gun).class] += xp;
   }
   state.events.push({
     type: 'zombieKilled',
@@ -101,6 +128,11 @@ export function damageZombie(
     killerId: killer?.id ?? null,
   });
   dropLoot(state, config, zombie);
+  if (zombie.loot.length > 0) {
+    const crate = { id: state.nextCrateId++, pos: { ...zombie.pos }, items: zombie.loot };
+    state.crates.push(crate);
+    state.events.push({ type: 'crateDropped', crateId: crate.id, pos: { ...crate.pos } });
+  }
   maybeDropCrate(state, config, zombie.pos);
 }
 
@@ -115,16 +147,21 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       continue;
     }
 
-    const target = nearestSoldier(state, z.pos);
-    if (!target) continue; // everyone is dead; the game is about to end
-    const dx = target.pos.x - z.pos.x;
-    const dz = target.pos.z - z.pos.z;
+    if (state.sandbox) continue; // the editor's preview: enemies stand still
+
+    const found = nearestTarget(state, config, z.pos);
+    if (!found) continue; // everyone is dead; the game is about to end
+    const { target, soldier, vehicle } = found;
+    // Vehicles are big: the zombie stops (and bites) at the hull, not at the middle.
+    const reach = z.attackRange + (vehicle ? config.vehicles[vehicle.type]!.radius : 0);
+    const dx = target.x - z.pos.x;
+    const dz = target.z - z.pos.z;
     const d = Math.hypot(dx, dz);
     if (d > 1e-9) z.facing = Math.atan2(dx, dz);
 
-    if (d > z.attackRange) {
+    if (d > reach) {
       z.state = 'walk';
-      const waypoint = steerTarget(z.pos, target.pos, d, z.radius, config);
+      const waypoint = steerTarget(z.pos, target, d, z.radius, config);
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
       const td = Math.hypot(tx, tz) || 1;
@@ -142,7 +179,8 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     z.attackTimer -= dt;
     if (z.attackTimer <= 0) {
       z.attackTimer += zc.attackCooldown;
-      hurtSoldier(state, target, z.damage, z.id);
+      if (soldier) hurtSoldier(state, config, soldier, z.damage, z.id);
+      else if (vehicle) hurtVehicle(state, config, vehicle, z.damage);
     }
   }
 
@@ -163,17 +201,28 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
  */
 function separateZombies(state: GameState, config: GameConfig): void {
   const zombies = state.zombies;
+  const arena = config.arena;
+  let widest = 0;
+  for (const z of zombies) if (z.state !== 'death' && z.radius > widest) widest = z.radius;
+  zombiePoints.rebuild(
+    arena,
+    zombies.length,
+    (i) => zombies[i]!.pos.x,
+    (i) => zombies[i]!.pos.z,
+    (i) => zombies[i]!.state === 'death',
+  );
   for (let i = 0; i < zombies.length; i++) {
     const a = zombies[i]!;
     if (a.state === 'death') continue;
-    for (let j = i + 1; j < zombies.length; j++) {
+    // Only the zombies in the nearby cells can touch this one.
+    const range = Math.ceil((a.radius + widest) / CELL);
+    zombiePoints.forEachAfter(arena, a.pos.x, a.pos.z, range, i, (j) => {
       const b = zombies[j]!;
-      if (b.state === 'death') continue;
       const minDist = a.radius + b.radius;
       let dx = b.pos.x - a.pos.x;
       let dz = b.pos.z - a.pos.z;
       const d2 = dx * dx + dz * dz;
-      if (d2 >= minDist * minDist) continue;
+      if (d2 >= minDist * minDist) return;
       let d = Math.sqrt(d2);
       if (d < 1e-6) {
         // Exactly stacked: separate along +x so the result stays deterministic.
@@ -188,12 +237,15 @@ function separateZombies(state: GameState, config: GameConfig): void {
       a.pos.z -= nz * push;
       b.pos.x += nx * push;
       b.pos.z += nz * push;
-    }
+    });
   }
   for (const z of zombies) {
     if (z.state !== 'death') resolveStatic(z.pos, z.radius, config.arena);
   }
 }
+
+const zombiePoints = new PointGrid();
+const probe: Obstacle = { x: 0, z: 0, halfW: 0, halfD: 0 };
 
 const LOOKAHEAD = 3;
 const CORNER_MARGIN = 0.35;
@@ -209,8 +261,20 @@ function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: 
   const dir = { x: (to.x - from.x) / distance, z: (to.z - from.z) / distance };
   let blocker: (typeof config.arena.obstacles)[number] | null = null;
   let nearest = Math.min(distance, LOOKAHEAD);
-  for (const box of config.arena.obstacles) {
-    const t = rayAabb(from, dir, { ...box, halfW: box.halfW + r, halfD: box.halfD + r });
+  const reach = nearest + r;
+  const ahead = obstaclesNear(
+    config.arena,
+    Math.min(from.x, from.x + dir.x * reach) - r,
+    Math.min(from.z, from.z + dir.z * reach) - r,
+    Math.max(from.x, from.x + dir.x * reach) + r,
+    Math.max(from.z, from.z + dir.z * reach) + r,
+  );
+  for (const box of ahead) {
+    probe.x = box.x;
+    probe.z = box.z;
+    probe.halfW = box.halfW + r;
+    probe.halfD = box.halfD + r;
+    const t = rayAabb(from, dir, probe);
     if (t !== null && t < nearest) {
       nearest = t;
       blocker = box;
@@ -239,15 +303,33 @@ function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: 
   return scratch;
 }
 
-function nearestSoldier(state: GameState, from: Vec2): Soldier | null {
-  let best: Soldier | null = null;
-  let bestD2 = Infinity;
+/**
+ * The closest thing a zombie goes for: a soldier on foot (a downed one counts as farther away, so
+ * standing soldiers come first) or a vehicle with someone in it. Soldiers inside a vehicle
+ * cannot be reached, only the hull can.
+ */
+function nearestTarget(
+  state: GameState,
+  config: GameConfig,
+  from: Vec2,
+): { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null {
+  let best: { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null = null;
+  let bestD = Infinity;
   for (const s of state.soldiers) {
-    if (s.dead || s.kind === 'drone') continue; // flying units can't be reached
-    const d2 = (s.pos.x - from.x) ** 2 + (s.pos.z - from.z) ** 2;
-    if (d2 < bestD2) {
-      bestD2 = d2;
-      best = s;
+    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue; // flying units can't be reached
+    const d = Math.hypot(s.pos.x - from.x, s.pos.z - from.z);
+    const felt = s.downed ? d * config.downed.targetDistanceScale : d;
+    if (felt < bestD) {
+      bestD = felt;
+      best = { target: s.pos, soldier: s };
+    }
+  }
+  for (const v of state.vehicles) {
+    if (!isOccupied(v)) continue;
+    const d = Math.hypot(v.pos.x - from.x, v.pos.z - from.z) - config.vehicles[v.type]!.radius;
+    if (d < bestD) {
+      bestD = d;
+      best = { target: v.pos, vehicle: v };
     }
   }
   return best;

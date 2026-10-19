@@ -1,4 +1,6 @@
 import type { GameConfig, Obstacle } from './config';
+import { OBSTACLE_HEIGHT, STEP_UP } from './constants';
+import { obstaclesNear } from './grid';
 import type { Vec2 } from './vec';
 
 /** Distance along a ray (unit `dir`) to a circle, or null if it misses. */
@@ -58,9 +60,38 @@ export function resolveCircleAabb(pos: Vec2, radius: number, box: Obstacle): voi
   else pos.z = box.z + Math.sign(pos.z - box.z || 1) * (box.halfD + radius);
 }
 
-/** Keeps a circle inside the arena and out of every obstacle. */
-export function resolveStatic(pos: Vec2, radius: number, arena: GameConfig['arena']): void {
-  for (const box of arena.obstacles) resolveCircleAabb(pos, radius, box);
+/** True when a point lies inside the box's footprint. */
+export const insideBox = (p: Vec2, box: Obstacle): boolean =>
+  Math.abs(p.x - box.x) <= box.halfW && Math.abs(p.z - box.z) <= box.halfD;
+
+/** Top of a box: water and cliffs have no top, so nobody can climb onto them. */
+export const topOf = (box: Obstacle): number => (box.water ? Infinity : OBSTACLE_HEIGHT);
+
+/** Height of the surface a unit at `pos` with its feet at `y` would land on (0 = the ground). */
+export function supportHeight(arena: GameConfig['arena'], pos: Vec2, y: number): number {
+  let best = 0;
+  for (const box of arena.obstacles) {
+    const top = topOf(box);
+    if (top <= y + STEP_UP && top > best && insideBox(pos, box)) best = top;
+  }
+  return best;
+}
+
+/**
+ * Keeps a circle inside the arena and out of every obstacle. A unit whose feet are at `y` is
+ * only stopped by boxes taller than that, so a climber passes over the boxes beneath it.
+ */
+export function resolveStatic(pos: Vec2, radius: number, arena: GameConfig['arena'], y = 0): void {
+  for (const box of obstaclesNear(
+    arena,
+    pos.x - radius,
+    pos.z - radius,
+    pos.x + radius,
+    pos.z + radius,
+  )) {
+    if (topOf(box) <= y + STEP_UP) continue;
+    resolveCircleAabb(pos, radius, box);
+  }
   const lim = arena.halfSize - radius;
   pos.x = Math.min(Math.max(pos.x, -lim), lim);
   pos.z = Math.min(Math.max(pos.z, -lim), lim);

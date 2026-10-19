@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "story-1",
+    "name": "Mission 1: Hold the line",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-18",
+    "updated": "2026-10-18",
+    "size": {
+      "width": 80,
+      "depth": 80
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "props": [
+    {
+      "asset": "block",
+      "x": 5,
+      "z": 5,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -6,
+      "z": 3,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": 0,
+      "z": -8,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 1
+      }
+    },
+    {
+      "asset": "block",
+      "x": 15,
+      "z": -12,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": -16,
+      "z": -14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1,
+        "halfD": 4
+      }
+    },
+    {
+      "asset": "block",
+      "x": 18,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 1
+      }
+    },
+    {
+      "asset": "block",
+      "x": -14,
+      "z": 18,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 2,
+      "z": 20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4,
+        "halfD": 1
+      }
+    },
+    {
+      "asset": "block",
+      "x": 28,
+      "z": -24,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": -30,
+      "z": -26,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 30,
+      "z": 26,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 4
+      }
+    },
+    {
+      "asset": "block",
+      "x": -26,
+      "z": 28,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 0,
+      "z": -30,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -32,
+      "z": 4,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": 33,
+      "z": -2,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 3
+      }
+    }
+  ],
+  "surfaces": [],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
+  "units": [],
+  "logic": {
+    "mode": "story",
+    "difficulty": "easy",
+    "briefing": "Zombies are closing in. Reach the marked spot, hold out until wave 3 is cleared and bring down a mini boss.",
+    "objectives": [
+      {
+        "kind": "reach",
+        "x": 25,
+        "z": -25,
+        "radius": 4
+      },
+      {
+        "kind": "survive",
+        "wave": 3
+      },
+      {
+        "kind": "boss",
+        "count": 1
+      }
+    ]
+  }
+}

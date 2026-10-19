@@ -1,5 +1,7 @@
 import data from '../../data/game.json';
 import map1 from '../../data/maps/map-1.json';
+import items from '../../data/items.json';
+import units from '../../data/units.json';
 import {
   FIXED_DT,
   arenaOf,
@@ -11,9 +13,13 @@ import {
   type GameState,
   type Input,
   type SimEvent,
+  type WeaponItem,
 } from '../../src/sim';
 
-type Patch = { [K in keyof GameConfig]?: Partial<GameConfig[K]> };
+/** Config sections to override; `weapon` overrides the rifle, the test squad's weapon. */
+type Patch = { [K in Exclude<keyof GameConfig, 'items' | 'briefing'>]?: Partial<GameConfig[K]> } & {
+  weapon?: Partial<WeaponItem>;
+};
 
 /** Real config with no obstacles and waves that never start, unless patched. */
 export function testConfig(patch: Patch = {}): GameConfig {
@@ -26,24 +32,31 @@ export function testConfig(patch: Patch = {}): GameConfig {
     stance: { ...base.stance },
     loot: { ...base.loot },
     progress: { ...base.progress },
+    downed: { ...base.downed },
     gore: { ...base.gore, explodeChance: 0 },
     inventory: { ...base.inventory },
     boss: { ...base.boss, types: ['zombie'] },
     perks: { ...base.perks },
     shop: { ...base.shop },
-    weapons: { ...base.weapons },
     drops: { ...base.drops, chance: 0, table: [...base.drops.table] },
     player: { ...base.player },
-    weapon: { ...base.weapon },
     zombie: { ...base.zombie },
+    vehicles: { ...base.vehicles },
+    hazards: { ...base.hazards },
+    animals: { ...base.animals },
+    drag: { ...base.drag },
+    difficulty: { ...base.difficulty },
     waves: { ...base.waves, intermission: 1e9 },
   };
-  for (const [key, value] of Object.entries(patch)) {
+  const { weapon, ...sections } = patch;
+  for (const [key, value] of Object.entries(sections)) {
     merged[key] = { ...merged[key], ...value };
   }
+  const catalog = structuredClone(items);
+  Object.assign(catalog.items.rifle, weapon);
   const { arena, ...settings } = merged;
   return {
-    ...parseConfig(settings, parseMap(map1)),
+    ...parseConfig(settings, parseMap(map1), units, catalog),
     arena: arena as unknown as GameConfig['arena'],
   };
 }

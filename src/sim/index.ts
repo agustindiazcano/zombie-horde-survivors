@@ -4,13 +4,16 @@ export * from './vec';
 export * from './rng';
 export * from './config';
 export * from './collision';
+export * from './terrain';
 export * from './types';
 export { firstPlayerOf, isHostile, localPlayer } from './players';
 export { createGame, step } from './game';
 export {
   controlSoldier,
   getSoldier,
+  isSquadUnit,
   livingSoldiers,
+  orderBoard,
   orderFollow,
   orderHold,
   orderMove,
@@ -18,17 +21,24 @@ export {
 export { bossStats, spawnZombie } from './zombies';
 export {
   ARMOR_PLATE,
+  addToBackpack,
   backpackFull,
   equipFromBackpack,
   getCrate,
+  itemDef,
   moveItem,
   nearestCrate,
   stashInCrate,
   takeFromCrate,
-  unequipWeapon,
+  unequipSlot,
+  useItem,
 } from './inventory';
-export { weaponDef, type WeaponDef } from './stats';
+export { gunOf, skillLevel, weaponDef, type WeaponDef } from './stats';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';
-export type { Slot } from './inventory';
+export type { Slot, SlotRef } from './inventory';
 export { levelInfo, type LevelInfo } from './loot';
 export { waveSize } from './waves';
+export { toggleDrag } from './drag';
+export { updateHazards } from './hazards';
+export { getVehicle, toggleVehicle, vehicleInReach } from './vehicles';
+export { objectiveProgress } from './objectives';

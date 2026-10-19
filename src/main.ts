@@ -1,7 +1,10 @@
 import characters from '../data/characters.json';
 import data from '../data/game.json';
 import map1 from '../data/maps/map-1.json';
+import items from '../data/items.json';
+import units from '../data/units.json';
 import { Sfx } from './audio';
+import { Editor } from './editor';
 import { FpsCounter } from './fps';
 import { Hud } from './hud';
 import { MainMenu } from './mainMenu';
@@ -11,20 +14,31 @@ import { CameraControls } from './cameraControls';
 import { CratePrompt, InventoryUi } from './inventoryUi';
 import { startLoop } from './loop';
 import { GltfAssetLoader } from './render/assetLoader';
+import { loadVehicleModel } from './render/vehicles';
 import { parseCharactersConfig } from './render/characterConfig';
 import { GameRenderer, type ViewMode } from './render/gameRenderer';
 import { RtsController } from './rts';
 import {
   controlSoldier,
+  defaultEnvironment,
+  isSquadUnit,
   createGame,
   localPlayer,
   maxHealthOf,
   nearestCrate,
+  getSoldier,
+  getVehicle,
+  toggleDrag,
+  toggleVehicle,
+  vehicleInReach,
   shopAvailable,
   orderFollow,
   orderHold,
   parseConfig,
+  arenaOf,
+  mapRules,
   parseMap,
+  type MapData,
   step,
   type Input,
 } from './sim';
@@ -41,19 +55,29 @@ const MOBILE_AIM_RANGE = 22;
 
 /** Camera pan speed in RTS mode (world units per second). */
 const PAN_SPEED = 22;
+/** Editor: how close (m) a soldier must be to the selected unit for Y to drive it. */
+const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
 async function main(): Promise<void> {
-  const config = parseConfig(data, parseMap(map1));
+  const config = parseConfig(data, parseMap(map1), units, items);
+  /** The rules of game.json before any map overrides them. */
+  const globalRules = {
+    waves: config.waves,
+    boss: config.boss,
+    enemies: config.enemies,
+    difficulty: config.difficulty,
+  };
   const factories = await new GltfAssetLoader().loadCharacters(parseCharactersConfig(characters));
 
   let state = createGame(config, Date.now());
   let paused = false;
   const renderer = new GameRenderer(document.body, config, factories);
+  renderer.setVehicleModel(await loadVehicleModel());
   const input = new InputController(renderer.domElement);
   const sfx = new Sfx();
   const fps = new FpsCounter(document.body);
@@ -98,6 +122,7 @@ async function main(): Promise<void> {
   });
   const ui = new InventoryUi(document.body, config, () => state);
   const cratePrompt = new CratePrompt();
+  const vehiclePrompt = new CratePrompt('V');
   const pausePanel = new PausePanel(document.body, config, openSettings);
   const radar = new Radar(document.body);
   // The pause screen lists the squad: each unit's 3D view comes from the same models as in play.
@@ -116,9 +141,45 @@ async function main(): Promise<void> {
   /** Any full-screen menu: the game is frozen and keyboard shortcuts are off. */
   // A random soldier floats next to the title, a different one on each visit.
   const preview = factories.soldiers[Math.floor(Math.random() * factories.soldiers.length)];
-  const menu = new MainMenu(document.body, () => undefined, preview, openSettings);
+  // Map 1 is the only map the sim is built for so far; the picked map is ignored until phase 4.
+  const menu = new MainMenu(
+    document.body,
+    (entry) => {
+      loadMap(entry.map);
+      hud.showBriefing(config.briefing ?? '');
+    },
+    preview,
+    openSettings,
+    () => openEditor(),
+    !mobile,
+  );
+  const editor = new Editor(document.body, {
+    canvas: renderer.domElement,
+    groundAt: renderer.screenToGround,
+    onMarks: (marks) => renderer.setEditMarkers(marks),
+    onSpawnMarks: (points) => renderer.setSpawnMarkers(points),
+    onPlay: () => {
+      resetGame();
+      hud.showBriefing(config.briefing ?? '');
+      setPaused(false);
+    },
+    onStop: () => {
+      resetGame();
+      controlSoldier(state, null);
+    },
+    onMapChange: (map, unitsKept) => loadMap(map, unitsKept),
+    onMenu: () => {
+      editor.close();
+      menu.show();
+    },
+  });
   const modalOpen = () =>
-    menu.isOpen || ui.isOpen || perks.isOpen || shop.isOpen || settingsPanel.isOpen;
+    menu.isOpen ||
+    editor.isEditing ||
+    ui.isOpen ||
+    perks.isOpen ||
+    shop.isOpen ||
+    settingsPanel.isOpen;
   const rts = new RtsController(
     renderer.domElement,
     renderer,
@@ -130,18 +191,62 @@ async function main(): Promise<void> {
       !paused &&
       !modalOpen(),
   );
-  const hud = new Hud(document.body, config, () => {
-    state = createGame(config, Date.now());
-    hud.reset();
-    rts.set([]);
-    ui.close();
-    shop.close();
-  });
+  const hud = new Hud(document.body, config, () => resetGame());
   const squad = new SquadPanel(document.body, config, (id, additive) => {
     // Clicking an icon while playing hands direct control to that unit; in RTS mode it selects.
     if (mobile || localPlayer(state).controlledId !== null) setLeader(id);
     else rts.toggle(id, additive);
   });
+
+  /** A fresh run of the loaded map (restart, the editor's Play and Stop). */
+  const resetGame = () => {
+    state = createGame(config, Date.now(), editor.isEditing);
+    // The editor is a live preview: no waves, enemies stand still, and nobody is under control
+    // until Y. It shows only what the map places, so no default squad either.
+    if (editor.isEditing) {
+      if (!config.placed.some((u) => isSquadUnit(config, u.type))) {
+        state.soldiers = [];
+      }
+      controlSoldier(state, null);
+    }
+    hud.reset();
+    rts.set([]);
+    ui.close();
+    shop.close();
+  };
+
+  /** Makes the sim and the 3D scene use another map (the config object is shared, so edit it in place). */
+  let groundOf: unknown[] = [];
+  const loadMap = (map: MapData, unitsKept = false) => {
+    Object.assign(config, mapRules(globalRules, map.logic, map.units));
+    config.players = map.players;
+    config.placed = map.units;
+    renderer.setEnvironment(map.environment ?? defaultEnvironment());
+    // Dragging an environment slider changes neither the ground nor the props: skip the rebuild.
+    const ground = [map.meta.size, map.terrain, map.props, map.surfaces];
+    if (!ground.every((part, i) => part === groundOf[i])) {
+      groundOf = ground;
+      config.arena = arenaOf(map);
+      renderer.setArena(config.arena);
+    }
+    renderer.setFireMarkers(config.fires);
+    renderer.setGoalMarkers(
+      config.objectives.flatMap((o) =>
+        o.kind === 'reach' ? [{ x: o.x, z: o.z, radius: o.radius }] : [],
+      ),
+    );
+    // An editor edit that left the units alone (terrain, props) only redraws the ground.
+    if (unitsKept) return;
+    renderer.resetUnits();
+    resetGame();
+  };
+
+  /** The editor opens paused on the map, in RTS mode so WASD pans the camera. */
+  const openEditor = () => {
+    controlSoldier(state, null);
+    setPaused(false);
+    editor.open();
+  };
 
   const setPaused = (value: boolean) => {
     paused = value && state.status === 'playing' && !menu.isOpen;
@@ -229,6 +334,21 @@ async function main(): Promise<void> {
     );
   };
 
+  /** Editor, Y: drive the selected soldier (or the first one) in the preview, or let go of it. */
+  const toggleEditorControl = () => {
+    if (localPlayer(state).controlledId !== null) {
+      controlSoldier(state, null);
+      return;
+    }
+    const at = editor.selectedUnitAt();
+    const alive = state.soldiers.filter((s) => !s.dead);
+    const near = at
+      ? alive.find((s) => Math.hypot(s.pos.x - at.x, s.pos.z - at.z) < EDITOR_PICK_RANGE)
+      : undefined;
+    const unit = near ?? alive[0];
+    if (unit) controlSoldier(state, unit.id);
+  };
+
   /** Normal -> third person -> first person -> normal. Only while controlling a unit. */
   const NEXT_VIEW: Record<ViewMode, ViewMode> = { top: 'third', third: 'first', first: 'top' };
   const setView = (mode: ViewMode) => {
@@ -281,6 +401,12 @@ async function main(): Promise<void> {
       return;
     }
     if (menu.onKey(e.code)) return;
+    if (editor.isEditing) {
+      if (e.code === 'KeyY' && !e.repeat && !(e.target instanceof HTMLInputElement)) {
+        toggleEditorControl();
+      }
+      return;
+    }
     if (perks.onKey(e.code)) return;
     if (e.code === 'KeyM') sfx.toggleMute();
     else if (e.code === 'Escape' && ui.isOpen) ui.close();
@@ -294,6 +420,18 @@ async function main(): Promise<void> {
     } else if (e.code === 'KeyI') {
       // The same screen as pausing: the squad, their inventories and your bonuses.
       if (!modalOpen()) setPaused(!paused);
+    } else if (e.code === 'KeyV') {
+      // Climb into the closest vehicle, or step out of the one you are in.
+      if (playable() && !modalOpen()) {
+        const controlled = localPlayer(state).controlledId;
+        for (const id of controlled !== null ? [controlled] : [...rts.selected]) {
+          toggleVehicle(state, config, id);
+        }
+      }
+    } else if (e.code === 'KeyG') {
+      // Grab a downed or dead ally by the shoulders and drag it, or let go.
+      const controlled = localPlayer(state).controlledId;
+      if (playable() && !modalOpen() && controlled !== null) toggleDrag(state, config, controlled);
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
       const unitId = localPlayer(state).controlledId;
@@ -309,9 +447,11 @@ async function main(): Promise<void> {
       setView(NEXT_VIEW[renderer.viewMode]);
     } else if (e.code === 'KeyY' && playable() && !modalOpen()) toggleControl();
   });
-  window.addEventListener('blur', () => setPaused(true));
+  window.addEventListener('blur', () => {
+    if (!editor.isEditing) setPaused(true);
+  });
 
-  new CameraControls(renderer.domElement, renderer);
+  new CameraControls(renderer.domElement, renderer, () => editor.ownsRightDrag);
 
   const blank = (): Input => ({
     move: { x: 0, z: 0 },
@@ -332,7 +472,8 @@ async function main(): Promise<void> {
     // In first/third person the view direction is the aim; top-down uses the cursor on the ground.
     directInput.aim =
       renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
-    directInput.firing = raw.firing;
+    // Clicks edit the map in the editor, so the driven unit does not fire there.
+    directInput.firing = raw.firing && !editor.isEditing;
     if (mobile && unit) {
       // No cursor: aim at the nearest enemy and keep firing; otherwise face the way we walk.
       let best: { x: number; z: number } | null = null;
@@ -364,7 +505,10 @@ async function main(): Promise<void> {
 
   startLoop(
     (dt) => {
-      if (paused || modalOpen()) return;
+      const overlay =
+        menu.isOpen || ui.isOpen || perks.isOpen || shop.isOpen || settingsPanel.isOpen;
+      // The editor keeps the sandbox running so a unit can be driven while editing.
+      if (paused || overlay || (modalOpen() && !editor.isEditing)) return;
       if (mobile) ensureMobileLeader();
       const direct = localPlayer(state).controlledId !== null;
       step(state, config, direct ? readInput() : noInput, dt);
@@ -408,12 +552,29 @@ async function main(): Promise<void> {
         cratePrompt.hide();
       }
 
+      const unit = getSoldier(state, localPlayer(state).controlledId);
+      const nearVehicle =
+        !modalOpen() && playable() && unit && !unit.dead && unit.vehicleId === null
+          ? vehicleInReach(state, config, unit.pos)
+          : undefined;
+      if (nearVehicle) {
+        const p = renderer.projectToScreen(nearVehicle.pos.x, nearVehicle.pos.z, 2.5);
+        if (p) vehiclePrompt.show(p.x, p.z);
+        else vehiclePrompt.hide();
+      } else {
+        vehiclePrompt.hide();
+      }
+      const ride = getVehicle(state, unit?.vehicleId ?? null);
+      const rideHint = ride
+        ? `  [${config.vehicles[ride.type]!.name.toUpperCase()} ${Math.round((ride.health / ride.maxHealth) * 100)}% · V: get out]`
+        : '';
+
       const focusId = localPlayer(state).controlledId ?? [...rts.selected][0] ?? null;
       hud.update(state, focusId);
       const stance = state.stance === 'normal' ? '' : `  [${state.stance.toUpperCase()}]`;
       const view =
         renderer.viewMode === 'top' ? '' : `  [${renderer.viewMode.toUpperCase()} PERSON]`;
-      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view);
+      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view + rideHint);
       squad.update(state, rts.selected, maxHealthOf(state, config));
     },
   );

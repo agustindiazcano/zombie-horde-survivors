@@ -1,0 +1,9 @@
+# 2026-10-18 — Phase 7: game logic tab
+
+Branch `feat/game-logic`, cut from `feat/terrain` (ninth in the stack; PRs go in order). 48 tests and all checks pass; nothing seen in a browser.
+
+- **Map format:** `logic` keeps `mode` and gains optional overrides: `difficulty` (easy / normal / hard), `waves` (baseCount, countPerWave, spawnInterval, intermission, maxAlive), `enemies` (only the listed types spawn, each with optional `weight` and `minWave`), `zombieWeight`, `boss` (`enabled`, `everyWaves`, `types`) and `spawnPoints`. A missing field keeps the global value of `game.json`, so Map 1 and old saved maps are unchanged.
+- **Sim:** `mapRules(global, logic)` in `src/sim/config.ts` merges the overrides over the `waves`, `boss` and `enemies` sections (returns new objects; unknown enemy ids are ignored; bosses off = `everyWaves: Infinity`). `parseConfig` applies it; `main.ts` keeps the pristine global rules and re-applies them on every map change. `data/game.json` has a new `difficulty` table (health, speed and wave-size multipliers: easy 0.7 / 0.9 / 0.7, hard 1.4 / 1.1 / 1.4). `waves.ts` spawns at a random spawn point when the map has any, otherwise along the edge as before.
+- **Editor, Game logic tab:** difficulty select, Waves numbers, Enemy mix (checkbox, weight and first wave per type, zombie weight), Bosses (on / off, every N waves, types), Spawn points (armed tool, red rings on the map, list with Remove) and "Reset to the global rules". Every change is one undo step. Objectives and Win / lose rules stay placeholders (phase 10). Mode shows Story disabled.
+- **Test helper:** `tests/sim/helpers.ts` copies the new `difficulty` section.
+- Not done: a spawn point ignores obstacles and water (an enemy can appear inside a block), the wave number inputs show effective values but do not mark which are overridden, per-map boss health lists are not editable.

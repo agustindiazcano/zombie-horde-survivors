@@ -1,4 +1,4 @@
-import { rayAabb, rayCircle } from './collision';
+import { insideBox, rayAabb, rayCircle } from './collision';
 import type { GameConfig } from './config';
 import type { GameState, Soldier, Zombie } from './types';
 import { dirFromAngle, type Vec2 } from './vec';
@@ -9,6 +9,7 @@ import { damageZombie } from './zombies';
 /** True if an obstacle sits between `origin` and a point `distance` away along `dir`. */
 export function isBlocked(origin: Vec2, dir: Vec2, distance: number, config: GameConfig): boolean {
   for (const box of config.arena.obstacles) {
+    if (box.water || insideBox(origin, box)) continue;
     const t = rayAabb(origin, dir, box);
     if (t !== null && t < distance) return true;
   }
@@ -38,6 +39,8 @@ export function fireWeapon(
 
   // Obstacles block bullets: any closer obstacle clears a farther zombie target.
   for (const box of weapon.ignoresCover ? [] : config.arena.obstacles) {
+    // A shooter standing on a box fires over it.
+    if (box.water || insideBox(origin, box)) continue;
     const t = rayAabb(origin, dir, box);
     if (t !== null && t < nearest) {
       nearest = t;

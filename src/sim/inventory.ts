@@ -1,13 +1,40 @@
-import type { GameConfig } from './config';
+import type { GameConfig, ItemDef } from './config';
 import { nextFloat } from './rng';
-import type { Crate, GameState, Soldier } from './types';
+import { maxHealthOf } from './stats';
+import type { Crate, Equipment, GameState, Soldier, Stack } from './types';
 import type { Vec2 } from './vec';
 
 /** Crate entry that is worn as armor instead of carried. */
 export const ARMOR_PLATE = 'armor_plate';
 
+/** A place an item can sit: a hand or body slot, or a backpack slot (by index). */
+export type SlotRef = keyof Equipment | number;
+
+/** A slot of a given unit. */
+export interface Slot {
+  unitId: number;
+  slot: SlotRef;
+}
+
+const isEquipSlot = (slot: SlotRef): slot is keyof Equipment => typeof slot === 'string';
+
+export const itemDef = (config: GameConfig, id: string): ItemDef => config.items[id]!;
+
 export const backpackFull = (config: GameConfig, s: Soldier): boolean =>
   s.backpack.length >= config.inventory.backpackSlots;
+
+/** Puts one item in the first stack with room, or a free slot. False if the backpack is full. */
+export function addToBackpack(config: GameConfig, s: Soldier, item: string): boolean {
+  const size = itemDef(config, item).stack;
+  const open = s.backpack.find((st) => st.item === item && st.count < size);
+  if (open) {
+    open.count++;
+    return true;
+  }
+  if (backpackFull(config, s)) return false;
+  s.backpack.push({ item, count: 1 });
+  return true;
+}
 
 export function getCrate(state: GameState, id: number): Crate | undefined {
   return state.crates.find((c) => c.id === id);
@@ -42,81 +69,171 @@ function reachableCrate(
   return d <= config.drops.pickupRange ? crate : undefined;
 }
 
-/** A place a weapon can sit: a unit's equipped weapon, or one of its backpack slots. */
-export interface Slot {
-  unitId: number;
-  slot: 'weapon' | number;
+/** What sits in a slot (equipment slots hold exactly one), or null. Backpack stacks are live. */
+export function cellAt(s: Soldier, slot: SlotRef): Stack | null {
+  if (isEquipSlot(slot)) {
+    const item = s.equipment[slot];
+    return item === null ? null : { item, count: 1 };
+  }
+  return s.backpack[slot] ?? null;
 }
 
-const itemAt = (s: Soldier, slot: Slot['slot']): string | undefined =>
-  slot === 'weapon' ? (s.weapon ?? undefined) : s.backpack[slot];
+/** Writes a slot. Emptying a backpack slot closes the gap; an index past the end appends. */
+function putCell(s: Soldier, slot: SlotRef, stack: Stack | null): void {
+  if (isEquipSlot(slot)) s.equipment[slot] = stack?.item ?? null;
+  else if (stack === null) s.backpack.splice(slot, 1);
+  else if (slot < s.backpack.length) s.backpack[slot] = stack;
+  else s.backpack.push(stack);
+}
 
 /**
- * The drone gun can be carried by anyone but only equipped by the drone, and the drone
- * can only equip that gun.
+ * Whether `item` may sit in `slot` of unit `s`, ignoring what else is held. Hands take
+ * weapons only (a two-handed one only in `rightHand`); a drone takes only drone guns, in
+ * `rightHand`; the chest takes armor. Fists never leave the unit.
  */
-function fits(s: Soldier, slot: Slot['slot'], item: string): boolean {
-  const isCannon = item === 'drone_cannon';
-  if (slot === 'weapon') return (s.kind === 'drone') === isCannon;
-  return !isCannon;
+function accepts(config: GameConfig, s: Soldier, slot: SlotRef, item: string): boolean {
+  const def = itemDef(config, item);
+  if (def.type === 'weapon' && def.innate) return false;
+  if (!isEquipSlot(slot)) return true;
+  if (slot === 'chest') return def.type === 'armor' && s.kind !== 'drone';
+  if (def.type !== 'weapon') return false;
+  if (s.kind === 'drone') return slot === 'rightHand' && def.droneOnly === true;
+  if (def.droneOnly) return false;
+  return def.hands === 1 || slot === 'rightHand';
+}
+
+/** A two-handed weapon needs the other hand free, and the backpack cannot overflow. */
+function consistent(config: GameConfig, s: Soldier): boolean {
+  const right = s.equipment.rightHand;
+  const def = right === null ? null : itemDef(config, right);
+  const twoHanded = def?.type === 'weapon' && def.hands === 2;
+  if (twoHanded && s.equipment.leftHand !== null) return false;
+  return s.backpack.length <= config.inventory.backpackSlots;
+}
+
+const snapshot = (s: Soldier) => ({
+  equipment: { ...s.equipment },
+  backpack: s.backpack.map((st) => ({ ...st })),
+});
+
+function restore(s: Soldier, saved: ReturnType<typeof snapshot>): void {
+  s.equipment = saved.equipment;
+  s.backpack = saved.backpack;
 }
 
 /**
- * Drags a weapon from one slot to another, between any two living units (or within one).
- * Dropping on an occupied slot swaps the two; dropping on an empty slot moves the weapon
- * there (so dragging the equipped weapon to an empty backpack slot unequips it).
- * Returns false if the move is refused.
+ * Drags an item from one slot to another, between any two living units (or within one).
+ * Dropping on an occupied slot swaps the two; dropping on an empty slot moves the item
+ * there (so dragging a held weapon to an empty backpack slot unequips it); dropping a stack
+ * on a stack of the same item merges them. Returns false (and changes nothing) if the move
+ * is refused.
  */
 export function moveItem(state: GameState, config: GameConfig, from: Slot, to: Slot): boolean {
   const a = unit(state, from.unitId);
   const b = unit(state, to.unitId);
   if (!a || !b || a.dead || b.dead) return false;
   if (from.unitId === to.unitId && from.slot === to.slot) return false;
-  const moving = itemAt(a, from.slot);
-  if (moving === undefined || !fits(b, to.slot, moving)) return false;
+  const moving = cellAt(a, from.slot);
+  if (!moving) return false;
+  const target = cellAt(b, to.slot);
 
-  const other = itemAt(b, to.slot);
-  if (other !== undefined) {
-    if (!fits(a, from.slot, other)) return false;
-    if (from.slot === 'weapon') a.weapon = other;
-    else a.backpack[from.slot] = other;
-    if (to.slot === 'weapon') b.weapon = moving;
-    else b.backpack[to.slot] = moving;
+  const size = itemDef(config, moving.item).stack;
+  if (target && target.item === moving.item && size > 1) {
+    const moved = Math.min(size - target.count, moving.count);
+    if (moved <= 0) return false;
+    target.count += moved;
+    moving.count -= moved;
+    if (moving.count === 0) putCell(a, from.slot, null);
     return true;
   }
 
-  // An empty slot: the weapon leaves its slot, and joins the equipped slot or the end of the backpack.
-  const freesSpace = a === b && from.slot !== 'weapon';
-  if (to.slot !== 'weapon' && !freesSpace && backpackFull(config, b)) return false;
-  if (from.slot === 'weapon') a.weapon = null;
-  else a.backpack.splice(from.slot, 1);
-  if (to.slot === 'weapon') b.weapon = moving;
-  else b.backpack.push(moving);
-  return true;
+  if (!accepts(config, b, to.slot, moving.item)) return false;
+  if (target && !accepts(config, a, from.slot, target.item)) return false;
+
+  const savedA = snapshot(a);
+  const savedB = a === b ? null : snapshot(b);
+  if (target) {
+    putCell(a, from.slot, target);
+    putCell(b, to.slot, moving);
+  } else {
+    putCell(a, from.slot, null);
+    putCell(b, to.slot, moving);
+  }
+  if (consistent(config, a) && consistent(config, b)) return true;
+  restore(a, savedA);
+  if (savedB) restore(b, savedB);
+  return false;
 }
 
-/** Puts the equipped weapon into the backpack, leaving the unit unarmed. */
-export function unequipWeapon(state: GameState, config: GameConfig, soldierId: number): boolean {
+/** Puts what a hand or the chest holds into the backpack. */
+export function unequipSlot(
+  state: GameState,
+  config: GameConfig,
+  soldierId: number,
+  slot: keyof Equipment,
+): boolean {
   const s = unit(state, soldierId);
-  if (!s || s.dead || s.weapon === null || backpackFull(config, s)) return false;
-  if (!fits(s, 0, s.weapon)) return false;
-  s.backpack.push(s.weapon);
-  s.weapon = null;
+  const item = s?.equipment[slot];
+  if (!s || s.dead || item === null || item === undefined) return false;
+  if (!addToBackpack(config, s, item)) return false;
+  s.equipment[slot] = null;
   return true;
 }
 
-/** Swaps a backpack weapon with the equipped one. */
-export function equipFromBackpack(state: GameState, soldierId: number, index: number): boolean {
+/**
+ * Equips a backpack weapon in the right hand (or armor on the chest), swapping what was
+ * there into its backpack slot. A two-handed weapon also stows the left-hand item.
+ */
+export function equipFromBackpack(
+  state: GameState,
+  config: GameConfig,
+  soldierId: number,
+  index: number,
+): boolean {
   const s = unit(state, soldierId);
-  const item = s?.backpack[index];
-  if (!s || s.dead || item === undefined || !fits(s, 'weapon', item)) return false;
-  if (s.weapon === null) s.backpack.splice(index, 1);
-  else s.backpack[index] = s.weapon;
-  s.weapon = item;
+  const stack = s?.backpack[index];
+  if (!s || s.dead || !stack) return false;
+  const def = itemDef(config, stack.item);
+  const slot = def.type === 'armor' ? 'chest' : def.type === 'weapon' ? 'rightHand' : null;
+  if (slot === null || !accepts(config, s, slot, stack.item)) return false;
+
+  const saved = snapshot(s);
+  const old = s.equipment[slot];
+  if (old === null) s.backpack.splice(index, 1);
+  else s.backpack[index] = { item: old, count: 1 };
+  s.equipment[slot] = stack.item;
+  const offHand = s.equipment.leftHand;
+  if (def.type === 'weapon' && def.hands === 2 && offHand !== null) {
+    if (!addToBackpack(config, s, offHand)) {
+      restore(s, saved);
+      return false;
+    }
+    s.equipment.leftHand = null;
+  }
+  if (consistent(config, s)) return true;
+  restore(s, saved);
+  return false;
+}
+
+/** Uses a backpack item: a medkit heals its unit (the others have no rule yet). */
+export function useItem(
+  state: GameState,
+  config: GameConfig,
+  soldierId: number,
+  index: number,
+): boolean {
+  const s = unit(state, soldierId);
+  const stack = s?.backpack[index];
+  if (!s || s.dead || !stack || s.kind === 'drone') return false;
+  const def = itemDef(config, stack.item);
+  const max = maxHealthOf(state, config, s);
+  if (def.type !== 'medical' || s.health >= max) return false;
+  s.health = Math.min(max, s.health + def.heal);
+  if (--stack.count === 0) s.backpack.splice(index, 1);
   return true;
 }
 
-/** Moves a weapon from a crate into a unit's backpack. Empty crates disappear. */
+/** Moves one item from a crate into a unit's backpack (a plate is worn). Empty crates disappear. */
 export function takeFromCrate(
   state: GameState,
   config: GameConfig,
@@ -129,20 +246,19 @@ export function takeFromCrate(
   const crate = reachableCrate(state, config, s, crateId);
   const item = crate?.items[index];
   if (!crate || item === undefined) return false;
-  if (item === ARMOR_PLATE) {
+  if (itemDef(config, item).type === 'plate') {
     // Armor is worn straight away instead of taking a backpack slot.
     if (s.kind === 'drone' || s.armor >= config.player.maxArmor) return false;
     s.armor = Math.min(config.player.maxArmor, s.armor + config.player.armorPlate);
-  } else {
-    if (backpackFull(config, s)) return false;
-    s.backpack.push(item);
+  } else if (!addToBackpack(config, s, item)) {
+    return false;
   }
   crate.items.splice(index, 1);
   if (crate.items.length === 0) state.crates = state.crates.filter((c) => c !== crate);
   return true;
 }
 
-/** Moves a backpack weapon from a unit into a nearby crate. */
+/** Moves a whole backpack stack from a unit into a nearby crate (one crate entry per item). */
 export function stashInCrate(
   state: GameState,
   config: GameConfig,
@@ -153,22 +269,22 @@ export function stashInCrate(
   const s = unit(state, soldierId);
   if (!s) return false;
   const crate = reachableCrate(state, config, s, crateId);
-  const item = s.backpack[index];
-  if (!crate || item === undefined) return false;
+  const stack = s.backpack[index];
+  if (!crate || !stack) return false;
   s.backpack.splice(index, 1);
-  crate.items.push(item);
+  for (let i = 0; i < stack.count; i++) crate.items.push(stack.item);
   return true;
 }
 
-function rollWeapon(state: GameState, config: GameConfig): string {
+function rollItem(state: GameState, config: GameConfig): string {
   const table = config.drops.table;
   const total = table.reduce((sum, e) => sum + e.weight, 0);
   let roll = nextFloat(state.rng) * total;
   for (const entry of table) {
     roll -= entry.weight;
-    if (roll < 0) return entry.weapon;
+    if (roll < 0) return entry.item;
   }
-  return table[table.length - 1]!.weapon;
+  return table[table.length - 1]!.item;
 }
 
 /** Rolls the drop chance for a dead zombie and, on success, creates a crate there. */
@@ -178,7 +294,7 @@ export function maybeDropCrate(state: GameState, config: GameConfig, pos: Vec2):
 
   const count =
     drops.minItems + Math.floor(nextFloat(state.rng) * (drops.maxItems - drops.minItems + 1));
-  const items = Array.from({ length: count }, () => rollWeapon(state, config));
+  const items = Array.from({ length: count }, () => rollItem(state, config));
   const crate: Crate = { id: state.nextCrateId++, pos: { x: pos.x, z: pos.z }, items };
   state.crates.push(crate);
   while (state.crates.length > drops.maxCrates) state.crates.shift();

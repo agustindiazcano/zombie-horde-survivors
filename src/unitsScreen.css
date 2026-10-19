@@ -127,7 +127,7 @@
   flex: none;
 }
 
-/* Landscape card: info on top, then the equipped weapon beside the backpack grid. */
+/* Landscape card: info on top, then the equipment slots beside the backpack grid. */
 .us__side {
   flex: 1;
   min-width: 0;
@@ -178,9 +178,15 @@
   opacity: 0.6;
 }
 
+.us__doll {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .us__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
 }
 
@@ -239,4 +245,17 @@
 .us__slot--picked {
   border-color: #5cff7a;
   background: #2f4a37;
+}
+
+.us__sheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.us__sheet > .us__label {
+  flex-basis: 100%;
 }

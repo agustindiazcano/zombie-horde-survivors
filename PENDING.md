@@ -43,14 +43,17 @@ Claude has no browser, so every visual and feel decision below is an estimate. T
 
 Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md). Start → Single Player (Story / Waves; today's arena is "Map 1"), a disabled Multiplayer button, or Editor (starts paused, Play button, right panel with Units / Assets / Terrain / Game logic / Players tabs). Several players own units and the AI is one of them; vehicles need a human operator to move (Men of War style).
 
-- [ ] 🟡 Phase 1c (next): unit stat sheets in `data/units.json` (identity, level, XP, speed, stamina, mocked RPG attributes) and XP per weapon class (melee, pistol, shotgun, rifle, sniper, machinegun, launcher). Mocked fields do nothing yet.
-- [ ] 🟡 Phase 1d: item catalog and equipment: weapon stats and damage types (explosive, fire, experimental mocked), attachments, hand slots (dual wield), helmet / vest slots, 10-slot backpack, fists, medkits, grenades, defibrillator.
-- [ ] 🟢 Phase 1e: downed state (a soldier goes down, keeps shooting, bleeds out, can be revived).
-- [ ] 🟡 Phase 2: menu flow Start → Single Player (Story / Waves) / Multiplayer (disabled) / Editor, map list.
-- [ ] 🟡 Phase 3: editor skeleton (paused, Play / Stop, tabs and collapsible groups that do nothing yet).
-- [ ] 🟡 Phase 4: save / load / export maps: built-in maps in `data/maps/` plus the user's maps in localStorage, listed together.
-- [ ] 🟢 Phases 5–7: place units and assets, terrain (height, water, paint, roads), game logic tab.
-- [ ] ⚪ Phases 8–10: vehicles with crew seats, interaction mechanics (lift and throw objects by strength, climbing, drag or carry a body, fire hazards), animals, Story mode.
+- [ ] 🟡 Play-test of phase 1e: go down, wait for an ally with a medkit, bleed out, defibrillate (the crate odds and the shop prices of medkits and the defibrillator are guesses). Visual check of phase 1d: the equipment column and the 10-slot backpack in the squad screen unit window (layout, drag and drop between hands, vest and backpack). Also still unseen from phases 1 to 1c: the Meshy marine animations, the Infected marine tint, Map 1 looking as before, and the attributes and skills layout.
+- [ ] 🟡 Ask the user before the visual part of equipment: how weapons show on the models (bones to attach to, where the meshes come from).
+- [ ] 🟢 Follow-ups of 1d and 1e, not built: helmet slot, dual-wield firing, fists and melee combat, grenade throwing, accessory fitting, ammo and reload, a way to obtain grenades, the vest and accessories, a manual revive key, crawl and bleeding visuals.
+- [ ] 🟡 Look at phases 2 and 3 in the browser: the menu flow (Start → mode → Single Player → Waves → Map 1), Esc going back, the editor layout (top bar, right panel, tabs, collapsible groups), Play / Stop and WASD panning while editing.
+- [ ] 🟡 Look at phase 4 in the browser: New / Open / Save / Export / Import in the editor, saved maps in the Waves list, delete, and that picking a map swaps the arena. Phase 4 is built; here is what it covers: built-in maps in `data/maps/` plus the user's maps in localStorage, listed together.
+- [ ] 🟡 Look at phase 5 in the browser: place / select / drag / rotate (R) / delete units and blocks, undo / redo, selection ring, Play spawning the placed squad and enemies (see [worklog](docs/worklog/2026-10-18-phase-5-place-units.md)).
+- [ ] 🟡 Look at phase 6 in the browser: raise / lower / flatten / smooth, paint, roads, water level (units should not walk into water; bullets cross it), hills under units, Map 1 unchanged ([worklog](docs/worklog/2026-10-18-phase-6-terrain.md)).
+- [ ] 🟡 Look at phase 7 in the browser: the Game logic tab (difficulty, waves, enemy mix, bosses, spawn points as red rings), Play using them ([worklog](docs/worklog/2026-10-18-phase-7-game-logic.md)). Spawn points ignore obstacles and water.
+- [ ] 🟡 Look at phase 8 in the browser: place a Jeep in the editor (Units > Vehicles > Military > Land), Play, walk next to it, **V** to climb in, drive with WASD, passengers shooting, zombies biting the hull, **V** to get out ([worklog](docs/worklog/2026-10-18-phase-8-vehicles.md)).
+- [ ] 🟡 Look at phase 10 in the browser: Start → Single Player → Story → Mission 1, the objective checklist, the green ring, MISSION COMPLETE; in the editor set Mode to Story and add objectives ([worklog](docs/worklog/2026-10-18-phase-10-story-mode.md)).
+- [ ] ⚪ Phases 8b–9: (vehicles first version is built) air and sea vehicles, a real vehicle model, RTS enter orders, interaction mechanics (lift and throw objects by strength, climbing, drag or carry a body, fire hazards), animals.
 - [ ] 🟡 Answer the open questions in section 8 of the plan (steering model, first vehicle, attribute names, weapon-class XP source, downed rules, defibrillator, equipment on the models).
 
 ### 3 — 🟡 Going public (GitHub Pages is live)

@@ -1,71 +1,120 @@
-import { resolveStatic } from './collision';
+import { resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
-import { isDrone, speedOf, weaponOf } from './stats';
-import type { GameConfig } from './config';
-import type { GameState, Input, Soldier, Stance, Zombie } from './types';
+import { rescueTarget } from './revive';
+import { getVehicle, toggleVehicle } from './vehicles';
+import { isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
+import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from './config';
+import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
 import { dirFromAngle, type Vec2 } from './vec';
 
 /** Angle between consecutive followers' formation slots (golden angle spreads them evenly). */
 const SLOT_ANGLE = 2.399;
 const ARRIVE_DISTANCE = 0.3;
+/** A box counts as in reach this many metres beyond the unit's body. */
+const CLIMB_REACH = 0.5;
+/** The vault clears the top by this many metres. */
+const CLIMB_CLEAR = 0.25;
+/** Cosine of the widest angle (to the box) at which walking still counts as walking into it. */
+const CLIMB_FACING = 0.5;
 const SLOT_TOLERANCE = 0.6;
 const CATCH_UP_SPEED = 1.2;
 const FORMATION_SPACING = 1.4;
 
+/** The sheet fields of a new unit: its type, a copy of the attributes and empty weapon skills. */
+function sheetOf(config: GameConfig, unitType: string) {
+  return {
+    unitType,
+    attributes: { ...config.units.units[unitType]!.attributes },
+    skills: Object.fromEntries(WEAPON_CLASSES.map((c) => [c, 0])) as Record<WeaponClass, number>,
+  };
+}
+
+/** Applies what the map changed about one placed soldier or drone. */
+export function applyLoadout(config: GameConfig, s: Soldier, l: Loadout): Soldier {
+  if (l.name) s.name = l.name;
+  if (l.maxHealth) {
+    s.baseHealth = l.maxHealth;
+    s.health = l.maxHealth;
+  }
+  if (l.attributes) s.attributes = { ...s.attributes, ...l.attributes };
+  if (l.equipment) s.equipment = { ...s.equipment, ...l.equipment };
+  if (l.backpack) {
+    s.backpack = l.backpack
+      .filter((st) => st.item in config.items)
+      .slice(0, config.inventory.backpackSlots)
+      .map((st) => ({ ...st }));
+  }
+  return s;
+}
+
+/** Whether a unit type of the map is part of the player's squad (a human of the sheets, or the drone). */
+export const isSquadUnit = (config: GameConfig, type: string): boolean =>
+  type === 'drone' || config.units.units[type]?.family === 'human';
+
+/** A fresh soldier or drone at `pos`, ready to follow its leader. */
+function newUnit(
+  config: GameConfig,
+  unitType: string,
+  id: number,
+  owner: string,
+  pos: Vec2,
+  facing = 0,
+): Soldier {
+  const kind: UnitKind = unitType === 'drone' ? 'drone' : 'soldier';
+  return {
+    id,
+    owner,
+    kind,
+    pos: { ...pos },
+    prev: { ...pos },
+    facing,
+    health: config.player.maxHealth,
+    baseHealth: config.player.maxHealth,
+    dead: false,
+    fireCooldown: 0,
+    y: 0,
+    prevY: 0,
+    vy: 0,
+    order: { type: 'follow' },
+    equipment: {
+      rightHand: kind === 'soldier' ? config.squad.startWeapon : null,
+      leftHand: null,
+      chest: null,
+    },
+    backpack: [],
+    xp: 0,
+    kills: 0,
+    stamina: config.stance.staminaMax,
+    winded: false,
+    armor: 0,
+    downed: false,
+    bleedOut: 0,
+    deadTime: 0,
+    reviveProgress: 0,
+    vehicleId: null,
+    dragging: null,
+    ...sheetOf(config, unitType),
+  };
+}
+
 export function createSquad(config: GameConfig, owner: string): Soldier[] {
+  const placed = config.placed.filter((u) => u.owner === owner && isSquadUnit(config, u.type));
+  // A map that places the squad by hand replaces the default ring around the origin.
+  if (placed.length > 0) {
+    return placed.map((u, i) =>
+      applyLoadout(config, newUnit(config, u.type, i + 1, owner, u, u.rotation), u),
+    );
+  }
   const n = config.squad.count;
   const soldiers: Soldier[] = Array.from({ length: n }, (_, i) => {
     // The first soldier stands at the origin; the rest form a ring around it.
     const angle = ((i - 1) / Math.max(n - 1, 1)) * Math.PI * 2;
     const pos = i === 0 ? { x: 0, z: 0 } : { x: Math.sin(angle) * 1.5, z: Math.cos(angle) * 1.5 };
-    return {
-      id: i + 1,
-      owner,
-      kind: 'soldier' as const,
-      pos,
-      prev: { ...pos },
-      facing: 0,
-      health: config.player.maxHealth,
-      dead: false,
-      fireCooldown: 0,
-      y: 0,
-      prevY: 0,
-      vy: 0,
-      order: { type: 'follow' },
-      weapon: config.squad.startWeapon,
-      backpack: [],
-      xp: 0,
-      kills: 0,
-      stamina: config.stance.staminaMax,
-      winded: false,
-      armor: 0,
-    };
+    return newUnit(config, 'soldier', i + 1, owner, pos);
   });
   for (let i = 0; i < config.drone.count; i++) {
-    const pos = { x: -1 - i, z: 1 };
-    soldiers.push({
-      id: n + i + 1,
-      owner,
-      kind: 'drone',
-      pos,
-      prev: { ...pos },
-      facing: 0,
-      health: config.player.maxHealth,
-      dead: false,
-      fireCooldown: 0,
-      y: 0,
-      prevY: 0,
-      vy: 0,
-      order: { type: 'follow' },
-      weapon: null,
-      backpack: [],
-      xp: 0,
-      kills: 0,
-      stamina: config.stance.staminaMax,
-      winded: false,
-      armor: 0,
-    });
+    soldiers.push(newUnit(config, 'drone', n + i + 1, owner, { x: -1 - i, z: 1 }));
   }
   return soldiers;
 }
@@ -77,7 +126,7 @@ function resolveUnit(s: Soldier, config: GameConfig): void {
     s.pos.x = Math.min(Math.max(s.pos.x, -lim), lim);
     s.pos.z = Math.min(Math.max(s.pos.z, -lim), lim);
   } else {
-    resolveStatic(s.pos, config.player.radius, config.arena);
+    resolveStatic(s.pos, config.player.radius, config.arena, s.y);
   }
 }
 
@@ -111,6 +160,14 @@ export function orderMove(state: GameState, config: GameConfig, ids: number[], t
   });
 }
 
+/** Sends soldiers to a vehicle; each climbs in when it arrives, if a seat is still free. */
+export function orderBoard(state: GameState, ids: number[], vehicleId: number): void {
+  for (const s of state.soldiers) {
+    if (s.dead || s.kind !== 'soldier' || !ids.includes(s.id)) continue;
+    s.order = { type: 'board', vehicleId };
+  }
+}
+
 export function orderFollow(state: GameState, ids: number[]): void {
   for (const s of state.soldiers) if (!s.dead && ids.includes(s.id)) s.order = { type: 'follow' };
 }
@@ -119,23 +176,46 @@ export function orderHold(state: GameState, ids: number[]): void {
   for (const s of state.soldiers) if (!s.dead && ids.includes(s.id)) s.order = { type: 'hold' };
 }
 
-/** Applies damage; a soldier at 0 health dies and, if controlled, drops back to RTS mode. */
+/** A unit dies for good and, if controlled, its player drops back to RTS mode. */
+function killSoldier(state: GameState, soldier: Soldier): void {
+  soldier.dead = true;
+  soldier.downed = false;
+  soldier.deadTime = 0;
+  soldier.reviveProgress = 0;
+  state.events.push({ type: 'soldierDied', soldierId: soldier.id });
+  const owner = state.players.find((p) => p.id === soldier.owner);
+  if (owner && owner.controlledId === soldier.id) owner.controlledId = null;
+}
+
+/**
+ * Applies damage. A soldier at 0 health goes down (and bleeds out unless revived); hits on a
+ * downed soldier shorten the bleed-out. A drone at 0 health simply dies.
+ */
 export function hurtSoldier(
   state: GameState,
+  config: GameConfig,
   soldier: Soldier,
   amount: number,
   zombieId: number,
 ): void {
   if (soldier.dead) return;
+  state.events.push({ type: 'soldierHurt', soldierId: soldier.id, damage: amount, zombieId });
+  if (soldier.downed) {
+    soldier.bleedOut -= amount * config.downed.damageBleed;
+    if (soldier.bleedOut <= 0) killSoldier(state, soldier);
+    return;
+  }
   const soaked = Math.min(soldier.armor, amount);
   soldier.armor -= soaked;
   soldier.health = Math.max(0, soldier.health - (amount - soaked));
-  state.events.push({ type: 'soldierHurt', soldierId: soldier.id, damage: amount, zombieId });
   if (soldier.health > 0) return;
-  soldier.dead = true;
-  state.events.push({ type: 'soldierDied', soldierId: soldier.id });
-  const owner = state.players.find((p) => p.id === soldier.owner);
-  if (owner && owner.controlledId === soldier.id) owner.controlledId = null;
+  if (soldier.kind === 'drone') {
+    killSoldier(state, soldier);
+    return;
+  }
+  soldier.downed = true;
+  soldier.bleedOut = config.downed.bleedOut;
+  state.events.push({ type: 'soldierDowned', soldierId: soldier.id });
 }
 
 export function updateSoldiers(
@@ -150,16 +230,28 @@ export function updateSoldiers(
     s.prev.x = s.pos.x;
     s.prev.z = s.pos.z;
     s.prevY = s.y;
-    if (s.dead) continue;
+    if (s.dead) {
+      s.deadTime += dt;
+      continue;
+    }
+    if (s.downed) {
+      s.bleedOut -= dt;
+      if (s.bleedOut <= 0) {
+        killSoldier(state, s);
+        continue;
+      }
+    }
     // May dip up to one step below zero so the leftover time carries into the next shot.
     s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
-    if (state.mods.regen > 0 && !isDrone(s)) {
-      const max = config.player.maxHealth * state.mods.maxHealth;
+    if (state.mods.regen > 0 && !isDrone(s) && !s.downed) {
+      const max = maxHealthOf(state, config, s);
       s.health = Math.min(max, s.health + state.mods.regen * dt);
     }
     // The squad's sprint order only works for a unit that still has breath.
-    const stance = state.stance === 'sprint' && (s.winded || isDrone(s)) ? 'normal' : state.stance;
-    if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
+    const stance =
+      s.downed || (state.stance === 'sprint' && (s.winded || isDrone(s))) ? 'normal' : state.stance;
+    if (s.vehicleId !== null) updateSeated(state, config, s, input, controlledId);
+    else if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
     else updateAi(state, config, s, leader, stance, dt);
     updateStamina(config, s, stance, dt);
     updateJump(config, s, dt);
@@ -183,13 +275,74 @@ function updateStamina(config: GameConfig, s: Soldier, stance: Stance, dt: numbe
 
 /** Vertical motion of a jump; runs for every unit so a jump always finishes. */
 function updateJump(config: GameConfig, s: Soldier, dt: number): void {
-  if (s.y === 0 && s.vy === 0) return;
+  // The floor is the ground, or the top of the box the unit is over.
+  const floor = supportHeight(config.arena, s.pos, s.y);
+  if (s.y === floor && s.vy === 0) return;
   s.vy -= config.stance.gravity * dt;
   s.y += s.vy * dt;
-  if (s.y <= 0) {
-    s.y = 0;
+  if (s.y <= floor) {
+    s.y = floor;
     s.vy = 0;
   }
+}
+
+/**
+ * The upward speed that lifts a unit onto the box it is walking into, or null when there is none
+ * in reach, it is too tall, or the unit is out of breath. Costs stamina.
+ */
+function climbSpeed(config: GameConfig, s: Soldier, move: Vec2): number | null {
+  const { gravity, jumpSpeed, climbMaxHeight, climbStamina } = config.stance;
+  const len = Math.hypot(move.x, move.z);
+  if (len < 0.1 || s.winded || s.stamina < climbStamina) return null;
+  const reach = config.player.radius + CLIMB_REACH;
+  for (const box of config.arena.obstacles) {
+    const rise = topOf(box) - s.y;
+    if (rise > climbMaxHeight || rise <= (jumpSpeed * jumpSpeed) / (2 * gravity) - CLIMB_CLEAR) {
+      continue;
+    }
+    const cx = Math.min(Math.max(s.pos.x, box.x - box.halfW), box.x + box.halfW);
+    const cz = Math.min(Math.max(s.pos.z, box.z - box.halfD), box.z + box.halfD);
+    const dx = cx - s.pos.x;
+    const dz = cz - s.pos.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist > reach || dist < 1e-6) continue;
+    // Only when walking towards the box.
+    if ((dx * move.x + dz * move.z) / (dist * len) < CLIMB_FACING) continue;
+    s.stamina -= climbStamina;
+    return Math.sqrt(2 * gravity * (rise + CLIMB_CLEAR));
+  }
+  return null;
+}
+
+/**
+ * A soldier in a vehicle rides along (the vehicle moves it). The driver only drives; passengers
+ * shoot from a vehicle with mounted weapons, aiming with the mouse or at the nearest enemy.
+ */
+function updateSeated(
+  state: GameState,
+  config: GameConfig,
+  s: Soldier,
+  input: Input,
+  controlledId: number | null,
+): void {
+  const v = state.vehicles.find((u) => u.id === s.vehicleId);
+  if (!v) {
+    s.vehicleId = null;
+    return;
+  }
+  s.facing = v.facing;
+  if (v.seats[0] === s.id || !config.vehicles[v.type]!.passengersShoot) return;
+  if (s.id === controlledId) {
+    const dx = input.aim.x - s.pos.x;
+    const dz = input.aim.z - s.pos.z;
+    if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
+    if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
+    return;
+  }
+  const target = findTarget(state, config, s);
+  if (!target) return;
+  s.facing = Math.atan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
+  if (s.fireCooldown <= 0) fireWeapon(state, config, s, config.squad.aiFireRateScale);
 }
 
 function updateControlled(
@@ -213,9 +366,13 @@ function updateControlled(
   const dz = aim.z - s.pos.z;
   if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
 
-  if (input.jump && s.y === 0 && s.vy === 0 && !isDrone(s)) s.vy = config.stance.jumpSpeed;
+  const grounded = s.vy === 0 && s.y === supportHeight(config.arena, s.pos, s.y);
+  if (input.jump && grounded && !isDrone(s) && !s.downed) {
+    // Walking into a box that a plain jump cannot clear: vault up onto it.
+    s.vy = climbSpeed(config, s, move) ?? config.stance.jumpSpeed;
+  }
 
-  if (input.firing && s.fireCooldown <= 0 && s.weapon !== null) fireWeapon(state, config, s);
+  if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
 }
 
 function updateAi(
@@ -235,6 +392,19 @@ function updateAi(
       s.order = { type: 'hold' };
       dest = null;
     }
+  } else if (s.order.type === 'board') {
+    const v = getVehicle(state, s.order.vehicleId);
+    if (!v || !v.seats.includes(null)) {
+      s.order = { type: 'hold' };
+    } else {
+      const reach = config.vehicles[v.type]!;
+      if (Math.hypot(v.pos.x - s.pos.x, v.pos.z - s.pos.z) <= reach.enterRange + reach.radius) {
+        s.order = { type: 'hold' };
+        toggleVehicle(state, config, s.id);
+      } else {
+        dest = { ...v.pos };
+      }
+    }
   } else if (s.order.type === 'follow' && leader) {
     const a = s.id * SLOT_ANGLE;
     const slot = {
@@ -245,6 +415,15 @@ function updateAi(
     if (d > SLOT_TOLERANCE) dest = slot;
     if (d > config.squad.followDistance * 2.5) speed *= CATCH_UP_SPEED;
   }
+
+  // Walk to a downed ally (with a medkit) or a fallen one (with a defibrillator) and stay there.
+  const patient = s.order.type === 'follow' ? rescueTarget(state, config, s) : null;
+  if (patient) {
+    const near = Math.hypot(patient.pos.x - s.pos.x, patient.pos.z - s.pos.z);
+    dest = near > config.downed.reviveRange * 0.7 ? { ...patient.pos } : null;
+  }
+  // A downed unit cannot walk on its own; it can still shoot.
+  if (s.downed) dest = null;
 
   let moveAngle: number | null = null;
   if (dest) {
@@ -293,10 +472,10 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
   const list = state.soldiers;
   for (let i = 0; i < list.length; i++) {
     const a = list[i]!;
-    if (a.dead || isDrone(a)) continue;
+    if (a.dead || isDrone(a) || a.vehicleId !== null) continue;
     for (let j = i + 1; j < list.length; j++) {
       const b = list[j]!;
-      if (b.dead || isDrone(b)) continue;
+      if (b.dead || isDrone(b) || b.vehicleId !== null) continue;
       const dx = b.pos.x - a.pos.x;
       const dz = b.pos.z - a.pos.z;
       const d = Math.hypot(dx, dz);
@@ -310,5 +489,5 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
       b.pos.z += nz * push;
     }
   }
-  for (const s of list) if (!s.dead && !isDrone(s)) resolveUnit(s, config);
+  for (const s of list) if (!s.dead && !isDrone(s) && s.vehicleId === null) resolveUnit(s, config);
 }

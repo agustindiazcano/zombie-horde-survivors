@@ -1,3 +1,4 @@
+import type { WeaponClass } from './config';
 import type { Rng } from './rng';
 import type { Vec2 } from './vec';
 
@@ -17,14 +18,35 @@ export type ZombieState = 'walk' | 'attack' | 'death';
 
 /** What an AI-driven soldier is doing. Only the controlled soldier ignores its order. */
 export type SoldierOrder =
-  { type: 'follow' } | { type: 'move'; x: number; z: number } | { type: 'hold' };
+  | { type: 'follow' }
+  | { type: 'move'; x: number; z: number }
+  | { type: 'board'; vehicleId: number }
+  | { type: 'hold' };
 
 export type Stance = 'normal' | 'crouch' | 'sprint';
 
 export type UnitKind = 'soldier' | 'drone';
 
+/** `count` of one item (an item id) sharing a backpack slot, up to the item's `stack`. */
+export interface Stack {
+  item: string;
+  count: number;
+}
+
+/**
+ * Hand and body slots; null is empty. A two-handed weapon sits in `rightHand` and leaves
+ * `leftHand` empty. With both hands empty a unit has fists (not active yet: it does not fight).
+ */
+export interface Equipment {
+  rightHand: string | null;
+  leftHand: string | null;
+  chest: string | null;
+}
+
 export interface Soldier {
   id: number;
+  /** Id of the downed or dead ally this soldier drags by the shoulders, if any. */
+  dragging: number | null;
   /** Id of the player that owns this unit. */
   owner: string;
   kind: UnitKind;
@@ -41,18 +63,58 @@ export interface Soldier {
   prevY: number;
   vy: number;
   order: SoldierOrder;
-  /** Equipped weapon id ('rifle', 'pistol', 'heavy_mg', 'drone_cannon'), or null if unarmed. */
-  weapon: string | null;
-  /** Carried weapon ids, up to `inventory.backpackSlots`. */
-  backpack: string[];
+  /** What the unit holds and wears (item ids from data/items.json). */
+  equipment: Equipment;
+  /** Carried stacks, up to `inventory.backpackSlots` slots. */
+  backpack: Stack[];
   /** This unit's own experience (grows when it kills) and enemies it has killed. */
   xp: number;
   kills: number;
   /** Sprint energy (0 to `stance.staminaMax`); `winded` blocks sprinting until it recovers. */
   stamina: number;
   winded: boolean;
+  /** A name set by the map, shown instead of "Soldier 2". */
+  name?: string;
+  /** Health before perks; the type's default unless the map changes it. */
+  baseHealth: number;
+  /** Stat sheet entry this unit was built from ('soldier', 'drone') in data/units.json. */
+  unitType: string;
+  /** The sheet's attributes with this unit's current values (mocked: no rule reads them yet). */
+  attributes: Record<string, number>;
+  /** Weapon-skill XP by weapon class, earned by killing with a weapon of that class. */
+  skills: Record<WeaponClass, number>;
   /** Absorbs damage before health does (0 to `player.maxArmor`); units start with none. */
   armor: number;
+  /** On the floor at zero health: crawls, shoots a one-handed gun, bleeds out (soldiers only). */
+  downed: boolean;
+  /** Seconds left to live while downed. */
+  bleedOut: number;
+  /** Seconds since death (a defibrillator only works within its window). */
+  deadTime: number;
+  /** Seconds an ally has spent reviving this unit; resets when none is in reach. */
+  reviveProgress: number;
+  /** The vehicle this unit sits in (it rides along and cannot be hit), or null. */
+  vehicleId: number | null;
+}
+
+/**
+ * A drivable machine. It is neutral: it belongs to whoever sits in it. Seat 0 is the driver's
+ * (no driver, no movement); the other seats hold passengers. Entries are soldier ids or null.
+ */
+export interface Vehicle {
+  id: number;
+  /** Key of `vehicles` in data/game.json. */
+  type: string;
+  pos: Vec2;
+  prev: Vec2;
+  /** Heading; direction is (sin, cos). */
+  facing: number;
+  prevFacing: number;
+  /** Forward speed in m/s. */
+  speed: number;
+  health: number;
+  maxHealth: number;
+  seats: (number | null)[];
 }
 
 export interface Zombie {
@@ -64,6 +126,12 @@ export interface Zombie {
   facing: number;
   /** Enemy variant id ('zombie', 'alien', ...). Picks the model and the stats below. */
   type: string;
+  /** A name set by the map. */
+  name?: string;
+  /** Attributes set by the map (mocked: no rule reads them). */
+  attributes?: Record<string, number>;
+  /** Items it carries; they drop in a crate when it dies. */
+  loot: string[];
   health: number;
   maxHealth: number;
   /** A mini boss: darker, slower, much tougher and harder-hitting than its type. */
@@ -84,7 +152,7 @@ export interface Zombie {
   deathTimer: number;
 }
 
-/** A dropped container of weapons on the ground. */
+/** A dropped container of items on the ground. */
 export interface Crate {
   id: number;
   pos: Vec2;
@@ -135,9 +203,14 @@ export type SimEvent =
   | { type: 'levelUp'; level: number }
   | { type: 'crateDropped'; crateId: number; pos: Vec2 }
   | { type: 'soldierHurt'; soldierId: number; damage: number; zombieId: number }
+  | { type: 'soldierDowned'; soldierId: number }
+  | { type: 'soldierRevived'; soldierId: number; byId: number }
   | { type: 'soldierDied'; soldierId: number }
+  | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
+  | { type: 'objectiveDone'; index: number }
+  | { type: 'victory' }
   | { type: 'gameOver' };
 
 /** Squad-wide multipliers from perks (all 1 at the start; regen is HP/s). */
@@ -150,14 +223,34 @@ export interface Mods {
   pickupRadius: number;
 }
 
+/** A harmless wandering animal (a dog, a cat) placed in the editor. */
+export interface Animal {
+  id: number;
+  /** Key of `animals` in game.json. */
+  type: string;
+  pos: Vec2;
+  prev: Vec2;
+  facing: number;
+  /** Where it was placed; it wanders near here. */
+  home: Vec2;
+  dest: Vec2 | null;
+  /** Seconds left to stand still before choosing a new spot. */
+  wait: number;
+}
+
 export interface GameState {
   time: number;
-  status: 'playing' | 'gameover';
+  status: 'playing' | 'gameover' | 'victory';
+  /** The map editor's live preview: units can be driven, but there are no waves and enemies stand still. */
+  sandbox: boolean;
   soldiers: Soldier[];
   players: Player[];
   /** The player at this keyboard; its `controlledId` is the unit under direct control. */
   localPlayerId: string;
   nextSoldierId: number;
+  vehicles: Vehicle[];
+  nextVehicleId: number;
+  animals: Animal[];
   /** How the whole squad is moving/shooting, set by the controlled player's keys. */
   stance: Stance;
   zombies: Zombie[];
@@ -178,6 +271,10 @@ export interface GameState {
   purchases: Record<string, number>;
   wave: number;
   kills: number;
+  /** Mini bosses killed so far (story objectives). */
+  bossKills: number;
+  /** One flag per story objective of the map; a done one stays done. */
+  objectivesDone: boolean[];
   spawner: Spawner;
   rng: Rng;
   /** Events produced by the last step; cleared at the start of each step. */

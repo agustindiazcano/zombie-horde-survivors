@@ -1,0 +1,203 @@
+{
+  "units": [
+    {
+      "id": "humans",
+      "name": "Humans",
+      "items": [
+        {
+          "id": "marine1",
+          "name": "Marine 1"
+        },
+        {
+          "id": "marine2",
+          "name": "Marine 2"
+        },
+        {
+          "id": "marine3",
+          "name": "Marine 3"
+        },
+        {
+          "id": "marine4",
+          "name": "Marine 4"
+        },
+        {
+          "id": "civilian",
+          "name": "Civilian",
+          "mocked": true
+        },
+        {
+          "id": "drone",
+          "name": "Drone"
+        }
+      ]
+    },
+    {
+      "id": "zombies",
+      "name": "Zombies",
+      "items": [
+        {
+          "id": "zombie",
+          "name": "Zombie"
+        },
+        {
+          "id": "skeleton",
+          "name": "Skeleton"
+        },
+        {
+          "id": "alien",
+          "name": "Alien"
+        },
+        {
+          "id": "hound",
+          "name": "Hound"
+        },
+        {
+          "id": "brute",
+          "name": "Brute"
+        },
+        {
+          "id": "worm",
+          "name": "Worm"
+        },
+        {
+          "id": "marine_zombie",
+          "name": "Infected marine"
+        }
+      ]
+    },
+    {
+      "id": "spawners",
+      "name": "Enemy spawners",
+      "items": [
+        {
+          "id": "spawner:zombie",
+          "name": "Spawner: Zombie"
+        },
+        {
+          "id": "spawner:skeleton",
+          "name": "Spawner: Skeleton"
+        },
+        {
+          "id": "spawner:alien",
+          "name": "Spawner: Alien"
+        },
+        {
+          "id": "spawner:hound",
+          "name": "Spawner: Hound"
+        },
+        {
+          "id": "spawner:brute",
+          "name": "Spawner: Brute"
+        },
+        {
+          "id": "spawner:worm",
+          "name": "Spawner: Worm"
+        },
+        {
+          "id": "spawner:marine_zombie",
+          "name": "Spawner: Infected marine"
+        }
+      ]
+    },
+    {
+      "id": "monsters",
+      "name": "Monsters",
+      "items": [
+        {
+          "id": "boss",
+          "name": "Mini boss",
+          "mocked": true
+        }
+      ]
+    },
+    {
+      "id": "vehicles",
+      "name": "Vehicles",
+      "groups": [
+        {
+          "id": "military",
+          "name": "Military",
+          "groups": [
+            {
+              "id": "military-air",
+              "name": "Air",
+              "items": []
+            },
+            {
+              "id": "military-sea",
+              "name": "Sea",
+              "items": []
+            },
+            {
+              "id": "military-land",
+              "name": "Land",
+              "items": [
+                {
+                  "id": "jeep",
+                  "name": "Jeep"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "civil",
+          "name": "Civil",
+          "groups": [
+            {
+              "id": "civil-air",
+              "name": "Air",
+              "items": []
+            },
+            {
+              "id": "civil-sea",
+              "name": "Sea",
+              "items": []
+            },
+            {
+              "id": "civil-land",
+              "name": "Land",
+              "items": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "animals",
+      "name": "Animals",
+      "items": [
+        {
+          "id": "dog",
+          "name": "Dog"
+        },
+        {
+          "id": "cat",
+          "name": "Cat"
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "outdoors",
+      "name": "Outdoors",
+      "items": [
+        {
+          "id": "block",
+          "name": "Block"
+        }
+      ]
+    },
+    {
+      "id": "indoors",
+      "name": "Indoors",
+      "items": []
+    },
+    {
+      "id": "nature",
+      "name": "Nature",
+      "items": []
+    }
+  ]
+}

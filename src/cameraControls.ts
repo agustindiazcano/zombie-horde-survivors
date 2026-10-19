@@ -19,7 +19,8 @@ export class CameraControls {
     active: boolean;
   } | null = null;
 
-  constructor(canvas: HTMLElement, renderer: GameRenderer) {
+  /** `blocked` says a right-drag belongs to something else right now (the editor moving items). */
+  constructor(canvas: HTMLElement, renderer: GameRenderer, blocked: () => boolean = () => false) {
     canvas.addEventListener(
       'wheel',
       (e) => {
@@ -50,7 +51,7 @@ export class CameraControls {
     canvas.addEventListener('touchend', () => (pinch = 0));
 
     canvas.addEventListener('mousedown', (e) => {
-      if (e.button !== 2) return;
+      if (e.button !== 2 || blocked()) return;
       this.drag = {
         startX: e.clientX,
         startY: e.clientY,

@@ -129,6 +129,28 @@
       "barHeight": 2.2
     }
   },
+  "animals": {
+    "dog": {
+      "model": "models/animal-dog.glb",
+      "scale": 0.6,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "DogArmature|DogArmature|Idle",
+        "walk": "DogArmature|DogArmature|Walking"
+      },
+      "once": []
+    },
+    "cat": {
+      "model": "models/animal-cat.glb",
+      "scale": 0.6,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "CatArmature|CatArmature|Idle",
+        "walk": "CatArmature|CatArmature|Walking"
+      },
+      "once": []
+    }
+  },
   "drone": {
     "model": "models/drone.glb",
     "scale": 0.22,

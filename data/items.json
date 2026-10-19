@@ -1,0 +1,216 @@
+{
+  "items": {
+    "fists": {
+      "type": "weapon",
+      "name": "Fists",
+      "icon": "✊",
+      "stack": 1,
+      "innate": true,
+      "class": "melee",
+      "hands": 1,
+      "damageType": "physical",
+      "fireRate": 2,
+      "damage": 6,
+      "range": 1.2,
+      "spread": 0,
+      "mocked": {
+        "noise": 1,
+        "weight": 0,
+        "accessorySlots": []
+      }
+    },
+    "pistol": {
+      "type": "weapon",
+      "name": "Pistol",
+      "icon": "🔫",
+      "stack": 1,
+      "class": "pistol",
+      "hands": 1,
+      "damageType": "physical",
+      "fireRate": 4,
+      "damage": 20,
+      "range": 25,
+      "spread": 0.02,
+      "mocked": {
+        "magazine": 12,
+        "reloadTime": 1.2,
+        "noise": 6,
+        "weight": 1,
+        "accessorySlots": ["optic", "barrel", "magazine"]
+      }
+    },
+    "rifle": {
+      "type": "weapon",
+      "name": "Rifle",
+      "icon": "🔫",
+      "stack": 1,
+      "class": "rifle",
+      "hands": 2,
+      "damageType": "physical",
+      "fireRate": 8,
+      "damage": 25,
+      "range": 40,
+      "spread": 0,
+      "mocked": {
+        "magazine": 30,
+        "reloadTime": 2.2,
+        "noise": 9,
+        "weight": 3.5,
+        "accessorySlots": ["optic", "barrel", "magazine", "grip", "underbarrel"]
+      }
+    },
+    "heavy_mg": {
+      "type": "weapon",
+      "name": "Heavy machine gun",
+      "icon": "💥",
+      "stack": 1,
+      "class": "machinegun",
+      "hands": 2,
+      "damageType": "physical",
+      "fireRate": 14,
+      "damage": 18,
+      "range": 35,
+      "spread": 0.07,
+      "mocked": {
+        "magazine": 100,
+        "reloadTime": 5,
+        "noise": 10,
+        "weight": 9,
+        "accessorySlots": ["optic", "barrel", "grip"]
+      }
+    },
+    "drone_cannon": {
+      "type": "weapon",
+      "name": "Drone gun",
+      "icon": "🛸",
+      "stack": 1,
+      "droneOnly": true,
+      "class": "machinegun",
+      "hands": 1,
+      "damageType": "physical",
+      "fireRate": 1.2,
+      "damage": 45,
+      "range": 30,
+      "spread": 0,
+      "mocked": {
+        "noise": 4,
+        "weight": 2,
+        "accessorySlots": []
+      }
+    },
+    "armor_plate": {
+      "type": "plate",
+      "name": "Armor plate",
+      "icon": "🛡️",
+      "stack": 1
+    },
+    "kevlar_vest": {
+      "type": "armor",
+      "name": "Kevlar vest",
+      "icon": "🦺",
+      "stack": 1,
+      "slot": "chest",
+      "mocked": {
+        "armor": 25,
+        "weight": 3
+      }
+    },
+    "medkit_s": {
+      "type": "medical",
+      "name": "Medkit (S)",
+      "icon": "🩹",
+      "stack": 5,
+      "heal": 25,
+      "mocked": {
+        "useTime": 1.5
+      }
+    },
+    "medkit_m": {
+      "type": "medical",
+      "name": "Medkit (M)",
+      "icon": "💊",
+      "stack": 3,
+      "heal": 50,
+      "mocked": {
+        "useTime": 3
+      }
+    },
+    "medkit_l": {
+      "type": "medical",
+      "name": "Medkit (L)",
+      "icon": "🧰",
+      "stack": 2,
+      "heal": 100,
+      "mocked": {
+        "useTime": 5
+      }
+    },
+    "frag_grenade": {
+      "type": "grenade",
+      "name": "Frag grenade",
+      "icon": "💣",
+      "stack": 4,
+      "damageType": "explosive",
+      "mocked": {
+        "blastRadius": 4,
+        "blastDamage": 120,
+        "falloff": 0.5,
+        "fuse": 3,
+        "throwRange": 14,
+        "weight": 0.5
+      }
+    },
+    "defibrillator": {
+      "type": "defibrillator",
+      "name": "Defibrillator",
+      "icon": "⚡",
+      "stack": 1,
+      "mocked": {
+        "weight": 2
+      },
+      "channelTime": 4,
+      "reviveWindow": 30
+    },
+    "scope": {
+      "type": "accessory",
+      "name": "Scope",
+      "icon": "🔭",
+      "stack": 1,
+      "slot": "optic",
+      "mocked": {
+        "modifiers": {
+          "accuracy": 0.05,
+          "range": 0.05
+        },
+        "weight": 0.4
+      }
+    },
+    "suppressor": {
+      "type": "accessory",
+      "name": "Suppressor",
+      "icon": "🔇",
+      "stack": 1,
+      "slot": "barrel",
+      "mocked": {
+        "modifiers": {
+          "noise": -0.6,
+          "damage": -0.1
+        },
+        "weight": 0.6
+      }
+    },
+    "foregrip": {
+      "type": "accessory",
+      "name": "Foregrip",
+      "icon": "🪝",
+      "stack": 1,
+      "slot": "grip",
+      "mocked": {
+        "modifiers": {
+          "recoil": -0.15
+        },
+        "weight": 0.3
+      }
+    }
+  }
+}

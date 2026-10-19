@@ -1,5 +1,12 @@
 import type { GameRenderer } from './render/gameRenderer';
-import { orderFollow, orderMove, type GameConfig, type GameState, type Soldier } from './sim';
+import {
+  orderBoard,
+  orderFollow,
+  orderMove,
+  type GameConfig,
+  type GameState,
+  type Soldier,
+} from './sim';
 
 /** Pointer movement below this (px) is a click, above it a box selection. */
 const DRAG_THRESHOLD = 6;
@@ -85,6 +92,19 @@ export class RtsController {
       -(e.clientY / window.innerHeight) * 2 + 1,
     );
     if (!ground) return;
+    // Right-clicking a vehicle with a free seat sends the selection to climb in.
+    const state = this.getState();
+    const vehicle = state.vehicles.find(
+      (v) =>
+        v.seats.includes(null) &&
+        Math.hypot(v.pos.x - ground.x, v.pos.z - ground.z) <=
+          this.config.vehicles[v.type]!.radius + 1,
+    );
+    if (vehicle) {
+      orderBoard(state, [...this.selected], vehicle.id);
+      this.renderer.pulse(vehicle.pos);
+      return;
+    }
     orderMove(this.getState(), this.config, [...this.selected], ground);
     this.renderer.pulse(ground);
   }

@@ -1,0 +1,10 @@
+# 2026-10-18 — Phase 6: terrain
+
+Branch `feat/terrain`, cut from `feat/place-units` (eighth in the stack; PRs go in order). 48 tests and all checks pass; nothing seen in a browser.
+
+- **Map format:** `terrain.heights` is (size+1)² vertices (one per metre), `terrain.paint` size² texture ids, `terrain.water` a level; the schema checks the dimensions. `surfaces[]` got an optional `width` (default 3 m). `data/terrain.json` (read by `src/terrainData.ts`) holds the ground textures, road surfaces, water look and the height limits (-3 to 6 m).
+- **Sim (`src/sim/terrain.ts`):** `heightAt` (bilinear) and `waterObstacles`: cells whose corners average below the water level become blocking boxes (merged into few), flagged `water` so bullets pass over them (`weapon.ts` skips them) while walkers and zombies steer around them. Slopes do not block anyone and the sim stays 2D: height is only drawn. `Arena` now carries `terrain` and `surfaces`.
+- **Renderer:** `arena.ts` builds a one-vertex-per-metre ground with vertex colours from the paint grid (flat shading on hills), a translucent water plane, road ribbons that follow the hills, and puts walls and blocks on the ground. Soldiers, enemies, crates, health bars and the first / third person camera add the terrain height. A map with no heights, paint or roads looks as before (Map 1 unchanged, grid kept only on flat maps).
+- **Editor, Terrain tab:** Raise / Lower / Flatten / Smooth (brush size and strength sliders), Paint (texture picker), Floors and roads (each click adds a point, right-click or Esc ends the road, width slider, "Remove all roads"), and a Water checkbox plus level slider. A brush stroke, a slider drag and each road click are one history step. `src/terrainBrush.ts` holds the brush maths.
+- **Speed-up:** `onMapChange(map, unitsKept)`; an edit that did not touch the units or players only rebuilds the ground (no game reset, no unit views reloaded).
+- Not done: pickups still sit at height 0, the editor's click-to-ground picking ignores hills (it uses the y = 0 plane), no steep-slope blocking, no thumbnails, the Block asset does not follow slopes (its base is at the centre height).
