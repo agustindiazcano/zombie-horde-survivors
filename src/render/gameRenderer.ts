@@ -847,7 +847,13 @@ export class GameRenderer {
           this.viewModel.kick(0.8 + e.cameraKick * 4);
           this.shake = Math.min(this.shake + SHOT_SHAKE + e.cameraKick, MAX_SHAKE);
         }
-        if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
+        if (e.hitZombieId !== null) {
+          this.flash.set(e.hitZombieId, FLASH_TIME);
+          // Blood flies on past the enemy, more for a head hit or a crit.
+          if (this.goreEnabled) {
+            this.gore.hitSpray(e.to.x, e.height, e.to.z, e.facing, e.hit?.kind === 'body' ? 1 : 2);
+          }
+        }
       } else if (e.type === 'zombieKilled' && e.head) {
         this.loseHead(state, e);
       } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
