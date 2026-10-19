@@ -1,5 +1,5 @@
 import type { DamageType, GameConfig, WeaponClass, WeaponItem } from './config';
-import type { Mods, Soldier, Stance } from './types';
+import type { GameState, Mods, Soldier, Stance } from './types';
 
 export interface WeaponDef {
   id: string;
@@ -106,3 +106,10 @@ export function skillLevel(
   }
   return { level, into: rest, needed };
 }
+
+/** Max health with perks; pass a unit to use the base health its map gave it. */
+export const maxHealthOf = (
+  state: GameState,
+  config: GameConfig,
+  unit?: { baseHealth: number },
+): number => (unit?.baseHealth ?? config.player.maxHealth) * state.mods.maxHealth;

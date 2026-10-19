@@ -1,6 +1,7 @@
 import type { GameConfig } from './config';
 import { addToBackpack, itemDef } from './inventory';
 import { nextFloat } from './rng';
+import { maxHealthOf } from './stats';
 import type { GameState, Mods } from './types';
 
 export const baseMods = (): Mods => ({
@@ -23,9 +24,6 @@ function computeMods(state: GameState, config: GameConfig): Mods {
   }
   return mods;
 }
-
-export const maxHealthOf = (state: GameState, config: GameConfig): number =>
-  config.player.maxHealth * state.mods.maxHealth;
 
 /** Takes one stack of a perk, refreshing the multipliers and healing for a max health gain. */
 function addStack(state: GameState, config: GameConfig, perkId: string): boolean {
@@ -94,12 +92,12 @@ export function buyItem(
   if (state.gold < cost) return 'Not enough gold';
 
   if (item.kind === 'heal') {
-    const max = maxHealthOf(state, config);
     const hurt = state.soldiers.filter(
-      (s) => !s.dead && !s.downed && s.kind === 'soldier' && s.health < max,
+      (s) =>
+        !s.dead && !s.downed && s.kind === 'soldier' && s.health < maxHealthOf(state, config, s),
     );
     if (hurt.length === 0) return 'Everyone is already at full health';
-    for (const s of hurt) s.health = max;
+    for (const s of hurt) s.health = maxHealthOf(state, config, s);
   } else if (item.kind === 'revive') {
     const fallen = state.soldiers.find((s) => s.dead && s.kind === 'soldier');
     const anchor = state.soldiers.find((s) => !s.dead && !s.downed && s.kind === 'soldier');
@@ -107,7 +105,7 @@ export function buyItem(
     fallen.dead = false;
     fallen.deadTime = 0;
     fallen.reviveProgress = 0;
-    fallen.health = maxHealthOf(state, config) / 2;
+    fallen.health = maxHealthOf(state, config, fallen) / 2;
     fallen.armor = 0;
     fallen.order = { type: 'follow' };
     fallen.fireCooldown = 0;
@@ -144,3 +142,5 @@ export function buyItem(
   state.purchases[item.id] = (state.purchases[item.id] ?? 0) + 1;
   return null;
 }
+
+export { maxHealthOf };

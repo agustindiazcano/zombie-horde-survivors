@@ -31,6 +31,28 @@ const mapPlayer = z
   })
   .strict();
 
+const loadoutShape = {
+  /** A name shown instead of the type's. */
+  name: z.string().min(1).optional(),
+  /** Health in place of the type's default (for a soldier, before perks). */
+  maxHealth: positive.optional(),
+  /** Attribute values by name (a missing one keeps the sheet's). */
+  attributes: z.record(z.string(), z.number().nonnegative()).optional(),
+  /** Hand and vest slots; null empties one, a missing one keeps the default. */
+  equipment: z
+    .object({
+      rightHand: z.string().nullable().optional(),
+      leftHand: z.string().nullable().optional(),
+      chest: z.string().nullable().optional(),
+    })
+    .strict()
+    .optional(),
+  /** Carried stacks. An enemy drops these in a crate when it dies. */
+  backpack: z
+    .array(z.object({ item: z.string().min(1), count: z.number().int().positive() }).strict())
+    .optional(),
+};
+
 const mapUnit = z
   .object({
     /** Unit type id (character or vehicle catalog entry). */
@@ -41,10 +63,46 @@ const mapUnit = z
     /** Heading in radians (0 faces +Z). */
     rotation: z.number().optional(),
     hold: z.boolean().optional(),
+    ...loadoutShape,
   })
   .strict();
 
+/** The changes a map can make to one placed unit; they apply to that unit of that map only. */
+export type Loadout = {
+  name?: string;
+  maxHealth?: number;
+  attributes?: Record<string, number>;
+  equipment?: { rightHand?: string | null; leftHand?: string | null; chest?: string | null };
+  backpack?: { item: string; count: number }[];
+};
+
+/** A spawn point: where enemies appear, and for a placed spawner which enemy and what it carries. */
+export type SpawnPoint = Vec2 & { enemy?: string; loadout?: Loadout };
+
+/** The id prefix of a placed spawner unit: `spawner:<enemy id>`. */
+export const SPAWNER_PREFIX = 'spawner:';
+
+/** The enemy type a placed unit spawns, or null when it is not a spawner. */
+export const spawnerEnemy = (type: string): string | null =>
+  type.startsWith(SPAWNER_PREFIX) ? type.slice(SPAWNER_PREFIX.length) : null;
+
 const difficultyId = z.enum(['easy', 'normal', 'hard']);
+
+/** A story goal. The mission is won when every objective is done; the squad dying still loses. */
+const objective = z.discriminatedUnion('kind', [
+  /** Walk any living soldier to a spot. */
+  z
+    .object({ kind: z.literal('reach'), x: z.number(), z: z.number(), radius: positive.default(3) })
+    .strict(),
+  /** Kill this many enemies. */
+  z.object({ kind: z.literal('kills'), count: z.number().int().positive() }).strict(),
+  /** Clear this wave. */
+  z.object({ kind: z.literal('survive'), wave: z.number().int().positive() }).strict(),
+  /** Kill this many mini bosses. */
+  z.object({ kind: z.literal('boss'), count: z.number().int().positive().default(1) }).strict(),
+]);
+
+export type Objective = z.infer<typeof objective>;
 
 /**
  * Per-map rules. Everything but `mode` is optional: a field that is present replaces the global
@@ -86,10 +144,46 @@ const mapLogic = z
       .optional(),
     /** Where enemies appear (picked at random); empty or missing = anywhere along the map edge. */
     spawnPoints: z.array(point).optional(),
+    /** Story missions: the goals to win (a missing or empty list never ends the run). */
+    objectives: z.array(objective).optional(),
   })
   .strict();
 
 export type MapLogic = z.infer<typeof mapLogic>;
+
+const unit01 = z.number().min(0).max(1);
+
+/**
+ * How the map looks: sky, time of day, light colour and weather. Every field has a default, and a
+ * map without this section looks like noon with clear weather. Nothing here changes the rules.
+ */
+export const EnvironmentSchema = z
+  .object({
+    /** Draws the sky (gradient, sun, moon, clouds); off shows a plain dark background. */
+    sky: z.boolean().default(true),
+    /** Hours from 0 to 24: 0 midnight, 6 dawn, 12 noon, 18 dusk. Sets the sun angle and the light. */
+    timeOfDay: z.number().min(0).max(24).default(12),
+    /** A "#rrggbb" colour for the main light, or null for the colour the time of day gives. */
+    lightColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .nullable()
+      .default(null),
+    sun: z.boolean().default(true),
+    moon: z.boolean().default(true),
+    /** From 0 (none) to 1 (overcast). */
+    clouds: unit01.default(0),
+    /** Weather strengths from 0 (off) to 1 (heaviest). */
+    rain: unit01.default(0),
+    snow: unit01.default(0),
+    sand: unit01.default(0),
+    fog: unit01.default(0),
+  })
+  .strict();
+
+export type Environment = z.infer<typeof EnvironmentSchema>;
+
+export const defaultEnvironment = (): Environment => EnvironmentSchema.parse({});
 
 export const MapSchema = z
   .object({
@@ -131,6 +225,8 @@ export const MapSchema = z
     players: z.array(mapPlayer),
     units: z.array(mapUnit),
     logic: mapLogic,
+    /** Sky, time of day and weather (see EnvironmentSchema); missing = noon, clear. */
+    environment: EnvironmentSchema.optional(),
   })
   .strict()
   .superRefine((map, ctx) => {
@@ -145,10 +241,13 @@ export const MapSchema = z
     if (paint && (paint.length !== n || paint.some((r) => r.length !== n))) {
       ctx.addIssue({ code: 'custom', message: 'terrain.paint must be size x size' });
     }
-    if (map.logic.mode === 'waves') {
+    if (map.logic.mode === 'waves' || map.logic.mode === 'story') {
       for (const kind of ['human', 'ai'] as const) {
         if (!map.players.some((p) => p.kind === kind)) {
-          ctx.addIssue({ code: 'custom', message: `a waves map needs a ${kind} player` });
+          ctx.addIssue({
+            code: 'custom',
+            message: `a ${map.logic.mode} map needs a ${kind} player`,
+          });
         }
       }
     }
@@ -221,6 +320,8 @@ export const UnitsSchema = z
         .object({
           name: z.string().min(1),
           family: z.enum(UNIT_FAMILIES),
+          /** Which soldier model (slot of data/characters.json) draws this unit; unset = by id. */
+          model: z.number().int().nonnegative().optional(),
           attributes: z.record(z.string(), z.number().nonnegative()),
         })
         .strict(),
@@ -693,7 +794,9 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   /** The map's difficulty: multipliers on enemy health, speed and wave size. */
   level: z.infer<typeof difficultyScale>;
   /** Where enemies appear; empty = along the map edge. */
-  spawnPoints: Vec2[];
+  spawnPoints: SpawnPoint[];
+  /** Story goals; empty in waves maps and in story maps that set none. */
+  objectives: Objective[];
   /** Stat sheets by unit type (from data/units.json). */
   units: UnitsData;
   /** The item catalog (from data/items.json), by item id. */
@@ -723,14 +826,21 @@ type GlobalRules = Pick<
   z.infer<typeof GameConfigSchema>,
   'waves' | 'boss' | 'enemies' | 'difficulty'
 >;
-type MapRules = Pick<GameConfig, 'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints'>;
+type MapRules = Pick<
+  GameConfig,
+  'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints' | 'objectives'
+>;
 
 /**
  * The wave, enemy and boss rules of one map: the global ones of game.json with the map's overrides
  * on top. Returns new objects, so `global` can be reused for the next map. Unknown enemy ids in
  * the map are ignored.
  */
-export function mapRules(global: GlobalRules, logic: MapLogic): MapRules {
+export function mapRules(
+  global: GlobalRules,
+  logic: MapLogic,
+  units: MapData['units'] = [],
+): MapRules {
   let enemies = global.enemies;
   if (logic.enemies) {
     enemies = {};
@@ -752,7 +862,15 @@ export function mapRules(global: GlobalRules, logic: MapLogic): MapRules {
     boss,
     enemies,
     level: global.difficulty[logic.difficulty ?? 'normal'],
-    spawnPoints: logic.spawnPoints ?? [],
+    spawnPoints: [
+      ...(logic.spawnPoints ?? []),
+      // A placed spawner is a spawn point of its enemy type, carrying the unit's changes.
+      ...units.flatMap((u) => {
+        const enemy = spawnerEnemy(u.type);
+        return enemy ? [{ x: u.x, z: u.z, enemy, loadout: u }] : [];
+      }),
+    ],
+    objectives: logic.mode === 'story' ? (logic.objectives ?? []) : [],
   };
 }
 
@@ -767,7 +885,7 @@ export function parseConfig(
   checkItemRefs(game, catalog);
   return {
     ...game,
-    ...mapRules(game, map.logic),
+    ...mapRules(game, map.logic, map.units),
     arena: arenaOf(map),
     players: map.players,
     placed: map.units,

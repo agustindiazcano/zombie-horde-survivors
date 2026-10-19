@@ -8,12 +8,6 @@
 }
 
 .editor--hidden,
-.editor__bar--hidden,
-.editor__panel--hidden,
-.editor__stopbar--hidden {
-  display: none;
-}
-
 /* The play HUD is off while editing; the editor draws over the same 3D view. */
 body.editing .hud,
 body.editing .squad,
@@ -241,4 +235,67 @@ body.editing .radar {
   background: #1e2430;
   border: 1px solid #4a5366;
   border-radius: 6px;
+}
+
+/* Last on purpose: these must win over the display rules of the same elements above. */
+.editor__bar--hidden,
+.editor__panel--hidden,
+.editor__stopbar--hidden {
+  display: none;
+}
+
+.editor__box {
+  position: fixed;
+  display: none;
+  border: 1px dashed #ffd84a;
+  background: rgba(255, 216, 74, 0.12);
+  pointer-events: none;
+}
+
+.editor__dialog-box--wide {
+  width: min(760px, 94vw);
+}
+
+.editor__cols {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.editor__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.editor__sub {
+  margin: 6px 0 2px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.editor__text {
+  width: 160px;
+}
+
+.editor__range {
+  flex: 1;
+  min-width: 80px;
+}
+
+.editor__value {
+  min-width: 56px;
+  text-align: right;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.editor__color {
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid #4a5366;
+  background: none;
 }

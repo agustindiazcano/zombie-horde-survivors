@@ -3,7 +3,17 @@ import { z } from 'zod';
 import catalogData from '../data/catalog.json';
 import gameData from '../data/game.json';
 import { blankMap, exportMap, importMapFile, listMaps, pickMapFile, saveMap } from './maps';
-import type { MapData, MapLogic, Vec2 } from './sim';
+import { objectiveLabel } from './hud';
+import { isDialogOpen, openInventory, openStats } from './unitDialogs';
+import {
+  defaultEnvironment,
+  spawnerEnemy,
+  type Environment,
+  type MapData,
+  type MapLogic,
+  type Objective,
+  type Vec2,
+} from './sim';
 import { flatHeights, paintCells, plainPaint, sculpt, type SculptMode } from './terrainBrush';
 import { terrainData } from './terrainData';
 
@@ -56,17 +66,39 @@ const catalog = z
   .strict()
   .parse(catalogData);
 
-type TabId = 'units' | 'assets' | 'terrain' | 'logic' | 'players';
+type TabId = 'units' | 'assets' | 'terrain' | 'logic' | 'sky' | 'players';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'units', label: 'Units' },
   { id: 'assets', label: 'Assets' },
   { id: 'terrain', label: 'Terrain' },
   { id: 'logic', label: 'Game logic' },
+  { id: 'sky', label: 'Environment' },
   { id: 'players', label: 'Players' },
 ];
 
 const SOON = 'Not built yet';
+
+/** "14:30 · Day" for the time-of-day slider. */
+function hourLabel(hour: number): string {
+  const h = Math.floor(hour) % 24;
+  const m = Math.round((hour - Math.floor(hour)) * 60);
+  const phase =
+    hour < 4.5 || hour >= 21
+      ? 'Night'
+      : hour < 7.5
+        ? 'Dawn'
+        : hour < 16.5
+          ? 'Day'
+          : hour < 19.5
+            ? 'Dusk'
+            : 'Evening';
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} · ${phase}`;
+}
+
+/** Off / Light / Medium / Heavy / Extreme for a 0 to 1 weather strength. */
+const strengthLabel = (v: number): string =>
+  v <= 0 ? 'Off' : v < 0.3 ? 'Light' : v < 0.6 ? 'Medium' : v < 0.85 ? 'Heavy' : 'Extreme';
 
 /** What the next click on the map places; `owner` is the kind of player that owns a unit. */
 interface Tool {
@@ -76,6 +108,12 @@ interface Tool {
   owner: 'human' | 'ai';
 }
 /** An item already on the map: an index into `units` or `props`. */
+/** Map sizes the New dialog accepts, in metres per side. */
+const MIN_MAP_SIZE = 20;
+const MAX_MAP_SIZE = 200;
+/** How far a pasted copy lands from the one it copies. */
+const PASTE_OFFSET = 2;
+
 interface Selection {
   list: 'units' | 'props';
   index: number;
@@ -107,6 +145,10 @@ const TERRAIN_TOOLS: { id: TerrainTool; label: string }[] = [
 ];
 /** A drag shorter than this (metres) is a click, not a move. */
 const DRAG_EPSILON = 0.05;
+/** An item ignores the pointer while it is closer than this (m): its direction would flicker. */
+const FACE_MIN_DISTANCE = 0.3;
+/** A box drag shorter than this (px) is a click. */
+const BOX_MIN_PX = 5;
 
 /**
  * The map editor: a top bar (Play / Stop, file and undo buttons) and a right-hand panel with five
@@ -129,9 +171,26 @@ export class Editor {
   private playing = false;
   private picked: HTMLElement | null = null;
   private tool: Tool | null = null;
-  private selection: Selection | null = null;
+  private selection: Selection[] = [];
+  /** What Ctrl+C remembered. */
+  private clipboard: { units: MapData['units']; props: MapData['props'] } | null = null;
+  private drag: {
+    mode: 'move' | 'face' | 'box';
+    button: number;
+    /** The map when the drag began: every step is computed from it, not from the last step. */
+    base: MapData;
+    from: Vec2;
+    client: { x: number; y: number };
+    additive: boolean;
+  } | null = null;
+  /** R is held: a right-drag turns the selection, and letting go without dragging turns one step. */
+  private rHeld = false;
+  private rUsed = false;
+  /** A slider or colour drag is in progress: its steps after the first are not undo steps. */
+  private sliding = false;
+  private boxEnd: { x: number; y: number } | null = null;
+  private readonly boxEl: HTMLElement;
   /** The mouse is down on the selection; `dragMoved` once it has actually moved. */
-  private dragging = false;
   private dragMoved = false;
   private tab: TabId = 'units';
   private terrainTool: TerrainTool | null = null;
@@ -149,7 +208,8 @@ export class Editor {
   private roadIndex: number | null = null;
   private waterDragging = false;
   /** The Game logic tab is armed: the next map clicks add spawn points. */
-  private spawnTool = false;
+  /** Which click-to-place tool of the Game logic tab is armed. */
+  private spawnTool: 'spawn' | 'goal' | null = null;
   private past: MapData[] = [];
   private future: MapData[] = [];
   private readonly title: HTMLElement;
@@ -167,7 +227,7 @@ export class Editor {
       canvas: HTMLElement;
       groundAt: (ndcX: number, ndcY: number) => Vec2 | null;
       /** Shows a ring at the selected item (null hides it). */
-      onMark: (at: Vec2 | null, radius: number) => void;
+      onMarks: (marks: { at: Vec2; radius: number }[]) => void;
       /** Shows the map's enemy spawn points while editing (null hides them). */
       onSpawnMarks: (points: Vec2[] | null) => void;
     },
@@ -178,7 +238,7 @@ export class Editor {
     this.playButton.addEventListener('click', () => this.setPlaying(true));
     const file = (label: string, action: () => void) =>
       el('button', 'editor__btn', this.bar, label).addEventListener('click', action);
-    file('New', () => this.setMap(blankMap()));
+    file('New', () => this.newDialog());
     file('Open', () => this.openDialog());
     file('Save', () => this.save());
     file('Export', () => exportMap(this.current));
@@ -201,6 +261,7 @@ export class Editor {
     stop.addEventListener('click', () => this.setPlaying(false));
     el('span', 'editor__title', this.stopBar, 'Testing the map');
 
+    this.boxEl = el('div', 'editor__box', this.root);
     parent.appendChild(this.root);
     this.setTab('units');
 
@@ -210,10 +271,16 @@ export class Editor {
     });
     window.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('mouseup', () => {
-      this.dragging = false;
+      this.endDrag();
       this.stroking = false;
     });
     window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', (e) => {
+      if (e.key.toLowerCase() !== 'r' || !this.rHeld) return;
+      this.rHeld = false;
+      if (!this.rUsed && this.isEditing) this.rotateSelected();
+    });
+    window.addEventListener('blur', () => (this.rHeld = false));
   }
 
   /** True while the editor is up and paused (not while testing the map). */
@@ -234,7 +301,7 @@ export class Editor {
     this.current = map;
     this.past = [];
     this.future = [];
-    this.selection = null;
+    this.selection = [];
     this.roadIndex = null;
     this.title.textContent = `Map editor · ${map.meta.name}`;
     this.actions.onMapChange(map, false);
@@ -272,10 +339,8 @@ export class Editor {
     this.apply(next);
   }
 
-  /** The position and size of the selected item, if it still exists. */
-  private selected(): { at: Vec2; radius: number; label: string } | null {
-    const sel = this.selection;
-    if (!sel) return null;
+  /** The position and size of one selected item, if it still exists. */
+  private resolve(sel: Selection): { at: Vec2; radius: number; label: string } | null {
     if (sel.list === 'units') {
       const u = this.current.units[sel.index];
       return u ? { at: u, radius: PICK_RADIUS, label: this.nameOf(u.type) } : null;
@@ -284,6 +349,18 @@ export class Editor {
     if (!p) return null;
     const half = p.collider ? Math.max(p.collider.halfW, p.collider.halfD) : BLOCK_HALF;
     return { at: p, radius: half * 1.5, label: this.nameOf(p.asset) };
+  }
+
+  /** The selected items that still exist (an undo can remove some). */
+  private selectedItems(): { sel: Selection; at: Vec2; radius: number; label: string }[] {
+    return this.selection.flatMap((sel) => {
+      const r = this.resolve(sel);
+      return r ? [{ sel, ...r }] : [];
+    });
+  }
+
+  private isSelected(hit: Selection): boolean {
+    return this.selection.some((s) => s.list === hit.list && s.index === hit.index);
   }
 
   private nameOf(id: string): string {
@@ -297,19 +374,29 @@ export class Editor {
     return find(catalog.units) ?? find(catalog.assets) ?? id;
   }
 
-  /** Refreshes the selection ring, the info line and the undo / redo buttons. */
+  /** Refreshes the selection rings, the info line and the undo / redo buttons. */
   private syncSelection(): void {
-    const sel = this.selected();
-    if (!sel) this.selection = null;
-    this.actions.onMark(sel ? sel.at : null, sel?.radius ?? 1);
-    this.actions.onSpawnMarks(this.isEditing ? (this.current.logic.spawnPoints ?? []) : null);
+    const items = this.selectedItems();
+    this.selection = items.map((i) => i.sel);
+    this.actions.onMarks(this.isEditing ? items.map((i) => ({ at: i.at, radius: i.radius })) : []);
+    this.actions.onSpawnMarks(
+      this.isEditing
+        ? [
+            ...(this.current.logic.spawnPoints ?? []),
+            ...this.current.units.filter((u) => spawnerEnemy(u.type) !== null),
+          ]
+        : null,
+    );
+    const one = items.length === 1 ? items[0]! : null;
     this.info.textContent = this.spawnTool
-      ? 'Placing spawn points. Click the map to add one; right-click or Esc to stop.'
+      ? `Placing ${this.spawnTool === 'goal' ? 'a goal spot' : 'spawn points'}. Click the map to add one; right-click or Esc to stop.`
       : this.tool
         ? `Placing: ${this.tool.name}. Click the map to place; right-click or Esc to stop.`
-        : sel
-          ? `Selected: ${sel.label} (${sel.at.x.toFixed(1)}, ${sel.at.z.toFixed(1)}). Drag moves, R rotates, Delete removes.`
-          : 'Click an item on the map to select it.';
+        : one
+          ? `Selected: ${one.label} (${one.at.x.toFixed(1)}, ${one.at.z.toFixed(1)}). Drag or right-drag moves, hold R and right-drag to aim it, Ctrl+C / V copies, Delete removes.`
+          : items.length > 1
+            ? `${items.length} items selected. Drag or right-drag moves them, hold R and right-drag to aim them, Ctrl+C / V copies, Delete removes.`
+            : 'Click an item to select it, or drag a box around several (Shift adds).';
     this.undoButton.disabled = this.past.length === 0;
     this.redoButton.disabled = this.future.length === 0;
   }
@@ -365,8 +452,25 @@ export class Editor {
     }
     if (this.tab !== 'units' && this.tab !== 'assets') return;
     if (e.button === 2) {
-      // A right click drops the tool; dragging with it still rotates the camera.
-      this.setTool(null);
+      // A right click drops the tool. Dragging from an item moves it (it gets selected first);
+      // with R held, the selection turns to face the pointer. Anywhere else the camera orbits.
+      if (this.tool) {
+        this.setTool(null);
+        return;
+      }
+      const at = this.ground(e);
+      const hit = at ? this.pickAt(at) : null;
+      if (!at) return;
+      if (this.rHeld && (hit || this.selection.length > 0)) {
+        if (hit && !this.isSelected(hit)) this.selection = [hit];
+        this.rUsed = true;
+        this.startDrag('face', 2, at, e);
+        this.syncSelection();
+      } else if (hit) {
+        if (!this.isSelected(hit)) this.selection = [hit];
+        this.startDrag('move', 2, at, e);
+        this.syncSelection();
+      }
       return;
     }
     if (e.button !== 0) return;
@@ -376,11 +480,65 @@ export class Editor {
       this.place(this.tool, at);
       return;
     }
-    this.selection = this.pickAt(at);
-    this.dragging = this.selection !== null;
-    this.dragMoved = false;
+    const hit = this.pickAt(at);
+    if (hit && e.shiftKey) {
+      // Shift-click adds an item to the selection or takes it out.
+      this.selection = this.isSelected(hit)
+        ? this.selection.filter((s) => !(s.list === hit.list && s.index === hit.index))
+        : [...this.selection, hit];
+    } else if (hit) {
+      if (!this.isSelected(hit)) this.selection = [hit];
+      this.startDrag('move', 0, at, e);
+    } else {
+      if (!e.shiftKey) this.selection = [];
+      this.startDrag('box', 0, at, e);
+    }
     this.syncSelection();
   };
+
+  private startDrag(mode: 'move' | 'face' | 'box', button: number, at: Vec2, e: MouseEvent): void {
+    this.drag = {
+      mode,
+      button,
+      base: this.current,
+      from: at,
+      client: { x: e.clientX, y: e.clientY },
+      additive: e.shiftKey,
+    };
+    this.boxEnd = null;
+    this.dragMoved = false;
+  }
+
+  /** I / O: the inventory or stats window of the one selected unit; changes are kept in the map. */
+  private openUnitDialog(which: 'inventory' | 'stats'): void {
+    const sel = this.selection.length === 1 ? this.selection[0]! : null;
+    if (!sel || sel.list !== 'units' || !this.current.units[sel.index]) {
+      this.info.textContent = 'Select one unit first (I: inventory, O: stats).';
+      return;
+    }
+    const index = sel.index;
+    const unit = () => this.current.units[index]!;
+    const label = this.nameOf(unit().type);
+    const change = (next: MapData['units'][number]) =>
+      this.edit({
+        ...this.current,
+        units: this.current.units.map((u, i) => (i === index ? next : u)),
+      });
+    const open = which === 'inventory' ? openInventory : openStats;
+    open(this.root, unit, unit().name ?? label, change, () => this.syncSelection());
+  }
+
+  /** Where the first selected unit stands (the editor's Y drives the soldier next to it). */
+  selectedUnitAt(): Vec2 | null {
+    const sel = this.selection.find((s) => s.list === 'units');
+    const u = sel ? this.current.units[sel.index] : undefined;
+    return u ? { x: u.x, z: u.z } : null;
+  }
+
+  /** True while a right-drag is moving or rotating the selection, so the camera must not orbit. */
+  get ownsRightDrag(): boolean {
+    return this.drag?.button === 2;
+  }
 
   private onMouseMove = (e: MouseEvent): void => {
     if (this.stroking && this.isEditing) {
@@ -392,29 +550,125 @@ export class Editor {
       }
       return;
     }
-    const sel = this.selection;
-    const now = this.selected();
-    if (!this.dragging || !sel || !now || !this.isEditing) return;
-    const at = this.ground(e);
-    if (!at) return;
-    if (Math.abs(now.at.x - at.x) < DRAG_EPSILON && Math.abs(now.at.z - at.z) < DRAG_EPSILON) {
+    const drag = this.drag;
+    if (!drag || !this.isEditing) return;
+    if (drag.mode === 'box') {
+      this.drawBox(drag.client.x, drag.client.y, e.clientX, e.clientY);
       return;
     }
+    const at = this.ground(e);
+    if (!at) return;
+    const base = drag.base;
+    let next: MapData;
+    if (drag.mode === 'move') {
+      const dx = at.x - drag.from.x;
+      const dz = at.z - drag.from.z;
+      if (!this.dragMoved && Math.abs(dx) < DRAG_EPSILON && Math.abs(dz) < DRAG_EPSILON) return;
+      next = this.transformed(base, (p, snap) => ({ x: snap(p.x + dx), z: snap(p.z + dz) }));
+    } else {
+      // The selected items look at the pointer (props only in quarter turns).
+      next = this.facing(base, at);
+    }
     // Only the first step of a drag goes into the history, so one undo takes the whole move back.
-    this.edit(this.movedTo(sel, at), !this.dragMoved);
+    this.edit(next, !this.dragMoved);
     this.dragMoved = true;
   };
 
-  private movedTo(sel: Selection, at: Vec2): MapData {
-    const m = this.current;
-    if (sel.list === 'units') {
-      return { ...m, units: m.units.map((u, i) => (i === sel.index ? { ...u, ...at } : u)) };
-    }
-    const snap = (v: number) => Math.round(v / PROP_SNAP) * PROP_SNAP;
+  /** `base` with the selected items moved by `place` (props snap to the grid). */
+  private transformed(
+    base: MapData,
+    place: (p: Vec2, snap: (v: number) => number) => Vec2,
+  ): MapData {
+    const propSnap = (v: number) => Math.round(v / PROP_SNAP) * PROP_SNAP;
+    const units = this.chosen('units');
+    const props = this.chosen('props');
     return {
-      ...m,
-      props: m.props.map((p, i) => (i === sel.index ? { ...p, x: snap(at.x), z: snap(at.z) } : p)),
+      ...base,
+      units: base.units.map((u, i) => (units.has(i) ? { ...u, ...place(u, (v) => v) } : u)),
+      props: base.props.map((p, i) => (props.has(i) ? { ...p, ...place(p, propSnap) } : p)),
     };
+  }
+
+  private chosen(list: Selection['list']): Set<number> {
+    return new Set(this.selection.filter((s) => s.list === list).map((s) => s.index));
+  }
+
+  /** `base` with every selected item turned to look at `at` (0 faces +Z, like the sim). */
+  private facing(base: MapData, at: Vec2): MapData {
+    const units = this.chosen('units');
+    const props = this.chosen('props');
+    const toward = (p: Vec2) => Math.atan2(at.x - p.x, at.z - p.z);
+    return {
+      ...base,
+      units: base.units.map((u, i) =>
+        units.has(i) && Math.hypot(at.x - u.x, at.z - u.z) > FACE_MIN_DISTANCE
+          ? { ...u, rotation: toward(u) }
+          : u,
+      ),
+      props: base.props.map((p, i) =>
+        props.has(i) && Math.hypot(at.x - p.x, at.z - p.z) > FACE_MIN_DISTANCE
+          ? { ...p, rotation: Math.round(toward(p) / PROP_TURN) * PROP_TURN }
+          : p,
+      ),
+    };
+  }
+
+  /** Ends a drag; a finished box selects every unit and prop whose centre is inside it. */
+  private endDrag(): void {
+    const drag = this.drag;
+    this.drag = null;
+    this.boxEl.style.display = 'none';
+    const end = this.boxEnd;
+    this.boxEnd = null;
+    if (!drag || drag.mode !== 'box' || !this.isEditing || !end) return;
+    if (Math.hypot(end.x - drag.client.x, end.y - drag.client.y) < BOX_MIN_PX) return;
+    const rect = this.actions.canvas.getBoundingClientRect();
+    const ground = (cx: number, cy: number) =>
+      this.actions.groundAt(
+        ((cx - rect.left) / rect.width) * 2 - 1,
+        -((cy - rect.top) / rect.height) * 2 + 1,
+      );
+    const corners = [
+      ground(drag.client.x, drag.client.y),
+      ground(end.x, drag.client.y),
+      ground(end.x, end.y),
+      ground(drag.client.x, end.y),
+    ];
+    if (corners.some((c) => c === null)) return;
+    const quad = corners as Vec2[];
+    // The screen box is a convex quadrilateral on the ground: a point is inside when it is on the
+    // same side of all four edges.
+    const inside = (p: Vec2) => {
+      let sign = 0;
+      for (let i = 0; i < 4; i++) {
+        const a = quad[i]!;
+        const b = quad[(i + 1) % 4]!;
+        const cross = (b.x - a.x) * (p.z - a.z) - (b.z - a.z) * (p.x - a.x);
+        if (cross === 0) continue;
+        if (sign === 0) sign = Math.sign(cross);
+        else if (Math.sign(cross) !== sign) return false;
+      }
+      return true;
+    };
+    const found: Selection[] = [];
+    this.current.units.forEach((u, index) => inside(u) && found.push({ list: 'units', index }));
+    this.current.props.forEach((p, index) => inside(p) && found.push({ list: 'props', index }));
+    const keep = drag.additive ? this.selection : [];
+    this.selection = [
+      ...keep,
+      ...found.filter((f) => !keep.some((k) => k.list === f.list && k.index === f.index)),
+    ];
+    this.syncSelection();
+  }
+
+  private drawBox(x0: number, y0: number, x1: number, y1: number): void {
+    this.boxEnd = { x: x1, y: y1 };
+    const st = this.boxEl.style;
+    st.display = 'block';
+    st.left = `${Math.min(x0, x1)}px`;
+    st.top = `${Math.min(y0, y1)}px`;
+    st.width = `${Math.abs(x1 - x0)}px`;
+    st.height = `${Math.abs(y1 - y0)}px`;
   }
 
   private place(tool: Tool, at: Vec2): void {
@@ -429,7 +683,7 @@ export class Editor {
         layer: 'outdoor' as const,
         collider: { halfW: BLOCK_HALF, halfD: BLOCK_HALF },
       };
-      this.selection = { list: 'props', index: m.props.length };
+      this.selection = [{ list: 'props', index: m.props.length }];
       this.edit({ ...m, props: [...m.props, prop] });
       return;
     }
@@ -438,41 +692,74 @@ export class Editor {
       alert(`This map has no ${tool.owner} player to own the unit.`);
       return;
     }
-    this.selection = { list: 'units', index: m.units.length };
+    this.selection = [{ list: 'units', index: m.units.length }];
     this.edit({
       ...m,
       units: [...m.units, { type: tool.id, x: at.x, z: at.z, owner, rotation: 0 }],
     });
   }
 
+  /** R: turns every selected item one step. */
   private rotateSelected(): void {
-    const sel = this.selection;
-    if (!sel) return;
+    if (this.selection.length === 0) return;
     const m = this.current;
-    if (sel.list === 'units') {
-      const units = m.units.map((u, i) =>
-        i === sel.index ? { ...u, rotation: (u.rotation ?? 0) + UNIT_TURN } : u,
-      );
-      this.edit({ ...m, units });
-    } else {
-      const props = m.props.map((p, i) =>
-        i === sel.index ? { ...p, rotation: p.rotation + PROP_TURN } : p,
-      );
-      this.edit({ ...m, props });
-    }
+    const units = new Set(this.selection.filter((s) => s.list === 'units').map((s) => s.index));
+    const props = new Set(this.selection.filter((s) => s.list === 'props').map((s) => s.index));
+    this.edit({
+      ...m,
+      units: m.units.map((u, i) =>
+        units.has(i) ? { ...u, rotation: (u.rotation ?? 0) + UNIT_TURN } : u,
+      ),
+      props: m.props.map((p, i) => (props.has(i) ? { ...p, rotation: p.rotation + PROP_TURN } : p)),
+    });
+  }
+
+  /** Ctrl+C: remembers the selected units and props. */
+  private copySelected(): void {
+    const m = this.current;
+    const units = this.selection.flatMap((s) => {
+      const u = s.list === 'units' ? m.units[s.index] : undefined;
+      return u ? [u] : [];
+    });
+    const props = this.selection.flatMap((s) => {
+      const p = s.list === 'props' ? m.props[s.index] : undefined;
+      return p ? [p] : [];
+    });
+    if (units.length + props.length > 0) this.clipboard = { units, props };
+  }
+
+  /** Ctrl+V: adds copies next to the remembered ones and selects them; pasting again keeps stepping away. */
+  private pasteCopied(): void {
+    const clip = this.clipboard;
+    if (!clip) return;
+    const m = this.current;
+    const half = m.meta.size.width / 2;
+    const near = (v: number) => Math.max(-half, Math.min(half, v + PASTE_OFFSET));
+    const units = clip.units.map((u) => ({ ...u, x: near(u.x), z: near(u.z) }));
+    const props = clip.props.map((p) => ({ ...p, x: near(p.x), z: near(p.z) }));
+    this.clipboard = { units, props };
+    this.selection = [
+      ...units.map((_, i) => ({ list: 'units' as const, index: m.units.length + i })),
+      ...props.map((_, i) => ({ list: 'props' as const, index: m.props.length + i })),
+    ];
+    this.edit({ ...m, units: [...m.units, ...units], props: [...m.props, ...props] });
   }
 
   private deleteSelected(): void {
-    const sel = this.selection;
-    if (!sel) return;
+    if (this.selection.length === 0) return;
     const m = this.current;
-    this.selection = null;
-    if (sel.list === 'units') this.edit({ ...m, units: m.units.filter((_, i) => i !== sel.index) });
-    else this.edit({ ...m, props: m.props.filter((_, i) => i !== sel.index) });
+    const units = new Set(this.selection.filter((s) => s.list === 'units').map((s) => s.index));
+    const props = new Set(this.selection.filter((s) => s.list === 'props').map((s) => s.index));
+    this.selection = [];
+    this.edit({
+      ...m,
+      units: m.units.filter((_, i) => !units.has(i)),
+      props: m.props.filter((_, i) => !props.has(i)),
+    });
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
-    if (!this.isEditing) return;
+    if (!this.isEditing || isDialogOpen(this.root)) return;
     const target = e.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'SELECT') return;
     const key = e.key.toLowerCase();
@@ -483,13 +770,27 @@ export class Editor {
     } else if ((e.ctrlKey || e.metaKey) && key === 'y') {
       e.preventDefault();
       this.redo();
+    } else if ((e.ctrlKey || e.metaKey) && key === 'c') {
+      e.preventDefault();
+      this.copySelected();
+    } else if ((e.ctrlKey || e.metaKey) && key === 'v') {
+      e.preventDefault();
+      this.pasteCopied();
+    } else if (key === 'i' && !e.ctrlKey && !e.metaKey) {
+      this.openUnitDialog('inventory');
+    } else if (key === 'o' && !e.ctrlKey && !e.metaKey) {
+      this.openUnitDialog('stats');
     } else if (key === 'delete' || key === 'backspace') this.deleteSelected();
-    else if (key === 'r') this.rotateSelected();
-    else if (key === 'escape') {
+    else if (key === 'r') {
+      if (!e.repeat && !this.rHeld) {
+        this.rHeld = true;
+        this.rUsed = false;
+      }
+    } else if (key === 'escape') {
       this.setTool(null);
       this.roadIndex = null;
       if (this.spawnTool) {
-        this.spawnTool = false;
+        this.spawnTool = null;
         this.syncSelection();
         if (this.tab === 'logic') this.redrawLogic();
       }
@@ -607,6 +908,36 @@ export class Editor {
     }
   }
 
+  /** Asks for the size and the ground texture of a new map. */
+  private newDialog(): void {
+    const overlay = el('div', 'editor__dialog', this.root);
+    const box = el('div', 'editor__dialog-box', overlay);
+    el('h3', 'editor__dialog-title', box, 'New map');
+    const sizeRow = el('label', 'editor__row', box, 'Size (metres per side)');
+    const size = el('input', 'editor__number', sizeRow);
+    size.type = 'number';
+    size.min = String(MIN_MAP_SIZE);
+    size.max = String(MAX_MAP_SIZE);
+    size.step = '10';
+    size.value = '80';
+    const texRow = el('label', 'editor__row', box, 'Ground');
+    const tex = el('select', 'editor__select', texRow);
+    for (const t of terrainData.textures) el('option', '', tex, t.name).value = t.id;
+    tex.value = terrainData.defaultTexture;
+    const create = el('button', 'editor__btn', box, 'Create');
+    create.addEventListener('click', () => {
+      const n = Math.round(Number(size.value));
+      if (!Number.isFinite(n) || n < MIN_MAP_SIZE || n > MAX_MAP_SIZE) {
+        alert(`The size must be between ${MIN_MAP_SIZE} and ${MAX_MAP_SIZE} metres.`);
+        return;
+      }
+      overlay.remove();
+      this.setMap(blankMap(n, tex.value === terrainData.defaultTexture ? null : tex.value));
+    });
+    const cancel = el('button', 'editor__btn', box, 'Cancel');
+    cancel.addEventListener('click', () => overlay.remove());
+  }
+
   /** A small window listing every map (built-in and saved) to open. */
   private openDialog(): void {
     const overlay = el('div', 'editor__dialog', this.root);
@@ -636,7 +967,7 @@ export class Editor {
     this.playing = playing;
     this.refresh();
     if (playing) {
-      this.actions.onMark(null, 1);
+      this.actions.onMarks([]);
       this.actions.onPlay();
     } else {
       this.actions.onStop();
@@ -651,13 +982,13 @@ export class Editor {
     this.stopBar.classList.toggle('editor__stopbar--hidden', !this.playing);
     // The game HUD, squad bar and radar belong to play, not to editing.
     document.body.classList.toggle('editing', this.isEditing);
-    if (!this.active) this.actions.onMark(null, 1);
+    if (!this.active) this.actions.onMarks([]);
   }
 
   private setTab(tab: TabId): void {
     this.tab = tab;
     this.roadIndex = null;
-    this.spawnTool = false;
+    this.spawnTool = null;
     this.setTool(null);
     for (const button of this.side.querySelectorAll<HTMLElement>('.editor__tab')) {
       button.classList.toggle('editor__tab--on', button.dataset.tab === tab);
@@ -669,6 +1000,7 @@ export class Editor {
       this.groups(catalog.assets, 'Click an asset, then click the map.', 'prop');
     else if (tab === 'terrain') this.terrain();
     else if (tab === 'logic') this.logic();
+    else if (tab === 'sky') this.environmentTab();
     else this.players();
   }
 
@@ -796,7 +1128,7 @@ export class Editor {
   private logicMouseDown(e: MouseEvent): void {
     if (!this.spawnTool) return;
     if (e.button === 2) {
-      this.spawnTool = false;
+      this.spawnTool = null;
       this.syncSelection();
       this.redrawLogic();
       return;
@@ -805,6 +1137,17 @@ export class Editor {
     const at = this.ground(e);
     if (!at) return;
     const point = { x: Math.round(at.x * 2) / 2, z: Math.round(at.z * 2) / 2 };
+    if (this.spawnTool === 'goal') {
+      this.spawnTool = null;
+      this.syncSelection();
+      this.setLogic({
+        objectives: [
+          ...(this.current.logic.objectives ?? []),
+          { kind: 'reach', ...point, radius: 4 },
+        ],
+      });
+      return;
+    }
     this.setLogic({ spawnPoints: [...(this.current.logic.spawnPoints ?? []), point] });
   }
 
@@ -842,6 +1185,126 @@ export class Editor {
     });
   }
 
+  /** The sky, time of day, light colour and weather of the map; every change shows at once. */
+  private environmentTab(): void {
+    const env = this.current.environment ?? defaultEnvironment();
+    this.note('How the map looks. Nothing here changes the rules; Play uses it too.');
+    const set = (patch: Partial<Environment>, record = true) =>
+      this.edit(
+        {
+          ...this.current,
+          environment: { ...(this.current.environment ?? defaultEnvironment()), ...patch },
+        },
+        record,
+      );
+
+    const sky = el('details', 'editor__group', this.body);
+    sky.open = true;
+    el('summary', 'editor__summary', sky, 'Sky and light');
+    const skyBody = el('div', 'editor__items', sky);
+    this.checkRow(skyBody, 'Sky', env.sky, (on) => set({ sky: on }));
+    this.checkRow(skyBody, 'Sun', env.sun, (on) => set({ sun: on }));
+    this.checkRow(skyBody, 'Moon', env.moon, (on) => set({ moon: on }));
+    const phase = el('span', 'editor__empty', skyBody, hourLabel(env.timeOfDay));
+    this.rangeRow(skyBody, 'Time of day', env.timeOfDay, 0, 24, 0.25, (v) => {
+      phase.textContent = hourLabel(v);
+      set({ timeOfDay: v }, !this.sliding);
+    });
+    const quick = el('div', 'editor__row', skyBody);
+    for (const [name, hour] of [
+      ['Dawn', 6],
+      ['Noon', 12],
+      ['Dusk', 18],
+      ['Night', 0],
+    ] as const) {
+      el('button', 'editor__btn', quick, name).addEventListener('click', () => {
+        set({ timeOfDay: hour });
+        this.setTab('sky');
+      });
+    }
+    const colorRow = el('label', 'editor__row', skyBody, 'Light colour');
+    const color = el('input', 'editor__color', colorRow);
+    color.type = 'color';
+    color.value = env.lightColor ?? '#ffffff';
+    color.addEventListener('input', () => {
+      set({ lightColor: color.value }, !this.sliding);
+      this.sliding = true;
+    });
+    color.addEventListener('change', () => (this.sliding = false));
+    el('button', 'editor__btn', colorRow, 'Auto').addEventListener('click', () => {
+      set({ lightColor: null });
+      this.setTab('sky');
+    });
+    this.rangeRow(
+      skyBody,
+      'Clouds',
+      env.clouds,
+      0,
+      1,
+      0.05,
+      (v) => set({ clouds: v }, !this.sliding),
+      true,
+    );
+
+    const weather = el('details', 'editor__group', this.body);
+    weather.open = true;
+    el('summary', 'editor__summary', weather, 'Weather');
+    const weatherBody = el('div', 'editor__items', weather);
+    for (const [key, name] of [
+      ['rain', 'Rain'],
+      ['snow', 'Snow'],
+      ['sand', 'Sandstorm'],
+      ['fog', 'Fog'],
+    ] as const) {
+      this.rangeRow(
+        weatherBody,
+        name,
+        env[key],
+        0,
+        1,
+        0.05,
+        (v) => set({ [key]: v }, !this.sliding),
+        true,
+      );
+    }
+    const reset = el('button', 'editor__item', this.body, 'Back to noon, clear weather');
+    reset.addEventListener('click', () => {
+      this.edit({ ...this.current, environment: undefined });
+      this.setTab('sky');
+    });
+  }
+
+  /**
+   * A range input that previews as it moves. The first move of a drag is one undo step; the rest of
+   * the drag is not recorded (`sliding` is true until the mouse is let go).
+   */
+  private rangeRow(
+    parent: HTMLElement,
+    label: string,
+    value: number,
+    min: number,
+    max: number,
+    step: number,
+    onInput: (value: number) => void,
+    strength = false,
+  ): void {
+    const row = el('label', 'editor__row', parent, label);
+    const input = el('input', 'editor__range', row);
+    input.type = 'range';
+    input.min = String(min);
+    input.max = String(max);
+    input.step = String(step);
+    input.value = String(value);
+    const shown = el('span', 'editor__value', row, strength ? strengthLabel(value) : String(value));
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      shown.textContent = strength ? strengthLabel(v) : String(v);
+      onInput(v);
+      this.sliding = true;
+    });
+    input.addEventListener('change', () => (this.sliding = false));
+  }
+
   private checkRow(
     parent: HTMLElement,
     label: string,
@@ -873,10 +1336,12 @@ export class Editor {
     this.note('Rules here replace the ones of game.json for this map only.');
     const mode = el('label', 'editor__row', this.body, 'Mode');
     const modeSelect = el('select', 'editor__select', mode);
-    el('option', '', modeSelect, 'Waves');
-    const story = el('option', '', modeSelect, 'Story');
-    story.disabled = true;
-    story.title = SOON;
+    el('option', '', modeSelect, 'Waves').value = 'waves';
+    el('option', '', modeSelect, 'Story').value = 'story';
+    modeSelect.value = logic.mode;
+    modeSelect.addEventListener('change', () =>
+      this.setLogic({ mode: modeSelect.value as MapLogic['mode'] }),
+    );
     const difficulty = el('label', 'editor__row', this.body, 'Difficulty');
     const levelSelect = el('select', 'editor__select', difficulty);
     for (const [id, name] of [
@@ -984,11 +1449,11 @@ export class Editor {
       'button',
       'editor__item',
       spawns,
-      this.spawnTool ? 'Stop adding' : '+ Add spawn points',
+      this.spawnTool === 'spawn' ? 'Stop adding' : '+ Add spawn points',
     );
-    if (this.spawnTool) add.classList.add('editor__item--on');
+    if (this.spawnTool === 'spawn') add.classList.add('editor__item--on');
     add.addEventListener('click', () => {
-      this.spawnTool = !this.spawnTool;
+      this.spawnTool = this.spawnTool === 'spawn' ? null : 'spawn';
       this.syncSelection();
       this.redrawLogic();
     });
@@ -1002,13 +1467,51 @@ export class Editor {
       });
     });
 
-    for (const name of ['Objectives', 'Win / lose rules']) {
-      el('span', 'editor__empty', section(name), `Empty (${SOON.toLowerCase()})`);
+    // Story goals: the mission is won when all are done; losing is the squad going down.
+    const goals = section('Objectives', logic.mode === 'story');
+    const objectives = logic.objectives ?? [];
+    if (logic.mode !== 'story') {
+      el('span', 'editor__empty', goals, 'Only used when the mode is Story.');
     }
+    el(
+      'span',
+      'editor__empty',
+      goals,
+      objectives.length === 0
+        ? 'None: the mission never ends by itself.'
+        : 'All of these must be done to win.',
+    );
+    const setObjectives = (next: Objective[]) =>
+      this.setLogic({ objectives: next.length > 0 ? next : undefined });
+    objectives.forEach((o, i) => {
+      const row = el('div', 'editor__row', goals);
+      el('span', '', row, objectiveLabel(o));
+      const del = el('button', 'editor__btn', row, 'Remove');
+      del.addEventListener('click', () => setObjectives(objectives.filter((_, j) => j !== i)));
+    });
+    const addGoal = (label: string, make: () => Objective) => {
+      const b = el('button', 'editor__item', goals, label);
+      b.addEventListener('click', () => setObjectives([...objectives, make()]));
+    };
+    const spot = el(
+      'button',
+      'editor__item',
+      goals,
+      this.spawnTool === 'goal' ? 'Click the map…' : '+ Reach a spot',
+    );
+    if (this.spawnTool === 'goal') spot.classList.add('editor__item--on');
+    spot.addEventListener('click', () => {
+      this.spawnTool = this.spawnTool === 'goal' ? null : 'goal';
+      this.syncSelection();
+      this.redrawLogic();
+    });
+    addGoal('+ Kill 25 enemies', () => ({ kind: 'kills', count: 25 }));
+    addGoal('+ Clear wave 3', () => ({ kind: 'survive', wave: 3 }));
+    addGoal('+ Kill a mini boss', () => ({ kind: 'boss', count: 1 }));
     const reset = el('button', 'editor__item', this.body, 'Reset to the global rules');
     reset.addEventListener('click', () => {
-      this.spawnTool = false;
-      this.edit({ ...this.current, logic: { mode: logic.mode } });
+      this.spawnTool = null;
+      this.edit({ ...this.current, logic: { mode: logic.mode, objectives: logic.objectives } });
       this.setTab('logic');
     });
   }

@@ -1,5 +1,5 @@
 import { rayAabb, resolveStatic } from './collision';
-import type { GameConfig } from './config';
+import type { GameConfig, Loadout } from './config';
 import { maybeDropCrate } from './inventory';
 import { dropLoot, rewardOf } from './loot';
 import { firstPlayerOf } from './players';
@@ -27,6 +27,8 @@ export function spawnZombie(
   type = 'zombie',
   /** 0 for a normal enemy; otherwise which boss this is (1st, 2nd, ...). */
   bossNumber = 0,
+  /** What the map changed about this enemy (name, health, attributes, carried items). */
+  loadout?: Loadout,
 ): Zombie {
   const variant = config.enemies[type];
   const k = variant ?? {
@@ -67,7 +69,21 @@ export function spawnZombie(
     state: 'walk',
     attackTimer: 0,
     deathTimer: 0,
+    loot: [],
   };
+  if (loadout) {
+    if (loadout.name) zombie.name = loadout.name;
+    if (loadout.attributes) zombie.attributes = { ...loadout.attributes };
+    if (loadout.maxHealth) {
+      zombie.health = loadout.maxHealth;
+      zombie.maxHealth = loadout.maxHealth;
+    }
+    // Its carried stacks and equipped items all drop where it dies.
+    zombie.loot = [
+      ...(loadout.backpack ?? []).flatMap((st) => Array<string>(st.count).fill(st.item)),
+      ...Object.values(loadout.equipment ?? {}).flatMap((id) => (id ? [id] : [])),
+    ].filter((id) => id in config.items);
+  }
   state.zombies.push(zombie);
   return zombie;
 }
@@ -94,6 +110,7 @@ export function damageZombie(
   // A burst enemy has no death animation to wait for.
   zombie.deathTimer = exploded ? EXPLODED_LINGER : config.zombie.deathDuration;
   state.kills++;
+  if (zombie.boss) state.bossKills++;
   if (killer) {
     killer.kills++;
     const xp = rewardOf(config, zombie).xp;
@@ -110,6 +127,11 @@ export function damageZombie(
     killerId: killer?.id ?? null,
   });
   dropLoot(state, config, zombie);
+  if (zombie.loot.length > 0) {
+    const crate = { id: state.nextCrateId++, pos: { ...zombie.pos }, items: zombie.loot };
+    state.crates.push(crate);
+    state.events.push({ type: 'crateDropped', crateId: crate.id, pos: { ...crate.pos } });
+  }
   maybeDropCrate(state, config, zombie.pos);
 }
 
@@ -123,6 +145,8 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       z.deathTimer -= dt;
       continue;
     }
+
+    if (state.sandbox) continue; // the editor's preview: enemies stand still
 
     const found = nearestTarget(state, config, z.pos);
     if (!found) continue; // everyone is dead; the game is about to end

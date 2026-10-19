@@ -1,6 +1,9 @@
 {
   "attributes": ["strength", "dexterity", "constitution", "perception", "intelligence", "charisma"],
-  "skills": { "xpPerLevel": 100, "growth": 1.5 },
+  "skills": {
+    "xpPerLevel": 100,
+    "growth": 1.5
+  },
   "units": {
     "soldier": {
       "name": "Soldier",
@@ -25,6 +28,58 @@
         "intelligence": 6,
         "charisma": 1
       }
+    },
+    "marine1": {
+      "name": "Marine 1",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 0
+    },
+    "marine2": {
+      "name": "Marine 2",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 1
+    },
+    "marine3": {
+      "name": "Marine 3",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 2
+    },
+    "marine4": {
+      "name": "Marine 4",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 3
     }
   }
 }

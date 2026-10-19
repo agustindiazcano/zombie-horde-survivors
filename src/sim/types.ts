@@ -68,6 +68,10 @@ export interface Soldier {
   /** Sprint energy (0 to `stance.staminaMax`); `winded` blocks sprinting until it recovers. */
   stamina: number;
   winded: boolean;
+  /** A name set by the map, shown instead of "Soldier 2". */
+  name?: string;
+  /** Health before perks; the type's default unless the map changes it. */
+  baseHealth: number;
   /** Stat sheet entry this unit was built from ('soldier', 'drone') in data/units.json. */
   unitType: string;
   /** The sheet's attributes with this unit's current values (mocked: no rule reads them yet). */
@@ -117,6 +121,12 @@ export interface Zombie {
   facing: number;
   /** Enemy variant id ('zombie', 'alien', ...). Picks the model and the stats below. */
   type: string;
+  /** A name set by the map. */
+  name?: string;
+  /** Attributes set by the map (mocked: no rule reads them). */
+  attributes?: Record<string, number>;
+  /** Items it carries; they drop in a crate when it dies. */
+  loot: string[];
   health: number;
   maxHealth: number;
   /** A mini boss: darker, slower, much tougher and harder-hitting than its type. */
@@ -194,6 +204,8 @@ export type SimEvent =
   | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
+  | { type: 'objectiveDone'; index: number }
+  | { type: 'victory' }
   | { type: 'gameOver' };
 
 /** Squad-wide multipliers from perks (all 1 at the start; regen is HP/s). */
@@ -208,7 +220,9 @@ export interface Mods {
 
 export interface GameState {
   time: number;
-  status: 'playing' | 'gameover';
+  status: 'playing' | 'gameover' | 'victory';
+  /** The map editor's live preview: units can be driven, but there are no waves and enemies stand still. */
+  sandbox: boolean;
   soldiers: Soldier[];
   players: Player[];
   /** The player at this keyboard; its `controlledId` is the unit under direct control. */
@@ -236,6 +250,10 @@ export interface GameState {
   purchases: Record<string, number>;
   wave: number;
   kills: number;
+  /** Mini bosses killed so far (story objectives). */
+  bossKills: number;
+  /** One flag per story objective of the map; a done one stays done. */
+  objectivesDone: boolean[];
   spawner: Spawner;
   rng: Rng;
   /** Events produced by the last step; cleared at the start of each step. */

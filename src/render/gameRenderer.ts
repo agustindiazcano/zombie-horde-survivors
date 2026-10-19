@@ -4,6 +4,7 @@ import {
   heightAt,
   localPlayer,
   type GameConfig,
+  type Environment,
   type GameState,
   type Vec2,
 } from '../sim';
@@ -12,6 +13,7 @@ import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
 import { Gore } from './gore';
 import { HealthBars } from './healthBars';
+import { EnvironmentView } from './environment';
 import { PickupMeshes } from './pickups';
 import { createJeep } from './vehicles';
 import { SelectionMarkers } from './markers';
@@ -20,10 +22,12 @@ import { SelectionMarkers } from './markers';
 const BASE_DISTANCE = Math.hypot(13, 9);
 const DEFAULT_PITCH = Math.atan2(13, 9);
 /** Tilt limits (radians above the horizon) and the range of the player's zoom wheel. */
-const MIN_PITCH = 0.35;
+const MIN_PITCH = -0.6; // below the horizon line the camera looks up at the sky
 const MAX_PITCH = 1.5;
-const MIN_USER_ZOOM = 0.35;
-const MAX_USER_ZOOM = 2.2;
+const MIN_USER_ZOOM = 0.04;
+const MAX_USER_ZOOM = 6;
+/** The orbit camera never sinks below this height (m), so tilting up does not go underground. */
+const MIN_CAMERA_HEIGHT = 0.8;
 const USER_ZOOM_RATE = 10;
 /** Per-frame movement below this (world units) counts as standing still. */
 const MOVING_EPSILON = 1e-4;
@@ -84,10 +88,7 @@ const DAY_AMBIENT = 1.2;
 const DAY_SUN = 2.2;
 const DAY_BACKGROUND = 0x14171c;
 
-/** Dusk lighting (toggle with setDark): dimmed moonlight and ambient, flashlights on. */
-const AMBIENT_INTENSITY = 0.75;
-const MOON_INTENSITY = 1.1;
-const NIGHT_BACKGROUND = 0x10141a;
+/** Flashlights (on in the dark mode and at night; the night lighting itself is in environment.ts). */
 const FLASHLIGHT_INTENSITY = 160;
 const FLASHLIGHT_RANGE = 24;
 const FLASHLIGHT_ANGLE = 0.5;
@@ -106,7 +107,7 @@ const FLASH_TIME = 0.14;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export class GameRenderer {
-  readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+  readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
   get domElement(): HTMLCanvasElement {
     return this.renderer.domElement;
   }
@@ -129,6 +130,7 @@ export class GameRenderer {
   viewMode: ViewMode = 'top';
   /** Dark mode: dim lights plus flashlights. Off by default. */
   private dark = false;
+  private readonly environment: EnvironmentView;
   private goreEnabled = true;
   private hemi = new THREE.HemisphereLight();
   private readonly sun = new THREE.DirectionalLight(0xffffff, DAY_SUN);
@@ -182,6 +184,7 @@ export class GameRenderer {
     this.arenaGroup = buildArena(config.arena);
     this.scene.add(this.arenaGroup);
     this.addLights(config.arena.halfSize);
+    this.environment = new EnvironmentView(this.scene, this.hemi, this.sun);
 
     this.config = config;
     this.halfSize = config.arena.halfSize;
@@ -198,8 +201,9 @@ export class GameRenderer {
     this.resize();
   }
 
-  private editMarker: THREE.Mesh | null = null;
+  private editMarkers: THREE.Mesh[] | null = null;
   private spawnMarkers: THREE.Group | null = null;
+  private goalMarkers: THREE.Group | null = null;
 
   /** Terrain height under a point of the loaded map. */
   private groundAt(x: number, z: number): number {
@@ -220,25 +224,26 @@ export class GameRenderer {
     this.stanceVisual.clear();
   }
 
-  /** The map editor's selection ring on the ground (null hides it). */
-  setEditMarker(at: Vec2 | null, radius = 1): void {
-    if (!at) {
-      if (this.editMarker) this.editMarker.visible = false;
-      return;
-    }
-    if (!this.editMarker) {
-      this.editMarker = new THREE.Mesh(
+  /** Yellow rings under the selected items while editing (an empty list hides them). */
+  setEditMarkers(marks: { at: Vec2; radius: number }[]): void {
+    this.editMarkers ??= [];
+    while (this.editMarkers.length < marks.length) {
+      const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.9, 1, 32),
         new THREE.MeshBasicMaterial({ color: 0xffd84a, side: THREE.DoubleSide }),
       );
-      this.editMarker.rotation.x = -Math.PI / 2;
-      this.editMarker.position.y = 0.05;
-      this.scene.add(this.editMarker);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.05;
+      this.scene.add(ring);
+      this.editMarkers.push(ring);
     }
-    this.editMarker.visible = true;
-    this.editMarker.position.x = at.x;
-    this.editMarker.position.z = at.z;
-    this.editMarker.scale.setScalar(radius);
+    this.editMarkers.forEach((ring, i) => {
+      const m = marks[i];
+      ring.visible = m !== undefined;
+      if (!m) return;
+      ring.position.set(m.at.x, ring.position.y, m.at.z);
+      ring.scale.setScalar(m.radius);
+    });
   }
 
   /** The enemy spawn points of the map being edited, as red rings on the ground (null hides them). */
@@ -262,6 +267,28 @@ export class GameRenderer {
       ring.rotation.x = -Math.PI / 2;
       ring.position.set(p.x, this.groundAt(p.x, p.z) + 0.06, p.z);
       this.spawnMarkers.add(ring);
+    }
+  }
+
+  /** Green rings on the ground for the "reach this spot" goals of a story map (empty hides them). */
+  setGoalMarkers(goals: { x: number; z: number; radius: number }[]): void {
+    this.goalMarkers ??= new THREE.Group();
+    if (!this.goalMarkers.parent) this.scene.add(this.goalMarkers);
+    for (const child of this.goalMarkers.children) {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        child.material.dispose();
+      }
+    }
+    this.goalMarkers.clear();
+    for (const g of goals) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(Math.max(0.1, g.radius - 0.3), g.radius, 48),
+        new THREE.MeshBasicMaterial({ color: 0x4aff7a, side: THREE.DoubleSide }),
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(g.x, this.groundAt(g.x, g.z) + 0.07, g.z);
+      this.goalMarkers.add(ring);
     }
   }
 
@@ -299,6 +326,7 @@ export class GameRenderer {
     this.markers.update(state, this.selection, alpha, dt);
     this.pickups.update(state, this.config, dt);
     this.gore.update(dt);
+    this.environment.update(this.camera.position, this.clock);
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -417,13 +445,15 @@ export class GameRenderer {
     this.userZoom = lerp(this.userZoom, this.userZoomTarget, 1 - Math.exp(-USER_ZOOM_RATE * dt));
     const distance = BASE_DISTANCE * this.zoom * this.userZoom;
     const flat = Math.cos(this.pitch) * distance;
+    const height = Math.max(Math.sin(this.pitch) * distance, MIN_CAMERA_HEIGHT);
     this.camera.position.set(
       this.focus.x + Math.sin(this.yaw) * flat,
-      Math.sin(this.pitch) * distance,
+      height,
       this.focus.z + Math.cos(this.yaw) * flat,
     );
     this.applyShake(dt);
-    this.camera.lookAt(this.focus.x, 0, this.focus.z);
+    // Tilted past the horizon the camera keeps its height and aims up at the sky.
+    this.camera.lookAt(this.focus.x, height - Math.sin(this.pitch) * distance, this.focus.z);
     this.camera.updateMatrixWorld();
   }
 
@@ -501,9 +531,11 @@ export class GameRenderer {
     }
   }
 
-  private soldierFactory(id: number): CharacterFactory {
+  /** The model of a soldier: the one its unit type names (marine1...), else one by id. */
+  private soldierFactory(s: GameState['soldiers'][number]): CharacterFactory {
     const list = this.factories.soldiers;
-    return list[(id - 1) % list.length]!;
+    const slot = this.config.units.units[s.unitType]?.model ?? s.id - 1;
+    return list[slot % list.length]!;
   }
 
   /** Draws the vehicles of the state (a jeep for every type until more models exist). */
@@ -535,7 +567,7 @@ export class GameRenderer {
     for (const s of state.soldiers) {
       let view = this.soldiers.get(s.id);
       if (!view) {
-        view = s.kind === 'drone' ? this.factories.drone() : this.soldierFactory(s.id)();
+        view = s.kind === 'drone' ? this.factories.drone() : this.soldierFactory(s)();
         this.soldiers.set(s.id, view);
         this.scene.add(view.object);
         if (s.kind === 'soldier') this.flashlights.set(s.id, this.createFlashlight());
@@ -722,12 +754,12 @@ export class GameRenderer {
   /** Switches between normal lighting and the dark mode with a flashlight per soldier. */
   setDark(dark: boolean): void {
     this.dark = dark;
-    this.hemi.color.set(dark ? 0x8fa6d8 : 0xbfd4ff);
-    this.hemi.groundColor.set(dark ? 0x1a1d24 : 0x30343a);
-    this.hemi.intensity = dark ? AMBIENT_INTENSITY : DAY_AMBIENT;
-    this.sun.color.set(dark ? 0x9db4ff : 0xffffff);
-    this.sun.intensity = dark ? MOON_INTENSITY : DAY_SUN;
-    (this.scene.background as THREE.Color).set(dark ? NIGHT_BACKGROUND : DAY_BACKGROUND);
+    this.environment.setDark(dark);
+  }
+
+  /** The sky, time of day, light colour and weather of the map. */
+  setEnvironment(env: Environment): void {
+    this.environment.set(env);
   }
 
   /** A warm spotlight held at chest height, pointing at the ground ahead of the soldier. */
@@ -758,7 +790,7 @@ export class GameRenderer {
     lamp.group.position.set(unit.position.x, 0, unit.position.z);
     lamp.group.rotation.y = heading;
     // Dimming to zero (not hiding) keeps the light count, and so the shaders, unchanged.
-    lamp.light.intensity = on && this.dark ? FLASHLIGHT_INTENSITY : 0;
+    lamp.light.intensity = on && this.environment.isNight ? FLASHLIGHT_INTENSITY : 0;
   }
 
   private addLights(halfSize: number): void {

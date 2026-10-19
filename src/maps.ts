@@ -8,6 +8,8 @@ export interface MapEntry {
   width: number;
   depth: number;
   builtIn: boolean;
+  /** Story missions and survival maps are listed on different screens. */
+  mode: MapData['logic']['mode'];
   /** Built-in maps can never be deleted; saved ones can. */
   deletable: boolean;
   map: MapData;
@@ -27,6 +29,7 @@ const entryOf = (map: MapData, builtIn: boolean): MapEntry => ({
   width: map.meta.size.width,
   depth: map.meta.size.depth,
   builtIn,
+  mode: map.logic.mode,
   deletable: !builtIn,
   map,
 });
@@ -85,8 +88,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 const newId = () =>
   `map-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`;
 
-/** An empty 80×80 waves map with the same players as Map 1. */
-export function blankMap(): MapData {
+/** An empty square waves map (80 m by default) with the same players as Map 1. */
+export function blankMap(size = 80, texture: string | null = null): MapData {
   const map1 = builtInMaps().find((m) => m.meta.id === MAP_1_ID);
   return parseMap({
     version: 1,
@@ -96,9 +99,16 @@ export function blankMap(): MapData {
       author: '',
       created: today(),
       updated: today(),
-      size: { width: 80, depth: 80 },
+      size: { width: size, depth: size },
     },
-    terrain: { heights: null, water: null, paint: null },
+    terrain: {
+      heights: null,
+      water: null,
+      // null keeps the default ground; any other texture paints every cell with it.
+      paint: texture
+        ? Array.from({ length: size }, () => new Array<string>(size).fill(texture))
+        : null,
+    },
     props: [],
     surfaces: [],
     players: map1?.players ?? [],

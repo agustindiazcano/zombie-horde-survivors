@@ -1,5 +1,6 @@
 import type { GameConfig, ItemDef } from './config';
 import { nextFloat } from './rng';
+import { maxHealthOf } from './stats';
 import type { Crate, Equipment, GameState, Soldier, Stack } from './types';
 import type { Vec2 } from './vec';
 
@@ -225,7 +226,7 @@ export function useItem(
   const stack = s?.backpack[index];
   if (!s || s.dead || !stack || s.kind === 'drone') return false;
   const def = itemDef(config, stack.item);
-  const max = config.player.maxHealth * state.mods.maxHealth;
+  const max = maxHealthOf(state, config, s);
   if (def.type !== 'medical' || s.health >= max) return false;
   s.health = Math.min(max, s.health + def.heal);
   if (--stack.count === 0) s.backpack.splice(index, 1);

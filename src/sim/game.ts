@@ -1,6 +1,7 @@
 import { FIXED_DT } from './constants';
-import type { GameConfig } from './config';
+import { spawnerEnemy, type GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
+import { updateObjectives } from './objectives';
 import { updateRevives } from './revive';
 import { createSquad, updateSoldiers } from './soldiers';
 import { createVehicle, updateVehicles } from './vehicles';
@@ -11,7 +12,7 @@ import { baseMods } from './upgrades';
 import { updateWaves } from './waves';
 import { spawnZombie, updateZombies } from './zombies';
 
-export function createGame(config: GameConfig, seed = 1): GameState {
+export function createGame(config: GameConfig, seed = 1, sandbox = false): GameState {
   const humanId = firstPlayerOf(config.players, 'human');
   const soldiers = createSquad(config, humanId);
   const players = config.players.map((p) => ({
@@ -21,6 +22,7 @@ export function createGame(config: GameConfig, seed = 1): GameState {
   const state: GameState = {
     time: 0,
     status: 'playing',
+    sandbox,
     soldiers,
     players,
     localPlayerId: humanId,
@@ -43,6 +45,8 @@ export function createGame(config: GameConfig, seed = 1): GameState {
     purchases: {},
     wave: 0,
     kills: 0,
+    bossKills: 0,
+    objectivesDone: config.objectives.map(() => false),
     spawner: { phase: 'intermission', timer: config.waves.intermission, toSpawn: 0 },
     rng: createRng(seed),
     events: [],
@@ -57,7 +61,12 @@ export function createGame(config: GameConfig, seed = 1): GameState {
   const aiId = firstPlayerOf(config.players, 'ai');
   for (const u of config.placed) {
     if (u.owner === aiId && (u.type === 'zombie' || u.type in config.enemies)) {
-      spawnZombie(state, config, u, u.type).facing = u.rotation ?? 0;
+      spawnZombie(state, config, u, u.type, 0, u).facing = u.rotation ?? 0;
+    }
+    // The editor's preview shows a spawner as the enemy it makes; in play it spawns waves instead.
+    const made = spawnerEnemy(u.type);
+    if (sandbox && made && (made === 'zombie' || made in config.enemies)) {
+      spawnZombie(state, config, u, made, 0, u).facing = u.rotation ?? 0;
     }
   }
   return state;
@@ -71,7 +80,7 @@ export function step(
   dt: number = FIXED_DT,
 ): void {
   state.events.length = 0;
-  if (state.status === 'gameover') return;
+  if (state.status !== 'playing') return;
 
   state.time += dt;
 
@@ -88,11 +97,16 @@ export function step(
   updateVehicles(state, config, input, dt);
   updateRevives(state, config, dt);
   updatePickups(state, config, dt);
-  updateWaves(state, config, dt);
+  if (!state.sandbox) updateWaves(state, config, dt);
   updateZombies(state, config, dt);
+  if (!state.sandbox) updateObjectives(state, config);
 
   // The run ends when no soldier is left on their feet: a downed soldier needs a standing ally.
-  if (state.soldiers.every((s) => s.dead || s.downed || s.kind === 'drone')) {
+  if (
+    !state.sandbox &&
+    state.status === 'playing' &&
+    state.soldiers.every((s) => s.dead || s.downed || s.kind === 'drone')
+  ) {
     state.status = 'gameover';
     state.events.push({ type: 'gameOver' });
   }

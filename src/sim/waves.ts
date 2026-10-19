@@ -35,7 +35,16 @@ function spawnAtEdge(state: GameState, config: GameConfig, forced?: string, boss
   const points = config.spawnPoints;
   if (points.length > 0) {
     const at = points[Math.floor(nextFloat(state.rng) * points.length)]!;
-    spawnZombie(state, config, at, type, bossNumber);
+    // A placed spawner makes its own enemy, with what the map gave it; a boss keeps its type.
+    const own = at.enemy === 'zombie' || (at.enemy && at.enemy in config.enemies) ? at.enemy : null;
+    spawnZombie(
+      state,
+      config,
+      at,
+      forced === undefined && own ? own : type,
+      bossNumber,
+      at.loadout,
+    );
     return;
   }
   const lim = config.arena.halfSize - radius;
