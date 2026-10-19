@@ -1,6 +1,6 @@
 # Plan: weapons and combat
 
-Status: **plan only, nothing built.** Written 2026-10-19 from the user's request. Sizes are qualitative; nothing has been prototyped. Keys marked _proposed_ are not decided; once something is built, its keys go in [CONTROLS.md](CONTROLS.md) in the same commit.
+Status: **plan only, nothing built.** Written 2026-10-19 from the user's request; the open questions were answered the same day (section 14). Sizes are qualitative; nothing has been prototyped. Keys marked _proposed_ are not decided; once something is built, its keys go in [CONTROLS.md](CONTROLS.md) in the same commit.
 
 ## 1. Goal
 
@@ -48,7 +48,7 @@ Make shooting feel like a weapon system instead of "a spread number and a rate":
 | Exceptions                | The drone gun does not use ammo; turrets of the build plan do ([PLAN-build-mode.md](PLAN-build-mode.md))                                                                                                             |
 | Accessory `magazine` slot | An extended magazine adds `magazineBonus` rounds                                                                                                                                                                     |
 
-Open: does the pistol have infinite spare ammo so the early game is not blocked (question 1)?
+Decided: the pistol has infinite spare magazines at first (decision 1, section 14).
 
 ## 5. Recoil
 
@@ -82,14 +82,18 @@ error = baseSpread
 | Distance  | The error is an angle, so far shots miss more by themselves; no extra rule                                                                                             |
 | Feedback  | The crosshair size shows the current error (a dynamic crosshair); the HUD has a spread cone for top-down                                                               |
 
-## 7. Aiming (hold to aim)
+## 7. Aiming (hold to aim, like Call of Duty)
 
-| Item   | Proposal                                                                                                                                                                                          |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Input  | Hold a key or button (_proposed_: the right mouse button in third / first person; open question 4 for top-down, where right-drag already rotates the camera)                                      |
-| Effect | The unit can only **walk** (no sprint; slower than normal walking is an option); spread drops to the weapon's minimum; recoil is reduced; the camera zooms in a little, and a scope zooms further |
-| Visual | The crosshair tightens; the rifle model lifts (when weapons are shown on models)                                                                                                                  |
-| AI     | A shooter who stands still for a moment before firing counts as aiming (a small bonus), not a new action                                                                                          |
+Aiming exists **only in direct control, in third and first person**. In those views the mouse only turns the view and fires, so the right button is free and nothing clashes with the camera. In top-down and RTS there is no aim button (the right button keeps rotating the camera and giving orders).
+
+| Item           | Decision                                                                                                                                                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Input          | **Hold the right mouse button** to aim down the sights; release to stop. This is Call of Duty's default. A **Settings option** switches it to "click once to aim, click again to stop" (the toggle mode many shooters offer) |
+| Effect         | While aiming the unit can only **walk** (no sprint, and slower than normal walking); spread drops to the weapon's minimum; recoil is reduced; the field of view narrows a little, and a scope narrows it further             |
+| Visual         | The crosshair tightens to the minimum error; the camera comes closer to the shoulder (third person) or the sights fill more of the view (first person); weapon model lift comes with the weapon models                       |
+| Other actions  | Firing stays on the left button, so you can fire while aiming; sprinting cancels aiming; being hit or going down cancels it; a reload keeps the aim state when it ends                                                       |
+| Top-down, RTS  | No aim button. A shooter that has stood still for a moment gets a small accuracy bonus (the AI too), so these views still reward patience                                                                                    |
+| Switching view | Changing view (T) while aiming cancels the aim                                                                                                                                                                               |
 
 ## 8. Melee
 
@@ -132,7 +136,7 @@ WeaponInstance { item: 'rifle', loaded: 18, accessories: { optic: 'scope', barre
 
 An accessory fitted to a weapon **occupies that slot of the weapon** (the user's rule): the slot shows the item, the item leaves the backpack, and it can be taken off again. The weapon's `accessorySlots` list says which slots exist.
 
-Noise: `noise` is mocked today. Proposed rule: a shot makes noise within a radius, and enemies that are not yet chasing turn towards it; a suppressor shrinks the radius. Open question 6.
+Noise: `noise` is mocked today. Proposed rule: a shot makes noise within a radius, and enemies that are not yet chasing turn towards it; a suppressor shrinks the radius. Decided: yes, off by default until balanced (decision 6, section 14).
 
 ### 9.3 The workbench screen
 
@@ -154,26 +158,26 @@ The sim is 2D, so "where on the body" needs a rule.
 | Damage                                         | `headshotMultiplier` per weapon (about x2, tunable); some enemies get a different value (helmets, bosses with weak spots) or none (worms)          |
 | Feedback                                       | A distinct hit marker and sound, a different floating number; the `zombieKilled` event carries the zone                                            |
 
-Open question 3: is the top-down head chance acceptable, or should headshots exist only with a real pitch?
+Decided (decision 3, section 14): a small head chance in top-down and for the AI, a real hit height in third and first person.
 
 ## 11. Critical hits
 
-| Item       | Proposal                                                                                            |
-| ---------- | --------------------------------------------------------------------------------------------------- |
-| Chance     | `critChance` per weapon, plus a bonus from skill level and from perks                               |
-| Multiplier | `critMultiplier` (about x1.5); stacks with the headshot multiplier or replaces it (open question 5) |
-| Feedback   | A yellow number, a hit sound, a short screen kick                                                   |
-| Melee      | Melee hits can crit too, and a crit can add more push                                               |
+| Item       | Proposal                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------- |
+| Chance     | `critChance` per weapon, plus a bonus from skill level and from perks                                      |
+| Multiplier | `critMultiplier` (about x1.5); stacks with the headshot multiplier or replaces it (decision 5, section 14) |
+| Feedback   | A yellow number, a hit sound, a short screen kick                                                          |
+| Melee      | Melee hits can crit too, and a crit can add more push                                                      |
 
 ## 12. Proposed keys (direct control)
 
-| Action         | Key                          | Notes                                                                           |
-| -------------- | ---------------------------- | ------------------------------------------------------------------------------- |
-| Reload         | **R**                        | R only restarts on the game over screen, so no clash in a run                   |
-| Melee          | **F**                        | F is "follow" in RTS only                                                       |
-| Aim (hold)     | Right mouse button           | In top-down the right button already rotates the camera on drag; see question 4 |
-| Semi-auto shot | Left click (each click)      | The existing fire button                                                        |
-| Workbench      | ⚙ button in the squad screen | No key                                                                          |
+| Action         | Key                          | Notes                                                                         |
+| -------------- | ---------------------------- | ----------------------------------------------------------------------------- |
+| Reload         | **R**                        | R only restarts on the game over screen, so no clash in a run                 |
+| Melee          | **F**                        | F is "follow" in RTS only                                                     |
+| Aim (hold)     | Right mouse button           | Third and first person only; click-to-toggle is a Settings option (section 7) |
+| Semi-auto shot | Left click (each click)      | The existing fire button                                                      |
+| Workbench      | ⚙ button in the squad screen | No key                                                                        |
 
 ## 13. Phases
 
@@ -191,26 +195,28 @@ Each phase is a branch that ends green (lint, format, typecheck, the 48 tests, b
 
 The turrets of [PLAN-build-mode.md](PLAN-build-mode.md) use W1 and W2; plan the weapon sheet so a turret weapon is just an item.
 
-## 14. Open questions (the user decides)
+## 14. Decisions
 
-| #   | Question                                                                              | Recommendation                                                                         |
-| --- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| 1   | Does the pistol have infinite spare ammo, or do all weapons need ammo from the start? | Infinite spare pistol magazines at first; everything else needs ammo                   |
-| 2   | Do the AI soldiers manage ammo (and run dry), or is it only the player's unit?        | The AI too, otherwise the squad never needs resupply                                   |
-| 3   | Headshots in top-down and for the AI: by chance, or only with a real view pitch?      | By chance, small, so the top-down and RTS play stay relevant                           |
-| 4   | Which input is "aim" in top-down, where right-drag rotates the camera?                | Hold the right button without dragging (a drag still rotates), plus a key as an option |
-| 5   | Do a crit and a headshot stack, or does the higher one win?                           | The higher wins, to avoid huge numbers                                                 |
-| 6   | Does noise attract enemies (so a suppressor matters)?                                 | Yes, with a small radius; off by default until balanced                                |
-| 7   | How do weapons look on the models (bones, where the meshes come from)?                | Ask before the visual part, as already agreed                                          |
-| 8   | Is melee on the same cooldown as firing, or free?                                     | Shared, so it is a choice                                                              |
-| 9   | Should the knife be a weapon item in a hand, or a permanent melee slot?               | A permanent melee slot (the user's soldiers always have fists)                         |
+The user accepted the recommendations on 2026-10-19. Item 7 still needs an answer from the user before any visual work on weapons.
+
+| #   | Question                                                               | Decision                                                                                                    |
+| --- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | Spare ammo for the pistol                                              | Infinite spare pistol magazines at first (it still reloads); every other weapon needs ammo                  |
+| 2   | Does the AI manage ammo?                                               | Yes: AI soldiers run dry and reload, so the squad needs resupply                                            |
+| 3   | Headshots in top-down and for the AI                                   | By a small chance from the error angle, the skill and aiming; a real hit height in third and first person   |
+| 4   | The aim input                                                          | Hold the right mouse button in third / first person only (section 7); a Settings option for click-to-toggle |
+| 5   | Crit and headshot together                                             | The higher of the two wins, they do not stack                                                               |
+| 6   | Does noise attract enemies?                                            | Yes, with a small radius; off by default until balanced, so a suppressor matters once it is on              |
+| 7   | How do weapons look on the models (bones, where the meshes come from)? | **Still open: the user answers before the visual part** (as already agreed)                                 |
+| 8   | Melee cooldown                                                         | Shared with firing, so using it is a choice                                                                 |
+| 9   | The knife                                                              | A permanent melee slot; every soldier always has fists                                                      |
 
 ## 15. Risks
 
-| Risk                                                               | Mitigation                                                                              |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| Weapon instances touch inventory, crates, maps, shop and the UI    | Do W1 alone, keep strings readable, and run the 48 tests and the map loads after it     |
-| The game gets too hard when accuracy drops and ammo appears        | Every number is in the JSON; retune after the user plays; keep a start loadout generous |
-| Melee without a slash animation looks wrong                        | Use the punch and attack clips first; ask the user before buying or converting a clip   |
-| Aim input clashes with the camera rotation in top-down             | Open question 4                                                                         |
-| Balance comes from headless runs of a passive squad, not from play | Expect to retune; log what the user reports                                             |
+| Risk                                                               | Mitigation                                                                                       |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Weapon instances touch inventory, crates, maps, shop and the UI    | Do W1 alone, keep strings readable, and run the 48 tests and the map loads after it              |
+| The game gets too hard when accuracy drops and ammo appears        | Every number is in the JSON; retune after the user plays; keep a start loadout generous          |
+| Melee without a slash animation looks wrong                        | Use the punch and attack clips first; ask the user before buying or converting a clip            |
+| Players expect aim in top-down too                                 | Aim exists only in third / first person (section 7); top-down gets the stand-still bonus instead |
+| Balance comes from headless runs of a passive squad, not from play | Expect to retune; log what the user reports                                                      |

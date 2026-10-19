@@ -58,24 +58,24 @@ Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md
 
 ### 2d — ⚪ Online multiplayer (planned 2026-10-19, nothing built)
 
-Full plan: [docs/PLAN-multiplayer.md](docs/PLAN-multiplayer.md). Co-op for 2 to 4 players: a small WebSocket relay (the first backend of the project; the user agreed a backend is allowed for this) and a host browser that runs the sim. Phases 0 to 7 are in the plan. Decided: gold, XP and perks are per player, and any player can pause and unpause.
+Full plan: [docs/PLAN-multiplayer.md](docs/PLAN-multiplayer.md). Co-op for 2 to 4 players: a small WebSocket relay (the first backend of the project; the user agreed a backend is allowed for this) and a host browser that runs the sim. Phases 0 to 7 are in the plan. Decided: gold, XP and perks are per player, any player can pause and unpause, and menus do not freeze the run.
 
-- [ ] ⚪ Choose where to host the relay (prices and limits not checked yet) and answer the open design questions in section 6 of the plan (shared gold and perks, what happens to the pause, RTS in multiplayer, which maps).
+- [ ] ⚪ Choose where to host the relay (prices and limits not checked yet). The design questions of section 6 are decided.
 - [ ] ⚪ Before any performance work (Wasm, a Web Worker, a flow field for pathfinding): profile in the browser first; the sim step is 2.7 ms with 1000 zombies, so the drawing is the likelier bottleneck (see section 8 of the plan).
 
 ### 2e — ⚪ Build mode (planned 2026-10-19, nothing built)
 
 Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watchtower, turret, wire fence, wooden barricade, solid wall, sandbags, doors) with upgrades; soldiers build from the RTS view (more soldiers, faster) and the player quick-builds sandbags and a turret in direct control; a manned machine-gun nest and an automatic "smart turret"; tested on a new Map 2, "Build mode test". Phase 0 is a flow-field pathfinding so zombies can reach and break structures.
 
-- [ ] ⚪ Answer the open questions in section 13 of the plan (cost in gold or materials, ammo for turrets, who helps build, limits, multiplayer ownership).
+- [x] Decisions taken (2026-10-19): the recommendations of section 13 of the plan were accepted.
 - [ ] ⚪ Build order: flow-field pathfinding (phase 0), then structures in the sim.
 
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
 Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. The first phase turns weapons into instances with their own state.
 
-- [ ] ⚪ Answer the open questions in section 14 of the plan (infinite pistol ammo, AI ammo, headshots in top-down, the aim input, noise, weapon models).
-- [ ] ⚪ Ask the user before the visual part of weapons (bones, where the meshes come from), as already agreed.
+- [x] Decisions taken (2026-10-19): the recommendations of section 14 of the plan were accepted; aim is hold-right-click in third / first person only.
+- [ ] ⚪ Still open, and the only blocker: ask the user before the visual part of weapons (bones, where the meshes come from), as already agreed.
 
 ### 3 — 🟡 Going public (GitHub Pages is live)
 

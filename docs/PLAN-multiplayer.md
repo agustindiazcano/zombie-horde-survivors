@@ -27,7 +27,7 @@ Two to four people play the same run online, in the same squad game (co-op again
 | The shop spends the shared gold on one selected unit                                                                                                     | The shop spends that player's gold, on that player's units; revive and reinforcement buy for that player's squad                                                  |
 | Pickup of a crate by any unit                                                                                                                            | Unchanged; contents go to the unit that opened it                                                                                                                 |
 | Pause is local (`P`, `Esc`, a window losing focus)                                                                                                       | Pause is a **shared flag** in the run: any player sets or clears it with a command; the host stops stepping; every client shows who paused and a button to resume |
-| The squad screen, the shop and the level-up menu freeze the game                                                                                         | In multiplayer they must not freeze everyone (open question in section 6); only the explicit pause does                                                           |
+| The squad screen, the shop and the level-up menu freeze the game                                                                                         | In multiplayer they must not freeze everyone (decided in section 6); only the explicit pause does                                                                 |
 | Game over when no soldier is on their feet                                                                                                               | Unchanged for the whole run; a player whose units are all down waits to be revived                                                                                |
 
 ## 3. Architecture
@@ -66,19 +66,19 @@ Each phase is a branch and ends green (lint, format, typecheck, the 48 tests, bu
 | A privacy / safety stance | Rooms by code, no accounts, no chat in the first version (nothing to moderate)                                                                                |
 | Version check             | Host and guests must run the same build, or the snapshot format breaks                                                                                        |
 
-## 6. Open design questions (the user decides)
+## 6. Design decisions
 
-Answered on 2026-10-19: gold, XP and perks are per player; any player can pause and unpause. Still open:
+Answered by the user on 2026-10-19: gold, XP and perks are per player; any player can pause and unpause. The user then accepted the recommendations for the rest:
 
-| Question                                                                 | Why it matters                                                                 | Recommendation                                                           |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| Do the shop, the squad screen and the level-up menu still pause the run? | In multiplayer one person opening a menu cannot freeze the others              | No: only the explicit pause freezes; menus stay open while the game runs |
-| Can a player pause forever, or is there a limit?                         | Anyone can pause: a player could block the run                                 | Show who paused; a vote or a time limit is an option for later           |
-| Does each player control their own soldier, or can they take any?        | Ownership is already in the sim (units belong to players)                      | Their own, plus the drone if unowned                                     |
-| Can a player use RTS mode in multiplayer?                                | Orders only for their own units is the natural rule                            | Yes, for their own units                                                 |
-| Which maps? Waves only, or Story too?                                    | Story objectives and briefings would need a shared view                        | Waves first                                                              |
-| Is the host's advantage acceptable?                                      | The host has zero latency and could cheat; fine for friends, not for a ranking | Yes for friends                                                          |
-| Can one player give gold or items to another?                            | Per-player gold makes a gift command useful                                    | Items yes (drag between units); gold later                               |
+| Question                                                         | Decision                                                                                  |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Do the shop, squad screen and level-up menu still pause the run? | No: only the explicit pause freezes the run; menus stay open while the game keeps running |
+| Can a player pause forever?                                      | The pause shows who paused; a vote or a time limit is left for later                      |
+| Which soldier does each player control?                          | Their own units, plus the drone if nobody owns it                                         |
+| RTS mode in multiplayer                                          | Yes, for the player's own units only                                                      |
+| Which maps                                                       | Waves first; Story later                                                                  |
+| The host's advantage                                             | Accepted: this is for friends, not a ranking                                              |
+| Giving things to another player                                  | Items yes (drag between units); gold later                                                |
 
 ## 7. Risks
 

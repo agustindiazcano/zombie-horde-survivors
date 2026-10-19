@@ -1,6 +1,6 @@
 # Plan: build mode (bases, defences, emplacements)
 
-Status: **plan only, nothing built.** Written 2026-10-19 from the user's request. Sizes are qualitative; nothing has been prototyped. Keys marked _proposed_ are not decided; once something is built, its keys go in [CONTROLS.md](CONTROLS.md) in the same commit.
+Status: **plan only, nothing built.** Written 2026-10-19 from the user's request; the open questions were answered the same day (section 13). Sizes are qualitative; nothing has been prototyped. Keys marked _proposed_ are not decided; once something is built, its keys go in [CONTROLS.md](CONTROLS.md) in the same commit.
 
 ## 1. Goal
 
@@ -28,7 +28,7 @@ Let the squad build a small base: walls, doors, barricades, wire, sandbags, towe
 | Vehicles have seats, `V` boards, passengers shoot (`src/sim/vehicles.ts`)                                             | A manned machine gun is a vehicle that cannot move: reuse boarding, seats and the RTS `board` order                                         |
 | Zombies hit soldiers and vehicles and steer around boxes with a corner heuristic                                      | They must also attack structures that block them, and path to doors. The corner heuristic got stuck before; see section 10                  |
 | Editor places props and units, `map.logic` holds per-map rules, mode is `waves` or `story`                            | Map 2 needs a `build` flag in the map logic and pre-placed structures (section 11)                                                          |
-| Gold exists and resets every run; multiplayer will make it per player                                                 | Building costs gold first (open question 1)                                                                                                 |
+| Gold exists and resets every run; multiplayer will make it per player                                                 | Building costs gold first (decision 1, section 13)                                                                                          |
 
 ## 4. Structures
 
@@ -46,7 +46,7 @@ All numbers are placeholders to tune; they go in `data/game.json` under a new `s
 | Machine-gun nest | yes (small)            | cover          | attack it                   | A manned gun (section 9)                                                      |
 | Smart turret     | yes (small)            | no             | attack it                   | Picks targets by priority; the top turret (section 9)                         |
 
-Common fields per structure: `hp`, `cost`, `buildWork` (seconds of work for one builder), `height`, `size`, `owner` (the player who placed it). A structure in progress is a **blueprint**: it is shown as a ghost and does not block until it is finished (open question 5).
+Common fields per structure: `hp`, `cost`, `buildWork` (seconds of work for one builder), `height`, `size`, `owner` (the player who placed it). A structure in progress is a **blueprint**: it is shown as a ghost and does not block until it is finished (decision 5, section 13).
 
 ## 5. Upgrades
 
@@ -68,14 +68,14 @@ Common fields per structure: `hp`, `cost`, `buildWork` (seconds of work for one 
 
 ## 7. Building from the RTS view
 
-| Step                                                                                                                                | Detail                                                                                                                                                  |
-| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Open the build menu (_proposed_: key **N**, or a button on the HUD)                                                              | A list of structures with cost; picking one arms a ghost that follows the cursor                                                                        |
-| 2. Place the ghost (click; **R** rotates; grid snap of 0.5 m; red when invalid)                                                     | Invalid: overlapping a unit or obstacle, on water or a cliff, out of the map, or not enough gold                                                        |
-| 3. The blueprint is created; gold is spent (or reserved)                                                                            | A blueprint can be cancelled for a refund                                                                                                               |
-| 4. Selected soldiers get a `build` order (like `move` and `board`); with none selected, nearby idle soldiers help (open question 3) | They walk next to it and work while within reach                                                                                                        |
-| 5. Build speed scales with the number of workers                                                                                    | `work per second = sum over builders of rate`, so 2 soldiers take half the time. Diminishing returns past a few workers are an option (open question 4) |
-| 6. Done: it becomes a real structure and blocks                                                                                     | The builders return to their previous order                                                                                                             |
+| Step                                                                                                                                       | Detail                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Open the build menu (_proposed_: key **N**, or a button on the HUD)                                                                     | A list of structures with cost; picking one arms a ghost that follows the cursor                                                                               |
+| 2. Place the ghost (click; **R** rotates; grid snap of 0.5 m; red when invalid)                                                            | Invalid: overlapping a unit or obstacle, on water or a cliff, out of the map, or not enough gold                                                               |
+| 3. The blueprint is created; gold is spent (or reserved)                                                                                   | A blueprint can be cancelled for a refund                                                                                                                      |
+| 4. Selected soldiers get a `build` order (like `move` and `board`); with none selected, nearby idle soldiers help (decision 3, section 13) | They walk next to it and work while within reach                                                                                                               |
+| 5. Build speed scales with the number of workers                                                                                           | `work per second = sum over builders of rate`, so 2 soldiers take half the time. Diminishing returns past a few workers are an option (decision 4, section 13) |
+| 6. Done: it becomes a real structure and blocks                                                                                            | The builders return to their previous order                                                                                                                    |
 
 A builder stops shooting while it works and is a target, so a base is built between waves or behind cover. Builders go back to fighting if an enemy gets within a short range (a rule to set in `game.json`).
 
@@ -94,7 +94,7 @@ A builder stops shooting while it works and is a target, so a base is built betw
 
 - Fixed weapon (an item from `data/items.json`, so it gets the same damage, range and ammo rules as soldier weapons; see [PLAN-weapons-and-combat.md](PLAN-weapons-and-combat.md)).
 - Turns and fires at the nearest visible enemy; cannot be hurt by the squad's own grenades unless friendly fire says so.
-- Ammo: a magazine and a reload, refilled by a soldier next to it (or by gold). A turret without ammo is a decoy (open question 6).
+- Ammo: a magazine and a reload, refilled by a soldier next to it (or by gold). A turret without ammo is a decoy (decision 6, section 13).
 
 ### 9.2 Machine-gun nest (manned)
 
@@ -105,7 +105,7 @@ A builder stops shooting while it works and is a target, so a base is built betw
 ### 9.3 Smart turret
 
 - Works on its own like the turret but with rules: target priority (the closest to a wall, bosses first, or the one hurting a soldier), no wasting ammo on the last health point of a dying target, and it can be told to ignore some enemies.
-- Needs more cost and an upgrade chain (range, sensors, ammo). Power or a repair cost is an option (open question 7).
+- Needs more cost and an upgrade chain (range, sensors, ammo). Power or a repair cost is an option (decision 7, section 13).
 
 ### 9.4 Watchtower
 
@@ -154,20 +154,22 @@ Each phase is a branch that ends green (lint, format, typecheck, the 48 tests, b
 
 First models are plain boxes, like the first jeep, so the rules can be judged before art.
 
-## 13. Open questions (the user decides)
+## 13. Decisions
 
-| #   | Question                                                                                                  | Recommendation                                                       |
-| --- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| 1   | What does building cost: gold, or a new material (wood, metal) dropped by enemies?                        | Gold first; add materials only if gold feels wrong                   |
-| 2   | Is there a limit on structures (count or total hp)?                                                       | A soft limit set per map                                             |
-| 3   | In RTS, do idle nearby soldiers help build automatically, or only the ones selected?                      | Only selected, plus a "help" order for the rest                      |
-| 4   | Do more soldiers always build proportionally faster, or with diminishing returns?                         | Proportional up to a cap per structure (e.g. 4 workers)              |
-| 5   | Do blueprints block movement before they are finished?                                                    | No; they are ghosts until done                                       |
-| 6   | Do turrets need ammo, or are they unlimited?                                                              | Ammo, so a base needs upkeep; unlimited for the first version        |
-| 7   | Does the smart turret need power or a recurring cost?                                                     | No, only a high price and upgrades                                   |
-| 8   | Do enemies attack structures only when blocked, or also by choice (they prefer soldiers first, as today)? | Only when blocked, plus bosses that smash anything                   |
-| 9   | Is the base saved between runs?                                                                           | No; gold and builds reset every run, as today                        |
-| 10  | In multiplayer, who owns a structure and who can upgrade or remove it?                                    | The builder owns it; the squad can use it; only the owner removes it |
+The user accepted the recommendations on 2026-10-19.
+
+| #   | Question                                             | Decision                                                                                                      |
+| --- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 1   | What building costs                                  | Gold (per player in multiplayer); new materials only if gold feels wrong after play                           |
+| 2   | A limit on structures                                | A soft limit set per map                                                                                      |
+| 3   | Who builds in RTS                                    | Only the selected soldiers, plus a "help" order for the others                                                |
+| 4   | Build speed with more soldiers                       | Proportional up to a cap per structure (about 4 workers)                                                      |
+| 5   | Do blueprints block movement                         | No: they are ghosts until finished                                                                            |
+| 6   | Do turrets need ammo                                 | Ammo is the target design (a base needs upkeep); unlimited in the first version, then follow the weapons plan |
+| 7   | Does the smart turret need power or a recurring cost | No: a high price and upgrades only                                                                            |
+| 8   | When enemies attack structures                       | Only when a structure blocks them, plus bosses that smash anything; they still prefer soldiers first          |
+| 9   | Is the base saved between runs                       | No: gold and builds reset every run, as today                                                                 |
+| 10  | Ownership in multiplayer                             | The builder owns it; the whole squad can use it; only the owner can remove it                                 |
 
 ## 14. Risks
 

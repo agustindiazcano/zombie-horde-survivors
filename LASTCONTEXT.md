@@ -35,6 +35,8 @@ Only what is still open: read this first in every session. When an item here is 
 - 🟢 Models are ~15 MB: compression is the next performance win (PENDING §4).
 - 🟡 Modes, map editor, players, stats and equipment: phases 1 to 3 are built; 4 (save / load maps) is next (PENDING §2c, section below).
 
+- ⚪ Three plans written on 2026-10-19, nothing built, decisions taken: [online multiplayer](docs/PLAN-multiplayer.md) (relay plus host; gold, XP and perks per player; any player can pause), [build mode](docs/PLAN-build-mode.md) (structures, doors, turrets, Map 2) and [weapons and combat](docs/PLAN-weapons-and-combat.md) (semi-auto pistol, ammo, recoil, accuracy, aim with the right mouse button in third / first person, headshots, crits, melee, accessories). Suggested order: weapons W1, flow-field pathfinding, then build mode and multiplayer. The only open blocker is how weapons look on the models (ask the user first).
+
 ## Next big work: modes, map editor, players, stats (planned 2026-10-18, no code yet)
 
 Full plan and decisions: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md) (section 8 lists what the user decided; PENDING §2c lists the phases). The mobile version is merged (PR #33). The plan, the PENDING entry and the Meshy AI marine model (CC-BY-4.0, credited in `assets.toml` and the README; it replaces the toon soldier in slot 4 of `data/characters.json` and adds the "Infected marine" enemy with a green `tint`) travel together in the PR from branch `feat/marine-model-and-plan`. Check that this PR is merged and pull `main` before branching.
