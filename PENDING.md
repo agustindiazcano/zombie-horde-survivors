@@ -79,6 +79,12 @@ Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). S
 - [ ] 🟡 Look at W1 and W2 in the browser: the pistol fires once per click, R reloads, the HUD shows rounds, AI soldiers reload, rifle and machine gun need ammo from the shop or crates (balance is a guess). W3 (accuracy, recoil, hold-to-aim, dynamic crosshair, new base spreads) is built too: check how aiming and recoil feel and whether the AI now misses too much. Also look at W5: **F** strikes, enemies are shoved and stagger, the AI hits close enemies. Also look at W4: aim at a head in third / first person (orange number, glow, ping), crits (yellow), the small head chance in top-down. Next: the flow-field pathfinding (branch from `main`), then W6.
 - [ ] ⚪ Still open, and the only blocker: ask the user before the visual part of weapons (bones, where the meshes come from), as already agreed.
 
+### 2g — ⚪ Marine zombie variants and dismemberment (planned 2026-10-19, nothing built)
+
+Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zombies-and-dismemberment.md). Enemies become variants of the Meshy marine (brown, bloody, burgundy, bleeder, crawler, runner, wanderer), mini bosses too; heads and limbs come off, shot-off legs make a crawler, some zombies climb. **First measure**: the marine has 61k triangles, so a light copy comes before any replacement. Open questions are in section 11 of the plan.
+
+- [ ] ⚪ The user answers section 11 of the plan, then phase M0 (measure and the light marine).
+
 ### 3 — 🟡 Going public (GitHub Pages is live)
 
 - [ ] 🟡 **Analytics with GoatCounter** (free, no cookies, custom events for waves reached and game over). Needs the user's GoatCounter site name; the script goes in `index.html`.
