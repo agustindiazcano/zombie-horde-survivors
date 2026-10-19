@@ -86,3 +86,10 @@ author = "Meshy AI"
 source = "https://www.meshy.ai"
 license = "CC-BY-4.0"
 path = "public/models/soldier-marine.glb"
+
+[[asset]]
+name = "SUV (Car Kit)"
+author = "Kenney"
+source = "https://kenney.nl/assets/car-kit"
+license = "CC0-1.0"
+path = "public/models/vehicle-suv.glb"

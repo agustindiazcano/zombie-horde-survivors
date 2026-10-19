@@ -14,6 +14,7 @@ import { CameraControls } from './cameraControls';
 import { CratePrompt, InventoryUi } from './inventoryUi';
 import { startLoop } from './loop';
 import { GltfAssetLoader } from './render/assetLoader';
+import { loadVehicleModel } from './render/vehicles';
 import { parseCharactersConfig } from './render/characterConfig';
 import { GameRenderer, type ViewMode } from './render/gameRenderer';
 import { RtsController } from './rts';
@@ -75,6 +76,7 @@ async function main(): Promise<void> {
   let state = createGame(config, Date.now());
   let paused = false;
   const renderer = new GameRenderer(document.body, config, factories);
+  renderer.setVehicleModel(await loadVehicleModel());
   const input = new InputController(renderer.domElement);
   const sfx = new Sfx();
   const fps = new FpsCounter(document.body);

@@ -205,6 +205,7 @@ export class GameRenderer {
   private spawnMarkers: THREE.Group | null = null;
   private goalMarkers: THREE.Group | null = null;
   private fireMarkers: THREE.Group | null = null;
+  private vehicleModel: THREE.Object3D | null = null;
 
   /** Terrain height under a point of the loaded map. */
   private groundAt(x: number, z: number): number {
@@ -591,7 +592,7 @@ export class GameRenderer {
       live.add(v.id);
       let entry = this.vehicles.get(v.id);
       if (!entry) {
-        entry = createJeep();
+        entry = createJeep(this.vehicleModel);
         this.vehicles.set(v.id, entry);
         this.scene.add(entry.object);
       }
@@ -842,6 +843,11 @@ export class GameRenderer {
   }
 
   /** The sky, time of day, light colour and weather of the map. */
+  /** The loaded vehicle model (null keeps the box jeep). Applies to vehicles drawn from now on. */
+  setVehicleModel(model: THREE.Object3D | null): void {
+    this.vehicleModel = model;
+  }
+
   setEnvironment(env: Environment): void {
     this.environment.set(env);
   }

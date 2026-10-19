@@ -202,5 +202,6 @@ Every third-party asset is listed in `assets.toml` (name, author, source, licens
 - **Worm (enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/KiNAaBa4cK)
 - **Spaceship (used as the drone)** by Quaternius — [CC0-1.0](https://poly.pizza/m/DbGajMHrvp)
 - **Digital Camo Soldier (marine soldier and infected marine enemy)** by Meshy AI — [CC-BY-4.0](https://www.meshy.ai)
+- **SUV (Car Kit)** by Kenney — [CC0-1.0](https://kenney.nl/assets/car-kit)
 
 <!-- credits:end -->
