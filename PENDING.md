@@ -56,6 +56,13 @@ Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md
 - [ ] ⚪ Phases 8b–9: (vehicles first version is built) air and sea vehicles, a real vehicle model, RTS enter orders, interaction mechanics (lift and throw objects by strength, climbing, drag or carry a body, fire hazards), animals.
 - [ ] 🟡 Answer the open questions in section 8 of the plan (steering model, first vehicle, attribute names, weapon-class XP source, downed rules, defibrillator, equipment on the models).
 
+### 2d — ⚪ Online multiplayer (planned 2026-10-19, nothing built)
+
+Full plan: [docs/PLAN-multiplayer.md](docs/PLAN-multiplayer.md). Co-op for 2 to 4 players: a small WebSocket relay (the first backend of the project; the user agreed a backend is allowed for this) and a host browser that runs the sim. Phases 0 to 7 are in the plan.
+
+- [ ] ⚪ Choose where to host the relay (prices and limits not checked yet) and answer the open design questions in section 6 of the plan (shared gold and perks, what happens to the pause, RTS in multiplayer, which maps).
+- [ ] ⚪ Before any performance work (Wasm, a Web Worker, a flow field for pathfinding): profile in the browser first; the sim step is 2.7 ms with 1000 zombies, so the drawing is the likelier bottleneck (see section 8 of the plan).
+
 ### 3 — 🟡 Going public (GitHub Pages is live)
 
 - [ ] 🟡 **Analytics with GoatCounter** (free, no cookies, custom events for waves reached and game over). Needs the user's GoatCounter site name; the script goes in `index.html`.
