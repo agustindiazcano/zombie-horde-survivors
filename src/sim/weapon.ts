@@ -7,6 +7,7 @@ import { weaponOf } from './stats';
 import { damageZombie } from './zombies';
 import { gunState } from './ammo';
 import { kickRecoil, recoilOf, spreadNow } from './accuracy';
+import { rollHit } from './hits';
 
 /** True if an obstacle sits between `origin` and a point `distance` away along `dir`. */
 export function isBlocked(origin: Vec2, dir: Vec2, distance: number, config: GameConfig): boolean {
@@ -72,6 +73,11 @@ export function fireWeapon(
     }
   }
 
+  const to = { x: origin.x + dir.x * nearest, z: origin.z + dir.z * nearest };
+  const roll = target
+    ? rollHit(state, config, soldier, weapon.id, target, Math.abs(spread), to)
+    : null;
+  const damage = roll ? weapon.damage * roll.multiplier : 0;
   state.events.push({
     type: 'shot',
     shooterId: soldier.id,
@@ -79,9 +85,10 @@ export function fireWeapon(
     weapon: weapon.id,
     height: weapon.height,
     from: { x: origin.x, z: origin.z },
-    to: { x: origin.x + dir.x * nearest, z: origin.z + dir.z * nearest },
+    to,
     hitZombieId: target?.id ?? null,
     cameraKick,
+    hit: roll ? { kind: roll.kind, damage } : null,
   });
-  if (target) damageZombie(state, config, target, weapon.damage, soldier);
+  if (target && roll) damageZombie(state, config, target, damage, soldier, roll.kind);
 }

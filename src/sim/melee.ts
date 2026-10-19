@@ -1,5 +1,6 @@
 import { resolveStatic } from './collision';
 import type { GameConfig } from './config';
+import { rollHit } from './hits';
 import { gunOf, weaponDef } from './stats';
 import type { GameState, Soldier, Zombie } from './types';
 import { damageZombie } from './zombies';
@@ -68,13 +69,17 @@ export function meleeStrike(state: GameState, config: GameConfig, s: Soldier): b
   const m = config.melee;
   s.fireCooldown += m.cooldown;
   s.reload = null;
+  // A blow lands on the body (no head hit); only a critical hit can add to it.
+  const roll = target ? rollHit(state, config, s, null, target, 0, target.pos, false) : null;
+  const damage = roll ? blow.damage * state.mods.damage * roll.multiplier : 0;
   state.events.push({
     type: 'melee',
     attackerId: s.id,
     weapon: blow.item,
     hitZombieId: target?.id ?? null,
+    hit: roll ? { kind: roll.kind, damage } : null,
   });
-  if (!target) return true;
+  if (!target || !roll) return true;
 
   // Heavier enemies (bigger, and bosses most of all) move less.
   const weight = (target.radius / config.zombie.radius) * (target.boss ? 1 / m.bossPushScale : 1);
@@ -87,6 +92,6 @@ export function meleeStrike(state: GameState, config: GameConfig, s: Soldier): b
   resolveStatic(target.pos, target.radius, config.arena);
   target.stagger = target.boss ? m.stagger * 0.5 : m.stagger;
   target.state = 'walk';
-  damageZombie(state, config, target, blow.damage * state.mods.damage, s);
+  damageZombie(state, config, target, damage, s, roll.kind);
   return true;
 }

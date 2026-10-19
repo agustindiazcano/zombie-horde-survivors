@@ -7,7 +7,7 @@ import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
 import { gunOf, weaponDef } from './stats';
-import type { GameState, Soldier, Vehicle, Zombie } from './types';
+import type { GameState, HitKind, Soldier, Vehicle, Zombie } from './types';
 import { hurtVehicle, isOccupied } from './vehicles';
 import type { Vec2 } from './vec';
 
@@ -100,6 +100,8 @@ export function damageZombie(
   amount: number,
   /** The soldier that fired the shot; it gets the kill and the experience. */
   killer?: Soldier,
+  /** What kind of hit it was, reported with the kill. */
+  hit: HitKind = 'body',
 ): void {
   if (zombie.state === 'death') return;
   zombie.health -= amount;
@@ -127,6 +129,7 @@ export function damageZombie(
     pos: { x: zombie.pos.x, z: zombie.pos.z },
     exploded,
     killerId: killer?.id ?? null,
+    hit,
   });
   dropLoot(state, config, zombie);
   if (zombie.loot.length > 0) {

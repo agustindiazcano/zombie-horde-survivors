@@ -88,6 +88,7 @@ function newUnit(
     reload: null,
     recoil: 0,
     aiming: false,
+    aimLine: null,
     aimBroken: false,
     stillTime: 0,
     y: 0,
@@ -267,7 +268,10 @@ export function updateSoldiers(
     s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
     updateReload(config, s, dt);
     fadeRecoil(config, s, dt);
-    if (s.id !== controlledId) s.aiming = false;
+    if (s.id !== controlledId) {
+      s.aiming = false;
+      s.aimLine = null;
+    }
     if (state.mods.regen > 0 && !isDrone(s) && !s.downed) {
       const max = maxHealthOf(state, config, s);
       s.health = Math.min(max, s.health + state.mods.regen * dt);
@@ -351,6 +355,7 @@ function updateSeated(
   controlledId: number | null,
 ): void {
   s.aiming = false;
+  s.aimLine = null;
   const v = state.vehicles.find((u) => u.id === s.vehicleId);
   if (!v) {
     s.vehicleId = null;
@@ -387,6 +392,7 @@ function updateControlled(
   if (!input.aiming) s.aimBroken = false;
   s.aiming =
     input.aiming === true && !s.aimBroken && !s.downed && !isDrone(s) && stance !== 'sprint';
+  s.aimLine = input.aimLine ?? null;
   // Normalize only above unit length so analog input keeps its magnitude.
   const l = Math.hypot(move.x, move.z);
   const k = l > 1 ? 1 / l : 1;

@@ -6,6 +6,7 @@ import units from '../data/units.json';
 import { Sfx } from './audio';
 import { Editor } from './editor';
 import { FpsCounter } from './fps';
+import { DamageNumbers } from './damageNumbers';
 import { Hud } from './hud';
 import { MainMenu } from './mainMenu';
 import { isMobile, MobileControls } from './mobile';
@@ -196,6 +197,9 @@ async function main(): Promise<void> {
       !modalOpen(),
   );
   const hud = new Hud(document.body, config, () => resetGame());
+  const damageNumbers = new DamageNumbers(document.body, (x, z, y) =>
+    renderer.projectToScreen(x, z, y),
+  );
   const squad = new SquadPanel(document.body, config, (id, additive) => {
     // Clicking an icon while playing hands direct control to that unit; in RTS mode it selects.
     if (mobile || localPlayer(state).controlledId !== null) setLeader(id);
@@ -498,6 +502,7 @@ async function main(): Promise<void> {
       renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
     // Clicks edit the map in the editor, so the driven unit does not fire there.
     directInput.firing = raw.firing && !editor.isEditing;
+    directInput.aimLine = renderer.sightLine() ?? undefined;
     // Aiming down the sights: the right button, only in third and first person.
     const presses = input.takeAimPresses();
     if (renderer.viewMode === 'top' || unit?.aimBroken || !settings.aimToggle) aimToggled = false;
@@ -547,6 +552,7 @@ async function main(): Promise<void> {
       step(state, config, direct ? readInput() : noInput, dt);
       renderer.onStep(state);
       hud.onStep(state);
+      damageNumbers.onStep(state);
       sfx.onStep(state);
       if (state.events.some((e) => e.type === 'soldierHurt')) mobileUi?.vibrate(35);
     },
@@ -579,6 +585,7 @@ async function main(): Promise<void> {
       if (localPlayer(state).controlledId !== null || paused || modalOpen()) rts.cancelGrenadeAim();
       renderer.setGrenadePreview(rts.grenadePreview());
       renderer.render(state, alpha, frameDt);
+      damageNumbers.update(paused ? 0 : frameDt);
       fps.tick(frameDt);
 
       const crate = !modalOpen() && playable() ? crateInReach() : undefined;

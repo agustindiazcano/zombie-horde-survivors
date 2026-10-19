@@ -426,6 +426,10 @@ const itemDef = z.discriminatedUnion('type', [
         })
         .strict()
         .optional(),
+      /** Overrides of the `hits` defaults for this weapon. */
+      headMultiplier: positive.optional(),
+      critChance: z.number().min(0).max(1).optional(),
+      critMultiplier: positive.optional(),
       /** Item id of the ammo it loads from the backpack (an `ammo` item). */
       ammo: z.string().optional(),
       /** Reloads from nothing: the spare magazines never run out (the pistol, at first). */
@@ -578,6 +582,10 @@ const enemyType = z
     rewardScale: positive,
     /** First wave this type can appear in. */
     minWave: z.number().int().positive(),
+    /** Standing height in metres at size 1 (default `hits.bodyHeight`); the head is its top. */
+    height: positive.optional(),
+    /** False for an enemy with no head to hit (a worm). */
+    headshots: z.boolean().optional(),
   })
   .strict();
 
@@ -688,6 +696,25 @@ export const GameConfigSchema = z
         crouchRecoilScale: positive,
         /** Smallest random aim error (radians) of a gun that has any spread. */
         minError: nonNegative,
+      })
+      .strict(),
+    /** Headshots and critical hits; the higher of the two multipliers applies, never both. */
+    hits: z
+      .object({
+        /** Enemy height in metres at size 1, and the top fraction of it that counts as the head. */
+        bodyHeight: positive,
+        headFraction: z.number().min(0.05).max(0.5),
+        headMultiplier: positive,
+        /** Chance of a head hit when the view gives no hit height (top-down, the AI). */
+        headChance: z.number().min(0).max(1),
+        /** Scale while aiming, bonus per weapon-skill level above 1, and loss per radian of aim error. */
+        headChanceAim: positive,
+        headChanceSkill: nonNegative,
+        headErrorPenalty: nonNegative,
+        critChance: z.number().min(0).max(1),
+        critMultiplier: positive,
+        /** Extra crit chance per weapon-skill level above 1. */
+        critSkillBonus: nonNegative,
       })
       .strict(),
     /** Ammo and reloading (the magazine, reload time and calibre are on each weapon). */

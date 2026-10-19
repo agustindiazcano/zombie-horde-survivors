@@ -64,6 +64,21 @@ export interface Equipment {
   chest: string | null;
 }
 
+/** Which multiplier a hit got: a head hit, a critical hit, or a plain body hit. */
+export type HitKind = 'head' | 'crit' | 'body';
+
+/**
+ * The line of sight the player is aiming along in third and first person: where the camera is
+ * (ground position and height) and the slope (rise per metre) of its view. A shot lands on this
+ * line, so the height of the line at the target says whether it hit the head.
+ */
+export interface AimLine {
+  x: number;
+  z: number;
+  height: number;
+  slope: number;
+}
+
 export interface Soldier {
   id: number;
   /** Id of the downed or dead ally this soldier drags by the shoulders, if any. */
@@ -89,6 +104,8 @@ export interface Soldier {
   /** Holding aim down the sights; a hit breaks it until the aim button is released. */
   aiming: boolean;
   aimBroken: boolean;
+  /** The line of sight of the controlled unit in a person view; null in top-down and for the AI. */
+  aimLine: AimLine | null;
   /** Seconds without moving. */
   stillTime: number;
   /** Height above the ground (jumping) and vertical speed. */
@@ -247,6 +264,8 @@ export type SimEvent =
       hitZombieId: number | null;
       /** Camera shake this shot adds for the shooter (from the weapon's recoil). */
       cameraKick: number;
+      /** What the bullet did to the enemy it hit, or null on a miss. */
+      hit: { kind: HitKind; damage: number } | null;
     }
   | {
       type: 'zombieKilled';
@@ -256,6 +275,8 @@ export type SimEvent =
       exploded: boolean;
       /** The soldier that landed the killing shot. */
       killerId: number | null;
+      /** The kind of the killing hit. */
+      hit: HitKind;
     }
   | { type: 'pickupCollected'; kind: 'gold' | 'xp'; amount: number; pos: Vec2 }
   | { type: 'levelUp'; level: number }
@@ -266,7 +287,13 @@ export type SimEvent =
   | { type: 'soldierDied'; soldierId: number }
   | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
   | { type: 'dryFire'; shooterId: number }
-  | { type: 'melee'; attackerId: number; weapon: string; hitZombieId: number | null }
+  | {
+      type: 'melee';
+      attackerId: number;
+      weapon: string;
+      hitZombieId: number | null;
+      hit: { kind: HitKind; damage: number } | null;
+    }
   | { type: 'reloadStarted'; soldierId: number }
   | { type: 'grenadeThrown'; throwerId: number }
   | { type: 'explosion'; pos: Vec2; radius: number }
@@ -357,6 +384,8 @@ export interface Input {
   autoTrigger?: boolean;
   /** The aim button is held (third and first person only). */
   aiming?: boolean;
+  /** The camera's line of sight (third and first person only), for the height of a hit. */
+  aimLine?: AimLine;
   /** Squad-wide stances: crouch takes priority over sprint. */
   crouch: boolean;
   sprint: boolean;

@@ -49,6 +49,8 @@ export function testConfig(patch: Patch = {}): GameConfig {
     ammo: { ...base.ammo },
     melee: { ...base.melee },
     accuracy: { ...base.accuracy },
+    // No random head or critical hits: the tests expect exact damage.
+    hits: { ...base.hits, headChance: 0, critChance: 0, critSkillBonus: 0 },
     difficulty: { ...base.difficulty },
     waves: { ...base.waves, intermission: 1e9 },
   };

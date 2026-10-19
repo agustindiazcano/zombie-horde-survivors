@@ -26,7 +26,7 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 
 ## Controls
 
-Every key and mouse action (direct control, views, RTS mode, menus, the map editor and the mobile layout) is listed in [docs/CONTROLS.md](docs/CONTROLS.md). The basics: **W A S D** move, the mouse aims, left click fires (the pistol is semi-automatic: one shot per click), **R** reloads, **F** strikes in melee, hold the **right mouse button** in third / first person to aim, **Q** throws a grenade, **T** changes view, **Y** switches between direct control and RTS mode, **I** opens the squad screen, **B** the shop and **Esc** pauses.
+Every key and mouse action (direct control, views, RTS mode, menus, the map editor and the mobile layout) is listed in [docs/CONTROLS.md](docs/CONTROLS.md). The basics: **W A S D** move, the mouse aims, left click fires (the pistol is semi-automatic: one shot per click), **R** reloads, **F** strikes in melee, hold the **right mouse button** in third / first person to aim (and put the crosshair on a head for extra damage), **Q** throws a grenade, **T** changes view, **Y** switches between direct control and RTS mode, **I** opens the squad screen, **B** the shop and **Esc** pauses.
 
 ## Radar
 

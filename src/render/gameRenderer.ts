@@ -3,6 +3,7 @@ import {
   getSoldier,
   heightAt,
   localPlayer,
+  type AimLine,
   type GameConfig,
   type Environment,
   type GameState,
@@ -467,6 +468,16 @@ export class GameRenderer {
       Math.max(this.lookPitch - dy * LOOK_SENSITIVITY, -MAX_LOOK_PITCH),
       MAX_LOOK_PITCH,
     );
+  }
+
+  /** The camera's line of sight in a person view (null in top-down): where a shot lands in height. */
+  sightLine(): AimLine | null {
+    if (this.viewMode === 'top') return null;
+    const dir = this.camera.getWorldDirection(new THREE.Vector3());
+    const flat = Math.hypot(dir.x, dir.z);
+    if (flat < 1e-6) return null;
+    const p = this.camera.position;
+    return { x: p.x, z: p.z, height: p.y, slope: dir.y / flat };
   }
 
   /** The point 20 units from `from` straight ahead along the view direction. */

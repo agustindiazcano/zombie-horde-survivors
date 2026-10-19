@@ -40,8 +40,11 @@ export class Sfx {
   onStep(state: GameState): void {
     if (!this.ctx || this.ctx.state !== 'running') return;
     for (const e of state.events) {
-      if (e.type === 'shot') this.shot(e.shooterId === localPlayer(state).controlledId ? 1 : 0.35);
-      else if (e.type === 'zombieKilled') {
+      if (e.type === 'shot') {
+        const mine = e.shooterId === localPlayer(state).controlledId;
+        this.shot(mine ? 1 : 0.35);
+        if (e.hit) this.hitMark(e.hit.kind, mine ? 1 : 0.4);
+      } else if (e.type === 'zombieKilled') {
         if (e.exploded) this.splat();
         else this.kill();
       } else if (e.type === 'pickupCollected') {
@@ -60,6 +63,7 @@ export class Sfx {
       } else if (e.type === 'melee') {
         const v = e.attackerId === localPlayer(state).controlledId ? 1 : 0.4;
         this.tone('sawtooth', e.hitZombieId !== null ? 140 : 300, 60, 0.1, 0.3 * v);
+        if (e.hit) this.hitMark(e.hit.kind, v);
       } else if (e.type === 'reloadStarted') {
         const v = e.soldierId === localPlayer(state).controlledId ? 1 : 0.3;
         this.tone('square', 500, 380, 0.05, 0.25 * v);
@@ -101,6 +105,12 @@ export class Sfx {
   private splat(): void {
     this.noiseBurst(0.3, 'lowpass', 500, 0.9);
     this.tone('sine', 120, 35, 0.3, 0.7);
+  }
+
+  /** A short ping on top of a hit that was a head hit (sharp, high) or a critical hit (bright). */
+  private hitMark(kind: 'head' | 'crit' | 'body', volume: number): void {
+    if (kind === 'head') this.tone('square', 1500, 900, 0.07, 0.22 * volume);
+    else if (kind === 'crit') this.tone('triangle', 1000, 1500, 0.09, 0.25 * volume);
   }
 
   private kill(): void {

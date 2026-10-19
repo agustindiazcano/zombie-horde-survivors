@@ -14,6 +14,8 @@ import {
 } from './sim';
 
 const BANNER_MS = 1800;
+/** How long the crosshair glows after the controlled soldier's shot lands. */
+const HIT_MARKER_MS = 160;
 const LOW_HEALTH = 0.3;
 const BEST_KEY = 'zombie-horde-survivors.best-kills';
 /** Key used before the game was renamed; still read so saved scores aren't lost. */
@@ -71,6 +73,7 @@ export class Hud {
   private readonly hint: HTMLElement;
   private readonly crosshair: HTMLElement;
   private crosshairSize = 0;
+  private hitTimer = 0;
   private readonly gameOver: HTMLElement;
   private readonly gameOverTitle: HTMLElement;
   private readonly objectives: HTMLElement;
@@ -157,6 +160,11 @@ export class Hud {
     for (const e of state.events) {
       if (e.type === 'soldierHurt' && e.soldierId === localPlayer(state).controlledId)
         this.flashDamage();
+      else if (
+        (e.type === 'shot' && e.shooterId === localPlayer(state).controlledId && e.hit) ||
+        (e.type === 'melee' && e.attackerId === localPlayer(state).controlledId && e.hit)
+      )
+        this.flashHit(e.hit!.kind);
       else if (e.type === 'levelUp') this.showBanner(`LEVEL UP! Lv ${e.level}`);
       else if (e.type === 'bossSpawned') this.showBanner('MINI BOSS!');
     }
@@ -174,6 +182,19 @@ export class Hud {
 
   setPaused(paused: boolean): void {
     this.pause.classList.toggle('hud__pause--visible', paused);
+  }
+
+  /** Makes the crosshair glow for a moment: white for a body hit, orange for a head, yellow for a crit. */
+  private flashHit(kind: 'head' | 'crit' | 'body'): void {
+    for (const k of ['head', 'crit', 'body']) {
+      this.crosshair.classList.toggle(`hud__crosshair--hit-${k}`, k === kind);
+    }
+    window.clearTimeout(this.hitTimer);
+    this.hitTimer = window.setTimeout(() => {
+      for (const k of ['head', 'crit', 'body']) {
+        this.crosshair.classList.remove(`hud__crosshair--hit-${k}`);
+      }
+    }, HIT_MARKER_MS);
   }
 
   setCrosshair(visible: boolean): void {
