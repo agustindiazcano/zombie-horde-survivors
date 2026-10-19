@@ -81,6 +81,7 @@ In third and first person the mouse turns the view 1:1 and instantly (the cursor
 | `npm run dev -- --host 127.0.0.1 --port 5173`                 | Dev server, http://127.0.0.1:5173/ (usually already running in the background; do not start a second one) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` | The static checks CI runs                                                                                 |
 | `npm test`                                                    | The 48 existing sim tests (Vitest)                                                                        |
+| `npm run bench:sim`                                           | Stress benchmark of the sim step with 100 to 1000 zombies (ms per step); not a test, prints numbers       |
 | `npm run build`                                               | `tsc --noEmit` + Vite build into `dist/`                                                                  |
 | `npm run check:assets`                                        | Fails if an asset in `assets.toml` has a license other than CC0-1.0, CC-BY-3.0 or CC-BY-4.0               |
 | `npm run credits`                                             | Regenerates the README credits block from `assets.toml`                                                   |

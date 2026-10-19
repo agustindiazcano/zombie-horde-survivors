@@ -1,5 +1,6 @@
 import type { GameConfig, Obstacle } from './config';
 import { OBSTACLE_HEIGHT, STEP_UP } from './constants';
+import { obstaclesNear } from './grid';
 import type { Vec2 } from './vec';
 
 /** Distance along a ray (unit `dir`) to a circle, or null if it misses. */
@@ -81,7 +82,13 @@ export function supportHeight(arena: GameConfig['arena'], pos: Vec2, y: number):
  * only stopped by boxes taller than that, so a climber passes over the boxes beneath it.
  */
 export function resolveStatic(pos: Vec2, radius: number, arena: GameConfig['arena'], y = 0): void {
-  for (const box of arena.obstacles) {
+  for (const box of obstaclesNear(
+    arena,
+    pos.x - radius,
+    pos.z - radius,
+    pos.x + radius,
+    pos.z + radius,
+  )) {
     if (topOf(box) <= y + STEP_UP) continue;
     resolveCircleAabb(pos, radius, box);
   }
