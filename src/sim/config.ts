@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { waterObstacles } from './terrain';
+import { steepObstacles, waterObstacles } from './terrain';
 import type { Vec2 } from './vec';
 
 const positive = z.number().positive();
@@ -279,6 +279,7 @@ export function arenaOf(map: MapData): Arena {
     surfaces: map.surfaces,
     obstacles: [
       ...waterObstacles(map.terrain.heights, map.terrain.water, map.meta.size.width / 2),
+      ...steepObstacles(map.terrain.heights, map.meta.size.width / 2),
       ...propObstacles(map),
     ],
   };
@@ -776,7 +777,7 @@ export type Obstacle = {
   z: number;
   halfW: number;
   halfD: number;
-  /** Open water: stops walkers but not bullets. */
+  /** Open water or a cliff (ground too steep to walk): stops walkers but not bullets. */
   water?: boolean;
 };
 /** The playfield the sim runs on, derived from the map (see `arenaOf`). */

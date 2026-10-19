@@ -8,4 +8,5 @@ Branch `feat/editor-polish`, cut from `feat/story-mode` (twelfth in the stack; P
 - **Story objectives:** number boxes for kills, mini bosses, wave to clear and ring radius (Game logic tab > Objectives).
 - **Jeep:** a health bar over an occupied vehicle; in RTS, right-clicking a vehicle with a free seat sends the selection to climb in (new order `board`, `orderBoard` in `soldiers.ts`).
 - **Mission briefing:** `logic.briefing` (story maps, up to 600 characters), a textarea in the Objectives section, shown as a card when the mission starts from the menu or with Play in the editor; a click closes it. `story-1` has one.
-- Still open: slopes do not block.
+- **Cliffs block:** a grid cell whose corners differ by more than `MAX_CELL_RISE` (1.2 m, `sim/terrain.ts`) becomes a blocking box like water (`steepObstacles`; walkers stop, bullets cross). Gentle hills stay walkable. Tune the constant after looking at the hills.
+- Still open: a real vehicle model.
