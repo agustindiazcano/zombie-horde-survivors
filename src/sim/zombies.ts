@@ -69,6 +69,7 @@ export function spawnZombie(
     attackRange: config.zombie.attackRange * k.radiusScale * b.size,
     state: 'walk',
     attackTimer: 0,
+    stagger: 0,
     deathTimer: 0,
     loot: [],
   };
@@ -148,6 +149,10 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     }
 
     if (state.sandbox) continue; // the editor's preview: enemies stand still
+    if (z.stagger > 0) {
+      z.stagger -= dt;
+      continue;
+    }
 
     const found = nearestTarget(state, config, z.pos);
     if (!found) continue; // everyone is dead; the game is about to end

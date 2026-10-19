@@ -20,6 +20,25 @@
         "weight": 0
       }
     },
+    "knife": {
+      "type": "weapon",
+      "name": "Combat knife",
+      "icon": "🔪",
+      "stack": 1,
+      "class": "melee",
+      "hands": 1,
+      "damageType": "physical",
+      "fireRate": 2,
+      "damage": 35,
+      "range": 1.4,
+      "spread": 0,
+      "fireMode": "auto",
+      "noise": 0,
+      "accessorySlots": [],
+      "mocked": {
+        "weight": 0.5
+      }
+    },
     "pistol": {
       "type": "weapon",
       "name": "Pistol",

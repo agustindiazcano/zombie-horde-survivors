@@ -23,7 +23,7 @@ import {
 /** How many unit windows can be open at once. */
 const MAX_OPEN = 4;
 
-/** Caption of the right hand when both hands are empty (fists do not fight yet). */
+/** Caption of the right hand when both hands are empty (they punch when an enemy is close). */
 const FISTS = '✊ Fists';
 
 function el<K extends keyof HTMLElementTagNameMap>(

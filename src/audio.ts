@@ -57,6 +57,9 @@ export class Sfx {
       else if (e.type === 'dryFire') {
         if (e.shooterId === localPlayer(state).controlledId)
           this.tone('square', 1800, 1500, 0.03, 0.2);
+      } else if (e.type === 'melee') {
+        const v = e.attackerId === localPlayer(state).controlledId ? 1 : 0.4;
+        this.tone('sawtooth', e.hitZombieId !== null ? 140 : 300, 60, 0.1, 0.3 * v);
       } else if (e.type === 'reloadStarted') {
         const v = e.soldierId === localPlayer(state).controlledId ? 1 : 0.3;
         this.tone('square', 500, 380, 0.05, 0.25 * v);

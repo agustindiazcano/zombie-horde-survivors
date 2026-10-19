@@ -697,6 +697,26 @@ export const GameConfigSchema = z
         dryFireDelay: positive,
       })
       .strict(),
+    /** Melee strikes (F): a short blow in front of the unit that shoves the enemy back. */
+    melee: z
+      .object({
+        /** Seconds before the unit can strike or fire again; shared with shooting. */
+        cooldown: positive,
+        /** Half-angle (radians) of the cone in front of the unit that a blow reaches. */
+        arc: z.number().min(0.1).max(Math.PI),
+        /** Damage and reach (metres from the enemy's edge) of hitting with a gun in hand. */
+        bashDamage: nonNegative,
+        bashRange: positive,
+        /** How far (metres) a blow shoves an ordinary enemy; heavier ones move less. */
+        push: nonNegative,
+        /** Seconds the enemy loses (no moving, no biting) after being hit. */
+        stagger: nonNegative,
+        /** Share of the push a mini boss still feels. */
+        bossPushScale: z.number().min(0).max(1),
+        /** An AI soldier strikes an enemy this close (metres from its edge) instead of shooting. */
+        aiRange: positive,
+      })
+      .strict(),
     /** Dragging a downed or dead ally by the shoulders. */
     drag: z
       .object({

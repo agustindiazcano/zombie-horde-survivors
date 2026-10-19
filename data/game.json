@@ -49,6 +49,10 @@
         "weight": 1.5
       },
       {
+        "item": "knife",
+        "weight": 1.5
+      },
+      {
         "item": "defibrillator",
         "weight": 0.6
       },
@@ -463,6 +467,16 @@
   },
   "ammo": {
     "dryFireDelay": 0.4
+  },
+  "melee": {
+    "cooldown": 0.6,
+    "arc": 0.9,
+    "bashDamage": 12,
+    "bashRange": 1.5,
+    "push": 1.4,
+    "stagger": 0.5,
+    "bossPushScale": 0.15,
+    "aiRange": 1.1
   },
   "accuracy": {
     "movementSpread": 1.2,

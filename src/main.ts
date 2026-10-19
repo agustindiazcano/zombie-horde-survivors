@@ -30,6 +30,7 @@ import {
   getVehicle,
   aimErrorOf,
   startReload,
+  meleeStrike,
   throwGrenade,
   toggleDrag,
   toggleVehicle,
@@ -446,6 +447,10 @@ async function main(): Promise<void> {
       if (playable() && !modalOpen() && controlled !== null && !e.repeat) {
         throwGrenade(state, config, controlled, readInput().aim);
       }
+    } else if (e.code === 'KeyF') {
+      // Direct control: strike the nearest enemy in front (RTS keeps F for "follow").
+      const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
+      if (playable() && !modalOpen() && unit && !e.repeat) meleeStrike(state, config, unit);
     } else if (e.code === 'KeyR') {
       // Direct control: reload the gun in hand from the backpack's ammo.
       const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);

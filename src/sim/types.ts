@@ -56,7 +56,7 @@ export type Hand = 'rightHand' | 'leftHand';
 
 /**
  * Hand and body slots; null is empty. A two-handed weapon sits in `rightHand` and leaves
- * `leftHand` empty. With both hands empty a unit has fists (not active yet: it does not fight).
+ * `leftHand` empty. With both hands empty a unit has fists.
  */
 export interface Equipment {
   rightHand: string | null;
@@ -201,6 +201,8 @@ export interface Zombie {
   attackRange: number;
   state: ZombieState;
   attackTimer: number;
+  /** Seconds left stunned by a melee blow: it neither moves nor bites. */
+  stagger: number;
   deathTimer: number;
 }
 
@@ -264,6 +266,7 @@ export type SimEvent =
   | { type: 'soldierDied'; soldierId: number }
   | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
   | { type: 'dryFire'; shooterId: number }
+  | { type: 'melee'; attackerId: number; weapon: string; hitZombieId: number | null }
   | { type: 'reloadStarted'; soldierId: number }
   | { type: 'grenadeThrown'; throwerId: number }
   | { type: 'explosion'; pos: Vec2; radius: number }

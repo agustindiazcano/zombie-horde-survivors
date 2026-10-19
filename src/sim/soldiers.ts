@@ -5,6 +5,7 @@ import { getVehicle, toggleVehicle } from './vehicles';
 import { gunOf, isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
 import { fadeRecoil } from './accuracy';
 import { maintainAmmo, updateReload } from './ammo';
+import { enemyInMeleeReach, meleeStrike } from './melee';
 import { triggerPulled } from './weaponState';
 import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from './config';
 import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
@@ -471,6 +472,13 @@ function updateAi(
     s.pos.z += (dz / d) * step;
     resolveUnit(s, config);
     moveAngle = Math.atan2(dx, dz);
+  }
+
+  // An enemy right at the unit's feet gets a blow (and a shove) instead of a shot.
+  const close = isDrone(s) ? null : enemyInMeleeReach(state, config, s);
+  if (close) {
+    s.facing = Math.atan2(close.pos.x - s.pos.x, close.pos.z - s.pos.z);
+    if (meleeStrike(state, config, s)) return;
   }
 
   const target = findTarget(state, config, s);

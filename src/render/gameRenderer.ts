@@ -107,6 +107,8 @@ const MAX_THIRD_ZOOM = 2.2;
 
 /** Seconds a damaged enemy stays lit up. */
 const FLASH_TIME = 0.14;
+/** Seconds a soldier plays the strike clip after a melee blow. */
+const STRIKE_TIME = 0.5;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -145,6 +147,8 @@ export class GameRenderer {
   private lookPitch = 0;
   /** Drawn heading per soldier, easing towards the simulated facing. */
   private readonly visYaw = new Map<number, number>();
+  /** Seconds left of the strike pose, by soldier id. */
+  private readonly strikeLeft = new Map<number, number>();
   private thirdZoom = 1;
   private savedTop = { yaw: 0, pitch: DEFAULT_PITCH };
   private focusInitialized = false;
@@ -714,7 +718,11 @@ export class GameRenderer {
       }
       this.visYaw.set(s.id, heading);
       view.object.rotation.y = heading;
-      view.setState(s.dead || s.downed ? 'death' : moving ? 'run' : 'idle');
+      const striking = (this.strikeLeft.get(s.id) ?? 0) - dt;
+      this.strikeLeft.set(s.id, Math.max(striking, 0));
+      view.setState(
+        s.dead || s.downed ? 'death' : striking > 0 ? 'attack' : moving ? 'run' : 'idle',
+      );
       view.update(dt);
       this.updateFlashlight(s.id, view.object, heading, !s.dead);
       // In first person you look out of the controlled unit's head, so hide its model.
@@ -752,6 +760,12 @@ export class GameRenderer {
       } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
         const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
         this.gore.burst(e.pos.x, e.pos.z, Math.min(Math.max(size, 0.8), 1.8));
+      } else if (e.type === 'melee') {
+        this.strikeLeft.set(e.attackerId, STRIKE_TIME);
+        if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
+        if (e.attackerId === localPlayer(state).controlledId) {
+          this.shake = Math.min(this.shake + SHOT_SHAKE * 2, MAX_SHAKE);
+        }
       } else if (e.type === 'explosion') {
         this.grenades.explode(e.pos, e.radius);
         this.shake = Math.min(this.shake + SHOT_SHAKE * 4, MAX_SHAKE);

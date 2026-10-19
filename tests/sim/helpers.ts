@@ -47,6 +47,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     drag: { ...base.drag },
     grenades: { ...base.grenades },
     ammo: { ...base.ammo },
+    melee: { ...base.melee },
     accuracy: { ...base.accuracy },
     difficulty: { ...base.difficulty },
     waves: { ...base.waves, intermission: 1e9 },
