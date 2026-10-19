@@ -19,11 +19,16 @@ export function severLimb(
 ): void {
   if (!z.parts[limb]) return;
   const d = config.dismember;
+  // A mini boss keeps its legs until it is nearly dead.
+  if (limb === 'legs' && z.boss && z.health > d.bossCrawlHealth * z.maxHealth) return;
   z.parts[limb] = false;
   if (limb === 'legs') {
     z.speed *= d.crawlSpeed;
     z.y = 0;
     z.hopLeft = 0;
+  } else if (z.boss) {
+    // A boss with a lost arm is enraged, not weaker.
+    z.speed *= d.bossEnrage;
   } else {
     // Each arm lost cuts the bite: first to `oneArmDamage`, then down to `noArmDamage` in all.
     const both = !z.parts.armL && !z.parts.armR;

@@ -1082,6 +1082,34 @@ export class GameRenderer {
       eye.position.set(side * 0.1 * k, headHeight * 0.87, 0.22 * k);
       root.add(eye);
     }
+    this.addPlates(root);
+  }
+
+  /** Armour plates on the chest and shoulders of a rigged marine (nothing on other models). */
+  private addPlates(root: THREE.Object3D): void {
+    root.updateMatrixWorld(true);
+    const metal = new THREE.MeshStandardMaterial({
+      color: 0x2b2f33,
+      metalness: 0.7,
+      roughness: 0.45,
+    });
+    const scale = new THREE.Vector3();
+    const plates: [RegExp, [number, number, number], [number, number, number]][] = [
+      [/^(mixamorig:?)?Spine2$/, [0.34, 0.3, 0.12], [0, 0.04, 0.1]],
+      [/^(mixamorig:?)?LeftShoulder$/, [0.16, 0.1, 0.18], [0.1, 0.03, 0]],
+      [/^(mixamorig:?)?RightShoulder$/, [0.16, 0.1, 0.18], [-0.1, 0.03, 0]],
+    ];
+    root.traverse((o) => {
+      const plate = plates.find(([name]) => name.test(o.name));
+      if (!plate) return;
+      // The rig is in centimetres: undo the bone's world scale to size the plate in metres.
+      o.getWorldScale(scale);
+      const k = scale.x > 1e-6 ? 1 / scale.x : 1;
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...plate[1]), metal);
+      mesh.scale.setScalar(k);
+      mesh.position.set(...plate[2]).multiplyScalar(k);
+      o.add(mesh);
+    });
   }
 
   /** Applies the graphics options: shadows, shadow resolution, render resolution and gore. */

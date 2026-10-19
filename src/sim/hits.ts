@@ -99,7 +99,8 @@ export function rollHit(
   const critChance = (sheet?.critChance ?? h.critChance) + h.critSkillBonus * (level - 1);
   const crit = critChance > 0 && nextFloat(state.rng) < critChance;
 
-  const headMult = head ? (sheet?.headMultiplier ?? h.headMultiplier) : 1;
+  const headRaw = head ? (sheet?.headMultiplier ?? h.headMultiplier) : 1;
+  const headMult = target.boss ? Math.min(headRaw, h.bossHeadMultiplier) : headRaw;
   const critMult = crit ? (sheet?.critMultiplier ?? h.critMultiplier) : 1;
   // A head hit lands on the head; anything else on a body part.
   const where = head

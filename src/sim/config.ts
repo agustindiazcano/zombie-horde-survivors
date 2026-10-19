@@ -767,6 +767,8 @@ export const GameConfigSchema = z
         bodyHeight: positive,
         headFraction: z.number().min(0.05).max(0.5),
         headMultiplier: positive,
+        /** A mini boss takes at most this head multiplier. */
+        bossHeadMultiplier: positive,
         /** Chance of a head hit when the view gives no hit height (top-down, the AI). */
         headChance: z.number().min(0).max(1),
         /** Scale while aiming, bonus per weapon-skill level above 1, and loss per radian of aim error. */
@@ -957,6 +959,10 @@ export const GameConfigSchema = z
         /** A killing hit of at least this damage on a legged enemy cuts it in two with `cutChance`. */
         cutDamage: positive,
         cutChance: z.number().min(0).max(1),
+        /** A mini boss only loses its legs (and crawls) below this share of its health. */
+        bossCrawlHealth: z.number().min(0).max(1),
+        /** A mini boss that loses an arm runs this much faster instead of biting weaker. */
+        bossEnrage: z.number().min(1),
       })
       .strict(),
     wander: z
