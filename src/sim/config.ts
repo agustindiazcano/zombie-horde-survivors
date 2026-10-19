@@ -442,6 +442,28 @@ const enemyType = z
   })
   .strict();
 
+/** A drivable vehicle type (arcade handling). Seat 0 is the driver's. */
+const vehicleType = z
+  .object({
+    name: z.string().min(1),
+    health: positive,
+    maxSpeed: positive,
+    accel: positive,
+    /** Radians per second the hull can turn. */
+    turnRate: positive,
+    /** Collision radius of the hull. */
+    radius: positive,
+    seats: z.number().int().positive(),
+    /** Passengers shoot from a vehicle with mounted weapons (a Humvee), not from a plain car. */
+    passengersShoot: z.boolean(),
+    /** How close (beyond the hull) a soldier must be to climb in. */
+    enterRange: positive,
+    /** Damage per second to enemies under the hull, above `ramSpeed`. */
+    ramDps: nonNegative,
+    ramSpeed: nonNegative,
+  })
+  .strict();
+
 const difficultyScale = z.object({ health: positive, speed: positive, count: positive }).strict();
 
 export const GameConfigSchema = z
@@ -480,6 +502,8 @@ export const GameConfigSchema = z
         height: positive,
       })
       .strict(),
+    /** Drivable vehicle types by id (placed in the editor, entered with V). */
+    vehicles: z.record(z.string(), vehicleType),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
     enemies: z.record(z.string(), enemyType),
     /** Squad stances (set by the controlled player) and the controlled soldier's jump. */

@@ -51,7 +51,8 @@ Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md
 - [ ] 🟡 Look at phase 5 in the browser: place / select / drag / rotate (R) / delete units and blocks, undo / redo, selection ring, Play spawning the placed squad and enemies (see [worklog](docs/worklog/2026-10-18-phase-5-place-units.md)).
 - [ ] 🟡 Look at phase 6 in the browser: raise / lower / flatten / smooth, paint, roads, water level (units should not walk into water; bullets cross it), hills under units, Map 1 unchanged ([worklog](docs/worklog/2026-10-18-phase-6-terrain.md)).
 - [ ] 🟡 Look at phase 7 in the browser: the Game logic tab (difficulty, waves, enemy mix, bosses, spawn points as red rings), Play using them ([worklog](docs/worklog/2026-10-18-phase-7-game-logic.md)). Spawn points ignore obstacles and water.
-- [ ] ⚪ Phases 8–10: vehicles with crew seats, interaction mechanics (lift and throw objects by strength, climbing, drag or carry a body, fire hazards), animals, Story mode.
+- [ ] 🟡 Look at phase 8 in the browser: place a Jeep in the editor (Units > Vehicles > Military > Land), Play, walk next to it, **V** to climb in, drive with WASD, passengers shooting, zombies biting the hull, **V** to get out ([worklog](docs/worklog/2026-10-18-phase-8-vehicles.md)).
+- [ ] ⚪ Phases 8b–10: (vehicles first version is built) air and sea vehicles, a real vehicle model, RTS enter orders, interaction mechanics (lift and throw objects by strength, climbing, drag or carry a body, fire hazards), animals, Story mode.
 - [ ] 🟡 Answer the open questions in section 8 of the plan (steering model, first vehicle, attribute names, weapon-class XP source, downed rules, defibrillator, equipment on the models).
 
 ### 3 — 🟡 Going public (GitHub Pages is live)

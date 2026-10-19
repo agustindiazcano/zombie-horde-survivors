@@ -6,7 +6,8 @@ import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
 import { gunOf, weaponDef } from './stats';
-import type { GameState, Soldier, Zombie } from './types';
+import type { GameState, Soldier, Vehicle, Zombie } from './types';
+import { hurtVehicle, isOccupied } from './vehicles';
 import type { Vec2 } from './vec';
 
 /** A boss's multipliers: the nth boss (1-based) reads the nth list entry, then keeps growing. */
@@ -123,16 +124,19 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       continue;
     }
 
-    const target = nearestSoldier(state, config, z.pos);
-    if (!target) continue; // everyone is dead; the game is about to end
-    const dx = target.pos.x - z.pos.x;
-    const dz = target.pos.z - z.pos.z;
+    const found = nearestTarget(state, config, z.pos);
+    if (!found) continue; // everyone is dead; the game is about to end
+    const { target, soldier, vehicle } = found;
+    // Vehicles are big: the zombie stops (and bites) at the hull, not at the middle.
+    const reach = z.attackRange + (vehicle ? config.vehicles[vehicle.type]!.radius : 0);
+    const dx = target.x - z.pos.x;
+    const dz = target.z - z.pos.z;
     const d = Math.hypot(dx, dz);
     if (d > 1e-9) z.facing = Math.atan2(dx, dz);
 
-    if (d > z.attackRange) {
+    if (d > reach) {
       z.state = 'walk';
-      const waypoint = steerTarget(z.pos, target.pos, d, z.radius, config);
+      const waypoint = steerTarget(z.pos, target, d, z.radius, config);
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
       const td = Math.hypot(tx, tz) || 1;
@@ -150,7 +154,8 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     z.attackTimer -= dt;
     if (z.attackTimer <= 0) {
       z.attackTimer += zc.attackCooldown;
-      hurtSoldier(state, config, target, z.damage, z.id);
+      if (soldier) hurtSoldier(state, config, soldier, z.damage, z.id);
+      else if (vehicle) hurtVehicle(state, config, vehicle, z.damage);
     }
   }
 
@@ -247,17 +252,33 @@ function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: 
   return scratch;
 }
 
-/** The closest soldier; a downed one counts as farther away, so standing soldiers come first. */
-function nearestSoldier(state: GameState, config: GameConfig, from: Vec2): Soldier | null {
-  let best: Soldier | null = null;
+/**
+ * The closest thing a zombie goes for: a soldier on foot (a downed one counts as farther away, so
+ * standing soldiers come first) or a vehicle with someone in it. Soldiers inside a vehicle
+ * cannot be reached, only the hull can.
+ */
+function nearestTarget(
+  state: GameState,
+  config: GameConfig,
+  from: Vec2,
+): { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null {
+  let best: { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null = null;
   let bestD = Infinity;
   for (const s of state.soldiers) {
-    if (s.dead || s.kind === 'drone') continue; // flying units can't be reached
+    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue; // flying units can't be reached
     const d = Math.hypot(s.pos.x - from.x, s.pos.z - from.z);
     const felt = s.downed ? d * config.downed.targetDistanceScale : d;
     if (felt < bestD) {
       bestD = felt;
-      best = s;
+      best = { target: s.pos, soldier: s };
+    }
+  }
+  for (const v of state.vehicles) {
+    if (!isOccupied(v)) continue;
+    const d = Math.hypot(v.pos.x - from.x, v.pos.z - from.z) - config.vehicles[v.type]!.radius;
+    if (d < bestD) {
+      bestD = d;
+      best = { target: v.pos, vehicle: v };
     }
   }
   return best;

@@ -84,6 +84,28 @@ export interface Soldier {
   deadTime: number;
   /** Seconds an ally has spent reviving this unit; resets when none is in reach. */
   reviveProgress: number;
+  /** The vehicle this unit sits in (it rides along and cannot be hit), or null. */
+  vehicleId: number | null;
+}
+
+/**
+ * A drivable machine. It is neutral: it belongs to whoever sits in it. Seat 0 is the driver's
+ * (no driver, no movement); the other seats hold passengers. Entries are soldier ids or null.
+ */
+export interface Vehicle {
+  id: number;
+  /** Key of `vehicles` in data/game.json. */
+  type: string;
+  pos: Vec2;
+  prev: Vec2;
+  /** Heading; direction is (sin, cos). */
+  facing: number;
+  prevFacing: number;
+  /** Forward speed in m/s. */
+  speed: number;
+  health: number;
+  maxHealth: number;
+  seats: (number | null)[];
 }
 
 export interface Zombie {
@@ -169,6 +191,7 @@ export type SimEvent =
   | { type: 'soldierDowned'; soldierId: number }
   | { type: 'soldierRevived'; soldierId: number; byId: number }
   | { type: 'soldierDied'; soldierId: number }
+  | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
   | { type: 'gameOver' };
@@ -191,6 +214,8 @@ export interface GameState {
   /** The player at this keyboard; its `controlledId` is the unit under direct control. */
   localPlayerId: string;
   nextSoldierId: number;
+  vehicles: Vehicle[];
+  nextVehicleId: number;
   /** How the whole squad is moving/shooting, set by the controlled player's keys. */
   stance: Stance;
   zombies: Zombie[];

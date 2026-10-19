@@ -85,7 +85,7 @@
             {
               "id": "military-land",
               "name": "Land",
-              "items": []
+              "items": [{ "id": "jeep", "name": "Jeep" }]
             }
           ]
         },
