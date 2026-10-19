@@ -34,7 +34,7 @@ The round display in the bottom-right corner is a motion tracker, like the one f
 
 ## The squad
 
-- **4 soldiers**, each with its own model, starting with a **pistol**.
+- **4 soldiers**, all using the Meshy marine model, starting with a **pistol**.
 - **A drone** (unit 5): a small flying ship that starts **unarmed**. Give it a **Drone gun** (buy one in the shop, or find one in a crate, then drag it into the drone's equipped slot) and it fires slow, hard-hitting shots that ignore cover. Enemies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
 - Crouching, sprinting and jumping are set by the unit you control; crouch and sprint affect the whole squad. Sprinting drains each unit's stamina (the orange bar under its icon; the blue bar is its own XP; the grey bar is armor, empty until a unit gets some, and it soaks damage before health); a unit that runs dry walks until it recovers.
 

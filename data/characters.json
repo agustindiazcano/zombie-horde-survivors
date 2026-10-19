@@ -1,39 +1,6 @@
 {
   "soldiers": [
     {
-      "model": "models/soldier-quaternius-male.glb",
-      "scale": 0.95,
-      "yawOffset": 0,
-      "clips": {
-        "idle": "Idle",
-        "run": "Run",
-        "death": "Death"
-      },
-      "once": ["death"]
-    },
-    {
-      "model": "models/soldier-quaternius-female.glb",
-      "scale": 0.97,
-      "yawOffset": 0,
-      "clips": {
-        "idle": "Idle",
-        "run": "Run",
-        "death": "Death"
-      },
-      "once": ["death"]
-    },
-    {
-      "model": "models/soldier-quaternius-bluemale.glb",
-      "scale": 0.95,
-      "yawOffset": 0,
-      "clips": {
-        "idle": "Idle",
-        "run": "Run",
-        "death": "Death"
-      },
-      "once": ["death"]
-    },
-    {
       "model": "models/soldier-marine.glb",
       "scale": 1.0,
       "yawOffset": 0,
