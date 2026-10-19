@@ -1,11 +1,15 @@
 import type { GameRenderer } from './render/gameRenderer';
+import type { GrenadePreview } from './render/grenades';
 import {
+  grenadeAim,
   orderBoard,
   orderFollow,
   orderMove,
+  throwGrenade,
   type GameConfig,
   type GameState,
   type Soldier,
+  type Vec2,
 } from './sim';
 
 /** Pointer movement below this (px) is a click, above it a box selection. */
@@ -17,11 +21,18 @@ const BODY_MID = 1;
 
 /**
  * RTS-mode mouse and keyboard handling: click/box selection, right-click move orders,
- * number keys, E (select all) and F (follow). Does nothing while `isActive()` is false.
+ * number keys, E (select all), F (follow) and G (aim a grenade: the next click throws it).
+ * Does nothing while `isActive()` is false.
  */
 export class RtsController {
   /** Insertion-ordered; the first id is the one Y takes control of. */
   selected = new Set<number>();
+  /** G was pressed: the cursor shows where a grenade would land and a click throws it. */
+  grenadeAiming = false;
+  /** A short message for the hint line, and when it stops being shown (ms). */
+  notice = '';
+  noticeUntil = 0;
+  private cursor = { x: 0, y: 0 };
   private rightDown: { x: number; y: number } | null = null;
   private drag: { x0: number; y0: number; x1: number; y1: number } | null = null;
   private readonly box = document.createElement('div');
@@ -64,6 +75,72 @@ export class RtsController {
     if (alive.length !== this.selected.size) this.set(alive);
   }
 
+  /** G: start or stop aiming a grenade with the selected units that carry one. */
+  toggleGrenadeAim(): void {
+    if (this.grenadeAiming) {
+      this.grenadeAiming = false;
+      return;
+    }
+    const state = this.getState();
+    const any = state.soldiers.some(
+      (s) => this.selected.has(s.id) && grenadeAim(this.config, s, s.pos) !== null,
+    );
+    if (any) this.grenadeAiming = true;
+    else {
+      this.notice = 'No grenades: select a unit that carries one';
+      this.noticeUntil = performance.now() + 2500;
+    }
+  }
+
+  cancelGrenadeAim(): void {
+    this.grenadeAiming = false;
+  }
+
+  /** The selected unit closest to `target` that can throw a grenade there, with the landing point. */
+  private pickThrower(target: Vec2) {
+    let best: { soldier: Soldier; aim: NonNullable<ReturnType<typeof grenadeAim>> } | null = null;
+    let bestD = Infinity;
+    for (const s of this.getState().soldiers) {
+      if (!this.selected.has(s.id)) continue;
+      const aim = grenadeAim(this.config, s, target);
+      if (!aim) continue;
+      const d = Math.hypot(s.pos.x - target.x, s.pos.z - target.z);
+      if (d < bestD) {
+        bestD = d;
+        best = { soldier: s, aim };
+      }
+    }
+    return best;
+  }
+
+  private cursorGround(): Vec2 | null {
+    return this.renderer.screenToGround(this.cursor.x, this.cursor.y);
+  }
+
+  /** The arc and landing zone for the cursor, or null when not aiming. Call every frame. */
+  grenadePreview(): GrenadePreview | null {
+    if (!this.grenadeAiming) return null;
+    const ground = this.isActive() ? this.cursorGround() : null;
+    const pick = ground ? this.pickThrower(ground) : null;
+    if (!pick) return null;
+    return {
+      from: pick.soldier.pos,
+      landing: pick.aim.landing,
+      radius: pick.aim.radius,
+      clamped: pick.aim.clamped,
+      height: this.config.grenades.releaseHeight + pick.soldier.y,
+    };
+  }
+
+  private throwAtCursor(keepAiming: boolean): void {
+    const ground = this.cursorGround();
+    const pick = ground ? this.pickThrower(ground) : null;
+    if (!ground || !pick) return;
+    throwGrenade(this.getState(), this.config, pick.soldier.id, ground);
+    this.renderer.pulse(pick.aim.landing);
+    if (!keepAiming) this.grenadeAiming = false;
+  }
+
   private publish(): void {
     this.renderer.selection = this.selected;
   }
@@ -74,6 +151,10 @@ export class RtsController {
 
   private onMouseDown = (e: MouseEvent): void => {
     if (!this.isActive()) return;
+    if (this.grenadeAiming && e.button === 0) {
+      this.throwAtCursor(e.shiftKey);
+      return;
+    }
     if (e.button === 0) {
       this.drag = { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY };
     } else if (e.button === 2) {
@@ -85,6 +166,10 @@ export class RtsController {
   private finishRightClick(e: MouseEvent): void {
     const start = this.rightDown;
     this.rightDown = null;
+    if (start && this.grenadeAiming) {
+      this.grenadeAiming = false;
+      return;
+    }
     if (!start || !this.isActive() || this.selected.size === 0) return;
     if (Math.hypot(e.clientX - start.x, e.clientY - start.y) >= DRAG_THRESHOLD) return;
     const ground = this.renderer.screenToGround(
@@ -110,6 +195,8 @@ export class RtsController {
   }
 
   private onMouseMove = (e: MouseEvent): void => {
+    this.cursor.x = (e.clientX / window.innerWidth) * 2 - 1;
+    this.cursor.y = -(e.clientY / window.innerHeight) * 2 + 1;
     if (!this.drag) return;
     this.drag.x1 = e.clientX;
     this.drag.y1 = e.clientY;

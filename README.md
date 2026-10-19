@@ -26,83 +26,7 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 
 ## Controls
 
-### Direct control
-
-| Key / mouse       | Action                                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
-| W / A / S / D     | Move (relative to where the camera looks)                                                                           |
-| Mouse             | Aim (see _Views_ below)                                                                                             |
-| Left click (hold) | Fire                                                                                                                |
-| Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                                   |
-| Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                |
-| Space             | Jump (only the soldier you control); walking into a box, it vaults up onto it (30 stamina)                          |
-| G                 | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go        |
-| T                 | Change view: normal → third person → first person → normal                                                          |
-| I                 | Squad screen: units, inventories and bonuses (pauses the game)                                                      |
-| B                 | Open / close the shop (only between waves)                                                                          |
-| V                 | Next to a vehicle (a **V** floats above it): climb in; inside, step out (the driver leaving takes the crew out too) |
-| E                 | Next to a crate (a yellow **E** floats above it): open it                                                           |
-| Y                 | Go back to RTS mode                                                                                                 |
-| Mouse wheel       | Zoom (normal and third-person views)                                                                                |
-| Right-drag        | Rotate and tilt the camera (normal view only)                                                                       |
-
-Ctrl+W closes the browser tab and the browser won't let a page block it, so **C** is provided as an alternative way to crouch.
-
-### Views (T)
-
-| View                  | Camera                               | Aiming                                                                                           |
-| --------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| **Normal** (top-down) | Above and behind, follows the unit   | The soldier aims at the cursor on the ground. Wheel zooms, right-drag rotates / tilts.           |
-| **Third person**      | Over the shoulder, a bit above       | The mouse turns the view 1:1 and instantly; the crosshair in the centre is the aim. Wheel zooms. |
-| **First person**      | At the soldier's eyes (model hidden) | Same as third person; the camera lowers when crouching and rises when jumping.                   |
-
-In third and first person the cursor is locked (so you can keep turning) and W / A / S / D move relative to where you look. **Esc** releases the cursor and goes back to the normal view. The view also returns to normal if you switch to RTS mode, the controlled soldier dies, or the game ends.
-
-### RTS mode
-
-| Key / mouse              | Action                                                                                                                |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| W / A / S / D            | Pan the camera                                                                                                        |
-| Left click               | Select a soldier                                                                                                      |
-| Left-drag                | Box select (hold **Shift** to add to the selection)                                                                   |
-| Right click              | Send the selected units to that point, or into a vehicle with a free seat (a right _drag_ rotates the camera instead) |
-| F                        | Selected units follow the controlled soldier again                                                                    |
-| E                        | Select all                                                                                                            |
-| 1 – 9                    | Select a unit by number (Shift adds)                                                                                  |
-| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                                                                   |
-| Y                        | Take direct control of the first selected unit                                                                        |
-| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                                                     |
-| I                        | Squad screen (pauses the game)                                                                                        |
-| B                        | Shop (only between waves)                                                                                             |
-
-When you take control with **Y**, only the units that were selected follow you. The rest hold their position (or keep their move order). Every uncontrolled unit shoots the nearest enemy it can see.
-
-### Anywhere
-
-| Key     | Action                                                         |
-| ------- | -------------------------------------------------------------- |
-| P / Esc | Pause / resume (the pause screen lists your bonuses and stats) |
-| M       | Mute / unmute                                                  |
-| L       | Dark mode: dim lights and a flashlight per soldier             |
-| O       | Settings (graphics, lighting, FPS counter, volume)             |
-| F3      | Show / hide the FPS counter                                    |
-| R       | Restart (on the game over screen)                              |
-
-## Mobile (landscape)
-
-On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the URL to try it on a desktop). Hold the phone sideways.
-
-| Control           | Action                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------- |
-| Joystick (left)   | Drag a thumb anywhere in the lower-left area to move the whole squad; the others follow           |
-| Auto-fire         | The leader aims at the nearest enemy and fires on its own; so does the rest of the squad          |
-| Soldier icons     | Top-left row with each unit's health                                                              |
-| ⚙ / ☰ / 🛒 / 🎒  | Top-right: settings, main menu, shop (between waves), squad screen and inventories                |
-| Inventory         | Tap a weapon, then tap the slot to move it to (drag and drop also works where the browser allows) |
-| 📦 (bottom-right) | Appears when the leader stands next to a crate: tap to open it                                    |
-| 🧎 / 💨 / ⤒       | Crouch and sprint (tap to toggle) and jump (hold)                                                 |
-| Soldier icon      | Tap a soldier icon: direct control passes to it                                                   |
-| Pinch / ⛶ / buzz  | Two-finger zoom; full screen button; the phone vibrates when a soldier is hurt                    |
+Every key and mouse action (direct control, views, RTS mode, menus, the map editor and the mobile layout) is listed in [docs/CONTROLS.md](docs/CONTROLS.md). The basics: **W A S D** move, the mouse aims, left click fires, **Q** throws a grenade, **T** changes view, **Y** switches between direct control and RTS mode, **I** opens the squad screen, **B** the shop and **Esc** pauses.
 
 ## Radar
 
@@ -110,7 +34,7 @@ The round display in the bottom-right corner is a motion tracker, like the one f
 
 ## The squad
 
-- **4 soldiers**, each with its own model, starting with a **pistol**.
+- **4 soldiers**, all using the Meshy marine model, starting with a **pistol**.
 - **A drone** (unit 5): a small flying ship that starts **unarmed**. Give it a **Drone gun** (buy one in the shop, or find one in a crate, then drag it into the drone's equipped slot) and it fires slow, hard-hitting shots that ignore cover. Enemies can't touch it, and it doesn't count for game over. Select and command it like any soldier.
 - Crouching, sprinting and jumping are set by the unit you control; crouch and sprint affect the whole squad. Sprinting drains each unit's stamina (the orange bar under its icon; the blue bar is its own XP; the grey bar is armor, empty until a unit gets some, and it soaks damage before health); a unit that runs dry walks until it recovers.
 

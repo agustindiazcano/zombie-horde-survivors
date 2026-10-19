@@ -438,16 +438,16 @@ const itemDef = z.discriminatedUnion('type', [
       ...itemBase,
       type: z.literal('grenade'),
       damageType: z.enum(DAMAGE_TYPES),
-      mocked: z
-        .object({
-          blastRadius: positive,
-          blastDamage: positive,
-          falloff: z.number().min(0).max(1),
-          fuse: nonNegative,
-          throwRange: positive,
-          weight: nonNegative,
-        })
-        .strict(),
+      /** Metres from the blast centre inside which enemies, allies and vehicles are hurt. */
+      blastRadius: positive,
+      /** Damage at the centre; it drops linearly towards the edge by `falloff` (0 to 1). */
+      blastDamage: positive,
+      falloff: z.number().min(0).max(1),
+      /** Seconds from the throw to the blast (never before it lands). */
+      fuse: nonNegative,
+      /** Furthest point (metres) a thrower can reach; farther targets are clamped to it. */
+      throwRange: positive,
+      mocked: z.object({ weight: nonNegative }).strict(),
     })
     .strict(),
   z
@@ -619,6 +619,20 @@ export const GameConfigSchema = z
             radius: positive,
           })
           .strict(),
+      })
+      .strict(),
+    /** Thrown grenades (the blast numbers are on the item in data/items.json). */
+    grenades: z
+      .object({
+        /** Horizontal speed of a throw (metres per second); sets the flight time. */
+        throwSpeed: positive,
+        /** Height of the hand at release (metres above the thrower's feet). */
+        releaseHeight: positive,
+        gravity: positive,
+        /** Seconds before the thrower can fire or throw again. */
+        cooldown: nonNegative,
+        /** Share of the blast damage that hurts allies, including the thrower (0 = none). */
+        friendlyFire: z.number().min(0).max(1),
       })
       .strict(),
     /** Dragging a downed or dead ally by the shoulders. */

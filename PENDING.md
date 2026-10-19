@@ -45,7 +45,8 @@ Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md
 
 - [ ] 🟡 Play-test of phase 1e: go down, wait for an ally with a medkit, bleed out, defibrillate (the crate odds and the shop prices of medkits and the defibrillator are guesses). Visual check of phase 1d: the equipment column and the 10-slot backpack in the squad screen unit window (layout, drag and drop between hands, vest and backpack). Also still unseen from phases 1 to 1c: the Meshy marine animations, the Infected marine tint, Map 1 looking as before, and the attributes and skills layout.
 - [ ] 🟡 Ask the user before the visual part of equipment: how weapons show on the models (bones to attach to, where the meshes come from).
-- [ ] 🟢 Follow-ups of 1d and 1e, not built: helmet slot, dual-wield firing, fists and melee combat, grenade throwing, accessory fitting, ammo and reload, a way to obtain grenades, the vest and accessories, a manual revive key, crawl and bleeding visuals.
+- [ ] 🟢 Follow-ups of 1d and 1e, not built: helmet slot, dual-wield firing, fists and melee combat, accessory fitting, ammo and reload, the vest and accessories, a manual revive key, crawl and bleeding visuals.
+- [ ] 🟡 Look at grenades in the browser: **Q** in direct control, **G** in RTS (arc, blast zone, click to throw), the shop entry (30 gold) and crate drops; tune `grenades` in `game.json` and the grenade item in `data/items.json` ([worklog](docs/worklog/2026-10-19-grenades.md)). AI soldiers never throw.
 - [ ] 🟡 Look at phases 2 and 3 in the browser: the menu flow (Start → mode → Single Player → Waves → Map 1), Esc going back, the editor layout (top bar, right panel, tabs, collapsible groups), Play / Stop and WASD panning while editing.
 - [ ] 🟡 Look at phase 4 in the browser: New / Open / Save / Export / Import in the editor, saved maps in the Waves list, delete, and that picking a map swaps the arena. Phase 4 is built; here is what it covers: built-in maps in `data/maps/` plus the user's maps in localStorage, listed together.
 - [ ] 🟡 Look at phase 5 in the browser: place / select / drag / rotate (R) / delete units and blocks, undo / redo, selection ring, Play spawning the placed squad and enemies (see [worklog](docs/worklog/2026-10-18-phase-5-place-units.md)).
@@ -78,7 +79,7 @@ Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md
 - [ ] 🟢 Zombie steering is a corner heuristic: it fixed a stuck case on long obstacles (corner re-selection) but other layouts may still trap enemies; consider a stuck detector or a simple navmesh.
 - [ ] 🟢 The radar ignores obstacles and the squad screen does not refresh while the game runs (it only opens while paused); fine today, revisit if either changes.
 - [ ] 🟢 Old merged branches (about 30) remain on the remote and locally; delete them once the user agrees.
-- [ ] 🟢 Docs: the README is the player reference; keep the Controls tables in sync whenever a key changes.
+- [ ] 🟢 Docs: the README is the player reference; docs/CONTROLS.md lists every key, so update it whenever a key changes.
 - [ ] ⚪ Tests: the user dropped new tests for the prototype; the 48 sim tests stay green. If the project grows beyond a prototype, revisit (settings load/save, `moveItem`, boss stats are the least covered).
 
 ### 6 — ⚪ Content ideas (not requested yet)

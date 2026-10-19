@@ -54,7 +54,11 @@ export class Sfx {
       } else if (e.type === 'crateDropped') this.tone('sine', 500, 900, 0.14, 0.3);
       else if (e.type === 'soldierHurt')
         this.hurt(e.soldierId === localPlayer(state).controlledId ? 1 : 0.4);
-      else if (e.type === 'soldierDowned') this.tone('sawtooth', 220, 90, 0.3, 0.4);
+      else if (e.type === 'grenadeThrown') this.tone('sine', 260, 520, 0.1, 0.2);
+      else if (e.type === 'explosion') {
+        this.tone('sawtooth', 160, 30, 0.7, 0.6);
+        this.tone('square', 90, 25, 0.5, 0.4);
+      } else if (e.type === 'soldierDowned') this.tone('sawtooth', 220, 90, 0.3, 0.4);
       else if (e.type === 'soldierRevived') this.tone('square', 330, 660, 0.2, 0.25);
       else if (e.type === 'soldierDied') this.tone('sawtooth', 180, 50, 0.5, 0.5);
       else if (e.type === 'waveStarted') this.wave();

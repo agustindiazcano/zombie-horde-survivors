@@ -97,6 +97,23 @@ export interface Soldier {
   vehicleId: number | null;
 }
 
+/** A thrown grenade: it flies along an arc from `from` to `to`, then waits for its fuse. */
+export interface Grenade {
+  id: number;
+  /** Item id in data/items.json (it holds the blast numbers). */
+  item: string;
+  throwerId: number;
+  from: Vec2;
+  to: Vec2;
+  pos: Vec2;
+  y: number;
+  /** Seconds in the air in total, and seconds flown so far. */
+  flight: number;
+  flown: number;
+  /** Seconds left until it goes off. */
+  fuse: number;
+}
+
 /**
  * A drivable machine. It is neutral: it belongs to whoever sits in it. Seat 0 is the driver's
  * (no driver, no movement); the other seats hold passengers. Entries are soldier ids or null.
@@ -207,6 +224,8 @@ export type SimEvent =
   | { type: 'soldierRevived'; soldierId: number; byId: number }
   | { type: 'soldierDied'; soldierId: number }
   | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
+  | { type: 'grenadeThrown'; throwerId: number }
+  | { type: 'explosion'; pos: Vec2; radius: number }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
   | { type: 'objectiveDone'; index: number }
@@ -250,6 +269,9 @@ export interface GameState {
   nextSoldierId: number;
   vehicles: Vehicle[];
   nextVehicleId: number;
+  /** Grenades in the air or waiting for their fuse. */
+  grenades: Grenade[];
+  nextGrenadeId: number;
   animals: Animal[];
   /** How the whole squad is moving/shooting, set by the controlled player's keys. */
   stance: Stance;

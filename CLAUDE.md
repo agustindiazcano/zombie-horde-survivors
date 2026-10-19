@@ -27,7 +27,7 @@ The user raised the market as a reason for decisions (the name, going public); n
 
 | System                    | How it works                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Squad**                 | 4 soldiers (distinct models, start with a pistol) and a drone (unit 5, starts unarmed, needs a Drone gun; flies, ignores cover, cannot be hurt). Uncontrolled units follow the leader, hold, or walk to an order, and shoot the nearest visible enemy                                                                                                                                                                                                |
+| **Squad**                 | 4 soldiers (all use the marine model, start with a pistol) and a drone (unit 5, starts unarmed, needs a Drone gun; flies, ignores cover, cannot be hurt). Uncontrolled units follow the leader, hold, or walk to an order, and shoot the nearest visible enemy                                                                                                                                                                                       |
 | **Control modes**         | Direct control of one unit, or RTS (select, box select, orders). `Y` switches; only units selected before taking control follow it                                                                                                                                                                                                                                                                                                                   |
 | **Stances**               | The controlled player's keys set the squad's stance: crouch (tighter spread, +10% damage, half speed), sprint (1.6x speed); only the controlled unit jumps                                                                                                                                                                                                                                                                                           |
 | **Downed state**          | At zero health a soldier goes down instead of dying: crawls, shoots a one-handed gun badly, bleeds out in 30 s. A standing ally with a medkit revives it automatically (3 s); a defibrillator revives a soldier dead less than 30 s. Enemies prefer standing soldiers. Game over when nobody is on their feet                                                                                                                                        |
@@ -42,37 +42,7 @@ The user raised the market as a reason for decisions (the name, going public); n
 
 ## 4. Controls
 
-**Direct control**
-
-| Key / mouse               | Action                                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| W A S D                   | Move (relative to the camera)                                                                                |
-| Mouse / left click (hold) | Aim / fire                                                                                                   |
-| Ctrl or C                 | Crouch (the whole squad)                                                                                     |
-| Shift                     | Sprint (the whole squad)                                                                                     |
-| Space                     | Jump; into a box: climb onto it                                                                              |
-| G                         | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go |
-| T                         | Cycle view: top-down → third person → first person                                                           |
-| Mouse wheel / right-drag  | Zoom / rotate and tilt (top-down)                                                                            |
-| E                         | Open a crate next to you                                                                                     |
-| Y                         | Back to RTS mode                                                                                             |
-
-In third and first person the mouse turns the view 1:1 and instantly (the cursor is locked, the crosshair is the aim); `Esc` releases it.
-
-**RTS mode:** W A S D pan, click or drag select (Shift adds), right-click move order, F follow, E select all, 1–9 pick a unit, Y take control of the first selected unit, wheel / right-drag camera.
-
-**Anywhere**
-
-| Key         | Action                                                                                                                                                                                                             |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Esc / P / I | Pause and show the squad screen: bonuses and stats on the left, units with health, level, XP and kills on the right; click a unit for a 3D view and its inventory (up to four windows), drag weapons between slots |
-| B           | Shop (between waves)                                                                                                                                                                                               |
-| O           | Settings (graphics preset, shadows, resolution, blood, lighting, FPS counter, volume)                                                                                                                              |
-| L           | Dark mode with flashlights                                                                                                                                                                                         |
-| F3          | FPS counter                                                                                                                                                                                                        |
-| M           | Mute                                                                                                                                                                                                               |
-| 1 / 2 / 3   | Pick a perk when the level-up menu is open                                                                                                                                                                         |
-| R           | Restart (game over screen)                                                                                                                                                                                         |
+All controls live in [docs/CONTROLS.md](docs/CONTROLS.md): direct control, views, RTS mode, anywhere, menus, the map editor and mobile. It is the only place that lists them; change it in the same commit whenever a key or mouse action changes.
 
 ## 5. Commands
 
@@ -106,6 +76,7 @@ test-game/
 ├── LASTCONTEXT.md             current state and the user's decisions: read first
 ├── PENDING.md                 open work by priority
 ├── README.md                  player-facing reference and credits
+├── docs/CONTROLS.md           every key and mouse action (the only list of controls)
 ├── assets.toml                every third-party asset: author, source, license, path
 ├── index.html                 page shell, SEO meta tags, structured data
 ├── package.json / package-lock.json
@@ -170,7 +141,7 @@ Not in git: `node_modules/`, `dist/`.
 - **No new tests, no TDD** (the user's decision). Keep the 48 existing tests passing; do not delete them.
 - Keep working without stopping for approval between tasks; ask only when a decision is really the user's.
 - Reply in Spanish, with tables for options and status; numbered priorities with traffic lights 🔴 🟡 🟢 ⚪ (the user's global CLAUDE.md).
-- Keep README (controls tables), LASTCONTEXT.md and PENDING.md up to date: when an item is done, move it to `docs/worklog/` and take it out.
+- Keep docs/CONTROLS.md (every key and mouse action), README, LASTCONTEXT.md and PENDING.md up to date: when an item is done, move it to `docs/worklog/` and take it out.
 
 ## 9. Assets and licenses
 

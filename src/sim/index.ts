@@ -39,6 +39,7 @@ export type { Slot, SlotRef } from './inventory';
 export { levelInfo, type LevelInfo } from './loot';
 export { waveSize } from './waves';
 export { toggleDrag } from './drag';
+export { grenadeAim, grenadeCount, throwGrenade } from './grenades';
 export { updateHazards } from './hazards';
 export { getVehicle, toggleVehicle, vehicleInReach } from './vehicles';
 export { objectiveProgress } from './objectives';
