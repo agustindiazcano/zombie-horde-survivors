@@ -209,6 +209,7 @@ export class Editor {
   private waterDragging = false;
   /** The Game logic tab is armed: the next map clicks add spawn points. */
   /** Which click-to-place tool of the Game logic tab is armed. */
+  private pageTitle = document.title;
   private spawnTool: 'spawn' | 'goal' | 'fire' | null = null;
   private past: MapData[] = [];
   private future: MapData[] = [];
@@ -291,6 +292,8 @@ export class Editor {
   /** Opens the editor, paused, on a new map. */
   open(): void {
     this.active = true;
+    this.pageTitle = document.title;
+    document.title = 'Wylan Engine – Map editor';
     this.playing = false;
     this.setMap(blankMap());
     this.refresh();
@@ -958,6 +961,7 @@ export class Editor {
   /** Closes the editor altogether (back to the main menu). */
   close(): void {
     this.active = false;
+    document.title = this.pageTitle;
     this.playing = false;
     this.refresh();
   }

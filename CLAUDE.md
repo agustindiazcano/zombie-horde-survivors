@@ -50,7 +50,7 @@ The user raised the market as a reason for decisions (the name, going public); n
 | Mouse / left click (hold) | Aim / fire                                         |
 | Ctrl or C                 | Crouch (the whole squad)                           |
 | Shift                     | Sprint (the whole squad)                           |
-| Space                     | Jump (only the controlled soldier)                 |
+| Space                     | Jump; into a box: climb onto it                    |
 | T                         | Cycle view: top-down → third person → first person |
 | Mouse wheel / right-drag  | Zoom / rotate and tilt (top-down)                  |
 | E                         | Open a crate next to you                           |

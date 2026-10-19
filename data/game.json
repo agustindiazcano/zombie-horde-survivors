@@ -179,7 +179,9 @@
     "staminaRegen": 14,
     "staminaResume": 30,
     "jumpSpeed": 6.5,
-    "gravity": 20
+    "gravity": 20,
+    "climbMaxHeight": 2.2,
+    "climbStamina": 30
   },
   "loot": {
     "collectRadius": 1.2,

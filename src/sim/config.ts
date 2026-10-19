@@ -642,6 +642,9 @@ export const GameConfigSchema = z
         /** Initial upward speed of a jump and the downward pull on it. */
         jumpSpeed: positive,
         gravity: positive,
+        /** The tallest box (metres) a unit can vault onto, and the stamina the vault costs. */
+        climbMaxHeight: positive,
+        climbStamina: nonNegative,
       })
       .strict(),
     /** Gold coins and XP orbs dropped by dead enemies. */

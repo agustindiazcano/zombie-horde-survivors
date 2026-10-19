@@ -1,10 +1,9 @@
 import * as THREE from 'three';
-import { heightAt, type GameConfig } from '../sim';
+import { heightAt, OBSTACLE_HEIGHT, type GameConfig } from '../sim';
 import { terrainData, textureColor } from '../terrainData';
 
 const WALL_HEIGHT = 1.5;
 const WALL_THICKNESS = 0.5;
-const OBSTACLE_HEIGHT = 2;
 /** Road strips float this far above the ground to avoid z-fighting. */
 const ROAD_LIFT = 0.04;
 /** Spacing (metres) of the samples along a road so it follows the hills. */

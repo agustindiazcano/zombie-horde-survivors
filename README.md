@@ -35,7 +35,7 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 | Left click (hold) | Fire                                                                                                                |
 | Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                                   |
 | Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                |
-| Space             | Jump (only the soldier you control)                                                                                 |
+| Space             | Jump (only the soldier you control); walking into a box, it vaults up onto it (30 stamina)                          |
 | T                 | Change view: normal → third person → first person → normal                                                          |
 | I                 | Squad screen: units, inventories and bonuses (pauses the game)                                                      |
 | B                 | Open / close the shop (only between waves)                                                                          |
