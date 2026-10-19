@@ -51,6 +51,11 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 /** DOM overlay: health, wave, kills, wave banner and the game over screen. */
+/** Crosshair size (px): the smallest, the cap, and pixels per radian of aim error. */
+const CROSSHAIR_MIN = 12;
+const CROSSHAIR_MAX = 120;
+const CROSSHAIR_PX_PER_RAD = 700;
+
 export class Hud {
   private readonly healthLabel: HTMLElement;
   private readonly healthFill: HTMLElement;
@@ -65,6 +70,7 @@ export class Hud {
   private readonly pause: HTMLElement;
   private readonly hint: HTMLElement;
   private readonly crosshair: HTMLElement;
+  private crosshairSize = 0;
   private readonly gameOver: HTMLElement;
   private readonly gameOverTitle: HTMLElement;
   private readonly objectives: HTMLElement;
@@ -172,6 +178,15 @@ export class Hud {
 
   setCrosshair(visible: boolean): void {
     this.crosshair.classList.toggle('hud__crosshair--visible', visible);
+  }
+
+  /** Widens the crosshair with the aim error (radians) of the controlled gun. */
+  setCrosshairError(error: number): void {
+    const size = Math.round(Math.min(CROSSHAIR_MAX, CROSSHAIR_MIN + error * CROSSHAIR_PX_PER_RAD));
+    if (size !== this.crosshairSize) {
+      this.crosshairSize = size;
+      this.crosshair.style.setProperty('--cross', `${size}px`);
+    }
   }
 
   /** Text describing the current mode and its keys. */

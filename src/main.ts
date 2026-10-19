@@ -28,6 +28,7 @@ import {
   nearestCrate,
   getSoldier,
   getVehicle,
+  aimErrorOf,
   startReload,
   throwGrenade,
   toggleDrag,
@@ -61,7 +62,7 @@ const PAN_SPEED = 22;
 const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · R: reload · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -480,6 +481,7 @@ async function main(): Promise<void> {
   });
   const noInput = blank();
   const directInput = blank();
+  let aimToggled = false;
 
   /** Keyboard/mouse input with movement rotated to follow the camera's orbit. */
   const readInput = (): Input => {
@@ -491,6 +493,14 @@ async function main(): Promise<void> {
       renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
     // Clicks edit the map in the editor, so the driven unit does not fire there.
     directInput.firing = raw.firing && !editor.isEditing;
+    // Aiming down the sights: the right button, only in third and first person.
+    const presses = input.takeAimPresses();
+    if (renderer.viewMode === 'top' || unit?.aimBroken || !settings.aimToggle) aimToggled = false;
+    else if (presses % 2 === 1) aimToggled = !aimToggled;
+    directInput.aiming =
+      renderer.viewMode !== 'top' &&
+      !editor.isEditing &&
+      (settings.aimToggle ? aimToggled : input.aimButton);
     if (mobile && unit) {
       // No cursor: aim at the nearest enemy and keep firing; otherwise face the way we walk.
       let best: { x: number; z: number } | null = null;
@@ -554,7 +564,12 @@ async function main(): Promise<void> {
       pausePanel.update(paused, state);
       unitsScreen.update(paused);
       radar.update(state, paused || modalOpen() ? 0 : frameDt);
-      hud.setCrosshair(renderer.viewMode !== 'top' && localPlayer(state).controlledId !== null);
+      const shooter = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
+      hud.setCrosshair(renderer.viewMode !== 'top' && shooter !== undefined);
+      if (shooter) {
+        hud.setCrosshairError(aimErrorOf(state, config, shooter) ?? 0);
+        renderer.setAimZoom(shooter.aiming ? config.accuracy.aimZoom : 1);
+      } else renderer.setAimZoom(1);
       rts.prune();
       if (localPlayer(state).controlledId !== null || paused || modalOpen()) rts.cancelGrenadeAim();
       renderer.setGrenadePreview(rts.grenadePreview());

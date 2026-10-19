@@ -31,7 +31,7 @@
       "fireRate": 4,
       "damage": 20,
       "range": 25,
-      "spread": 0.02,
+      "spread": 0.04,
       "fireMode": "semi",
       "magazine": 12,
       "reloadTime": 1.2,
@@ -40,7 +40,14 @@
       "mocked": {
         "weight": 1
       },
-      "infiniteSpare": true
+      "infiniteSpare": true,
+      "recoil": {
+        "kick": 0.03,
+        "maxKick": 0.06,
+        "recovery": 0.1,
+        "sideBias": 0.2,
+        "cameraKick": 0.02
+      }
     },
     "rifle": {
       "type": "weapon",
@@ -53,7 +60,7 @@
       "fireRate": 8,
       "damage": 25,
       "range": 40,
-      "spread": 0,
+      "spread": 0.03,
       "fireMode": "auto",
       "magazine": 30,
       "reloadTime": 2.2,
@@ -62,7 +69,14 @@
       "mocked": {
         "weight": 3.5
       },
-      "ammo": "ammo_556"
+      "ammo": "ammo_556",
+      "recoil": {
+        "kick": 0.02,
+        "maxKick": 0.1,
+        "recovery": 0.1,
+        "sideBias": 0.3,
+        "cameraKick": 0.03
+      }
     },
     "heavy_mg": {
       "type": "weapon",
@@ -75,7 +89,7 @@
       "fireRate": 14,
       "damage": 18,
       "range": 35,
-      "spread": 0.07,
+      "spread": 0.08,
       "fireMode": "auto",
       "magazine": 100,
       "reloadTime": 5,
@@ -84,7 +98,14 @@
       "mocked": {
         "weight": 9
       },
-      "ammo": "ammo_belt"
+      "ammo": "ammo_belt",
+      "recoil": {
+        "kick": 0.03,
+        "maxKick": 0.2,
+        "recovery": 0.12,
+        "sideBias": 0.5,
+        "cameraKick": 0.05
+      }
     },
     "drone_cannon": {
       "type": "weapon",

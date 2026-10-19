@@ -463,5 +463,18 @@
   },
   "ammo": {
     "dryFireDelay": 0.4
+  },
+  "accuracy": {
+    "movementSpread": 1.2,
+    "skillMaxLevel": 10,
+    "skillBestScale": 0.4,
+    "standStillTime": 0.5,
+    "standStillScale": 0.8,
+    "aimSpreadScale": 0.3,
+    "aimRecoilScale": 0.5,
+    "aimSpeedScale": 0.5,
+    "aimZoom": 0.75,
+    "crouchRecoilScale": 0.7,
+    "minError": 0.004
   }
 }

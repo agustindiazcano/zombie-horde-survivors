@@ -35,6 +35,7 @@ export {
   useItem,
 } from './inventory';
 export { gunOf, skillLevel, weaponDef, type WeaponDef } from './stats';
+export { aimErrorOf } from './accuracy';
 export { ammoLabel, gunState, reserveOf, startReload } from './ammo';
 export { handState, newWeaponState } from './weaponState';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';

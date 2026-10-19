@@ -244,11 +244,12 @@
 }
 
 .hud__crosshair {
+  --cross: 22px;
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 22px;
-  height: 22px;
+  width: var(--cross);
+  height: var(--cross);
   display: none;
   transform: translate(-50%, -50%);
 }
@@ -266,17 +267,17 @@
 }
 
 .hud__crosshair::before {
-  top: 10px;
+  top: calc(50% - 1px);
   left: 0;
-  width: 22px;
+  width: 100%;
   height: 2px;
 }
 
 .hud__crosshair::after {
-  left: 10px;
+  left: calc(50% - 1px);
   top: 0;
   width: 2px;
-  height: 22px;
+  height: 100%;
 }
 
 .squad__fill--xp {

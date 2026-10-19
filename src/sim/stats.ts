@@ -38,7 +38,8 @@ export function speedOf(
         ? config.stance.sprintSpeedScale
         : 1;
   const load = s.dragging === null ? 1 : config.drag.speedScale;
-  return config.player.speed * scale * load * mods.speed;
+  const aim = s.aiming ? config.accuracy.aimSpeedScale : 1;
+  return config.player.speed * scale * load * aim * mods.speed;
 }
 
 /** Looks up a weapon by item id. Anything that is not a weapon falls back to the rifle. */

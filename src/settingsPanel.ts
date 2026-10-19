@@ -123,6 +123,11 @@ export class SettingsPanel {
     );
     this.toggle(panel, 'Show FPS (F3)', s.showFps, (v) => this.change({ showFps: v }));
 
+    el('h3', 'set__heading', panel, 'Controls');
+    this.toggle(panel, 'Aim: click to toggle (default: hold right button)', s.aimToggle, (v) =>
+      this.change({ aimToggle: v }),
+    );
+
     el('h3', 'set__heading', panel, 'Audio');
     this.slider(
       panel,

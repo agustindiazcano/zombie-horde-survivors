@@ -410,6 +410,22 @@ const itemDef = z.discriminatedUnion('type', [
       fireMode: z.enum(FIRE_MODES),
       /** Rounds in a full magazine (none for fists and the drone gun, which never run dry). */
       magazine: z.number().int().positive().optional(),
+      /** How a shot kicks the aim; leave it out for a gun with no recoil. */
+      recoil: z
+        .object({
+          /** Radians added to the aim error by each shot. */
+          kick: nonNegative,
+          /** Most the accumulated kick can reach (radians). */
+          maxKick: positive,
+          /** Radians per second the kick fades. */
+          recovery: positive,
+          /** 0 to 1: how much of the kick drifts to one side instead of spreading both ways. */
+          sideBias: z.number().min(0).max(1),
+          /** Camera shake added by each shot (world units, local player only). */
+          cameraKick: nonNegative,
+        })
+        .strict()
+        .optional(),
       /** Item id of the ammo it loads from the backpack (an `ammo` item). */
       ammo: z.string().optional(),
       /** Reloads from nothing: the spare magazines never run out (the pistol, at first). */
@@ -650,6 +666,28 @@ export const GameConfigSchema = z
         cooldown: nonNegative,
         /** Share of the blast damage that hurts allies, including the thrower (0 = none). */
         friendlyFire: z.number().min(0).max(1),
+      })
+      .strict(),
+    /** How well units hit: the weapon's `spread` is its worst case, these scale it down or up. */
+    accuracy: z
+      .object({
+        /** Extra spread per unit of speed (1 = walking speed): spread x (1 + this x speed). */
+        movementSpread: nonNegative,
+        /** Weapon-class skill level at which the best accuracy is reached, and its spread scale. */
+        skillMaxLevel: z.number().int().min(2),
+        skillBestScale: positive,
+        /** Standing still this many seconds earns the scale below (top-down and AI patience). */
+        standStillTime: nonNegative,
+        standStillScale: positive,
+        /** While aiming down the sights: spread, recoil and walking speed scales, and the view zoom. */
+        aimSpreadScale: positive,
+        aimRecoilScale: positive,
+        aimSpeedScale: positive,
+        aimZoom: z.number().min(0.3).max(1),
+        /** Crouching also tames recoil. */
+        crouchRecoilScale: positive,
+        /** Smallest random aim error (radians) of a gun that has any spread. */
+        minError: nonNegative,
       })
       .strict(),
     /** Ammo and reloading (the magazine, reload time and calibre are on each weapon). */

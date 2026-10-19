@@ -6,6 +6,7 @@ import { nextFloat } from './rng';
 import { weaponOf } from './stats';
 import { damageZombie } from './zombies';
 import { gunState } from './ammo';
+import { kickRecoil, recoilOf, spreadNow } from './accuracy';
 
 /** True if an obstacle sits between `origin` and a point `distance` away along `dir`. */
 export function isBlocked(origin: Vec2, dir: Vec2, distance: number, config: GameConfig): boolean {
@@ -42,8 +43,12 @@ export function fireWeapon(
   soldier.fireCooldown += 1 / (weapon.fireRate * rateScale);
 
   const origin = soldier.pos;
-  // Inaccurate weapons scatter their shots around the facing direction.
-  const spread = weapon.spread > 0 ? (nextFloat(state.rng) * 2 - 1) * weapon.spread : 0;
+  // Inaccurate weapons scatter their shots around the facing direction; recoil drifts to one side.
+  const error = spreadNow(config, soldier, weapon);
+  const side = recoilOf(config, soldier)?.sideBias ?? 0;
+  const drift = soldier.id % 2 === 0 ? side * soldier.recoil : -side * soldier.recoil;
+  const spread = error > 0 ? (nextFloat(state.rng) * 2 - 1) * error + drift : 0;
+  const cameraKick = kickRecoil(state, config, soldier);
   const dir = dirFromAngle(soldier.facing + spread);
   let nearest = weapon.range;
   let target: Zombie | null = null;
@@ -76,6 +81,7 @@ export function fireWeapon(
     from: { x: origin.x, z: origin.z },
     to: { x: origin.x + dir.x * nearest, z: origin.z + dir.z * nearest },
     hitZombieId: target?.id ?? null,
+    cameraKick,
   });
   if (target) damageZombie(state, config, target, weapon.damage, soldier);
 }

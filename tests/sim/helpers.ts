@@ -47,6 +47,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     drag: { ...base.drag },
     grenades: { ...base.grenades },
     ammo: { ...base.ammo },
+    accuracy: { ...base.accuracy },
     difficulty: { ...base.difficulty },
     waves: { ...base.waves, intermission: 1e9 },
   };
@@ -55,7 +56,8 @@ export function testConfig(patch: Patch = {}): GameConfig {
     merged[key] = { ...merged[key], ...value };
   }
   const catalog = structuredClone(items);
-  Object.assign(catalog.items.rifle, weapon);
+  // The tests aim by geometry: a rifle with no spread or recoil, unless a test patches it.
+  Object.assign(catalog.items.rifle, { spread: 0, recoil: undefined }, weapon);
   const { arena, ...settings } = merged;
   return {
     ...parseConfig(settings, parseMap(map1), units, catalog),

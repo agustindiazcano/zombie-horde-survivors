@@ -3,6 +3,7 @@ import { localPlayer } from './players';
 import { rescueTarget } from './revive';
 import { getVehicle, toggleVehicle } from './vehicles';
 import { gunOf, isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
+import { fadeRecoil } from './accuracy';
 import { maintainAmmo, updateReload } from './ammo';
 import { triggerPulled } from './weaponState';
 import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from './config';
@@ -20,6 +21,8 @@ const CLIMB_CLEAR = 0.25;
 /** Cosine of the widest angle (to the box) at which walking still counts as walking into it. */
 const CLIMB_FACING = 0.5;
 const SLOT_TOLERANCE = 0.6;
+/** Moving less than this per step (metres) counts as standing still. */
+const STILL_DISTANCE = 0.002;
 const CATCH_UP_SPEED = 1.2;
 const FORMATION_SPACING = 1.4;
 
@@ -82,6 +85,10 @@ function newUnit(
     triggerHeld: false,
     triggerQueued: false,
     reload: null,
+    recoil: 0,
+    aiming: false,
+    aimBroken: false,
+    stillTime: 0,
     y: 0,
     prevY: 0,
     vy: 0,
@@ -209,6 +216,7 @@ export function hurtSoldier(
   zombieId: number,
 ): void {
   if (soldier.dead) return;
+  soldier.aimBroken = true;
   state.events.push({ type: 'soldierHurt', soldierId: soldier.id, damage: amount, zombieId });
   if (soldier.downed) {
     soldier.bleedOut -= amount * config.downed.damageBleed;
@@ -237,6 +245,9 @@ export function updateSoldiers(
   const controlledId = localPlayer(state).controlledId;
   const leader = getSoldier(state, controlledId);
   for (const s of state.soldiers) {
+    // How far it moved last step decides how long it has stood still.
+    s.stillTime =
+      Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) < STILL_DISTANCE ? s.stillTime + dt : 0;
     s.prev.x = s.pos.x;
     s.prev.z = s.pos.z;
     s.prevY = s.y;
@@ -254,6 +265,8 @@ export function updateSoldiers(
     // May dip up to one step below zero so the leftover time carries into the next shot.
     s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
     updateReload(config, s, dt);
+    fadeRecoil(config, s, dt);
+    if (s.id !== controlledId) s.aiming = false;
     if (state.mods.regen > 0 && !isDrone(s) && !s.downed) {
       const max = maxHealthOf(state, config, s);
       s.health = Math.min(max, s.health + state.mods.regen * dt);
@@ -336,6 +349,7 @@ function updateSeated(
   input: Input,
   controlledId: number | null,
 ): void {
+  s.aiming = false;
   const v = state.vehicles.find((u) => u.id === s.vehicleId);
   if (!v) {
     s.vehicleId = null;
@@ -368,6 +382,10 @@ function updateControlled(
   dt: number,
 ): void {
   const { move, aim } = input;
+  // Aiming down the sights needs the button, a walking pace and an unhurt, upright soldier.
+  if (!input.aiming) s.aimBroken = false;
+  s.aiming =
+    input.aiming === true && !s.aimBroken && !s.downed && !isDrone(s) && stance !== 'sprint';
   // Normalize only above unit length so analog input keeps its magnitude.
   const l = Math.hypot(move.x, move.z);
   const k = l > 1 ? 1 / l : 1;

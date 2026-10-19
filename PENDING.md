@@ -76,7 +76,7 @@ Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watch
 Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. The first phase (W1) is built: see [the worklog](docs/worklog/2026-10-19-weapons-w1.md).
 
 - [x] Decisions taken (2026-10-19): the recommendations of section 14 of the plan were accepted; aim is hold-right-click in third / first person only.
-- [ ] 🟡 Look at W1 and W2 in the browser: the pistol fires once per click, R reloads, the HUD shows rounds, AI soldiers reload, rifle and machine gun need ammo from the shop or crates (balance is a guess). Next: W3 (accuracy, recoil, aim).
+- [ ] 🟡 Look at W1 and W2 in the browser: the pistol fires once per click, R reloads, the HUD shows rounds, AI soldiers reload, rifle and machine gun need ammo from the shop or crates (balance is a guess). W3 (accuracy, recoil, hold-to-aim, dynamic crosshair, new base spreads) is built too: check how aiming and recoil feel and whether the AI now misses too much. Next: W4 (headshots and crits) or W5 (melee).
 - [ ] ⚪ Still open, and the only blocker: ask the user before the visual part of weapons (bones, where the meshes come from), as already agreed.
 
 ### 3 — 🟡 Going public (GitHub Pages is live)

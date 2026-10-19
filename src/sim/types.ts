@@ -84,6 +84,13 @@ export interface Soldier {
   triggerQueued: boolean;
   /** The reload in progress, if any (the gun cannot fire meanwhile). */
   reload: Reload | null;
+  /** Aim error left over from recent shots (radians); it fades with time. */
+  recoil: number;
+  /** Holding aim down the sights; a hit breaks it until the aim button is released. */
+  aiming: boolean;
+  aimBroken: boolean;
+  /** Seconds without moving. */
+  stillTime: number;
   /** Height above the ground (jumping) and vertical speed. */
   y: number;
   prevY: number;
@@ -236,6 +243,8 @@ export type SimEvent =
       from: Vec2;
       to: Vec2;
       hitZombieId: number | null;
+      /** Camera shake this shot adds for the shooter (from the weapon's recoil). */
+      cameraKick: number;
     }
   | {
       type: 'zombieKilled';
@@ -343,6 +352,8 @@ export interface Input {
   firing: boolean;
   /** Touch play: the trigger is held by the auto-aim, so semi-automatic guns keep firing. */
   autoTrigger?: boolean;
+  /** The aim button is held (third and first person only). */
+  aiming?: boolean;
   /** Squad-wide stances: crouch takes priority over sprint. */
   crouch: boolean;
   sprint: boolean;

@@ -100,6 +100,8 @@ const FLASHLIGHT_REACH = 8;
 const FOV_TOP = 50;
 const FOV_THIRD = 60;
 const FOV_FIRST = 78;
+/** How fast the view eases in and out of aiming (1/s). */
+const AIM_ZOOM_RATE = 12;
 const MIN_THIRD_ZOOM = 0.5;
 const MAX_THIRD_ZOOM = 2.2;
 
@@ -171,6 +173,9 @@ export class GameRenderer {
   private readonly pools = new Map<string, CharacterView[]>();
   private frame = 0;
   private shake = 0;
+  /** Field-of-view multiplier while aiming (1 = none) and the one it is easing towards. */
+  private aimZoom = 1;
+  private aimZoomTarget = 1;
   private readonly effects = new ShotEffects();
   private readonly raycaster = new THREE.Raycaster();
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -369,6 +374,7 @@ export class GameRenderer {
 
     // Camera first: the health bars face it.
     this.updateCamera(state, alpha, dt);
+    this.updateFov(dt);
     this.syncSoldiers(state, alpha, dt);
     this.syncZombies(state, alpha, dt);
     this.syncVehicles(state, alpha);
@@ -430,6 +436,23 @@ export class GameRenderer {
     }
     this.camera.fov = mode === 'first' ? FOV_FIRST : mode === 'third' ? FOV_THIRD : FOV_TOP;
     this.camera.updateProjectionMatrix();
+  }
+
+  /** Narrows the view while aiming down the sights (1 = normal); it eases in and out. */
+  setAimZoom(factor: number): void {
+    this.aimZoomTarget = factor;
+  }
+
+  private updateFov(dt: number): void {
+    const target = this.viewMode === 'top' ? 1 : this.aimZoomTarget;
+    this.aimZoom += (target - this.aimZoom) * Math.min(1, AIM_ZOOM_RATE * dt);
+    const base =
+      this.viewMode === 'first' ? FOV_FIRST : this.viewMode === 'third' ? FOV_THIRD : FOV_TOP;
+    const fov = base * this.aimZoom;
+    if (Math.abs(this.camera.fov - fov) > 0.01) {
+      this.camera.fov = fov;
+      this.camera.updateProjectionMatrix();
+    }
   }
 
   /** First/third person mouse look, applied immediately: dx turns right, dy looks down (px). */
@@ -723,7 +746,7 @@ export class GameRenderer {
       if (e.type === 'shot') {
         this.effects.spawnShot(e.from, e.to, e.facing, e.height, e.hitZombieId !== null);
         if (e.shooterId === localPlayer(state).controlledId) {
-          this.shake = Math.min(this.shake + SHOT_SHAKE, MAX_SHAKE);
+          this.shake = Math.min(this.shake + SHOT_SHAKE + e.cameraKick, MAX_SHAKE);
         }
         if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
       } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
