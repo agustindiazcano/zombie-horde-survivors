@@ -79,7 +79,7 @@ Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md
 - [ ] 🟢 Zombie steering is a corner heuristic: it fixed a stuck case on long obstacles (corner re-selection) but other layouts may still trap enemies; consider a stuck detector or a simple navmesh.
 - [ ] 🟢 The radar ignores obstacles and the squad screen does not refresh while the game runs (it only opens while paused); fine today, revisit if either changes.
 - [ ] 🟢 Old merged branches (about 30) remain on the remote and locally; delete them once the user agrees.
-- [ ] 🟢 Docs: the README is the player reference; keep the Controls tables in sync whenever a key changes.
+- [ ] 🟢 Docs: the README is the player reference; docs/CONTROLS.md lists every key, so update it whenever a key changes.
 - [ ] ⚪ Tests: the user dropped new tests for the prototype; the 48 sim tests stay green. If the project grows beyond a prototype, revisit (settings load/save, `moveItem`, boss stats are the least covered).
 
 ### 6 — ⚪ Content ideas (not requested yet)
