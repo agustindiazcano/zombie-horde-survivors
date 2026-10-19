@@ -41,6 +41,12 @@ const MOVING_EPSILON = 1e-4;
 const WALK_BELOW = 0.65;
 const RUN_ABOVE = 0.8;
 
+/** True for a follower while the soldier the player controls is aiming down the sights. */
+function followerWalk(state: GameState, id: number): boolean {
+  const lead = state.soldiers.find((u) => u.id === localPlayer(state).controlledId);
+  return lead !== undefined && lead.id !== id && lead.aiming;
+}
+
 interface Factories {
   soldiers: CharacterFactory[];
   enemies: Record<string, CharacterFactory>;
@@ -772,7 +778,8 @@ export class GameRenderer {
         Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) / FIXED_DT / this.config.player.speed;
       if (pace < WALK_BELOW) this.walking.add(s.id);
       else if (pace > RUN_ABOVE) this.walking.delete(s.id);
-      const gait = this.walking.has(s.id) && !drone ? 'walk' : 'run';
+      // While the player aims, the followers walk too, even when they hurry to catch up.
+      const gait = (this.walking.has(s.id) || followerWalk(state, s.id)) && !drone ? 'walk' : 'run';
       view.setState(
         s.dead || s.downed ? 'death' : striking > 0 ? 'attack' : moving ? gait : 'idle',
       );
