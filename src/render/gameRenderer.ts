@@ -901,7 +901,10 @@ export class GameRenderer {
       }
       object.scale.setScalar(z.size);
       object.visible = !z.exploded;
-      entry.view.setState(z.state);
+      // A sleeping wanderer strolls (roam) or stands (idle); every other state plays as it is.
+      entry.view.setState(
+        z.mode === 'wander' && z.state === 'walk' ? (z.roam ? 'roam' : 'idle') : z.state,
+      );
       entry.view.update(dt);
       const every = this.factories.spurts?.[entry.type];
       if (every !== undefined && this.goreEnabled && z.state !== 'death') {

@@ -78,6 +78,14 @@
         {
           "id": "marine_bleeder",
           "name": "Bleeder marine"
+        },
+        {
+          "id": "marine_wanderer",
+          "name": "Wanderer marine"
+        },
+        {
+          "id": "marine_climber",
+          "name": "Climber marine"
         }
       ]
     },
@@ -128,6 +136,14 @@
         {
           "id": "spawner:marine_bleeder",
           "name": "Spawner: Bleeder marine"
+        },
+        {
+          "id": "spawner:marine_wanderer",
+          "name": "Spawner: Wanderer marine"
+        },
+        {
+          "id": "spawner:marine_climber",
+          "name": "Spawner: Climber marine"
         }
       ]
     },

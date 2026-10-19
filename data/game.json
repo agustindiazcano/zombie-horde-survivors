@@ -309,6 +309,39 @@
       "weight": 2,
       "minWave": 4,
       "rewardScale": 2.0
+    },
+    "marine_wanderer": {
+      "name": "Wanderer marine",
+      "speedScale": 1.7,
+      "healthScale": 1.0,
+      "damageScale": 1.0,
+      "radiusScale": 1.0,
+      "weight": 3,
+      "minWave": 2,
+      "rewardScale": 1.4,
+      "wander": {
+        "roamRadius": 8,
+        "speedScale": 0.3,
+        "pauseMin": 1,
+        "pauseMax": 4,
+        "senseRadius": 5,
+        "sightRadius": 16,
+        "sightArc": 1.1,
+        "shoutRadius": 10
+      }
+    },
+    "marine_climber": {
+      "name": "Climber marine",
+      "speedScale": 1.2,
+      "healthScale": 0.9,
+      "damageScale": 1.0,
+      "radiusScale": 1.0,
+      "weight": 3,
+      "minWave": 3,
+      "rewardScale": 1.5,
+      "climber": {
+        "maxHeight": 2.2
+      }
     }
   },
   "stance": {
@@ -336,6 +369,11 @@
   },
   "gore": {
     "explodeChance": 0.5
+  },
+  "wander": {
+    "noiseAttracts": false,
+    "noiseMetres": 4,
+    "wakeDelay": 25
   },
   "perks": {
     "choices": 3,

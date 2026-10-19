@@ -1,4 +1,5 @@
-import { resolveStatic } from './collision';
+import { resolveStatic, supportHeight } from './collision';
+import { STEP_UP } from './constants';
 import type { GameConfig, Loadout } from './config';
 import { ageFlow, steerTarget } from './flowfield';
 import { CELL, PointGrid } from './grid';
@@ -7,6 +8,7 @@ import { dropLoot, rewardOf } from './loot';
 import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
+import { wanderStep } from './wander';
 import { gunOf, weaponDef } from './stats';
 import type { GameState, HitKind, Soldier, Vehicle, Zombie } from './types';
 import { hurtVehicle, isOccupied } from './vehicles';
@@ -77,6 +79,11 @@ export function spawnZombie(
     hopLeft: 0,
     hopSide: 0,
     hopTimer: variant?.acrobat ? variant.acrobat.interval * (0.5 + nextFloat(state.rng)) : 0,
+    mode: variant?.wander && !boss ? 'wander' : 'chase',
+    home: { ...pos },
+    roam: null,
+    roamTimer: variant?.wander ? variant.wander.pauseMax * nextFloat(state.rng) : 0,
+    restless: 0,
   };
   if (loadout) {
     if (loadout.name) zombie.name = loadout.name;
@@ -163,6 +170,11 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       continue;
     }
 
+    const enemy = config.enemies[z.type];
+    if (z.mode === 'wander' && enemy?.wander && wanderStep(state, config, z, enemy.wander, dt)) {
+      continue;
+    }
+
     const found = nearestTarget(state, config, z.pos);
     if (!found) continue; // everyone is dead; the game is about to end
     const { target, soldier, vehicle } = found;
@@ -175,7 +187,8 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
 
     if (d > reach) {
       z.state = 'walk';
-      const waypoint = steerTarget(state, config, z.pos, target);
+      const climb = enemy?.climber?.maxHeight ?? 0;
+      const waypoint = steerTarget(state, config, z.pos, target, climb);
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
       const td = Math.hypot(tx, tz) || 1;
@@ -183,11 +196,17 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       z.pos.z += (tz / td) * z.speed * dt;
       const acrobat = config.enemies[z.type]?.acrobat;
       if (acrobat) hop(state, z, acrobat, dx / d, dz / d, d, reach, dt);
-      resolveStatic(z.pos, z.radius, config.arena);
+      const feet = climbFeet(climb);
+      resolveStatic(z.pos, z.radius, config.arena, feet);
+      // A climber rises onto the box under it and drops off the far side.
+      if (climb > 0) {
+        const top = supportHeight(config.arena, z.pos, feet);
+        z.y += (top - z.y) * Math.min(1, dt * CLIMB_EASE);
+      }
       continue;
     }
 
-    z.y = 0;
+    if (!enemy?.climber) z.y = 0;
     z.hopLeft = 0;
     // Entering melee range starts a full cooldown, so the first hit is not instant.
     if (z.state !== 'attack') {
@@ -291,9 +310,17 @@ function separateZombies(state: GameState, config: GameConfig): void {
     });
   }
   for (const z of zombies) {
-    if (z.state !== 'death') resolveStatic(z.pos, z.radius, config.arena);
+    if (z.state === 'death') continue;
+    const climb = config.enemies[z.type]?.climber?.maxHeight ?? 0;
+    resolveStatic(z.pos, z.radius, config.arena, climbFeet(climb));
   }
 }
+
+/** How fast (per second) a climber's height follows the surface under it. */
+const CLIMB_EASE = 10;
+
+/** The feet height at which a climber of this reach is no longer stopped by its obstacles. */
+const climbFeet = (climbHeight: number): number => (climbHeight > 0 ? climbHeight - STEP_UP : 0);
 
 const zombiePoints = new PointGrid();
 /**

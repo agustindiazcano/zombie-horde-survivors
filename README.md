@@ -94,7 +94,7 @@ Variants are multipliers on the base zombie in `data/game.json` (`enemies`); eac
 | Giant worm        | 4         | Very slow, very tanky, wide  |
 | Bleeder marine    | 4         | Spurts blood, 2.5x health    |
 
-The infected marine, the acrobat (violet, hops), the runner (pale, fast) and the fast infected marine (green, quick steps) are variants of the same marine model too.
+The infected marine, the acrobat (violet, hops), the runner (pale, fast) and the fast infected marine (green, quick steps) are variants of the same marine model too. The pale wanderer sleeps and strolls until you come close or it sees you, and wakes its neighbours; the orange climber walks over boxes.
 
 Zombie speed and health also grow with each wave.
 

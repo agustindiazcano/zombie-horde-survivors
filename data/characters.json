@@ -157,6 +157,35 @@
       "blood": 0.9,
       "spurts": 1.2,
       "barHeight": 2.1
+    },
+    "marine_wanderer": {
+      "model": "models/soldier-marine-light.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Run_03",
+        "roam": "Casual_Walk",
+        "idle": "Alert",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#c4ccd0",
+      "blood": 0.35,
+      "barHeight": 2.1
+    },
+    "marine_climber": {
+      "model": "models/soldier-marine-light.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Running",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#d49a52",
+      "barHeight": 2.1
     }
   },
   "animals": {

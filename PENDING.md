@@ -87,7 +87,8 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [ ] 🟡 Look at the first two steps, built early: the violet **acrobat marine** (runs, hops up and sideways, cartwheels) and the **marine brute** (bigger, burgundy) ([worklog](docs/worklog/2026-10-19-acrobat-and-marine-brute.md)), and the new **weapon poses** (two-handed aim in third person, the first-person gun with aim down the sights; [worklog](docs/worklog/2026-10-19-weapons-poses.md)). Tune `WEAPON_POSES`, `armPose.ts` and `viewModel.ts` constants.
 - [x] Decisions of section 11 taken (2026-10-19, recommendations accepted; a head hit only does extra damage, and a killing head hit bursts or flies off by weapon strength).
 - [x] Phase M0 built: the light marine (4,900 triangles, 1.8 MB) is used by the horde ([worklog](docs/worklog/2026-10-19-marine-m0.md)).
-- [ ] 🟡 Measure with F3 and Chrome's profiler in a heavy wave and compare the light marine's look with a soldier; then M1.
+- [ ] 🟡 Measure with F3 and Chrome's profiler in a heavy wave and compare the light marine's look with a soldier.
+- [x] M1 built (variants, procedural blood, bleeder) and M1b built (wanderers that sleep, sense, see and shout; climbers over boxes): [worklog](docs/worklog/2026-10-19-marine-m1b.md). Look at the pale **wanderer** and the orange **climber**; next is M2 (head).
 
 ### 3 — 🟡 Going public (GitHub Pages is live)
 

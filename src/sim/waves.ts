@@ -52,6 +52,10 @@ function spawnAtEdge(state: GameState, config: GameConfig, forced?: string, boss
     return;
   }
   const lim = config.arena.halfSize - radius;
+  if (config.enemies[type]?.wander && bossNumber === 0) {
+    spawnWanderer(state, config, type, lim, radius);
+    return;
+  }
   const side = Math.floor(nextFloat(state.rng) * 4);
   const t = (nextFloat(state.rng) * 2 - 1) * lim;
   const pos =
@@ -63,6 +67,28 @@ function spawnAtEdge(state: GameState, config: GameConfig, forced?: string, boss
           ? { x: lim, z: t }
           : { x: -lim, z: t };
   spawnZombie(state, config, pos, type, bossNumber);
+}
+
+/** A wanderer sleeps somewhere in the arena, out of the squad's sense range, not at the edge. */
+function spawnWanderer(
+  state: GameState,
+  config: GameConfig,
+  type: string,
+  lim: number,
+  radius: number,
+): void {
+  const keepAway = (config.enemies[type]!.wander!.senseRadius + 3) * 1.5;
+  const at = { x: 0, z: 0 };
+  for (let tries = 0; tries < 20; tries++) {
+    at.x = (nextFloat(state.rng) * 2 - 1) * lim;
+    at.z = (nextFloat(state.rng) * 2 - 1) * lim;
+    resolveStatic(at, radius, config.arena);
+    const near = state.soldiers.some(
+      (s) => !s.dead && Math.hypot(s.pos.x - at.x, s.pos.z - at.z) < keepAway,
+    );
+    if (!near) break;
+  }
+  spawnZombie(state, config, at, type);
 }
 
 export function updateWaves(state: GameState, config: GameConfig, dt: number): void {

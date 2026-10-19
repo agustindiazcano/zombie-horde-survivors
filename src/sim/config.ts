@@ -622,6 +622,28 @@ const enemyType = z
       })
       .strict()
       .optional(),
+    /** A wanderer: roams near where it spawned until it notices the squad, then chases for good. */
+    wander: z
+      .object({
+        /** How far from its home it roams (metres) and its walking speed as a fraction of `speedScale`. */
+        roamRadius: positive,
+        speedScale: positive,
+        /** Seconds it stands between two roam walks. */
+        pauseMin: nonNegative,
+        pauseMax: nonNegative,
+        /** A soldier this close wakes it, seen or not. */
+        senseRadius: positive,
+        /** A soldier this close, in front of it and with a clear line, wakes it. */
+        sightRadius: positive,
+        /** Half-angle (radians) of the cone it sees in. */
+        sightArc: positive,
+        /** The ones this close to an alerted wanderer wake with it. */
+        shoutRadius: nonNegative,
+      })
+      .strict()
+      .optional(),
+    /** A climber walks over obstacles up to this high (water and cliffs still stop it). */
+    climber: z.object({ maxHeight: positive }).strict().optional(),
   })
   .strict();
 
@@ -902,6 +924,15 @@ export const GameConfigSchema = z
       })
       .strict(),
     gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),
+    wander: z
+      .object({
+        /** Shots wake wanderers within `noiseMetres` per point of the weapon's noise (off until balanced). */
+        noiseAttracts: z.boolean(),
+        noiseMetres: positive,
+        /** Seconds after a wave has finished spawning before its sleeping wanderers wake up anyway. */
+        wakeDelay: positive,
+      })
+      .strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
     drops: z
       .object({

@@ -1,4 +1,5 @@
 import type { Arena, GameConfig, Obstacle } from './config';
+import { topOf } from './collision';
 import type { GameState } from './types';
 import { isOccupied } from './vehicles';
 import type { Vec2 } from './vec';
@@ -39,6 +40,8 @@ interface Field {
 }
 
 const blockedGrids = new WeakMap<Obstacle[], Blocked>();
+/** The same grid with only the obstacles a climber cannot cross, per climbing height. */
+const hardGrids = new WeakMap<Obstacle[], Map<number, Blocked>>();
 const fields = new WeakMap<GameState, Field>();
 
 const cellIndex = (b: Blocked, v: number): number =>
@@ -48,10 +51,14 @@ const centre = (b: Blocked, c: number): number => (c + 0.5) * FLOW_CELL - b.half
 /** Forgets the cached grids of an arena; call it when obstacles change without changing the count. */
 export function invalidateFlow(arena: Arena): void {
   blockedGrids.delete(arena.obstacles);
+  hardGrids.delete(arena.obstacles);
 }
 
-function blockedOf(arena: Arena): Blocked {
-  const cached = blockedGrids.get(arena.obstacles);
+function blockedOf(arena: Arena, climbHeight = 0): Blocked {
+  const cached =
+    climbHeight > 0
+      ? hardGrids.get(arena.obstacles)?.get(climbHeight)
+      : blockedGrids.get(arena.obstacles);
   if (cached && cached.source === arena.obstacles && cached.length === arena.obstacles.length) {
     return cached;
   }
@@ -64,6 +71,7 @@ function blockedOf(arena: Arena): Blocked {
     cells: new Uint8Array(n * n),
   };
   for (const box of arena.obstacles) {
+    if (climbHeight > 0 && topOf(box) <= climbHeight) continue;
     const x0 = cellIndex(made, box.x - box.halfW - CLEARANCE);
     const x1 = cellIndex(made, box.x + box.halfW + CLEARANCE);
     const z0 = cellIndex(made, box.z - box.halfD - CLEARANCE);
@@ -79,7 +87,13 @@ function blockedOf(arena: Arena): Blocked {
       }
     }
   }
-  blockedGrids.set(arena.obstacles, made);
+  if (climbHeight > 0) {
+    const perHeight = hardGrids.get(arena.obstacles) ?? new Map<number, Blocked>();
+    perHeight.set(climbHeight, made);
+    hardGrids.set(arena.obstacles, perHeight);
+  } else {
+    blockedGrids.set(arena.obstacles, made);
+  }
   return made;
 }
 
@@ -133,6 +147,13 @@ function heapPop(): void {
   }
   heapCost[i] = lastCost;
   heapCell[i] = lastCell;
+}
+
+/** True if nothing blocks the straight way from `a` to `b` (an obstacle a climber crosses does not count). */
+export function canSee(config: GameConfig, a: Vec2, b: Vec2, climbHeight = 0): boolean {
+  return (
+    config.arena.obstacles.length === 0 || lineClear(blockedOf(config.arena, climbHeight), a, b)
+  );
 }
 
 /** Fills `dist` with the walking distance from every free cell to the nearest of `targets`. */
@@ -207,9 +228,19 @@ const waypoint: Vec2 = { x: 0, z: 0 };
  * from one search that every enemy shares (so the cost grows with the map, not the horde).
  * The returned point is reused by the next call.
  */
-export function steerTarget(state: GameState, config: GameConfig, from: Vec2, to: Vec2): Vec2 {
+export function steerTarget(
+  state: GameState,
+  config: GameConfig,
+  from: Vec2,
+  to: Vec2,
+  /** A climber's reach: obstacles up to this high do not count as blocking the straight way. */
+  climbHeight = 0,
+): Vec2 {
   const blocked = blockedOf(config.arena);
-  if (config.arena.obstacles.length === 0 || lineClear(blocked, from, to)) {
+  if (
+    config.arena.obstacles.length === 0 ||
+    lineClear(climbHeight > 0 ? blockedOf(config.arena, climbHeight) : blocked, from, to)
+  ) {
     waypoint.x = to.x;
     waypoint.z = to.z;
     return waypoint;

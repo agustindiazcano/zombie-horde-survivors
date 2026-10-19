@@ -13,6 +13,8 @@ export interface WeaponDef {
   range: number;
   spread: number;
   fireMode: FireMode;
+  /** How loud a shot is (a suppressor lowers it). */
+  noise: number;
 }
 
 export interface WeaponStats extends WeaponDef {
@@ -47,7 +49,18 @@ export function speedOf(
 export function weaponDef(config: GameConfig, id: string): WeaponDef {
   const listed = config.items[id];
   const item = listed?.type === 'weapon' ? listed : (config.items['rifle'] as WeaponItem);
-  const { name, class: cls, hands, damageType, fireRate, damage, range, spread, fireMode } = item;
+  const {
+    name,
+    class: cls,
+    hands,
+    damageType,
+    fireRate,
+    damage,
+    range,
+    spread,
+    fireMode,
+    noise,
+  } = item;
   return {
     id: listed === item ? id : 'rifle',
     name,
@@ -59,6 +72,7 @@ export function weaponDef(config: GameConfig, id: string): WeaponDef {
     range,
     spread,
     fireMode,
+    noise,
   };
 }
 
@@ -104,6 +118,7 @@ export function weaponOf(
   def.damage *= mods.damage * factor(fitted.damage);
   def.range *= factor(fitted.range);
   def.spread *= factor(fitted.spread);
+  def.noise *= factor(fitted.noise);
   def.fireRate *= mods.fireRate;
   if (isDrone(s)) return { ...def, height: config.drone.height, ignoresCover: true };
   if (stance === 'crouch') {

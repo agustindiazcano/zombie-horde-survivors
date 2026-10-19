@@ -39,8 +39,12 @@ export class Sfx {
   /** Plays sounds for the events produced by a simulation step. */
   onStep(state: GameState): void {
     if (!this.ctx || this.ctx.state !== 'running') return;
+    let growled = false;
     for (const e of state.events) {
-      if (e.type === 'shot') {
+      if (e.type === 'zombieAlerted') {
+        if (!growled) this.tone('sawtooth', 150, 80, 0.4, 0.12);
+        growled = true;
+      } else if (e.type === 'shot') {
         const mine = e.shooterId === localPlayer(state).controlledId;
         this.shot(mine ? 1 : 0.35);
         if (e.hit) this.hitMark(e.hit.kind, mine ? 1 : 0.4);

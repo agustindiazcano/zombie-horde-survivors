@@ -225,6 +225,14 @@ export interface Zombie {
   hopLeft: number;
   hopSide: number;
   hopTimer: number;
+  /** `wander`: roams near `home` until it notices the squad; `chase`: goes for the nearest target. */
+  mode: 'wander' | 'chase';
+  home: Vec2;
+  /** A wanderer's roam point (null while it stands) and the seconds left walking to it or standing. */
+  roam: Vec2 | null;
+  roamTimer: number;
+  /** Seconds a wanderer has waited after its wave finished spawning; it wakes up after a while. */
+  restless: number;
   deathTimer: number;
 }
 
@@ -304,6 +312,7 @@ export type SimEvent =
   | { type: 'explosion'; pos: Vec2; radius: number }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
+  | { type: 'zombieAlerted'; id: number; pos: Vec2 }
   | { type: 'objectiveDone'; index: number }
   | { type: 'victory' }
   | { type: 'gameOver' };

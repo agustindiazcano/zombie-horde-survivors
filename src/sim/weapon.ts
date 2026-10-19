@@ -8,6 +8,7 @@ import { damageZombie } from './zombies';
 import { gunState } from './ammo';
 import { kickRecoil, recoilOf, spreadNow } from './accuracy';
 import { rollHit } from './hits';
+import { hearShot } from './wander';
 
 /** True if an obstacle sits between `origin` and a point `distance` away along `dir`. */
 export function isBlocked(origin: Vec2, dir: Vec2, distance: number, config: GameConfig): boolean {
@@ -90,5 +91,6 @@ export function fireWeapon(
     cameraKick,
     hit: roll ? { kind: roll.kind, damage } : null,
   });
+  hearShot(state, config, origin, weapon.noise);
   if (target && roll) damageZombie(state, config, target, damage, soldier, roll.kind);
 }
