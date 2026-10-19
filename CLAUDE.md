@@ -115,6 +115,7 @@ test-game/
 ├── data/
 │   ├── game.json              all gameplay numbers (squad, waves, perks, shop, boss...)
 │   ├── items.json             item catalog: weapon sheets, armor, medkits, grenades, accessories
+│   ├── catalog.json           the editor panel's unit and asset groups (names only for now)
 │   └── characters.json        model path, scale, clips and procedural motion per character
 ├── docs/worklog/              snapshots of what was done (moved out of LASTCONTEXT / PENDING)
 ├── public/
@@ -143,7 +144,9 @@ test-game/
 │   ├── input.ts · cameraControls.ts · rts.ts      keyboard, mouse, RTS selection and orders
 │   ├── audio.ts · fps.ts · settings.ts            procedural SFX, FPS counter, saved options
 │   ├── hud.ts/.css · squadPanel.ts                health, wave, kills, XP, game over; bottom squad bar
-│   ├── mainMenu.ts/.css · menuModel.ts            title screen and its 3D soldier viewer
+│   ├── mainMenu.ts/.css · menuModel.ts            title screen, mode / Single Player / map-list menus, 3D soldier viewer
+│   ├── maps.ts                                    list of the built-in maps (saved ones join in phase 4)
+│   ├── editor.ts/.css                             map editor shell: paused, Play / Stop, five tabs (placeholders)
 │   ├── pausePanel.ts/.css · unitsScreen.ts/.css   pause screen: bonuses, stats, squad windows
 │   ├── upgradesUi.ts · upgrades.css               level-up perk picker and the shop
 │   ├── inventoryUi.ts · inventory.css             crate window (E)

@@ -55,6 +55,7 @@ export class Radar {
     });
     this.ctx = this.canvas.getContext('2d');
     this.ctx?.scale(dpr, dpr);
+    this.canvas.classList.add('radar');
     parent.appendChild(this.canvas);
   }
 
