@@ -47,7 +47,7 @@ Full plan: [docs/PLAN-modes-and-map-editor.md](docs/PLAN-modes-and-map-editor.md
 - [ ] 🟡 Ask the user before the visual part of equipment: how weapons show on the models (bones to attach to, where the meshes come from).
 - [ ] 🟢 Follow-ups of 1d and 1e, not built: helmet slot, dual-wield firing, fists and melee combat, grenade throwing, accessory fitting, ammo and reload, a way to obtain grenades, the vest and accessories, a manual revive key, crawl and bleeding visuals.
 - [ ] 🟡 Look at phases 2 and 3 in the browser: the menu flow (Start → mode → Single Player → Waves → Map 1), Esc going back, the editor layout (top bar, right panel, tabs, collapsible groups), Play / Stop and WASD panning while editing.
-- [ ] 🟡 Phase 4 (next): save / load / export maps (the sim and renderer must be rebuilt from the picked map; the menu ignores the choice today): built-in maps in `data/maps/` plus the user's maps in localStorage, listed together.
+- [ ] 🟡 Look at phase 4 in the browser: New / Open / Save / Export / Import in the editor, saved maps in the Waves list, delete, and that picking a map swaps the arena. Phase 4 is built; here is what it covers: built-in maps in `data/maps/` plus the user's maps in localStorage, listed together.
 - [ ] 🟢 Phases 5–7: place units and assets, terrain (height, water, paint, roads), game logic tab.
 - [ ] ⚪ Phases 8–10: vehicles with crew seats, interaction mechanics (lift and throw objects by strength, climbing, drag or carry a body, fire hazards), animals, Story mode.
 - [ ] 🟡 Answer the open questions in section 8 of the plan (steering model, first vehicle, attribute names, weapon-class XP source, downed rules, defibrillator, equipment on the models).

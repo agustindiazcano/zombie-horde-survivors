@@ -27,7 +27,9 @@ import {
   orderFollow,
   orderHold,
   parseConfig,
+  arenaOf,
   parseMap,
+  type MapData,
   step,
   type Input,
 } from './sim';
@@ -122,7 +124,7 @@ async function main(): Promise<void> {
   // Map 1 is the only map the sim is built for so far; the picked map is ignored until phase 4.
   const menu = new MainMenu(
     document.body,
-    () => undefined,
+    (entry) => loadMap(entry.map),
     preview,
     openSettings,
     () => openEditor(),
@@ -137,6 +139,7 @@ async function main(): Promise<void> {
       resetGame();
       controlSoldier(state, null);
     },
+    onMapChange: (map) => loadMap(map),
     onMenu: () => {
       editor.close();
       menu.show();
@@ -176,9 +179,16 @@ async function main(): Promise<void> {
     shop.close();
   };
 
+  /** Makes the sim and the 3D scene use another map (the config object is shared, so edit it in place). */
+  const loadMap = (map: MapData) => {
+    config.arena = arenaOf(map);
+    config.players = map.players;
+    renderer.setArena(config.arena);
+    resetGame();
+  };
+
   /** The editor opens paused on the map, in RTS mode so WASD pans the camera. */
   const openEditor = () => {
-    resetGame();
     controlSoldier(state, null);
     setPaused(false);
     editor.open();

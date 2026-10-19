@@ -145,7 +145,8 @@ export class GameRenderer {
     emissiveIntensity: 0.6,
   });
   private clock = 0;
-  private readonly halfSize: number;
+  private halfSize: number;
+  private arenaGroup: THREE.Group;
   private readonly droneHeight: number;
   selection: ReadonlySet<number> = new Set();
   private readonly zombies = new Map<number, ZombieEntry>();
@@ -169,7 +170,8 @@ export class GameRenderer {
     container.appendChild(this.renderer.domElement);
 
     this.scene.background = new THREE.Color(DAY_BACKGROUND);
-    this.scene.add(buildArena(config.arena));
+    this.arenaGroup = buildArena(config.arena);
+    this.scene.add(this.arenaGroup);
     this.addLights(config.arena.halfSize);
 
     this.config = config;
@@ -185,6 +187,26 @@ export class GameRenderer {
 
     window.addEventListener('resize', this.resize);
     this.resize();
+  }
+
+  /** Swaps the floor, walls and obstacles for those of another map (the config is shared and already updated). */
+  setArena(arena: GameConfig['arena']): void {
+    this.scene.remove(this.arenaGroup);
+    this.arenaGroup.traverse((o) => {
+      if (!(o instanceof THREE.Mesh || o instanceof THREE.LineSegments)) return;
+      o.geometry.dispose();
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.dispose();
+    });
+    this.arenaGroup = buildArena(arena);
+    this.scene.add(this.arenaGroup);
+    this.halfSize = arena.halfSize;
+    const cam = this.sun.shadow.camera;
+    const reach = arena.halfSize * 1.5;
+    cam.left = cam.bottom = -reach;
+    cam.right = cam.top = reach;
+    cam.updateProjectionMatrix();
+    this.focus.x = Math.min(Math.max(this.focus.x, -this.halfSize), this.halfSize);
+    this.focus.z = Math.min(Math.max(this.focus.z, -this.halfSize), this.halfSize);
   }
 
   /** Draws `state` interpolated by `alpha` (0..1) between the last two simulation steps. */
