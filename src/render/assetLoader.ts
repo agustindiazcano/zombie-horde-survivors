@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AnimationController } from './animationController';
+import { createWeaponModel } from './weaponModels';
 import type { CharacterSpec, CharactersConfig } from './characterConfig';
 import {
   createPlaceholderDrone,
@@ -114,6 +115,46 @@ function makeFlasher(model: THREE.Object3D, tint?: string): (amount: number) => 
   };
 }
 
+/** Finds the right hand bone of a Mixamo rig (the loader may or may not strip the colon). */
+function findRightHand(model: THREE.Object3D): THREE.Object3D | null {
+  let found: THREE.Object3D | null = null;
+  model.traverse((o) => {
+    if (!found && /^(mixamorig:?)?RightHand$/.test(o.name)) found = o;
+  });
+  return found;
+}
+
+/**
+ * Lets a rigged soldier hold a weapon: the model is parented to the right hand bone, scaled to
+ * undo the rig's own scale, with the barrel along the bone (the fingers' direction).
+ * `GRIP_OFFSET` and `GRIP_ROLL` are the constants to tune once seen in the game.
+ */
+const GRIP_OFFSET = new THREE.Vector3(0, 0.08, 0);
+const GRIP_ROLL = 0;
+function createHolder(model: THREE.Object3D): CharacterView['hold'] {
+  const hand = findRightHand(model);
+  if (!hand) return undefined;
+  const holder = new THREE.Group();
+  holder.rotation.set(-Math.PI / 2, 0, GRIP_ROLL);
+  hand.add(holder);
+  let shown: string | null = null;
+  const scale = new THREE.Vector3();
+  return (item) => {
+    if (item === shown) return;
+    shown = item;
+    holder.clear();
+    const weapon = item === null ? null : createWeaponModel(item);
+    if (!weapon) return;
+    // Undo the bone's world scale so the weapon is measured in metres.
+    model.updateMatrixWorld(true);
+    hand.getWorldScale(scale);
+    const k = scale.x > 1e-6 ? 1 / scale.x : 1;
+    holder.scale.setScalar(k);
+    holder.position.copy(GRIP_OFFSET).multiplyScalar(k);
+    holder.add(weapon);
+  };
+}
+
 function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
   return (): CharacterView => {
     const root = new THREE.Group();
@@ -134,6 +175,7 @@ function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
 
     const animation = new AnimationController(model, gltf.animations, spec);
     return {
+      hold: createHolder(model),
       object: root,
       setState: (state) => animation.setState(state),
       update: (dt) => animation.update(dt),

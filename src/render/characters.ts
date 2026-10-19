@@ -12,6 +12,8 @@ export interface CharacterView {
   update(dt: number): void;
   /** Hit flash: 0 = normal, 1 = fully lit up. Optional; views without it just don't flash. */
   setFlash?(amount: number): void;
+  /** Puts the item (an id of data/items.json) in the character's hand, or empties it with null. Optional. */
+  hold?(item: string | null): void;
 }
 
 export type CharacterFactory = () => CharacterView;

@@ -723,6 +723,9 @@ export class GameRenderer {
       view.setState(
         s.dead || s.downed ? 'death' : striking > 0 ? 'attack' : moving ? 'run' : 'idle',
       );
+      view.hold?.(
+        s.dead || s.downed || drone ? null : (s.equipment.rightHand ?? s.equipment.leftHand),
+      );
       view.update(dt);
       this.updateFlashlight(s.id, view.object, heading, !s.dead);
       // In first person you look out of the controlled unit's head, so hide its model.
