@@ -116,7 +116,7 @@
       "scale": 1.0,
       "yawOffset": 0,
       "clips": {
-        "walk": "Running",
+        "walk": "Run_03",
         "attack": "Attack",
         "death": "Dead"
       },
