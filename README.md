@@ -59,20 +59,20 @@ In third and first person the cursor is locked (so you can keep turning) and W /
 
 ### RTS mode
 
-| Key / mouse              | Action                                                                            |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| W / A / S / D            | Pan the camera                                                                    |
-| Left click               | Select a soldier                                                                  |
-| Left-drag                | Box select (hold **Shift** to add to the selection)                               |
-| Right click              | Send the selected units to that point (a right _drag_ rotates the camera instead) |
-| F                        | Selected units follow the controlled soldier again                                |
-| E                        | Select all                                                                        |
-| 1 – 9                    | Select a unit by number (Shift adds)                                              |
-| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                               |
-| Y                        | Take direct control of the first selected unit                                    |
-| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                 |
-| I                        | Squad screen (pauses the game)                                                    |
-| B                        | Shop (only between waves)                                                         |
+| Key / mouse              | Action                                                                                                                |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| W / A / S / D            | Pan the camera                                                                                                        |
+| Left click               | Select a soldier                                                                                                      |
+| Left-drag                | Box select (hold **Shift** to add to the selection)                                                                   |
+| Right click              | Send the selected units to that point, or into a vehicle with a free seat (a right _drag_ rotates the camera instead) |
+| F                        | Selected units follow the controlled soldier again                                                                    |
+| E                        | Select all                                                                                                            |
+| 1 – 9                    | Select a unit by number (Shift adds)                                                                                  |
+| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                                                                   |
+| Y                        | Take direct control of the first selected unit                                                                        |
+| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                                                     |
+| I                        | Squad screen (pauses the game)                                                                                        |
+| B                        | Shop (only between waves)                                                                                             |
 
 When you take control with **Y**, only the units that were selected follow you. The rest hold their position (or keep their move order). Every uncontrolled unit shoots the nearest enemy it can see.
 
