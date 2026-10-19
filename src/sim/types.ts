@@ -1,4 +1,4 @@
-import type { WeaponClass } from './config';
+import type { AccessorySlot, WeaponClass } from './config';
 import type { Rng } from './rng';
 import type { Vec2 } from './vec';
 
@@ -31,7 +31,20 @@ export type UnitKind = 'soldier' | 'drone';
 export interface Stack {
   item: string;
   count: number;
+  /** Own state of a weapon in this slot (rounds loaded, fitted accessories); created when first needed. */
+  state?: WeaponState;
 }
+
+/** What one weapon carries besides its item id: it travels with the weapon between slots and units. */
+export interface WeaponState {
+  /** Rounds in the magazine (no rule spends them yet). */
+  loaded: number;
+  /** Accessory item ids by weapon slot (none can be fitted yet). */
+  accessories: Partial<Record<AccessorySlot, string>>;
+}
+
+/** The hands that can hold a weapon. */
+export type Hand = 'rightHand' | 'leftHand';
 
 /**
  * Hand and body slots; null is empty. A two-handed weapon sits in `rightHand` and leaves
@@ -58,6 +71,9 @@ export interface Soldier {
   health: number;
   dead: boolean;
   fireCooldown: number;
+  /** Whether the fire button was down last step, and a semi-automatic click waiting for the cooldown. */
+  triggerHeld: boolean;
+  triggerQueued: boolean;
   /** Height above the ground (jumping) and vertical speed. */
   y: number;
   prevY: number;
@@ -65,6 +81,8 @@ export interface Soldier {
   order: SoldierOrder;
   /** What the unit holds and wears (item ids from data/items.json). */
   equipment: Equipment;
+  /** State of the weapon in each hand; a missing entry means a fresh weapon (see `handState`). */
+  weaponStates: Partial<Record<Hand, WeaponState>>;
   /** Carried stacks, up to `inventory.backpackSlots` slots. */
   backpack: Stack[];
   /** This unit's own experience (grows when it kills) and enemies it has killed. */
@@ -309,6 +327,8 @@ export interface Input {
   /** World-space point on the ground the player is aiming at. */
   aim: Vec2;
   firing: boolean;
+  /** Touch play: the trigger is held by the auto-aim, so semi-automatic guns keep firing. */
+  autoTrigger?: boolean;
   /** Squad-wide stances: crouch takes priority over sprint. */
   crouch: boolean;
   sprint: boolean;

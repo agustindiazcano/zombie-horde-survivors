@@ -1,7 +1,7 @@
 import type { GameConfig, ItemDef } from './config';
 import { nextFloat } from './rng';
 import { maxHealthOf } from './stats';
-import type { Crate, Equipment, GameState, Soldier, Stack } from './types';
+import type { Crate, Equipment, GameState, Hand, Soldier, Stack } from './types';
 import type { Vec2 } from './vec';
 
 /** Crate entry that is worn as armor instead of carried. */
@@ -17,6 +17,7 @@ export interface Slot {
 }
 
 const isEquipSlot = (slot: SlotRef): slot is keyof Equipment => typeof slot === 'string';
+const isHand = (slot: keyof Equipment): slot is Hand => slot !== 'chest';
 
 export const itemDef = (config: GameConfig, id: string): ItemDef => config.items[id]!;
 
@@ -73,15 +74,24 @@ function reachableCrate(
 export function cellAt(s: Soldier, slot: SlotRef): Stack | null {
   if (isEquipSlot(slot)) {
     const item = s.equipment[slot];
-    return item === null ? null : { item, count: 1 };
+    if (item === null) return null;
+    const state = isHand(slot) ? s.weaponStates[slot] : undefined;
+    return state ? { item, count: 1, state } : { item, count: 1 };
   }
   return s.backpack[slot] ?? null;
 }
 
+function setHandState(s: Soldier, hand: Hand, state: Stack['state']): void {
+  if (state) s.weaponStates[hand] = state;
+  else delete s.weaponStates[hand];
+}
+
 /** Writes a slot. Emptying a backpack slot closes the gap; an index past the end appends. */
 function putCell(s: Soldier, slot: SlotRef, stack: Stack | null): void {
-  if (isEquipSlot(slot)) s.equipment[slot] = stack?.item ?? null;
-  else if (stack === null) s.backpack.splice(slot, 1);
+  if (isEquipSlot(slot)) {
+    s.equipment[slot] = stack?.item ?? null;
+    if (isHand(slot)) setHandState(s, slot, stack?.state);
+  } else if (stack === null) s.backpack.splice(slot, 1);
   else if (slot < s.backpack.length) s.backpack[slot] = stack;
   else s.backpack.push(stack);
 }
@@ -113,11 +123,13 @@ function consistent(config: GameConfig, s: Soldier): boolean {
 
 const snapshot = (s: Soldier) => ({
   equipment: { ...s.equipment },
+  weaponStates: { ...s.weaponStates },
   backpack: s.backpack.map((st) => ({ ...st })),
 });
 
 function restore(s: Soldier, saved: ReturnType<typeof snapshot>): void {
   s.equipment = saved.equipment;
+  s.weaponStates = saved.weaponStates;
   s.backpack = saved.backpack;
 }
 
@@ -176,6 +188,12 @@ export function unequipSlot(
   const item = s?.equipment[slot];
   if (!s || s.dead || item === null || item === undefined) return false;
   if (!addToBackpack(config, s, item)) return false;
+  if (isHand(slot)) {
+    // Weapons do not stack, so addToBackpack made a new stack at the end.
+    const state = s.weaponStates[slot];
+    if (state) s.backpack[s.backpack.length - 1]!.state = state;
+    delete s.weaponStates[slot];
+  }
   s.equipment[slot] = null;
   return true;
 }
@@ -199,16 +217,24 @@ export function equipFromBackpack(
 
   const saved = snapshot(s);
   const old = s.equipment[slot];
+  const oldState = slot === 'rightHand' ? s.weaponStates.rightHand : undefined;
   if (old === null) s.backpack.splice(index, 1);
-  else s.backpack[index] = { item: old, count: 1 };
+  else
+    s.backpack[index] = oldState
+      ? { item: old, count: 1, state: oldState }
+      : { item: old, count: 1 };
   s.equipment[slot] = stack.item;
+  if (slot === 'rightHand') setHandState(s, 'rightHand', stack.state);
   const offHand = s.equipment.leftHand;
   if (def.type === 'weapon' && def.hands === 2 && offHand !== null) {
     if (!addToBackpack(config, s, offHand)) {
       restore(s, saved);
       return false;
     }
+    const offState = s.weaponStates.leftHand;
+    if (offState) s.backpack[s.backpack.length - 1]!.state = offState;
     s.equipment.leftHand = null;
+    delete s.weaponStates.leftHand;
   }
   if (consistent(config, s)) return true;
   restore(s, saved);

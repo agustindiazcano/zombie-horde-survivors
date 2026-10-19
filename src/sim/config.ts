@@ -371,6 +371,9 @@ export const ACCESSORY_SLOTS = [
   'stock',
   'underbarrel',
 ] as const;
+export const FIRE_MODES = ['auto', 'semi'] as const;
+export type FireMode = (typeof FIRE_MODES)[number];
+
 export type AccessorySlot = (typeof ACCESSORY_SLOTS)[number];
 
 const itemBase = {
@@ -403,15 +406,17 @@ const itemDef = z.discriminatedUnion('type', [
       range: positive,
       /** Random aim error, in radians (each side). */
       spread: nonNegative,
-      mocked: z
-        .object({
-          magazine: z.number().int().positive().optional(),
-          reloadTime: nonNegative.optional(),
-          noise: nonNegative,
-          weight: nonNegative,
-          accessorySlots: z.array(z.enum(ACCESSORY_SLOTS)),
-        })
-        .strict(),
+      /** `auto` fires while the button is held; `semi` once per click. */
+      fireMode: z.enum(FIRE_MODES),
+      /** Rounds in a full magazine (none for fists and the drone gun). */
+      magazine: z.number().int().positive().optional(),
+      /** Seconds to reload (no rule uses it before the ammo phase). */
+      reloadTime: nonNegative.optional(),
+      /** Radius in metres a shot can be heard from (no rule uses it yet). */
+      noise: nonNegative,
+      /** Which places an accessory can be fitted to (nothing fits them yet). */
+      accessorySlots: z.array(z.enum(ACCESSORY_SLOTS)),
+      mocked: z.object({ weight: nonNegative }).strict(),
     })
     .strict(),
   z

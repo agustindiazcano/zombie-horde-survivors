@@ -509,6 +509,7 @@ async function main(): Promise<void> {
         };
       directInput.firing = best !== null;
     }
+    directInput.autoTrigger = mobile;
     directInput.crouch = raw.crouch;
     directInput.sprint = raw.sprint;
     directInput.jump = raw.jump;

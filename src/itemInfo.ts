@@ -20,7 +20,13 @@ export function itemInfo(config: GameConfig, id: string): ItemInfo {
       lines.push(
         `${def.class}, ${def.hands === 2 ? 'two-handed' : 'one-handed'}, ${def.damageType} damage`,
         `damage ${def.damage}, ${def.fireRate} shots/s, range ${def.range}`,
+        `${def.fireMode === 'semi' ? 'Semi-automatic: one shot per click' : 'Automatic: fires while held'}`,
       );
+      if (def.magazine) {
+        lines.push(
+          `Magazine ${def.magazine}${def.reloadTime ? `, reload ${def.reloadTime} s` : ''} (no ammo rule yet)`,
+        );
+      }
       break;
     case 'medical':
       stats = `+${def.heal} HP`;

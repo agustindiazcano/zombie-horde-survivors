@@ -73,9 +73,10 @@ Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watch
 
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
-Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. The first phase turns weapons into instances with their own state.
+Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. The first phase (W1) is built: see [the worklog](docs/worklog/2026-10-19-weapons-w1.md).
 
 - [x] Decisions taken (2026-10-19): the recommendations of section 14 of the plan were accepted; aim is hold-right-click in third / first person only.
+- [ ] 🟡 Next: W2 (magazines, ammo items, reload on R, AI reload, crates keeping weapon state). Look at W1 in the browser first: the pistol fires once per click, tooltips.
 - [ ] ⚪ Still open, and the only blocker: ask the user before the visual part of weapons (bones, where the meshes come from), as already agreed.
 
 ### 3 — 🟡 Going public (GitHub Pages is live)

@@ -13,10 +13,11 @@
       "damage": 6,
       "range": 1.2,
       "spread": 0,
+      "fireMode": "auto",
+      "noise": 1,
+      "accessorySlots": [],
       "mocked": {
-        "noise": 1,
-        "weight": 0,
-        "accessorySlots": []
+        "weight": 0
       }
     },
     "pistol": {
@@ -31,12 +32,13 @@
       "damage": 20,
       "range": 25,
       "spread": 0.02,
+      "fireMode": "semi",
+      "magazine": 12,
+      "reloadTime": 1.2,
+      "noise": 6,
+      "accessorySlots": ["optic", "barrel", "magazine"],
       "mocked": {
-        "magazine": 12,
-        "reloadTime": 1.2,
-        "noise": 6,
-        "weight": 1,
-        "accessorySlots": ["optic", "barrel", "magazine"]
+        "weight": 1
       }
     },
     "rifle": {
@@ -51,12 +53,13 @@
       "damage": 25,
       "range": 40,
       "spread": 0,
+      "fireMode": "auto",
+      "magazine": 30,
+      "reloadTime": 2.2,
+      "noise": 9,
+      "accessorySlots": ["optic", "barrel", "magazine", "grip", "underbarrel"],
       "mocked": {
-        "magazine": 30,
-        "reloadTime": 2.2,
-        "noise": 9,
-        "weight": 3.5,
-        "accessorySlots": ["optic", "barrel", "magazine", "grip", "underbarrel"]
+        "weight": 3.5
       }
     },
     "heavy_mg": {
@@ -71,12 +74,13 @@
       "damage": 18,
       "range": 35,
       "spread": 0.07,
+      "fireMode": "auto",
+      "magazine": 100,
+      "reloadTime": 5,
+      "noise": 10,
+      "accessorySlots": ["optic", "barrel", "grip"],
       "mocked": {
-        "magazine": 100,
-        "reloadTime": 5,
-        "noise": 10,
-        "weight": 9,
-        "accessorySlots": ["optic", "barrel", "grip"]
+        "weight": 9
       }
     },
     "drone_cannon": {
@@ -92,10 +96,11 @@
       "damage": 45,
       "range": 30,
       "spread": 0,
+      "fireMode": "auto",
+      "noise": 4,
+      "accessorySlots": [],
       "mocked": {
-        "noise": 4,
-        "weight": 2,
-        "accessorySlots": []
+        "weight": 2
       }
     },
     "armor_plate": {

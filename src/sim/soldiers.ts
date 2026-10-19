@@ -2,7 +2,8 @@ import { resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
 import { getVehicle, toggleVehicle } from './vehicles';
-import { isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
+import { gunOf, isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
+import { triggerPulled } from './weaponState';
 import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from './config';
 import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
@@ -38,7 +39,10 @@ export function applyLoadout(config: GameConfig, s: Soldier, l: Loadout): Soldie
     s.health = l.maxHealth;
   }
   if (l.attributes) s.attributes = { ...s.attributes, ...l.attributes };
-  if (l.equipment) s.equipment = { ...s.equipment, ...l.equipment };
+  if (l.equipment) {
+    s.equipment = { ...s.equipment, ...l.equipment };
+    s.weaponStates = {};
+  }
   if (l.backpack) {
     s.backpack = l.backpack
       .filter((st) => st.item in config.items)
@@ -73,6 +77,8 @@ function newUnit(
     baseHealth: config.player.maxHealth,
     dead: false,
     fireCooldown: 0,
+    triggerHeld: false,
+    triggerQueued: false,
     y: 0,
     prevY: 0,
     vy: 0,
@@ -82,6 +88,7 @@ function newUnit(
       leftHand: null,
       chest: null,
     },
+    weaponStates: {},
     backpack: [],
     xp: 0,
     kills: 0,
@@ -336,7 +343,9 @@ function updateSeated(
     const dx = input.aim.x - s.pos.x;
     const dz = input.aim.z - s.pos.z;
     if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
-    if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
+    if (triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)) {
+      fireWeapon(state, config, s);
+    }
     return;
   }
   const target = findTarget(state, config, s);
@@ -372,7 +381,9 @@ function updateControlled(
     s.vy = climbSpeed(config, s, move) ?? config.stance.jumpSpeed;
   }
 
-  if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
+  if (triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)) {
+    fireWeapon(state, config, s);
+  }
 }
 
 function updateAi(

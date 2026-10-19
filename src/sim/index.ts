@@ -34,6 +34,7 @@ export {
   useItem,
 } from './inventory';
 export { gunOf, skillLevel, weaponDef, type WeaponDef } from './stats';
+export { handState, newWeaponState } from './weaponState';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';
 export type { Slot, SlotRef } from './inventory';
 export { levelInfo, type LevelInfo } from './loot';

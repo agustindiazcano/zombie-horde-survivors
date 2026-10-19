@@ -1,4 +1,4 @@
-import type { DamageType, GameConfig, WeaponClass, WeaponItem } from './config';
+import type { DamageType, FireMode, GameConfig, WeaponClass, WeaponItem } from './config';
 import type { GameState, Mods, Soldier, Stance } from './types';
 
 export interface WeaponDef {
@@ -11,6 +11,7 @@ export interface WeaponDef {
   damage: number;
   range: number;
   spread: number;
+  fireMode: FireMode;
 }
 
 export interface WeaponStats extends WeaponDef {
@@ -44,7 +45,7 @@ export function speedOf(
 export function weaponDef(config: GameConfig, id: string): WeaponDef {
   const listed = config.items[id];
   const item = listed?.type === 'weapon' ? listed : (config.items['rifle'] as WeaponItem);
-  const { name, class: cls, hands, damageType, fireRate, damage, range, spread } = item;
+  const { name, class: cls, hands, damageType, fireRate, damage, range, spread, fireMode } = item;
   return {
     id: listed === item ? id : 'rifle',
     name,
@@ -55,6 +56,7 @@ export function weaponDef(config: GameConfig, id: string): WeaponDef {
     damage,
     range,
     spread,
+    fireMode,
   };
 }
 
