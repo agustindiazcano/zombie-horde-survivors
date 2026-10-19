@@ -66,6 +66,14 @@
         {
           "id": "marine_acrobat",
           "name": "Acrobat marine"
+        },
+        {
+          "id": "marine_runner",
+          "name": "Runner marine"
+        },
+        {
+          "id": "marine_fast",
+          "name": "Fast infected marine"
         }
       ]
     },
@@ -104,6 +112,14 @@
         {
           "id": "spawner:marine_acrobat",
           "name": "Spawner: Acrobat marine"
+        },
+        {
+          "id": "spawner:marine_runner",
+          "name": "Spawner: Runner marine"
+        },
+        {
+          "id": "spawner:marine_fast",
+          "name": "Spawner: Fast infected marine"
         }
       ]
     },

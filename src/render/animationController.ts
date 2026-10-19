@@ -23,6 +23,8 @@ export class AnimationController {
         action.setLoop(THREE.LoopOnce, 1);
         action.clampWhenFinished = true;
       }
+      if (spec.clipSpeed && (state === 'walk' || state === 'run'))
+        action.timeScale = spec.clipSpeed;
       this.actions.set(state, action);
     }
   }

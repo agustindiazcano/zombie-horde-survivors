@@ -110,6 +110,33 @@
       "once": ["death"],
       "tint": "#9b6bd6",
       "barHeight": 2.1
+    },
+    "marine_runner": {
+      "model": "models/soldier-marine-light.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Running",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#c9cf8a",
+      "barHeight": 2.1
+    },
+    "marine_fast": {
+      "model": "models/soldier-marine-light.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Unsteady_Walk",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "clipSpeed": 1.7,
+      "once": ["death"],
+      "tint": "#6fa860",
+      "barHeight": 2.1
     }
   },
   "animals": {

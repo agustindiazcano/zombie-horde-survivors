@@ -15,6 +15,8 @@ const characterSpec = z
     barHeight: z.number().positive().optional(),
     /** Color multiplied over the model's textures (e.g. sickly green for an infected soldier). */
     tint: z.string().optional(),
+    /** Playback speed of the walk and run clips (1 = as authored); a faster zombie steps quicker. */
+    clipSpeed: z.number().positive().optional(),
     /** States whose clip plays once and holds its last frame (e.g. death). */
     once: z.array(z.string()),
   })

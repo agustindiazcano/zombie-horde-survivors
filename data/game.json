@@ -279,6 +279,26 @@
       "minWave": 4,
       "rewardScale": 6,
       "headshots": false
+    },
+    "marine_runner": {
+      "name": "Runner marine",
+      "speedScale": 1.8,
+      "healthScale": 0.6,
+      "damageScale": 0.8,
+      "radiusScale": 1.0,
+      "weight": 3,
+      "minWave": 2,
+      "rewardScale": 1.3
+    },
+    "marine_fast": {
+      "name": "Fast infected marine",
+      "speedScale": 1.4,
+      "healthScale": 0.9,
+      "damageScale": 1.0,
+      "radiusScale": 1.0,
+      "weight": 4,
+      "minWave": 2,
+      "rewardScale": 1.2
     }
   },
   "stance": {
