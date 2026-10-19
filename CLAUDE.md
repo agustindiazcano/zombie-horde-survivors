@@ -44,17 +44,18 @@ The user raised the market as a reason for decisions (the name, going public); n
 
 **Direct control**
 
-| Key / mouse               | Action                                             |
-| ------------------------- | -------------------------------------------------- |
-| W A S D                   | Move (relative to the camera)                      |
-| Mouse / left click (hold) | Aim / fire                                         |
-| Ctrl or C                 | Crouch (the whole squad)                           |
-| Shift                     | Sprint (the whole squad)                           |
-| Space                     | Jump; into a box: climb onto it                    |
-| T                         | Cycle view: top-down → third person → first person |
-| Mouse wheel / right-drag  | Zoom / rotate and tilt (top-down)                  |
-| E                         | Open a crate next to you                           |
-| Y                         | Back to RTS mode                                   |
+| Key / mouse               | Action                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| W A S D                   | Move (relative to the camera)                                                                                |
+| Mouse / left click (hold) | Aim / fire                                                                                                   |
+| Ctrl or C                 | Crouch (the whole squad)                                                                                     |
+| Shift                     | Sprint (the whole squad)                                                                                     |
+| Space                     | Jump; into a box: climb onto it                                                                              |
+| G                         | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go |
+| T                         | Cycle view: top-down → third person → first person                                                           |
+| Mouse wheel / right-drag  | Zoom / rotate and tilt (top-down)                                                                            |
+| E                         | Open a crate next to you                                                                                     |
+| Y                         | Back to RTS mode                                                                                             |
 
 In third and first person the mouse turns the view 1:1 and instantly (the cursor is locked, the crosshair is the aim); `Esc` releases it.
 

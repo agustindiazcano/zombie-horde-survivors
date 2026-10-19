@@ -73,6 +73,11 @@
     "gold": 5,
     "xp": 10
   },
+  "drag": {
+    "range": 1.8,
+    "ropeLength": 1.1,
+    "speedScale": 0.5
+  },
   "animals": {
     "dog": {
       "name": "Dog",

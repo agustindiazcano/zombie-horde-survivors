@@ -45,6 +45,8 @@ export interface Equipment {
 
 export interface Soldier {
   id: number;
+  /** Id of the downed or dead ally this soldier drags by the shoulders, if any. */
+  dragging: number | null;
   /** Id of the player that owns this unit. */
   owner: string;
   kind: UnitKind;

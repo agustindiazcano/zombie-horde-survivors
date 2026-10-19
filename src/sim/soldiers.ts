@@ -93,6 +93,7 @@ function newUnit(
     deadTime: 0,
     reviveProgress: 0,
     vehicleId: null,
+    dragging: null,
     ...sheetOf(config, unitType),
   };
 }

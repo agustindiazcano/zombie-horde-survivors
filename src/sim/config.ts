@@ -621,6 +621,17 @@ export const GameConfigSchema = z
           .strict(),
       })
       .strict(),
+    /** Dragging a downed or dead ally by the shoulders. */
+    drag: z
+      .object({
+        /** How close (metres) a soldier must be to grab a body. */
+        range: positive,
+        /** Distance (metres) the body trails behind. */
+        ropeLength: positive,
+        /** Speed of the dragger against normal walking. */
+        speedScale: positive,
+      })
+      .strict(),
     /** Harmless wandering animals by id (placed in the editor under Units > Animals). */
     animals: z.record(
       z.string(),

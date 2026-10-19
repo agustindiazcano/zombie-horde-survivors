@@ -36,6 +36,7 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 | Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                                   |
 | Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                |
 | Space             | Jump (only the soldier you control); walking into a box, it vaults up onto it (30 stamina)                          |
+| G                 | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go        |
 | T                 | Change view: normal → third person → first person → normal                                                          |
 | I                 | Squad screen: units, inventories and bonuses (pauses the game)                                                      |
 | B                 | Open / close the shop (only between waves)                                                                          |
@@ -203,5 +204,7 @@ Every third-party asset is listed in `assets.toml` (name, author, source, licens
 - **Spaceship (used as the drone)** by Quaternius — [CC0-1.0](https://poly.pizza/m/DbGajMHrvp)
 - **Digital Camo Soldier (marine soldier and infected marine enemy)** by Meshy AI — [CC-BY-4.0](https://www.meshy.ai)
 - **SUV (Car Kit)** by Kenney — [CC0-1.0](https://kenney.nl/assets/car-kit)
+- **Dog (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
+- **Cat (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
 
 <!-- credits:end -->

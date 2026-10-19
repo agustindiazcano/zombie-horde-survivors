@@ -2,6 +2,7 @@ import { FIXED_DT } from './constants';
 import { spawnerEnemy, type GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
 import { createAnimal, updateAnimals } from './animals';
+import { updateDrag } from './drag';
 import { updateHazards } from './hazards';
 import { updateObjectives } from './objectives';
 import { updateRevives } from './revive';
@@ -103,6 +104,7 @@ export function step(
           ? 'sprint'
           : 'normal';
   updateSoldiers(state, config, input, dt);
+  updateDrag(state, config);
   updateVehicles(state, config, input, dt);
   updateRevives(state, config, dt);
   updateHazards(state, config, dt);

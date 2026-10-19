@@ -28,6 +28,7 @@ import {
   nearestCrate,
   getSoldier,
   getVehicle,
+  toggleDrag,
   toggleVehicle,
   vehicleInReach,
   shopAvailable,
@@ -427,6 +428,10 @@ async function main(): Promise<void> {
           toggleVehicle(state, config, id);
         }
       }
+    } else if (e.code === 'KeyG') {
+      // Grab a downed or dead ally by the shoulders and drag it, or let go.
+      const controlled = localPlayer(state).controlledId;
+      if (playable() && !modalOpen() && controlled !== null) toggleDrag(state, config, controlled);
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
       const unitId = localPlayer(state).controlledId;
