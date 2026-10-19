@@ -1,0 +1,8 @@
+# 2026-10-19 — Flow-field pathfinding (build mode phase 0)
+
+Branch `feat/flow-field`, cut from `main` (`af0733d`), independent of `feat/weapon-instances`. 48 tests and all checks pass; nothing seen in a browser.
+
+- **What changed:** `src/sim/flowfield.ts` replaces the corner heuristic (`steerTarget` in `zombies.ts`). A 1 m grid marks cells blocked by obstacles (water and cliffs too) inflated by 0.6 m. If the straight line from a zombie to its target crosses no blocked cell it walks straight (as before); otherwise it heads for the centre of the next cell of the shortest walk, read from one Dijkstra search (8 neighbours, no corner cutting) seeded from every living soldier on foot and every occupied vehicle. The search is lazy (only when some zombie is blocked) and refreshed every 0.25 s; one search costs about 1 ms on Map 1.
+- **Why:** the corner heuristic got stuck on long walls and concave shapes. A throwaway headless trial (not committed): a 30 m wall and a cup open away from the target both left the old zombie walking for 40 s without arriving; with the field it arrives in 16 s. Open ground is unchanged (7.6 s).
+- **Benchmark (`npm run bench:sim`, ms per step, before to after):** 100 zombies 0.74 to 0.53, 300 1.15 to 0.87, 600 2.02 to 1.63, 1000 3.75 to 2.83 (worst step 4.6 ms).
+- **Limits:** one clearance for every size, so a big boss may scrape or stall in a narrow gap; a target walled in completely makes zombies go straight at it; `invalidateFlow(arena)` must be called when obstacles change without changing their count (build mode will need break-cost per structure on top).

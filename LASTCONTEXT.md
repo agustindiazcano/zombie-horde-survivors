@@ -73,7 +73,7 @@ Preguntas abiertas que no bloquean: cómo se ven las armas en los modelos (hueso
 - Python edit scripts that rewrite a file can leave Vite's dev cache with an empty module; `touch` the file. Prettier realigns tables and breaks anchor-based edits.
 - Long shell chains that end in `grep` hide failing tests; read the test summary before committing.
 - The Bash tool rejects large heredocs on this Windows setup: use the Write tool for files and scripts.
-- The sim's zombie steering got stuck on the corner of long obstacles once; the fix is in `steerTarget` (`CORNER_REACHED`). If enemies ever stall a wave again (a wave only ends when all are dead), look there first.
+- Zombie steering used to get stuck on long walls and concave shapes; it now follows a flow field (`src/sim/flowfield.ts`, branch `feat/flow-field`). If enemies ever stall a wave again (a wave only ends when all are dead), look there first (clearance, `invalidateFlow` after obstacles change).
 
 ## How to resume
 
