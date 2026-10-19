@@ -38,7 +38,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-const unitName = (s: Soldier) => `${s.kind === 'drone' ? 'Drone' : 'Soldier'} ${s.id}`;
+const unitName = (s: Soldier) => s.name ?? `${s.kind === 'drone' ? 'Drone' : 'Soldier'} ${s.id}`;
 
 interface UnitWindow {
   root: HTMLElement;
@@ -107,10 +107,10 @@ export class UnitsScreen {
 
   private renderList(): void {
     const state = this.getState();
-    const maxHp = maxHealthOf(state, this.config);
     this.list.replaceChildren();
     for (const s of state.soldiers) {
       const info = levelInfo(s.xp, this.config);
+      const maxHp = maxHealthOf(state, this.config, s);
       const card = el('button', 'us__card', this.list);
       card.classList.toggle('us__card--selected', this.selected.includes(s.id));
       card.classList.toggle('us__card--dead', s.dead);
@@ -181,7 +181,7 @@ export class UnitsScreen {
     if (!w || !unit) return;
 
     const info = levelInfo(unit.xp, this.config);
-    const maxHp = maxHealthOf(state, this.config);
+    const maxHp = maxHealthOf(state, this.config, unit);
     w.info.replaceChildren();
     el('h4', 'us__title', w.info, unitName(unit));
     this.bar(

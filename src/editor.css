@@ -251,3 +251,31 @@ body.editing .radar {
   background: rgba(255, 216, 74, 0.12);
   pointer-events: none;
 }
+
+.editor__dialog-box--wide {
+  width: min(760px, 94vw);
+}
+
+.editor__cols {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.editor__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.editor__sub {
+  margin: 6px 0 2px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.editor__text {
+  width: 160px;
+}

@@ -4,7 +4,8 @@ import catalogData from '../data/catalog.json';
 import gameData from '../data/game.json';
 import { blankMap, exportMap, importMapFile, listMaps, pickMapFile, saveMap } from './maps';
 import { objectiveLabel } from './hud';
-import type { MapData, MapLogic, Objective, Vec2 } from './sim';
+import { isDialogOpen, openInventory, openStats } from './unitDialogs';
+import { spawnerEnemy, type MapData, type MapLogic, type Objective, type Vec2 } from './sim';
 import { flatHeights, paintCells, plainPaint, sculpt, type SculptMode } from './terrainBrush';
 import { terrainData } from './terrainData';
 
@@ -346,7 +347,14 @@ export class Editor {
     const items = this.selectedItems();
     this.selection = items.map((i) => i.sel);
     this.actions.onMarks(this.isEditing ? items.map((i) => ({ at: i.at, radius: i.radius })) : []);
-    this.actions.onSpawnMarks(this.isEditing ? (this.current.logic.spawnPoints ?? []) : null);
+    this.actions.onSpawnMarks(
+      this.isEditing
+        ? [
+            ...(this.current.logic.spawnPoints ?? []),
+            ...this.current.units.filter((u) => spawnerEnemy(u.type) !== null),
+          ]
+        : null,
+    );
     const one = items.length === 1 ? items[0]! : null;
     this.info.textContent = this.spawnTool
       ? `Placing ${this.spawnTool === 'goal' ? 'a goal spot' : 'spawn points'}. Click the map to add one; right-click or Esc to stop.`
@@ -467,6 +475,25 @@ export class Editor {
     };
     this.boxEnd = null;
     this.dragMoved = false;
+  }
+
+  /** I / O: the inventory or stats window of the one selected unit; changes are kept in the map. */
+  private openUnitDialog(which: 'inventory' | 'stats'): void {
+    const sel = this.selection.length === 1 ? this.selection[0]! : null;
+    if (!sel || sel.list !== 'units' || !this.current.units[sel.index]) {
+      this.info.textContent = 'Select one unit first (I: inventory, O: stats).';
+      return;
+    }
+    const index = sel.index;
+    const unit = () => this.current.units[index]!;
+    const label = this.nameOf(unit().type);
+    const change = (next: MapData['units'][number]) =>
+      this.edit({
+        ...this.current,
+        units: this.current.units.map((u, i) => (i === index ? next : u)),
+      });
+    const open = which === 'inventory' ? openInventory : openStats;
+    open(this.root, unit, unit().name ?? label, change, () => this.syncSelection());
   }
 
   /** Where the first selected unit stands (the editor's Y drives the soldier next to it). */
@@ -700,7 +727,7 @@ export class Editor {
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
-    if (!this.isEditing) return;
+    if (!this.isEditing || isDialogOpen(this.root)) return;
     const target = e.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'SELECT') return;
     const key = e.key.toLowerCase();
@@ -717,6 +744,10 @@ export class Editor {
     } else if ((e.ctrlKey || e.metaKey) && key === 'v') {
       e.preventDefault();
       this.pasteCopied();
+    } else if (key === 'i' && !e.ctrlKey && !e.metaKey) {
+      this.openUnitDialog('inventory');
+    } else if (key === 'o' && !e.ctrlKey && !e.metaKey) {
+      this.openUnitDialog('stats');
     } else if (key === 'delete' || key === 'backspace') this.deleteSelected();
     else if (key === 'r') {
       if (!e.repeat && !this.rHeld) {

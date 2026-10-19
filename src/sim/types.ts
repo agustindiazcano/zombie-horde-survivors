@@ -68,6 +68,10 @@ export interface Soldier {
   /** Sprint energy (0 to `stance.staminaMax`); `winded` blocks sprinting until it recovers. */
   stamina: number;
   winded: boolean;
+  /** A name set by the map, shown instead of "Soldier 2". */
+  name?: string;
+  /** Health before perks; the type's default unless the map changes it. */
+  baseHealth: number;
   /** Stat sheet entry this unit was built from ('soldier', 'drone') in data/units.json. */
   unitType: string;
   /** The sheet's attributes with this unit's current values (mocked: no rule reads them yet). */
@@ -117,6 +121,12 @@ export interface Zombie {
   facing: number;
   /** Enemy variant id ('zombie', 'alien', ...). Picks the model and the stats below. */
   type: string;
+  /** A name set by the map. */
+  name?: string;
+  /** Attributes set by the map (mocked: no rule reads them). */
+  attributes?: Record<string, number>;
+  /** Items it carries; they drop in a crate when it dies. */
+  loot: string[];
   health: number;
   maxHealth: number;
   /** A mini boss: darker, slower, much tougher and harder-hitting than its type. */

@@ -1,5 +1,6 @@
 import type { GameConfig } from './config';
 import { itemDef } from './inventory';
+import { maxHealthOf } from './stats';
 import type { GameState, Soldier } from './types';
 
 const distance = (a: Soldier, b: Soldier): number =>
@@ -64,7 +65,6 @@ export function rescueTarget(state: GameState, config: GameConfig, s: Soldier): 
  */
 export function updateRevives(state: GameState, config: GameConfig, dt: number): void {
   const rules = config.downed;
-  const maxHealth = config.player.maxHealth * state.mods.maxHealth;
   for (const patient of state.soldiers) {
     if (!needsRescue(config, patient)) {
       patient.reviveProgress = 0;
@@ -94,11 +94,11 @@ export function updateRevives(state: GameState, config: GameConfig, dt: number):
     if (def.type === 'medical') {
       patient.downed = false;
       patient.bleedOut = 0;
-      patient.health = Math.min(maxHealth, def.heal);
+      patient.health = Math.min(maxHealthOf(state, config, patient), def.heal);
     } else {
       patient.dead = false;
       patient.deadTime = 0;
-      patient.health = maxHealth * rules.defibHealth;
+      patient.health = maxHealthOf(state, config, patient) * rules.defibHealth;
       patient.armor = 0;
       patient.order = { type: 'follow' };
       patient.fireCooldown = 0;

@@ -1,8 +1,8 @@
 import { resolveStatic } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
-import { isDrone, speedOf, weaponOf } from './stats';
-import { WEAPON_CLASSES, type GameConfig, type WeaponClass } from './config';
+import { isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
+import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from './config';
 import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
 import { dirFromAngle, type Vec2 } from './vec';
@@ -21,6 +21,24 @@ function sheetOf(config: GameConfig, unitType: string) {
     attributes: { ...config.units.units[unitType]!.attributes },
     skills: Object.fromEntries(WEAPON_CLASSES.map((c) => [c, 0])) as Record<WeaponClass, number>,
   };
+}
+
+/** Applies what the map changed about one placed soldier or drone. */
+export function applyLoadout(config: GameConfig, s: Soldier, l: Loadout): Soldier {
+  if (l.name) s.name = l.name;
+  if (l.maxHealth) {
+    s.baseHealth = l.maxHealth;
+    s.health = l.maxHealth;
+  }
+  if (l.attributes) s.attributes = { ...s.attributes, ...l.attributes };
+  if (l.equipment) s.equipment = { ...s.equipment, ...l.equipment };
+  if (l.backpack) {
+    s.backpack = l.backpack
+      .filter((st) => st.item in config.items)
+      .slice(0, config.inventory.backpackSlots)
+      .map((st) => ({ ...st }));
+  }
+  return s;
 }
 
 /** Whether a unit type of the map is part of the player's squad (a human of the sheets, or the drone). */
@@ -45,6 +63,7 @@ function newUnit(
     prev: { ...pos },
     facing,
     health: config.player.maxHealth,
+    baseHealth: config.player.maxHealth,
     dead: false,
     fireCooldown: 0,
     y: 0,
@@ -75,7 +94,9 @@ export function createSquad(config: GameConfig, owner: string): Soldier[] {
   const placed = config.placed.filter((u) => u.owner === owner && isSquadUnit(config, u.type));
   // A map that places the squad by hand replaces the default ring around the origin.
   if (placed.length > 0) {
-    return placed.map((u, i) => newUnit(config, u.type, i + 1, owner, u, u.rotation));
+    return placed.map((u, i) =>
+      applyLoadout(config, newUnit(config, u.type, i + 1, owner, u, u.rotation), u),
+    );
   }
   const n = config.squad.count;
   const soldiers: Soldier[] = Array.from({ length: n }, (_, i) => {
@@ -207,7 +228,7 @@ export function updateSoldiers(
     // May dip up to one step below zero so the leftover time carries into the next shot.
     s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
     if (state.mods.regen > 0 && !isDrone(s) && !s.downed) {
-      const max = config.player.maxHealth * state.mods.maxHealth;
+      const max = maxHealthOf(state, config, s);
       s.health = Math.min(max, s.health + state.mods.regen * dt);
     }
     // The squad's sprint order only works for a unit that still has breath.

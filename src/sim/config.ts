@@ -31,6 +31,28 @@ const mapPlayer = z
   })
   .strict();
 
+const loadoutShape = {
+  /** A name shown instead of the type's. */
+  name: z.string().min(1).optional(),
+  /** Health in place of the type's default (for a soldier, before perks). */
+  maxHealth: positive.optional(),
+  /** Attribute values by name (a missing one keeps the sheet's). */
+  attributes: z.record(z.string(), z.number().nonnegative()).optional(),
+  /** Hand and vest slots; null empties one, a missing one keeps the default. */
+  equipment: z
+    .object({
+      rightHand: z.string().nullable().optional(),
+      leftHand: z.string().nullable().optional(),
+      chest: z.string().nullable().optional(),
+    })
+    .strict()
+    .optional(),
+  /** Carried stacks. An enemy drops these in a crate when it dies. */
+  backpack: z
+    .array(z.object({ item: z.string().min(1), count: z.number().int().positive() }).strict())
+    .optional(),
+};
+
 const mapUnit = z
   .object({
     /** Unit type id (character or vehicle catalog entry). */
@@ -41,8 +63,28 @@ const mapUnit = z
     /** Heading in radians (0 faces +Z). */
     rotation: z.number().optional(),
     hold: z.boolean().optional(),
+    ...loadoutShape,
   })
   .strict();
+
+/** The changes a map can make to one placed unit; they apply to that unit of that map only. */
+export type Loadout = {
+  name?: string;
+  maxHealth?: number;
+  attributes?: Record<string, number>;
+  equipment?: { rightHand?: string | null; leftHand?: string | null; chest?: string | null };
+  backpack?: { item: string; count: number }[];
+};
+
+/** A spawn point: where enemies appear, and for a placed spawner which enemy and what it carries. */
+export type SpawnPoint = Vec2 & { enemy?: string; loadout?: Loadout };
+
+/** The id prefix of a placed spawner unit: `spawner:<enemy id>`. */
+export const SPAWNER_PREFIX = 'spawner:';
+
+/** The enemy type a placed unit spawns, or null when it is not a spawner. */
+export const spawnerEnemy = (type: string): string | null =>
+  type.startsWith(SPAWNER_PREFIX) ? type.slice(SPAWNER_PREFIX.length) : null;
 
 const difficultyId = z.enum(['easy', 'normal', 'hard']);
 
@@ -716,7 +758,7 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   /** The map's difficulty: multipliers on enemy health, speed and wave size. */
   level: z.infer<typeof difficultyScale>;
   /** Where enemies appear; empty = along the map edge. */
-  spawnPoints: Vec2[];
+  spawnPoints: SpawnPoint[];
   /** Story goals; empty in waves maps and in story maps that set none. */
   objectives: Objective[];
   /** Stat sheets by unit type (from data/units.json). */
@@ -758,7 +800,11 @@ type MapRules = Pick<
  * on top. Returns new objects, so `global` can be reused for the next map. Unknown enemy ids in
  * the map are ignored.
  */
-export function mapRules(global: GlobalRules, logic: MapLogic): MapRules {
+export function mapRules(
+  global: GlobalRules,
+  logic: MapLogic,
+  units: MapData['units'] = [],
+): MapRules {
   let enemies = global.enemies;
   if (logic.enemies) {
     enemies = {};
@@ -780,7 +826,14 @@ export function mapRules(global: GlobalRules, logic: MapLogic): MapRules {
     boss,
     enemies,
     level: global.difficulty[logic.difficulty ?? 'normal'],
-    spawnPoints: logic.spawnPoints ?? [],
+    spawnPoints: [
+      ...(logic.spawnPoints ?? []),
+      // A placed spawner is a spawn point of its enemy type, carrying the unit's changes.
+      ...units.flatMap((u) => {
+        const enemy = spawnerEnemy(u.type);
+        return enemy ? [{ x: u.x, z: u.z, enemy, loadout: u }] : [];
+      }),
+    ],
     objectives: logic.mode === 'story' ? (logic.objectives ?? []) : [],
   };
 }
@@ -796,7 +849,7 @@ export function parseConfig(
   checkItemRefs(game, catalog);
   return {
     ...game,
-    ...mapRules(game, map.logic),
+    ...mapRules(game, map.logic, map.units),
     arena: arenaOf(map),
     players: map.players,
     placed: map.units,

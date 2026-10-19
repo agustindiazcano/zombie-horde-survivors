@@ -182,9 +182,9 @@ export class Hud {
       this.shown.focus = focusKey;
       this.shown.weapon = weapon;
       this.shown.downed = Boolean(focus?.downed);
-      const max = Math.round(maxHealthOf(state, this.config));
+      const max = Math.round(maxHealthOf(state, this.config, focus ?? undefined));
       const down = focus?.downed ? ' — DOWN' : '';
-      this.healthLabel.textContent = `${focus?.kind === 'drone' ? 'Drone' : 'Soldier'} ${focusKey} · ${weapon} — Health ${health} / ${max}${down}`;
+      this.healthLabel.textContent = `${focus?.name ?? `${focus?.kind === 'drone' ? 'Drone' : 'Soldier'} ${focusKey}`} · ${weapon} — Health ${health} / ${max}${down}`;
       this.healthFill.style.width = `${(health / max) * 100}%`;
       this.healthFill.classList.toggle('hud__bar-fill--low', health / max < LOW_HEALTH);
     }

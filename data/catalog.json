@@ -66,6 +66,40 @@
       ]
     },
     {
+      "id": "spawners",
+      "name": "Enemy spawners",
+      "items": [
+        {
+          "id": "spawner:zombie",
+          "name": "Spawner: Zombie"
+        },
+        {
+          "id": "spawner:skeleton",
+          "name": "Spawner: Skeleton"
+        },
+        {
+          "id": "spawner:alien",
+          "name": "Spawner: Alien"
+        },
+        {
+          "id": "spawner:hound",
+          "name": "Spawner: Hound"
+        },
+        {
+          "id": "spawner:brute",
+          "name": "Spawner: Brute"
+        },
+        {
+          "id": "spawner:worm",
+          "name": "Spawner: Worm"
+        },
+        {
+          "id": "spawner:marine_zombie",
+          "name": "Spawner: Infected marine"
+        }
+      ]
+    },
+    {
       "id": "monsters",
       "name": "Monsters",
       "items": [

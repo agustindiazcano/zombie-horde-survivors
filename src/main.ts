@@ -192,10 +192,9 @@ async function main(): Promise<void> {
 
   /** A fresh run of the loaded map (restart, the editor's Play and Stop). */
   const resetGame = () => {
-    state = createGame(config, Date.now());
+    state = createGame(config, Date.now(), editor.isEditing);
     // The editor is a live preview: no waves, enemies stand still, and nobody is under control
     // until Y. It shows only what the map places, so no default squad either.
-    state.sandbox = editor.isEditing;
     if (editor.isEditing) {
       if (!config.placed.some((u) => isSquadUnit(config, u.type))) {
         state.soldiers = [];
@@ -210,7 +209,7 @@ async function main(): Promise<void> {
 
   /** Makes the sim and the 3D scene use another map (the config object is shared, so edit it in place). */
   const loadMap = (map: MapData, unitsKept = false) => {
-    Object.assign(config, mapRules(globalRules, map.logic));
+    Object.assign(config, mapRules(globalRules, map.logic, map.units));
     config.arena = arenaOf(map);
     config.players = map.players;
     config.placed = map.units;

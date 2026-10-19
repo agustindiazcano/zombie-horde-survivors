@@ -1,5 +1,5 @@
 import { FIXED_DT } from './constants';
-import type { GameConfig } from './config';
+import { spawnerEnemy, type GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
 import { updateObjectives } from './objectives';
 import { updateRevives } from './revive';
@@ -12,7 +12,7 @@ import { baseMods } from './upgrades';
 import { updateWaves } from './waves';
 import { spawnZombie, updateZombies } from './zombies';
 
-export function createGame(config: GameConfig, seed = 1): GameState {
+export function createGame(config: GameConfig, seed = 1, sandbox = false): GameState {
   const humanId = firstPlayerOf(config.players, 'human');
   const soldiers = createSquad(config, humanId);
   const players = config.players.map((p) => ({
@@ -22,7 +22,7 @@ export function createGame(config: GameConfig, seed = 1): GameState {
   const state: GameState = {
     time: 0,
     status: 'playing',
-    sandbox: false,
+    sandbox,
     soldiers,
     players,
     localPlayerId: humanId,
@@ -61,7 +61,12 @@ export function createGame(config: GameConfig, seed = 1): GameState {
   const aiId = firstPlayerOf(config.players, 'ai');
   for (const u of config.placed) {
     if (u.owner === aiId && (u.type === 'zombie' || u.type in config.enemies)) {
-      spawnZombie(state, config, u, u.type).facing = u.rotation ?? 0;
+      spawnZombie(state, config, u, u.type, 0, u).facing = u.rotation ?? 0;
+    }
+    // The editor's preview shows a spawner as the enemy it makes; in play it spawns waves instead.
+    const made = spawnerEnemy(u.type);
+    if (sandbox && made && (made === 'zombie' || made in config.enemies)) {
+      spawnZombie(state, config, u, made, 0, u).facing = u.rotation ?? 0;
     }
   }
   return state;
