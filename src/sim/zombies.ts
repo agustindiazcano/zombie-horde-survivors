@@ -1,6 +1,7 @@
-import { rayAabb, resolveStatic } from './collision';
-import type { GameConfig, Loadout, Obstacle } from './config';
-import { CELL, PointGrid, obstaclesNear } from './grid';
+import { resolveStatic } from './collision';
+import type { GameConfig, Loadout } from './config';
+import { ageFlow, steerTarget } from './flowfield';
+import { CELL, PointGrid } from './grid';
 import { maybeDropCrate } from './inventory';
 import { dropLoot, rewardOf } from './loot';
 import { firstPlayerOf } from './players';
@@ -146,6 +147,7 @@ export function damageZombie(
 
 export function updateZombies(state: GameState, config: GameConfig, dt: number): void {
   const zc = config.zombie;
+  ageFlow(state, dt);
   for (const z of state.zombies) {
     z.prev.x = z.pos.x;
     z.prev.z = z.pos.z;
@@ -173,7 +175,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
 
     if (d > reach) {
       z.state = 'walk';
-      const waypoint = steerTarget(z.pos, target, d, z.radius, config);
+      const waypoint = steerTarget(state, config, z.pos, target);
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
       const td = Math.hypot(tx, tz) || 1;
@@ -294,64 +296,6 @@ function separateZombies(state: GameState, config: GameConfig): void {
 }
 
 const zombiePoints = new PointGrid();
-const probe: Obstacle = { x: 0, z: 0, halfW: 0, halfD: 0 };
-
-const LOOKAHEAD = 3;
-const CORNER_MARGIN = 0.35;
-/** A zombie this close to a detour corner counts as having reached it. */
-const CORNER_REACHED = 0.8;
-const scratch: Vec2 = { x: 0, z: 0 };
-
-/**
- * Where a chasing zombie should head. Normally the player; if an obstacle blocks the
- * straight path within LOOKAHEAD, the corner of that obstacle giving the shortest detour.
- */
-function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: GameConfig): Vec2 {
-  const dir = { x: (to.x - from.x) / distance, z: (to.z - from.z) / distance };
-  let blocker: (typeof config.arena.obstacles)[number] | null = null;
-  let nearest = Math.min(distance, LOOKAHEAD);
-  const reach = nearest + r;
-  const ahead = obstaclesNear(
-    config.arena,
-    Math.min(from.x, from.x + dir.x * reach) - r,
-    Math.min(from.z, from.z + dir.z * reach) - r,
-    Math.max(from.x, from.x + dir.x * reach) + r,
-    Math.max(from.z, from.z + dir.z * reach) + r,
-  );
-  for (const box of ahead) {
-    probe.x = box.x;
-    probe.z = box.z;
-    probe.halfW = box.halfW + r;
-    probe.halfD = box.halfD + r;
-    const t = rayAabb(from, dir, probe);
-    if (t !== null && t < nearest) {
-      nearest = t;
-      blocker = box;
-    }
-  }
-  if (!blocker) return to;
-
-  const hw = blocker.halfW + r + CORNER_MARGIN;
-  const hd = blocker.halfD + r + CORNER_MARGIN;
-  let best = Infinity;
-  for (const sx of [-1, 1]) {
-    for (const sz of [-1, 1]) {
-      const cx = blocker.x + sx * hw;
-      const cz = blocker.z + sz * hd;
-      // Already standing on this corner: aim for the next one along the wall instead of
-      // picking the same corner again and never getting past it.
-      if (Math.hypot(cx - from.x, cz - from.z) < CORNER_REACHED) continue;
-      const cost = Math.hypot(cx - from.x, cz - from.z) + Math.hypot(to.x - cx, to.z - cz);
-      if (cost < best) {
-        best = cost;
-        scratch.x = cx;
-        scratch.z = cz;
-      }
-    }
-  }
-  return scratch;
-}
-
 /**
  * The closest thing a zombie goes for: a soldier on foot (a downed one counts as farther away, so
  * standing soldiers come first) or a vehicle with someone in it. Soldiers inside a vehicle

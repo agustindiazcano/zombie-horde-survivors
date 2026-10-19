@@ -69,7 +69,8 @@ Full plan: [docs/PLAN-multiplayer.md](docs/PLAN-multiplayer.md). Co-op for 2 to 
 Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watchtower, turret, wire fence, wooden barricade, solid wall, sandbags, doors) with upgrades; soldiers build from the RTS view (more soldiers, faster) and the player quick-builds sandbags and a turret in direct control; a manned machine-gun nest and an automatic "smart turret"; tested on a new Map 2, "Build mode test". Phase 0 is a flow-field pathfinding so zombies can reach and break structures.
 
 - [x] Decisions taken (2026-10-19): the recommendations of section 13 of the plan were accepted.
-- [ ] ⚪ Build order: flow-field pathfinding (phase 0), then structures in the sim.
+- [x] Phase 0, the flow-field pathfinding, is built on `feat/flow-field` ([worklog](docs/worklog/2026-10-19-flow-field.md)); look at it in the browser (zombies go around long walls and into the squad's reach).
+- [ ] ⚪ Build order: structures in the sim next (they need break-cost in the field).
 
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
@@ -107,7 +108,6 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 ### 5 — 🟢 Code health
 
 - [ ] 🟢 `InventoryUi.openInventory` (the old single-unit window) is unused since `I` opens the squad screen; remove it or keep it for crates only.
-- [ ] 🟢 Zombie steering is a corner heuristic: it fixed a stuck case on long obstacles (corner re-selection) but other layouts may still trap enemies; consider a stuck detector or a simple navmesh.
 - [ ] 🟢 The radar ignores obstacles and the squad screen does not refresh while the game runs (it only opens while paused); fine today, revisit if either changes.
 - [ ] 🟢 Old merged branches (about 30) remain on the remote and locally; delete them once the user agrees.
 - [ ] 🟢 Docs: the README is the player reference; docs/CONTROLS.md lists every key, so update it whenever a key changes.

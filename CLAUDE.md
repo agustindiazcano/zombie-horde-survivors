@@ -103,7 +103,8 @@ test-game/
 │   │   ├── types.ts · index.ts · constants.ts · vec.ts · rng.ts · collision.ts
 │   │   ├── game.ts            createGame / step
 │   │   ├── soldiers.ts        squad, orders, AI, jump
-│   │   ├── zombies.ts         spawn, chase and steering, damage, bosses
+│   │   ├── zombies.ts         spawn, chase, damage, bosses
+│   │   ├── flowfield.ts       pathfinding: blocked grid and a shared flow field the horde follows
 │   │   ├── waves.ts           spawner, enemy mix, boss waves
 │   │   ├── weapon.ts · stats.ts   shooting, weapon and speed stats
 │   │   ├── revive.ts          downed soldiers: medkit and defibrillator revives, rescue walking
