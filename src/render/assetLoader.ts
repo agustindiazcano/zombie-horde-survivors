@@ -141,7 +141,7 @@ function findRightHand(model: THREE.Object3D): THREE.Object3D | null {
  * `GRIP_OFFSET` and `GRIP_ROLL` are the constants to tune once seen in the game.
  */
 const GRIP_OFFSET = new THREE.Vector3(0, 0.08, 0);
-const GRIP_ROLL = 0;
+const GRIP_ROLL = Math.PI;
 interface Holder {
   hold: NonNullable<CharacterView['hold']>;
   aim: NonNullable<CharacterView['aim']>;
