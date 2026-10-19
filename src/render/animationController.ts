@@ -30,7 +30,9 @@ export class AnimationController {
   setState(next: string): void {
     if (next === this.state) return;
     this.state = next;
-    const action = this.actions.get(next);
+    // A model without a walk clip runs instead.
+    const action =
+      this.actions.get(next) ?? (next === 'walk' ? this.actions.get('run') : undefined);
     if (!action) return;
     action.reset().play();
     this.current?.crossFadeTo(action, FADE_SECONDS, false);

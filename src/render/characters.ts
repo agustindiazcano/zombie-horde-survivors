@@ -110,7 +110,7 @@ export const createPlaceholderSoldier: CharacterFactory = () =>
         const k = Math.min(stateTime / 0.4, 1);
         root.rotation.x = -k * (Math.PI / 2);
         root.position.y = k * RADIUS;
-      } else if (state === 'run') {
+      } else if (state === 'run' || state === 'walk') {
         body.position.y = BODY_Y + Math.abs(Math.sin(t * 12)) * 0.08;
         root.rotation.x = 0.15;
       } else {

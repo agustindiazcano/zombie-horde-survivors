@@ -178,7 +178,11 @@ Each phase is a branch that ends green (lint, format, typecheck, the 48 tests, b
 | M5  | Bosses                       | Boss types become marine variants; armour plates; the part-loss and head rules for bosses                                                                                                     | M1, M3         | M    |
 | M6  | Polish and balance           | Retune thresholds after play; sounds; a real crawl clip if the user approves a source; drop the unused old models from the wave mix only if the user agrees                                   | all            | M    |
 
-## 11. Decisions the user should take
+## 11. Decisions
+
+**Taken by the user on 2026-10-19:** the recommendations of the table below are accepted, with one change to decision 1: a head hit only does **more damage than a body hit** (the weapon's head multiplier, as built in W4); it never kills by itself and a head that survives is **not** destroyed (no blind zombie). When a head hit **kills**, the head bursts or flies off depending on the weapon's strength (a heavy calibre bursts it, a weak one knocks it off). The poses, the first-person gun and the new zombies stay as built, to be tuned after the user plays.
+
+The questions and the recommendations that were accepted:
 
 | #   | Question                                                                                            | Recommendation                                                                                               |
 | --- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |

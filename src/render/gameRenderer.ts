@@ -35,6 +35,9 @@ const MIN_CAMERA_HEIGHT = 0.8;
 const USER_ZOOM_RATE = 10;
 /** Per-frame movement below this (world units) counts as standing still. */
 const MOVING_EPSILON = 1e-4;
+/** A soldier walks below this share of the full running speed, and runs again above the higher one. */
+const WALK_BELOW = 0.65;
+const RUN_ABOVE = 0.8;
 
 interface Factories {
   soldiers: CharacterFactory[];
@@ -155,6 +158,8 @@ export class GameRenderer {
   private readonly visYaw = new Map<number, number>();
   /** Seconds left of the strike pose, by soldier id. */
   private readonly strikeLeft = new Map<number, number>();
+  /** Soldiers currently shown walking instead of running (with a margin so the clip does not flicker). */
+  private readonly walking = new Set<number>();
   /** Seconds each soldier keeps its gun raised after firing, and how raised it is now (0 to 1). */
   private readonly shotLeft = new Map<number, number>();
   private readonly gunRaise = new Map<number, number>();
@@ -742,8 +747,14 @@ export class GameRenderer {
       view.object.rotation.y = heading;
       const striking = (this.strikeLeft.get(s.id) ?? 0) - dt;
       this.strikeLeft.set(s.id, Math.max(striking, 0));
+      // Crouching, aiming or slowing down to stop plays the walk clip; full speed plays the run.
+      const pace =
+        Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) / FIXED_DT / this.config.player.speed;
+      if (pace < WALK_BELOW) this.walking.add(s.id);
+      else if (pace > RUN_ABOVE) this.walking.delete(s.id);
+      const gait = this.walking.has(s.id) && !drone ? 'walk' : 'run';
       view.setState(
-        s.dead || s.downed ? 'death' : striking > 0 ? 'attack' : moving ? 'run' : 'idle',
+        s.dead || s.downed ? 'death' : striking > 0 ? 'attack' : moving ? gait : 'idle',
       );
       const held =
         s.dead || s.downed || drone ? null : (s.equipment.rightHand ?? s.equipment.leftHand);
