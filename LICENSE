@@ -1,0 +1,14 @@
+Copyright (c) 2026 Agustin Diaz Cano / Wylan Studios. All rights reserved.
+
+Zombie Horde Survivors, the Wylan Engine and all original source code, data, maps,
+documentation and other original material in this repository are proprietary. They are
+published for viewing only. No license is granted to copy, modify, merge, publish,
+distribute, sublicense, sell or otherwise use any part of them, in source or binary form,
+for any purpose, without the prior written permission of the copyright holder.
+
+"Wylan Engine" and "Wylan Studios" are names used by the copyright holder.
+
+Third-party assets (3D models, animations and the npm packages the project depends on)
+are not covered by this notice. Each keeps its own license and its own authors, listed in
+assets.toml and in the Credits section of README.md (CC0-1.0, CC-BY-3.0 and CC-BY-4.0
+assets); npm dependencies keep their own licenses.

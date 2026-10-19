@@ -1,4 +1,5 @@
 import type { GameConfig } from './config';
+import { resolveStatic } from './collision';
 import { nextFloat } from './rng';
 import type { GameState } from './types';
 import { spawnZombie } from './zombies';
@@ -34,7 +35,10 @@ function spawnAtEdge(state: GameState, config: GameConfig, forced?: string, boss
   const radius = config.zombie.radius * (config.enemies[type]?.radiusScale ?? 1);
   const points = config.spawnPoints;
   if (points.length > 0) {
-    const at = points[Math.floor(nextFloat(state.rng) * points.length)]!;
+    const chosen = points[Math.floor(nextFloat(state.rng) * points.length)]!;
+    // A point drawn inside an obstacle or water is pushed out to its edge.
+    const at = { ...chosen };
+    resolveStatic(at, radius, config.arena);
     // A placed spawner makes its own enemy, with what the map gave it; a boss keeps its type.
     const own = at.enemy === 'zombie' || (at.enemy && at.enemy in config.enemies) ? at.enemy : null;
     spawnZombie(

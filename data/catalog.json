@@ -166,7 +166,16 @@
     {
       "id": "animals",
       "name": "Animals",
-      "items": []
+      "items": [
+        {
+          "id": "dog",
+          "name": "Dog"
+        },
+        {
+          "id": "cat",
+          "name": "Cat"
+        }
+      ]
     }
   ],
   "assets": [

@@ -35,7 +35,8 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 | Left click (hold) | Fire                                                                                                                |
 | Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                                   |
 | Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                |
-| Space             | Jump (only the soldier you control)                                                                                 |
+| Space             | Jump (only the soldier you control); walking into a box, it vaults up onto it (30 stamina)                          |
+| G                 | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go        |
 | T                 | Change view: normal → third person → first person → normal                                                          |
 | I                 | Squad screen: units, inventories and bonuses (pauses the game)                                                      |
 | B                 | Open / close the shop (only between waves)                                                                          |
@@ -59,20 +60,20 @@ In third and first person the cursor is locked (so you can keep turning) and W /
 
 ### RTS mode
 
-| Key / mouse              | Action                                                                            |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| W / A / S / D            | Pan the camera                                                                    |
-| Left click               | Select a soldier                                                                  |
-| Left-drag                | Box select (hold **Shift** to add to the selection)                               |
-| Right click              | Send the selected units to that point (a right _drag_ rotates the camera instead) |
-| F                        | Selected units follow the controlled soldier again                                |
-| E                        | Select all                                                                        |
-| 1 – 9                    | Select a unit by number (Shift adds)                                              |
-| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                               |
-| Y                        | Take direct control of the first selected unit                                    |
-| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                 |
-| I                        | Squad screen (pauses the game)                                                    |
-| B                        | Shop (only between waves)                                                         |
+| Key / mouse              | Action                                                                                                                |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| W / A / S / D            | Pan the camera                                                                                                        |
+| Left click               | Select a soldier                                                                                                      |
+| Left-drag                | Box select (hold **Shift** to add to the selection)                                                                   |
+| Right click              | Send the selected units to that point, or into a vehicle with a free seat (a right _drag_ rotates the camera instead) |
+| F                        | Selected units follow the controlled soldier again                                                                    |
+| E                        | Select all                                                                                                            |
+| 1 – 9                    | Select a unit by number (Shift adds)                                                                                  |
+| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                                                                   |
+| Y                        | Take direct control of the first selected unit                                                                        |
+| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                                                     |
+| I                        | Squad screen (pauses the game)                                                                                        |
+| B                        | Shop (only between waves)                                                                                             |
 
 When you take control with **Y**, only the units that were selected follow you. The rest hold their position (or keep their move order). Every uncontrolled unit shoots the nearest enemy it can see.
 
@@ -178,6 +179,10 @@ Zombie speed and health also grow with each wave.
 - `data/maps/*.json` — the built-in maps (Map 1); `data/catalog.json` — the editor's unit and asset lists.
 - `data/game.json` — all gameplay numbers, validated with a strict schema. `data/characters.json` maps each unit to its model and animation clips.
 
+## License
+
+Copyright © 2026 Agustin Diaz Cano / Wylan Studios. All rights reserved. The game and the Wylan Engine are proprietary; see [LICENSE](LICENSE). Third-party assets keep their own licenses (see Assets and Credits).
+
 ## Assets
 
 Every third-party asset is listed in `assets.toml` (name, author, source, license, path). Allowed licenses: CC0-1.0, CC-BY-3.0, CC-BY-4.0. `npm run check:assets` enforces this and CI runs it. Run `npm run credits` to regenerate the section below.
@@ -198,5 +203,8 @@ Every third-party asset is listed in `assets.toml` (name, author, source, licens
 - **Worm (enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/KiNAaBa4cK)
 - **Spaceship (used as the drone)** by Quaternius — [CC0-1.0](https://poly.pizza/m/DbGajMHrvp)
 - **Digital Camo Soldier (marine soldier and infected marine enemy)** by Meshy AI — [CC-BY-4.0](https://www.meshy.ai)
+- **SUV (Car Kit)** by Kenney — [CC0-1.0](https://kenney.nl/assets/car-kit)
+- **Dog (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
+- **Cat (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
 
 <!-- credits:end -->

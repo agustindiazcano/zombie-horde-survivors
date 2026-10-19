@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { waterObstacles } from './terrain';
+import { steepObstacles, waterObstacles } from './terrain';
 import type { Vec2 } from './vec';
 
 const positive = z.number().positive();
@@ -146,6 +146,10 @@ const mapLogic = z
     spawnPoints: z.array(point).optional(),
     /** Story missions: the goals to win (a missing or empty list never ends the run). */
     objectives: z.array(objective).optional(),
+    /** Fires burning from the start (see `hazards.fire` in game.json for their strength). */
+    fires: z.array(point).optional(),
+    /** Story missions: a text shown when the mission starts. */
+    briefing: z.string().max(600).optional(),
   })
   .strict();
 
@@ -277,6 +281,7 @@ export function arenaOf(map: MapData): Arena {
     surfaces: map.surfaces,
     obstacles: [
       ...waterObstacles(map.terrain.heights, map.terrain.water, map.meta.size.width / 2),
+      ...steepObstacles(map.terrain.heights, map.meta.size.width / 2),
       ...propObstacles(map),
     ],
   };
@@ -603,6 +608,46 @@ export const GameConfigSchema = z
         height: positive,
       })
       .strict(),
+    /** Hazards of the map. Fire hurts every soldier on foot and every enemy inside its radius. */
+    hazards: z
+      .object({
+        fire: z
+          .object({
+            /** Damage per second to anything inside. */
+            dps: positive,
+            /** Radius of one fire (metres). */
+            radius: positive,
+          })
+          .strict(),
+      })
+      .strict(),
+    /** Dragging a downed or dead ally by the shoulders. */
+    drag: z
+      .object({
+        /** How close (metres) a soldier must be to grab a body. */
+        range: positive,
+        /** Distance (metres) the body trails behind. */
+        ropeLength: positive,
+        /** Speed of the dragger against normal walking. */
+        speedScale: positive,
+      })
+      .strict(),
+    /** Harmless wandering animals by id (placed in the editor under Units > Animals). */
+    animals: z.record(
+      z.string(),
+      z
+        .object({
+          name: z.string().min(1),
+          speed: positive,
+          radius: positive,
+          /** How far from where it was placed it strolls (metres). */
+          wanderRadius: positive,
+          /** Seconds it stands still between walks, chosen between these two. */
+          pauseMin: nonNegative,
+          pauseMax: nonNegative,
+        })
+        .strict(),
+    ),
     /** Drivable vehicle types by id (placed in the editor, entered with V). */
     vehicles: z.record(z.string(), vehicleType),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
@@ -624,6 +669,9 @@ export const GameConfigSchema = z
         /** Initial upward speed of a jump and the downward pull on it. */
         jumpSpeed: positive,
         gravity: positive,
+        /** The tallest box (metres) a unit can vault onto, and the stamina the vault costs. */
+        climbMaxHeight: positive,
+        climbStamina: nonNegative,
       })
       .strict(),
     /** Gold coins and XP orbs dropped by dead enemies. */
@@ -774,7 +822,7 @@ export type Obstacle = {
   z: number;
   halfW: number;
   halfD: number;
-  /** Open water: stops walkers but not bullets. */
+  /** Open water or a cliff (ground too steep to walk): stops walkers but not bullets. */
   water?: boolean;
 };
 /** The playfield the sim runs on, derived from the map (see `arenaOf`). */
@@ -797,6 +845,10 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   spawnPoints: SpawnPoint[];
   /** Story goals; empty in waves maps and in story maps that set none. */
   objectives: Objective[];
+  /** Where the map's fires burn. */
+  fires: Vec2[];
+  /** Story missions: shown on a card when the mission starts. */
+  briefing?: string | undefined;
   /** Stat sheets by unit type (from data/units.json). */
   units: UnitsData;
   /** The item catalog (from data/items.json), by item id. */
@@ -828,7 +880,7 @@ type GlobalRules = Pick<
 >;
 type MapRules = Pick<
   GameConfig,
-  'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints' | 'objectives'
+  'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints' | 'objectives' | 'briefing' | 'fires'
 >;
 
 /**
@@ -871,6 +923,8 @@ export function mapRules(
       }),
     ],
     objectives: logic.mode === 'story' ? (logic.objectives ?? []) : [],
+    briefing: logic.mode === 'story' ? logic.briefing : undefined,
+    fires: logic.fires ?? [],
   };
 }
 

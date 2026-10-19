@@ -19,6 +19,8 @@ export interface CharacterFactories {
   /** Where each enemy's health bar floats, by variant id. */
   barHeights: Record<string, number>;
   drone: CharacterFactory;
+  /** By animal id. */
+  animals: Record<string, CharacterFactory>;
 }
 
 /** What the game depends on; swap the implementation to change where assets come from. */
@@ -146,16 +148,19 @@ export class GltfAssetLoader implements AssetLoader {
 
   async loadCharacters(config: CharactersConfig): Promise<CharacterFactories> {
     const enemyIds = Object.keys(config.enemies);
-    const [soldiers, enemyList, drone] = await Promise.all([
+    const animalIds = Object.keys(config.animals);
+    const [soldiers, enemyList, drone, animalList] = await Promise.all([
       Promise.all(config.soldiers.map((spec) => this.load(spec, createPlaceholderSoldier))),
       Promise.all(enemyIds.map((id) => this.load(config.enemies[id]!, createPlaceholderZombie))),
       this.load(config.drone, createPlaceholderDrone),
+      Promise.all(animalIds.map((id) => this.load(config.animals[id]!, createPlaceholderZombie))),
     ]);
     const enemies = Object.fromEntries(enemyIds.map((id, i) => [id, enemyList[i]!]));
     const barHeights = Object.fromEntries(
       enemyIds.map((id) => [id, config.enemies[id]!.barHeight ?? DEFAULT_BAR_HEIGHT]),
     );
-    return { soldiers, enemies, barHeights, drone };
+    const animals = Object.fromEntries(animalIds.map((id, i) => [id, animalList[i]!]));
+    return { soldiers, enemies, barHeights, drone, animals };
   }
 
   private async load(

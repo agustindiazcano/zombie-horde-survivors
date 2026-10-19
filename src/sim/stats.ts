@@ -36,7 +36,8 @@ export function speedOf(
       : stance === 'sprint'
         ? config.stance.sprintSpeedScale
         : 1;
-  return config.player.speed * scale * mods.speed;
+  const load = s.dragging === null ? 1 : config.drag.speedScale;
+  return config.player.speed * scale * load * mods.speed;
 }
 
 /** Looks up a weapon by item id. Anything that is not a weapon falls back to the rifle. */
@@ -80,6 +81,8 @@ export function weaponOf(
     if (def.hands === 2) return null;
     def.spread += config.downed.extraSpread;
   }
+  // Both hands are on the body being dragged: only a one-handed gun can be used.
+  if (s.dragging !== null && def.hands === 2) return null;
   def.damage *= mods.damage;
   def.fireRate *= mods.fireRate;
   if (isDrone(s)) return { ...def, height: config.drone.height, ignoresCover: true };

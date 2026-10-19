@@ -219,6 +219,7 @@
   "logic": {
     "mode": "story",
     "difficulty": "easy",
+    "briefing": "Zombies are closing in. Reach the marked spot, hold out until wave 3 is cleared and bring down a mini boss.",
     "objectives": [
       {
         "kind": "reach",

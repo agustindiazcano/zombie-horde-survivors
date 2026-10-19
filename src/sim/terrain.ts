@@ -35,8 +35,32 @@ export function waterObstacles(
   level: number | null,
   halfSize: number,
 ): Obstacle[] {
+  if (level === null) return [];
+  return groundBoxes(heights, halfSize, (corners) => average(corners) < level);
+}
+
+/** A grid cell whose corners differ by more than this many metres is a cliff, too steep to walk. */
+export const MAX_CELL_RISE = 1.2;
+
+/** Blocking boxes for cliffs: cells too steep to walk (same treatment as water: bullets cross). */
+export function steepObstacles(heights: HeightGrid | null, halfSize: number): Obstacle[] {
+  return groundBoxes(
+    heights,
+    halfSize,
+    (corners) => Math.max(...corners) - Math.min(...corners) > MAX_CELL_RISE,
+  );
+}
+
+const average = (values: number[]): number => values.reduce((a, b) => a + b, 0) / values.length;
+
+/** Merges the grid cells whose four corners pass `blocked` into as few boxes as possible. */
+function groundBoxes(
+  heights: HeightGrid | null,
+  halfSize: number,
+  blocked: (corners: number[]) => boolean,
+): Obstacle[] {
   const cells = (heights?.length ?? 0) - 1;
-  if (!heights || level === null || cells < 1) return [];
+  if (!heights || cells < 1) return [];
   interface Run {
     from: number;
     to: number;
@@ -50,12 +74,12 @@ export function waterObstacles(
     let col = 0;
     while (col < cells) {
       const wet = (c: number) =>
-        (heights[row]![c]! +
-          heights[row]![c + 1]! +
-          heights[row + 1]![c]! +
-          heights[row + 1]![c + 1]!) /
-          4 <
-        level;
+        blocked([
+          heights[row]![c]!,
+          heights[row]![c + 1]!,
+          heights[row + 1]![c]!,
+          heights[row + 1]![c + 1]!,
+        ]);
       if (!wet(col)) {
         col++;
         continue;

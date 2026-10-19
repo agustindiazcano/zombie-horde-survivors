@@ -1,5 +1,6 @@
 import { rayAabb, resolveStatic } from './collision';
-import type { GameConfig, Loadout } from './config';
+import type { GameConfig, Loadout, Obstacle } from './config';
+import { CELL, PointGrid, obstaclesNear } from './grid';
 import { maybeDropCrate } from './inventory';
 import { dropLoot, rewardOf } from './loot';
 import { firstPlayerOf } from './players';
@@ -200,17 +201,28 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
  */
 function separateZombies(state: GameState, config: GameConfig): void {
   const zombies = state.zombies;
+  const arena = config.arena;
+  let widest = 0;
+  for (const z of zombies) if (z.state !== 'death' && z.radius > widest) widest = z.radius;
+  zombiePoints.rebuild(
+    arena,
+    zombies.length,
+    (i) => zombies[i]!.pos.x,
+    (i) => zombies[i]!.pos.z,
+    (i) => zombies[i]!.state === 'death',
+  );
   for (let i = 0; i < zombies.length; i++) {
     const a = zombies[i]!;
     if (a.state === 'death') continue;
-    for (let j = i + 1; j < zombies.length; j++) {
+    // Only the zombies in the nearby cells can touch this one.
+    const range = Math.ceil((a.radius + widest) / CELL);
+    zombiePoints.forEachAfter(arena, a.pos.x, a.pos.z, range, i, (j) => {
       const b = zombies[j]!;
-      if (b.state === 'death') continue;
       const minDist = a.radius + b.radius;
       let dx = b.pos.x - a.pos.x;
       let dz = b.pos.z - a.pos.z;
       const d2 = dx * dx + dz * dz;
-      if (d2 >= minDist * minDist) continue;
+      if (d2 >= minDist * minDist) return;
       let d = Math.sqrt(d2);
       if (d < 1e-6) {
         // Exactly stacked: separate along +x so the result stays deterministic.
@@ -225,12 +237,15 @@ function separateZombies(state: GameState, config: GameConfig): void {
       a.pos.z -= nz * push;
       b.pos.x += nx * push;
       b.pos.z += nz * push;
-    }
+    });
   }
   for (const z of zombies) {
     if (z.state !== 'death') resolveStatic(z.pos, z.radius, config.arena);
   }
 }
+
+const zombiePoints = new PointGrid();
+const probe: Obstacle = { x: 0, z: 0, halfW: 0, halfD: 0 };
 
 const LOOKAHEAD = 3;
 const CORNER_MARGIN = 0.35;
@@ -246,8 +261,20 @@ function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: 
   const dir = { x: (to.x - from.x) / distance, z: (to.z - from.z) / distance };
   let blocker: (typeof config.arena.obstacles)[number] | null = null;
   let nearest = Math.min(distance, LOOKAHEAD);
-  for (const box of config.arena.obstacles) {
-    const t = rayAabb(from, dir, { ...box, halfW: box.halfW + r, halfD: box.halfD + r });
+  const reach = nearest + r;
+  const ahead = obstaclesNear(
+    config.arena,
+    Math.min(from.x, from.x + dir.x * reach) - r,
+    Math.min(from.z, from.z + dir.z * reach) - r,
+    Math.max(from.x, from.x + dir.x * reach) + r,
+    Math.max(from.z, from.z + dir.z * reach) + r,
+  );
+  for (const box of ahead) {
+    probe.x = box.x;
+    probe.z = box.z;
+    probe.halfW = box.halfW + r;
+    probe.halfD = box.halfD + r;
+    const t = rayAabb(from, dir, probe);
     if (t !== null && t < nearest) {
       nearest = t;
       blocker = box;

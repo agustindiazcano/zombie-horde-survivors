@@ -23,4 +23,14 @@ writeFileSync(
 ${body}
 ${readme.slice(to)}`,
 );
+// The same list feeds the in-game credits screen.
+writeFileSync(
+  'data/credits.json',
+  `${JSON.stringify(
+    assets.map(({ name, author, source, license }) => ({ name, author, source, license })),
+    null,
+    2,
+  )}
+`,
+);
 console.log(`README credits updated (${assets.length} assets)`);

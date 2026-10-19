@@ -27,6 +27,8 @@ export const CharactersConfigSchema = z
     soldiers: z.array(characterSpec).min(1),
     /** Enemy variants by id; must include 'zombie' (the fallback for unknown ids). */
     enemies: z.record(z.string(), characterSpec),
+    /** Animal variants by id (dog, cat); states are idle and walk. */
+    animals: z.record(z.string(), characterSpec).default({}),
     drone: characterSpec,
   })
   .strict()

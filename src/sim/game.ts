@@ -1,6 +1,9 @@
 import { FIXED_DT } from './constants';
 import { spawnerEnemy, type GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
+import { createAnimal, updateAnimals } from './animals';
+import { updateDrag } from './drag';
+import { updateHazards } from './hazards';
 import { updateObjectives } from './objectives';
 import { updateRevives } from './revive';
 import { createSquad, updateSoldiers } from './soldiers';
@@ -28,6 +31,7 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     localPlayerId: humanId,
     nextSoldierId: soldiers.length + 1,
     vehicles: [],
+    animals: [],
     nextVehicleId: 1,
     stance: 'normal',
     zombies: [],
@@ -55,6 +59,12 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
   for (const u of config.placed) {
     if (u.type in config.vehicles) {
       state.vehicles.push(createVehicle(config, state.nextVehicleId++, u.type, u, u.rotation));
+    }
+  }
+  // Animals wander where they were placed.
+  for (const u of config.placed) {
+    if (u.type in config.animals) {
+      state.animals.push(createAnimal(state.animals.length + 1, u.type, u, u.rotation));
     }
   }
   // Enemies placed in the editor stand waiting from the start.
@@ -94,8 +104,11 @@ export function step(
           ? 'sprint'
           : 'normal';
   updateSoldiers(state, config, input, dt);
+  updateDrag(state, config);
   updateVehicles(state, config, input, dt);
   updateRevives(state, config, dt);
+  updateHazards(state, config, dt);
+  updateAnimals(state, config, dt);
   updatePickups(state, config, dt);
   if (!state.sandbox) updateWaves(state, config, dt);
   updateZombies(state, config, dt);

@@ -73,6 +73,32 @@
     "gold": 5,
     "xp": 10
   },
+  "drag": {
+    "range": 1.8,
+    "ropeLength": 1.1,
+    "speedScale": 0.5
+  },
+  "animals": {
+    "dog": {
+      "name": "Dog",
+      "speed": 1.8,
+      "radius": 0.4,
+      "wanderRadius": 6,
+      "pauseMin": 1.5,
+      "pauseMax": 5
+    },
+    "cat": {
+      "name": "Cat",
+      "speed": 1.4,
+      "radius": 0.3,
+      "wanderRadius": 4,
+      "pauseMin": 2,
+      "pauseMax": 7
+    }
+  },
+  "hazards": {
+    "fire": { "dps": 20, "radius": 2.5 }
+  },
   "vehicles": {
     "jeep": {
       "name": "Jeep",
@@ -176,7 +202,9 @@
     "staminaRegen": 14,
     "staminaResume": 30,
     "jumpSpeed": 6.5,
-    "gravity": 20
+    "gravity": 20,
+    "climbMaxHeight": 2.2,
+    "climbStamina": 30
   },
   "loot": {
     "collectRadius": 1.2,

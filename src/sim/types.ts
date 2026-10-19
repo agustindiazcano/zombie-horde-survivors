@@ -18,7 +18,10 @@ export type ZombieState = 'walk' | 'attack' | 'death';
 
 /** What an AI-driven soldier is doing. Only the controlled soldier ignores its order. */
 export type SoldierOrder =
-  { type: 'follow' } | { type: 'move'; x: number; z: number } | { type: 'hold' };
+  | { type: 'follow' }
+  | { type: 'move'; x: number; z: number }
+  | { type: 'board'; vehicleId: number }
+  | { type: 'hold' };
 
 export type Stance = 'normal' | 'crouch' | 'sprint';
 
@@ -42,6 +45,8 @@ export interface Equipment {
 
 export interface Soldier {
   id: number;
+  /** Id of the downed or dead ally this soldier drags by the shoulders, if any. */
+  dragging: number | null;
   /** Id of the player that owns this unit. */
   owner: string;
   kind: UnitKind;
@@ -218,6 +223,21 @@ export interface Mods {
   pickupRadius: number;
 }
 
+/** A harmless wandering animal (a dog, a cat) placed in the editor. */
+export interface Animal {
+  id: number;
+  /** Key of `animals` in game.json. */
+  type: string;
+  pos: Vec2;
+  prev: Vec2;
+  facing: number;
+  /** Where it was placed; it wanders near here. */
+  home: Vec2;
+  dest: Vec2 | null;
+  /** Seconds left to stand still before choosing a new spot. */
+  wait: number;
+}
+
 export interface GameState {
   time: number;
   status: 'playing' | 'gameover' | 'victory';
@@ -230,6 +250,7 @@ export interface GameState {
   nextSoldierId: number;
   vehicles: Vehicle[];
   nextVehicleId: number;
+  animals: Animal[];
   /** How the whole squad is moving/shooting, set by the controlled player's keys. */
   stance: Stance;
   zombies: Zombie[];

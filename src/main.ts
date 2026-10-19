@@ -14,6 +14,7 @@ import { CameraControls } from './cameraControls';
 import { CratePrompt, InventoryUi } from './inventoryUi';
 import { startLoop } from './loop';
 import { GltfAssetLoader } from './render/assetLoader';
+import { loadVehicleModel } from './render/vehicles';
 import { parseCharactersConfig } from './render/characterConfig';
 import { GameRenderer, type ViewMode } from './render/gameRenderer';
 import { RtsController } from './rts';
@@ -27,6 +28,7 @@ import {
   nearestCrate,
   getSoldier,
   getVehicle,
+  toggleDrag,
   toggleVehicle,
   vehicleInReach,
   shopAvailable,
@@ -75,6 +77,7 @@ async function main(): Promise<void> {
   let state = createGame(config, Date.now());
   let paused = false;
   const renderer = new GameRenderer(document.body, config, factories);
+  renderer.setVehicleModel(await loadVehicleModel());
   const input = new InputController(renderer.domElement);
   const sfx = new Sfx();
   const fps = new FpsCounter(document.body);
@@ -141,7 +144,10 @@ async function main(): Promise<void> {
   // Map 1 is the only map the sim is built for so far; the picked map is ignored until phase 4.
   const menu = new MainMenu(
     document.body,
-    (entry) => loadMap(entry.map),
+    (entry) => {
+      loadMap(entry.map);
+      hud.showBriefing(config.briefing ?? '');
+    },
     preview,
     openSettings,
     () => openEditor(),
@@ -154,6 +160,7 @@ async function main(): Promise<void> {
     onSpawnMarks: (points) => renderer.setSpawnMarkers(points),
     onPlay: () => {
       resetGame();
+      hud.showBriefing(config.briefing ?? '');
       setPaused(false);
     },
     onStop: () => {
@@ -222,6 +229,7 @@ async function main(): Promise<void> {
       config.arena = arenaOf(map);
       renderer.setArena(config.arena);
     }
+    renderer.setFireMarkers(config.fires);
     renderer.setGoalMarkers(
       config.objectives.flatMap((o) =>
         o.kind === 'reach' ? [{ x: o.x, z: o.z, radius: o.radius }] : [],
@@ -420,6 +428,10 @@ async function main(): Promise<void> {
           toggleVehicle(state, config, id);
         }
       }
+    } else if (e.code === 'KeyG') {
+      // Grab a downed or dead ally by the shoulders and drag it, or let go.
+      const controlled = localPlayer(state).controlledId;
+      if (playable() && !modalOpen() && controlled !== null) toggleDrag(state, config, controlled);
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
       const unitId = localPlayer(state).controlledId;

@@ -44,17 +44,18 @@ The user raised the market as a reason for decisions (the name, going public); n
 
 **Direct control**
 
-| Key / mouse               | Action                                             |
-| ------------------------- | -------------------------------------------------- |
-| W A S D                   | Move (relative to the camera)                      |
-| Mouse / left click (hold) | Aim / fire                                         |
-| Ctrl or C                 | Crouch (the whole squad)                           |
-| Shift                     | Sprint (the whole squad)                           |
-| Space                     | Jump (only the controlled soldier)                 |
-| T                         | Cycle view: top-down → third person → first person |
-| Mouse wheel / right-drag  | Zoom / rotate and tilt (top-down)                  |
-| E                         | Open a crate next to you                           |
-| Y                         | Back to RTS mode                                   |
+| Key / mouse               | Action                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| W A S D                   | Move (relative to the camera)                                                                                |
+| Mouse / left click (hold) | Aim / fire                                                                                                   |
+| Ctrl or C                 | Crouch (the whole squad)                                                                                     |
+| Shift                     | Sprint (the whole squad)                                                                                     |
+| Space                     | Jump; into a box: climb onto it                                                                              |
+| G                         | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go |
+| T                         | Cycle view: top-down → third person → first person                                                           |
+| Mouse wheel / right-drag  | Zoom / rotate and tilt (top-down)                                                                            |
+| E                         | Open a crate next to you                                                                                     |
+| Y                         | Back to RTS mode                                                                                             |
 
 In third and first person the mouse turns the view 1:1 and instantly (the cursor is locked, the crosshair is the aim); `Esc` releases it.
 
@@ -80,6 +81,7 @@ In third and first person the mouse turns the view 1:1 and instantly (the cursor
 | `npm run dev -- --host 127.0.0.1 --port 5173`                 | Dev server, http://127.0.0.1:5173/ (usually already running in the background; do not start a second one) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` | The static checks CI runs                                                                                 |
 | `npm test`                                                    | The 48 existing sim tests (Vitest)                                                                        |
+| `npm run bench:sim`                                           | Stress benchmark of the sim step with 100 to 1000 zombies (ms per step); not a test, prints numbers       |
 | `npm run build`                                               | `tsc --noEmit` + Vite build into `dist/`                                                                  |
 | `npm run check:assets`                                        | Fails if an asset in `assets.toml` has a license other than CC0-1.0, CC-BY-3.0 or CC-BY-4.0               |
 | `npm run credits`                                             | Regenerates the README credits block from `assets.toml`                                                   |

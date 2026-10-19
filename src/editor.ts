@@ -209,7 +209,8 @@ export class Editor {
   private waterDragging = false;
   /** The Game logic tab is armed: the next map clicks add spawn points. */
   /** Which click-to-place tool of the Game logic tab is armed. */
-  private spawnTool: 'spawn' | 'goal' | null = null;
+  private pageTitle = document.title;
+  private spawnTool: 'spawn' | 'goal' | 'fire' | null = null;
   private past: MapData[] = [];
   private future: MapData[] = [];
   private readonly title: HTMLElement;
@@ -291,6 +292,8 @@ export class Editor {
   /** Opens the editor, paused, on a new map. */
   open(): void {
     this.active = true;
+    this.pageTitle = document.title;
+    document.title = 'Wylan Engine – Map editor';
     this.playing = false;
     this.setMap(blankMap());
     this.refresh();
@@ -389,7 +392,7 @@ export class Editor {
     );
     const one = items.length === 1 ? items[0]! : null;
     this.info.textContent = this.spawnTool
-      ? `Placing ${this.spawnTool === 'goal' ? 'a goal spot' : 'spawn points'}. Click the map to add one; right-click or Esc to stop.`
+      ? `Placing ${this.spawnTool === 'goal' ? 'a goal spot' : this.spawnTool === 'fire' ? 'fires' : 'spawn points'}. Click the map to add one; right-click or Esc to stop.`
       : this.tool
         ? `Placing: ${this.tool.name}. Click the map to place; right-click or Esc to stop.`
         : one
@@ -958,6 +961,7 @@ export class Editor {
   /** Closes the editor altogether (back to the main menu). */
   close(): void {
     this.active = false;
+    document.title = this.pageTitle;
     this.playing = false;
     this.refresh();
   }
@@ -1137,6 +1141,10 @@ export class Editor {
     const at = this.ground(e);
     if (!at) return;
     const point = { x: Math.round(at.x * 2) / 2, z: Math.round(at.z * 2) / 2 };
+    if (this.spawnTool === 'fire') {
+      this.setLogic({ fires: [...(this.current.logic.fires ?? []), point] });
+      return;
+    }
     if (this.spawnTool === 'goal') {
       this.spawnTool = null;
       this.syncSelection();
@@ -1467,6 +1475,39 @@ export class Editor {
       });
     });
 
+    // Fire: burns soldiers on foot and enemies inside its radius.
+    const hazards = section('Fire', true);
+    const fires = logic.fires ?? [];
+    el(
+      'span',
+      'editor__empty',
+      hazards,
+      fires.length === 0
+        ? 'None. A fire hurts soldiers on foot and enemies inside it.'
+        : `${fires.length} fire(s), ${global.hazards.fire.dps} damage per second each.`,
+    );
+    const addFire = el(
+      'button',
+      'editor__item',
+      hazards,
+      this.spawnTool === 'fire' ? 'Stop adding' : '+ Add fires',
+    );
+    if (this.spawnTool === 'fire') addFire.classList.add('editor__item--on');
+    addFire.addEventListener('click', () => {
+      this.spawnTool = this.spawnTool === 'fire' ? null : 'fire';
+      this.syncSelection();
+      this.redrawLogic();
+    });
+    fires.forEach((p, i) => {
+      const row = el('div', 'editor__row', hazards);
+      el('span', '', row, `#${i + 1} (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+      const del = el('button', 'editor__btn', row, 'Remove');
+      del.addEventListener('click', () => {
+        const left = fires.filter((_, j) => j !== i);
+        this.setLogic({ fires: left.length > 0 ? left : undefined });
+      });
+    });
+
     // Story goals: the mission is won when all are done; losing is the squad going down.
     const goals = section('Objectives', logic.mode === 'story');
     const objectives = logic.objectives ?? [];
@@ -1481,6 +1522,16 @@ export class Editor {
         ? 'None: the mission never ends by itself.'
         : 'All of these must be done to win.',
     );
+    if (logic.mode === 'story') {
+      const brief = el('textarea', 'editor__number', goals);
+      brief.placeholder = 'Mission briefing (shown at the start)';
+      brief.maxLength = 600;
+      brief.rows = 3;
+      brief.value = logic.briefing ?? '';
+      brief.addEventListener('change', () =>
+        this.setLogic({ briefing: brief.value.trim() === '' ? undefined : brief.value }),
+      );
+    }
     const setObjectives = (next: Objective[]) =>
       this.setLogic({ objectives: next.length > 0 ? next : undefined });
     objectives.forEach((o, i) => {
@@ -1488,6 +1539,16 @@ export class Editor {
       el('span', '', row, objectiveLabel(o));
       const del = el('button', 'editor__btn', row, 'Remove');
       del.addEventListener('click', () => setObjectives(objectives.filter((_, j) => j !== i)));
+      const change = (patch: Partial<Objective>) =>
+        setObjectives(objectives.map((x, j) => (j === i ? ({ ...x, ...patch } as Objective) : x)));
+      if (o.kind === 'kills' || o.kind === 'boss') {
+        const what = o.kind === 'kills' ? '   enemies to kill' : '   mini bosses to kill';
+        this.numberRow(goals, what, o.count, 1, (v) => change({ count: Math.round(v) }));
+      } else if (o.kind === 'survive') {
+        this.numberRow(goals, '   clear wave', o.wave, 1, (v) => change({ wave: Math.round(v) }));
+      } else {
+        this.numberRow(goals, '   ring radius (m)', o.radius, 1, (v) => change({ radius: v }), 0.5);
+      }
     });
     const addGoal = (label: string, make: () => Objective) => {
       const b = el('button', 'editor__item', goals, label);
@@ -1511,7 +1572,15 @@ export class Editor {
     const reset = el('button', 'editor__item', this.body, 'Reset to the global rules');
     reset.addEventListener('click', () => {
       this.spawnTool = null;
-      this.edit({ ...this.current, logic: { mode: logic.mode, objectives: logic.objectives } });
+      this.edit({
+        ...this.current,
+        logic: {
+          mode: logic.mode,
+          objectives: logic.objectives,
+          briefing: logic.briefing,
+          fires: logic.fires,
+        },
+      });
       this.setTab('logic');
     });
   }
