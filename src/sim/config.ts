@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { waterObstacles } from './terrain';
+import type { Vec2 } from './vec';
 
 const positive = z.number().positive();
 const nonNegative = z.number().nonnegative();
@@ -43,6 +44,53 @@ const mapUnit = z
   })
   .strict();
 
+const difficultyId = z.enum(['easy', 'normal', 'hard']);
+
+/**
+ * Per-map rules. Everything but `mode` is optional: a field that is present replaces the global
+ * value of data/game.json for this map, a missing one keeps it.
+ */
+const mapLogic = z
+  .object({
+    mode: z.enum(['waves', 'story']),
+    difficulty: difficultyId.optional(),
+    waves: z
+      .object({
+        baseCount: z.number().int().positive(),
+        countPerWave: z.number().int().nonnegative(),
+        spawnInterval: nonNegative,
+        intermission: nonNegative,
+        maxAlive: z.number().int().positive(),
+      })
+      .partial()
+      .strict()
+      .optional(),
+    /** When present only the listed enemy types spawn (besides the plain zombie), with these overrides. */
+    enemies: z
+      .record(
+        z.string(),
+        z
+          .object({ weight: positive.optional(), minWave: z.number().int().positive().optional() })
+          .strict(),
+      )
+      .optional(),
+    /** Spawn weight of the plain zombie against the other types; 0 removes it from the mix. */
+    zombieWeight: nonNegative.optional(),
+    boss: z
+      .object({
+        enabled: z.boolean().optional(),
+        everyWaves: z.number().int().positive().optional(),
+        types: z.array(z.string()).min(1).optional(),
+      })
+      .strict()
+      .optional(),
+    /** Where enemies appear (picked at random); empty or missing = anywhere along the map edge. */
+    spawnPoints: z.array(point).optional(),
+  })
+  .strict();
+
+export type MapLogic = z.infer<typeof mapLogic>;
+
 export const MapSchema = z
   .object({
     version: z.literal(1),
@@ -82,7 +130,7 @@ export const MapSchema = z
     ),
     players: z.array(mapPlayer),
     units: z.array(mapUnit),
-    logic: z.object({ mode: z.enum(['waves', 'story']) }).strict(),
+    logic: mapLogic,
   })
   .strict()
   .superRefine((map, ctx) => {
@@ -394,6 +442,8 @@ const enemyType = z
   })
   .strict();
 
+const difficultyScale = z.object({ health: positive, speed: positive, count: positive }).strict();
+
 export const GameConfigSchema = z
   .object({
     /** Stats shared by every soldier. */
@@ -548,6 +598,10 @@ export const GameConfigSchema = z
         xp: z.number().int().nonnegative(),
       })
       .strict(),
+    /** Multipliers on enemy health, speed and wave size for the map's difficulty. */
+    difficulty: z
+      .object({ easy: difficultyScale, normal: difficultyScale, hard: difficultyScale })
+      .strict(),
     waves: z
       .object({
         baseCount: z.number().int().positive(),
@@ -612,6 +666,10 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   players: MapData['players'];
   /** Units placed on the map; the squad and the starting enemies come from here when present. */
   placed: MapData['units'];
+  /** The map's difficulty: multipliers on enemy health, speed and wave size. */
+  level: z.infer<typeof difficultyScale>;
+  /** Where enemies appear; empty = along the map edge. */
+  spawnPoints: Vec2[];
   /** Stat sheets by unit type (from data/units.json). */
   units: UnitsData;
   /** The item catalog (from data/items.json), by item id. */
@@ -637,6 +695,43 @@ function checkItemRefs(cfg: z.infer<typeof GameConfigSchema>, items: ItemsData['
   if (problems.length > 0) throw new Error(problems.join('; '));
 }
 
+type GlobalRules = Pick<
+  z.infer<typeof GameConfigSchema>,
+  'waves' | 'boss' | 'enemies' | 'difficulty'
+>;
+type MapRules = Pick<GameConfig, 'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints'>;
+
+/**
+ * The wave, enemy and boss rules of one map: the global ones of game.json with the map's overrides
+ * on top. Returns new objects, so `global` can be reused for the next map. Unknown enemy ids in
+ * the map are ignored.
+ */
+export function mapRules(global: GlobalRules, logic: MapLogic): MapRules {
+  let enemies = global.enemies;
+  if (logic.enemies) {
+    enemies = {};
+    for (const [id, over] of Object.entries(logic.enemies)) {
+      const base = global.enemies[id];
+      if (base) enemies[id] = { ...base, ...over };
+    }
+  }
+  const boss = { ...global.boss, ...logic.boss };
+  if (logic.boss?.enabled === false) boss.everyWaves = Number.POSITIVE_INFINITY;
+  boss.types = boss.types.filter((t) => t === 'zombie' || t in enemies);
+  if (boss.types.length === 0) boss.types = ['zombie'];
+  return {
+    waves: {
+      ...global.waves,
+      ...logic.waves,
+      baseWeight: logic.zombieWeight ?? global.waves.baseWeight,
+    },
+    boss,
+    enemies,
+    level: global.difficulty[logic.difficulty ?? 'normal'],
+    spawnPoints: logic.spawnPoints ?? [],
+  };
+}
+
 export function parseConfig(
   raw: unknown,
   map: MapData,
@@ -648,6 +743,7 @@ export function parseConfig(
   checkItemRefs(game, catalog);
   return {
     ...game,
+    ...mapRules(game, map.logic),
     arena: arenaOf(map),
     players: map.players,
     placed: map.units,

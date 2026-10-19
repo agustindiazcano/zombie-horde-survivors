@@ -28,6 +28,7 @@ import {
   orderHold,
   parseConfig,
   arenaOf,
+  mapRules,
   parseMap,
   type MapData,
   step,
@@ -54,6 +55,13 @@ const HINT_RTS =
 
 async function main(): Promise<void> {
   const config = parseConfig(data, parseMap(map1), units, items);
+  /** The rules of game.json before any map overrides them. */
+  const globalRules = {
+    waves: config.waves,
+    boss: config.boss,
+    enemies: config.enemies,
+    difficulty: config.difficulty,
+  };
   const factories = await new GltfAssetLoader().loadCharacters(parseCharactersConfig(characters));
 
   let state = createGame(config, Date.now());
@@ -134,6 +142,7 @@ async function main(): Promise<void> {
     canvas: renderer.domElement,
     groundAt: renderer.screenToGround,
     onMark: (at, radius) => renderer.setEditMarker(at, radius),
+    onSpawnMarks: (points) => renderer.setSpawnMarkers(points),
     onPlay: () => {
       resetGame();
       setPaused(false);
@@ -184,6 +193,7 @@ async function main(): Promise<void> {
 
   /** Makes the sim and the 3D scene use another map (the config object is shared, so edit it in place). */
   const loadMap = (map: MapData, unitsKept = false) => {
+    Object.assign(config, mapRules(globalRules, map.logic));
     config.arena = arenaOf(map);
     config.players = map.players;
     config.placed = map.units;

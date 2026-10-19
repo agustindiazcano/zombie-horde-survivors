@@ -41,6 +41,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     drops: { ...base.drops, chance: 0, table: [...base.drops.table] },
     player: { ...base.player },
     zombie: { ...base.zombie },
+    difficulty: { ...base.difficulty },
     waves: { ...base.waves, intermission: 1e9 },
   };
   const { weapon, ...sections } = patch;

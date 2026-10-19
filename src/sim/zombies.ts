@@ -37,7 +37,11 @@ export function spawnZombie(
   const wavesPlayed = Math.max(0, state.wave - 1);
   const wc = config.waves;
   const speedScale = Math.min(1 + wc.speedScalePerWave * wavesPlayed, wc.maxSpeedScale);
-  const health = config.zombie.health * k.healthScale * (1 + wc.healthScalePerWave * wavesPlayed);
+  const health =
+    config.zombie.health *
+    k.healthScale *
+    (1 + wc.healthScalePerWave * wavesPlayed) *
+    config.level.health;
   const boss = bossNumber > 0;
   const b = boss
     ? { ...bossStats(config, bossNumber), speed: config.boss.speedScale }
@@ -55,7 +59,7 @@ export function spawnZombie(
     health: health * b.health,
     maxHealth: health * b.health,
     exploded: false,
-    speed: config.zombie.speed * k.speedScale * speedScale * b.speed,
+    speed: config.zombie.speed * k.speedScale * speedScale * config.level.speed * b.speed,
     radius: config.zombie.radius * k.radiusScale * b.size,
     damage: config.zombie.damage * k.damageScale * b.damage,
     attackRange: config.zombie.attackRange * k.radiusScale * b.size,

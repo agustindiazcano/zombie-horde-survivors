@@ -197,6 +197,7 @@ export class GameRenderer {
   }
 
   private editMarker: THREE.Mesh | null = null;
+  private spawnMarkers: THREE.Group | null = null;
 
   /** Terrain height under a point of the loaded map. */
   private groundAt(x: number, z: number): number {
@@ -234,6 +235,30 @@ export class GameRenderer {
     this.editMarker.position.x = at.x;
     this.editMarker.position.z = at.z;
     this.editMarker.scale.setScalar(radius);
+  }
+
+  /** The enemy spawn points of the map being edited, as red rings on the ground (null hides them). */
+  setSpawnMarkers(points: Vec2[] | null): void {
+    if (!this.spawnMarkers) {
+      this.spawnMarkers = new THREE.Group();
+      this.scene.add(this.spawnMarkers);
+    }
+    for (const child of this.spawnMarkers.children) {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        child.material.dispose();
+      }
+    }
+    this.spawnMarkers.clear();
+    for (const p of points ?? []) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.6, 0.9, 24),
+        new THREE.MeshBasicMaterial({ color: 0xff4a3a, side: THREE.DoubleSide }),
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(p.x, this.groundAt(p.x, p.z) + 0.06, p.z);
+      this.spawnMarkers.add(ring);
+    }
   }
 
   /** Swaps the floor, walls and obstacles for those of another map (the config is shared and already updated). */
