@@ -204,6 +204,7 @@ export class GameRenderer {
   private editMarkers: THREE.Mesh[] | null = null;
   private spawnMarkers: THREE.Group | null = null;
   private goalMarkers: THREE.Group | null = null;
+  private fireMarkers: THREE.Group | null = null;
 
   /** Terrain height under a point of the loaded map. */
   private groundAt(x: number, z: number): number {
@@ -292,6 +293,45 @@ export class GameRenderer {
     }
   }
 
+  /** Flames over the fires of the map (empty hides them); they flicker in `update`. */
+  setFireMarkers(fires: { x: number; z: number }[]): void {
+    this.fireMarkers ??= new THREE.Group();
+    if (!this.fireMarkers.parent) this.scene.add(this.fireMarkers);
+    for (const child of [...this.fireMarkers.children]) {
+      child.traverse((o) => {
+        if (o instanceof THREE.Mesh) {
+          o.geometry.dispose();
+          o.material.dispose();
+        }
+      });
+    }
+    this.fireMarkers.clear();
+    const radius = this.config.hazards.fire.radius;
+    for (const f of fires) {
+      const fire = new THREE.Group();
+      fire.position.set(f.x, this.groundAt(f.x, f.z), f.z);
+      const glow = new THREE.Mesh(
+        new THREE.CircleGeometry(radius, 32),
+        new THREE.MeshBasicMaterial({ color: 0xff5a14, transparent: true, opacity: 0.28 }),
+      );
+      glow.rotation.x = -Math.PI / 2;
+      glow.position.y = 0.06;
+      fire.add(glow);
+      for (let i = 0; i < 5; i++) {
+        const angle = (i / 5) * Math.PI * 2;
+        const flame = new THREE.Mesh(
+          new THREE.ConeGeometry(0.35, 1.3, 7),
+          new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xff7a1a : 0xffc93d }),
+        );
+        const reach = i === 0 ? 0 : radius * 0.35;
+        flame.position.set(Math.cos(angle) * reach, 0.65, Math.sin(angle) * reach);
+        flame.userData.phase = i * 1.7;
+        fire.add(flame);
+      }
+      this.fireMarkers.add(fire);
+    }
+  }
+
   /** Swaps the floor, walls and obstacles for those of another map (the config is shared and already updated). */
   setArena(arena: GameConfig['arena']): void {
     this.scene.remove(this.arenaGroup);
@@ -327,6 +367,12 @@ export class GameRenderer {
     this.pickups.update(state, this.config, dt);
     this.gore.update(dt);
     this.environment.update(this.camera.position, this.clock);
+    for (const fire of this.fireMarkers?.children ?? []) {
+      for (const flame of fire.children) {
+        if (flame.userData.phase === undefined) continue;
+        flame.scale.y = 0.8 + 0.35 * Math.sin(this.clock * 9 + (flame.userData.phase as number));
+      }
+    }
     this.renderer.render(this.scene, this.camera);
   }
 

@@ -226,6 +226,7 @@ async function main(): Promise<void> {
       config.arena = arenaOf(map);
       renderer.setArena(config.arena);
     }
+    renderer.setFireMarkers(config.fires);
     renderer.setGoalMarkers(
       config.objectives.flatMap((o) =>
         o.kind === 'reach' ? [{ x: o.x, z: o.z, radius: o.radius }] : [],

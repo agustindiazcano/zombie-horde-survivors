@@ -1,6 +1,7 @@
 import { FIXED_DT } from './constants';
 import { spawnerEnemy, type GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
+import { updateHazards } from './hazards';
 import { updateObjectives } from './objectives';
 import { updateRevives } from './revive';
 import { createSquad, updateSoldiers } from './soldiers';
@@ -96,6 +97,7 @@ export function step(
   updateSoldiers(state, config, input, dt);
   updateVehicles(state, config, input, dt);
   updateRevives(state, config, dt);
+  updateHazards(state, config, dt);
   updatePickups(state, config, dt);
   if (!state.sandbox) updateWaves(state, config, dt);
   updateZombies(state, config, dt);

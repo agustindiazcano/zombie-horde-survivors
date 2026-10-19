@@ -42,6 +42,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     player: { ...base.player },
     zombie: { ...base.zombie },
     vehicles: { ...base.vehicles },
+    hazards: { ...base.hazards },
     difficulty: { ...base.difficulty },
     waves: { ...base.waves, intermission: 1e9 },
   };

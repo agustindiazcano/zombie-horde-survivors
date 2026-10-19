@@ -73,6 +73,9 @@
     "gold": 5,
     "xp": 10
   },
+  "hazards": {
+    "fire": { "dps": 20, "radius": 2.5 }
+  },
   "vehicles": {
     "jeep": {
       "name": "Jeep",

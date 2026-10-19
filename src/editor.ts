@@ -209,7 +209,7 @@ export class Editor {
   private waterDragging = false;
   /** The Game logic tab is armed: the next map clicks add spawn points. */
   /** Which click-to-place tool of the Game logic tab is armed. */
-  private spawnTool: 'spawn' | 'goal' | null = null;
+  private spawnTool: 'spawn' | 'goal' | 'fire' | null = null;
   private past: MapData[] = [];
   private future: MapData[] = [];
   private readonly title: HTMLElement;
@@ -389,7 +389,7 @@ export class Editor {
     );
     const one = items.length === 1 ? items[0]! : null;
     this.info.textContent = this.spawnTool
-      ? `Placing ${this.spawnTool === 'goal' ? 'a goal spot' : 'spawn points'}. Click the map to add one; right-click or Esc to stop.`
+      ? `Placing ${this.spawnTool === 'goal' ? 'a goal spot' : this.spawnTool === 'fire' ? 'fires' : 'spawn points'}. Click the map to add one; right-click or Esc to stop.`
       : this.tool
         ? `Placing: ${this.tool.name}. Click the map to place; right-click or Esc to stop.`
         : one
@@ -1137,6 +1137,10 @@ export class Editor {
     const at = this.ground(e);
     if (!at) return;
     const point = { x: Math.round(at.x * 2) / 2, z: Math.round(at.z * 2) / 2 };
+    if (this.spawnTool === 'fire') {
+      this.setLogic({ fires: [...(this.current.logic.fires ?? []), point] });
+      return;
+    }
     if (this.spawnTool === 'goal') {
       this.spawnTool = null;
       this.syncSelection();
@@ -1467,6 +1471,39 @@ export class Editor {
       });
     });
 
+    // Fire: burns soldiers on foot and enemies inside its radius.
+    const hazards = section('Fire', true);
+    const fires = logic.fires ?? [];
+    el(
+      'span',
+      'editor__empty',
+      hazards,
+      fires.length === 0
+        ? 'None. A fire hurts soldiers on foot and enemies inside it.'
+        : `${fires.length} fire(s), ${global.hazards.fire.dps} damage per second each.`,
+    );
+    const addFire = el(
+      'button',
+      'editor__item',
+      hazards,
+      this.spawnTool === 'fire' ? 'Stop adding' : '+ Add fires',
+    );
+    if (this.spawnTool === 'fire') addFire.classList.add('editor__item--on');
+    addFire.addEventListener('click', () => {
+      this.spawnTool = this.spawnTool === 'fire' ? null : 'fire';
+      this.syncSelection();
+      this.redrawLogic();
+    });
+    fires.forEach((p, i) => {
+      const row = el('div', 'editor__row', hazards);
+      el('span', '', row, `#${i + 1} (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+      const del = el('button', 'editor__btn', row, 'Remove');
+      del.addEventListener('click', () => {
+        const left = fires.filter((_, j) => j !== i);
+        this.setLogic({ fires: left.length > 0 ? left : undefined });
+      });
+    });
+
     // Story goals: the mission is won when all are done; losing is the squad going down.
     const goals = section('Objectives', logic.mode === 'story');
     const objectives = logic.objectives ?? [];
@@ -1533,7 +1570,12 @@ export class Editor {
       this.spawnTool = null;
       this.edit({
         ...this.current,
-        logic: { mode: logic.mode, objectives: logic.objectives, briefing: logic.briefing },
+        logic: {
+          mode: logic.mode,
+          objectives: logic.objectives,
+          briefing: logic.briefing,
+          fires: logic.fires,
+        },
       });
       this.setTab('logic');
     });

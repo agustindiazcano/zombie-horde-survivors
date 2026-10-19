@@ -146,6 +146,8 @@ const mapLogic = z
     spawnPoints: z.array(point).optional(),
     /** Story missions: the goals to win (a missing or empty list never ends the run). */
     objectives: z.array(objective).optional(),
+    /** Fires burning from the start (see `hazards.fire` in game.json for their strength). */
+    fires: z.array(point).optional(),
     /** Story missions: a text shown when the mission starts. */
     briefing: z.string().max(600).optional(),
   })
@@ -606,6 +608,19 @@ export const GameConfigSchema = z
         height: positive,
       })
       .strict(),
+    /** Hazards of the map. Fire hurts every soldier on foot and every enemy inside its radius. */
+    hazards: z
+      .object({
+        fire: z
+          .object({
+            /** Damage per second to anything inside. */
+            dps: positive,
+            /** Radius of one fire (metres). */
+            radius: positive,
+          })
+          .strict(),
+      })
+      .strict(),
     /** Drivable vehicle types by id (placed in the editor, entered with V). */
     vehicles: z.record(z.string(), vehicleType),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
@@ -800,6 +815,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   spawnPoints: SpawnPoint[];
   /** Story goals; empty in waves maps and in story maps that set none. */
   objectives: Objective[];
+  /** Where the map's fires burn. */
+  fires: Vec2[];
   /** Story missions: shown on a card when the mission starts. */
   briefing?: string | undefined;
   /** Stat sheets by unit type (from data/units.json). */
@@ -833,7 +850,7 @@ type GlobalRules = Pick<
 >;
 type MapRules = Pick<
   GameConfig,
-  'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints' | 'objectives' | 'briefing'
+  'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints' | 'objectives' | 'briefing' | 'fires'
 >;
 
 /**
@@ -877,6 +894,7 @@ export function mapRules(
     ],
     objectives: logic.mode === 'story' ? (logic.objectives ?? []) : [],
     briefing: logic.mode === 'story' ? logic.briefing : undefined,
+    fires: logic.fires ?? [],
   };
 }
 
