@@ -1,4 +1,4 @@
-import type { GameState } from './sim';
+import { localPlayer, type GameState } from './sim';
 
 /** Master gain at 100% volume. */
 const MASTER_VOLUME = 0.35;
@@ -40,7 +40,7 @@ export class Sfx {
   onStep(state: GameState): void {
     if (!this.ctx || this.ctx.state !== 'running') return;
     for (const e of state.events) {
-      if (e.type === 'shot') this.shot(e.shooterId === state.controlledId ? 1 : 0.35);
+      if (e.type === 'shot') this.shot(e.shooterId === localPlayer(state).controlledId ? 1 : 0.35);
       else if (e.type === 'zombieKilled') {
         if (e.exploded) this.splat();
         else this.kill();
@@ -52,7 +52,8 @@ export class Sfx {
         this.tone('square', 660, 660, 0.1, 0.25, 0.1);
         this.tone('square', 880, 880, 0.2, 0.25, 0.2);
       } else if (e.type === 'crateDropped') this.tone('sine', 500, 900, 0.14, 0.3);
-      else if (e.type === 'soldierHurt') this.hurt(e.soldierId === state.controlledId ? 1 : 0.4);
+      else if (e.type === 'soldierHurt')
+        this.hurt(e.soldierId === localPlayer(state).controlledId ? 1 : 0.4);
       else if (e.type === 'soldierDied') this.tone('sawtooth', 180, 50, 0.5, 0.5);
       else if (e.type === 'waveStarted') this.wave();
       else if (e.type === 'gameOver') this.gameOver();

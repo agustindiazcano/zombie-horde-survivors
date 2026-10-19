@@ -1,4 +1,5 @@
 import { resolveStatic } from './collision';
+import { localPlayer } from './players';
 import { isDrone, speedOf, weaponOf } from './stats';
 import type { GameConfig } from './config';
 import type { GameState, Input, Soldier, Stance, Zombie } from './types';
@@ -12,7 +13,7 @@ const SLOT_TOLERANCE = 0.6;
 const CATCH_UP_SPEED = 1.2;
 const FORMATION_SPACING = 1.4;
 
-export function createSquad(config: GameConfig): Soldier[] {
+export function createSquad(config: GameConfig, owner: string): Soldier[] {
   const n = config.squad.count;
   const soldiers: Soldier[] = Array.from({ length: n }, (_, i) => {
     // The first soldier stands at the origin; the rest form a ring around it.
@@ -20,6 +21,7 @@ export function createSquad(config: GameConfig): Soldier[] {
     const pos = i === 0 ? { x: 0, z: 0 } : { x: Math.sin(angle) * 1.5, z: Math.cos(angle) * 1.5 };
     return {
       id: i + 1,
+      owner,
       kind: 'soldier' as const,
       pos,
       prev: { ...pos },
@@ -44,6 +46,7 @@ export function createSquad(config: GameConfig): Soldier[] {
     const pos = { x: -1 - i, z: 1 };
     soldiers.push({
       id: n + i + 1,
+      owner,
       kind: 'drone',
       pos,
       prev: { ...pos },
@@ -88,7 +91,7 @@ export function livingSoldiers(state: GameState): Soldier[] {
 /** Takes direct control of a living soldier, or returns to RTS mode with `null`. */
 export function controlSoldier(state: GameState, id: number | null): void {
   const s = getSoldier(state, id);
-  state.controlledId = s && !s.dead ? s.id : null;
+  localPlayer(state).controlledId = s && !s.dead ? s.id : null;
 }
 
 /** Sends soldiers to a point, spread in a small grid so they don't stack. */
@@ -131,7 +134,8 @@ export function hurtSoldier(
   if (soldier.health > 0) return;
   soldier.dead = true;
   state.events.push({ type: 'soldierDied', soldierId: soldier.id });
-  if (state.controlledId === soldier.id) state.controlledId = null;
+  const owner = state.players.find((p) => p.id === soldier.owner);
+  if (owner && owner.controlledId === soldier.id) owner.controlledId = null;
 }
 
 export function updateSoldiers(
@@ -140,7 +144,8 @@ export function updateSoldiers(
   input: Input,
   dt: number,
 ): void {
-  const leader = getSoldier(state, state.controlledId);
+  const controlledId = localPlayer(state).controlledId;
+  const leader = getSoldier(state, controlledId);
   for (const s of state.soldiers) {
     s.prev.x = s.pos.x;
     s.prev.z = s.pos.z;
@@ -154,7 +159,7 @@ export function updateSoldiers(
     }
     // The squad's sprint order only works for a unit that still has breath.
     const stance = state.stance === 'sprint' && (s.winded || isDrone(s)) ? 'normal' : state.stance;
-    if (s.id === state.controlledId) updateControlled(state, config, s, input, stance, dt);
+    if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
     else updateAi(state, config, s, leader, stance, dt);
     updateStamina(config, s, stance, dt);
     updateJump(config, s, dt);

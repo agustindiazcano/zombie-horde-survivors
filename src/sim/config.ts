@@ -3,9 +3,110 @@ import { z } from 'zod';
 const positive = z.number().positive();
 const nonNegative = z.number().nonnegative();
 
-const obstacle = z
-  .object({ x: z.number(), z: z.number(), halfW: positive, halfD: positive })
+/** Schema for data/maps/*.json: one map (a mission or a survival arena). Versioned for later migrations. */
+const point = z.object({ x: z.number(), z: z.number() }).strict();
+
+const mapProp = z
+  .object({
+    /** Catalog id of the model; `block` is the plain box used by the development arena. */
+    asset: z.string().min(1),
+    ...point.shape,
+    rotation: z.number(),
+    scale: positive,
+    layer: z.enum(['outdoor', 'indoor', 'nature']),
+    /** When present the prop blocks movement and shots (an axis-aligned box centred on the prop). */
+    collider: z.object({ halfW: positive, halfD: positive }).strict().optional(),
+  })
   .strict();
+
+const mapPlayer = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    kind: z.enum(['human', 'ai']),
+    team: z.number().int().nonnegative(),
+    color: z.string().min(1),
+  })
+  .strict();
+
+const mapUnit = z
+  .object({
+    /** Unit type id (character or vehicle catalog entry). */
+    type: z.string().min(1),
+    ...point.shape,
+    /** Id of the owning player. */
+    owner: z.string().min(1),
+    hold: z.boolean().optional(),
+  })
+  .strict();
+
+export const MapSchema = z
+  .object({
+    version: z.literal(1),
+    meta: z
+      .object({
+        id: z.string().min(1),
+        name: z.string().min(1),
+        author: z.string(),
+        created: z.string(),
+        updated: z.string(),
+        size: z.object({ width: positive, depth: positive }).strict(),
+      })
+      .strict(),
+    /** Not read yet: height grid, water and paint arrive with the editor's terrain phase. */
+    terrain: z
+      .object({
+        heights: z.array(z.array(z.number())).nullable(),
+        water: z.number().nullable(),
+        paint: z.array(z.array(z.string())).nullable(),
+      })
+      .strict(),
+    props: z.array(mapProp),
+    /** Floors and roads (not read yet). */
+    surfaces: z.array(z.object({ asset: z.string().min(1), path: z.array(point).min(2) }).strict()),
+    players: z.array(mapPlayer),
+    units: z.array(mapUnit),
+    logic: z.object({ mode: z.enum(['waves', 'story']) }).strict(),
+  })
+  .strict()
+  .superRefine((map, ctx) => {
+    if (map.meta.size.width !== map.meta.size.depth) {
+      ctx.addIssue({ code: 'custom', message: 'meta.size must be square for now' });
+    }
+    if (map.logic.mode === 'waves') {
+      for (const kind of ['human', 'ai'] as const) {
+        if (!map.players.some((p) => p.kind === kind)) {
+          ctx.addIssue({ code: 'custom', message: `a waves map needs a ${kind} player` });
+        }
+      }
+    }
+    const ids = new Set(map.players.map((p) => p.id));
+    if (ids.size !== map.players.length) {
+      ctx.addIssue({ code: 'custom', message: 'players ids must be unique' });
+    }
+    for (const u of map.units) {
+      if (!ids.has(u.owner)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `unit "${u.type}" has an unknown owner "${u.owner}"`,
+        });
+      }
+    }
+  });
+
+export type MapData = z.infer<typeof MapSchema>;
+
+export const parseMap = (raw: unknown): MapData => MapSchema.parse(raw);
+
+/** The arena the sim needs: half the map size and the props that have a collider. */
+export function arenaOf(map: MapData): Arena {
+  return {
+    halfSize: map.meta.size.width / 2,
+    obstacles: map.props.flatMap((p) =>
+      p.collider ? [{ x: p.x, z: p.z, halfW: p.collider.halfW, halfD: p.collider.halfD }] : [],
+    ),
+  };
+}
 
 /** Schema for data/game.json. Strict so typos in data files fail loudly. */
 const weaponDef = z
@@ -70,7 +171,6 @@ const enemyType = z
 
 export const GameConfigSchema = z
   .object({
-    arena: z.object({ halfSize: positive, obstacles: z.array(obstacle) }).strict(),
     /** Stats shared by every soldier. */
     player: z
       .object({
@@ -267,7 +367,19 @@ export const GameConfigSchema = z
     }
   });
 
-export type GameConfig = z.infer<typeof GameConfigSchema>;
-export type Obstacle = GameConfig['arena']['obstacles'][number];
+/** An axis-aligned blocking box (a prop's collider placed on the map). */
+export type Obstacle = { x: number; z: number; halfW: number; halfD: number };
+/** The playfield the sim runs on, derived from the map (see `arenaOf`). */
+export type Arena = { halfSize: number; obstacles: Obstacle[] };
+/** The balance numbers of game.json plus the arena of the chosen map. */
+export type GameConfig = z.infer<typeof GameConfigSchema> & {
+  arena: Arena;
+  /** The players of the map (who owns what, and the teams). */
+  players: MapData['players'];
+};
 
-export const parseConfig = (raw: unknown): GameConfig => GameConfigSchema.parse(raw);
+export const parseConfig = (raw: unknown, map: MapData): GameConfig => ({
+  ...GameConfigSchema.parse(raw),
+  arena: arenaOf(map),
+  players: map.players,
+});

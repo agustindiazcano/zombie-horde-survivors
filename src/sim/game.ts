@@ -1,5 +1,6 @@
 import { FIXED_DT } from './constants';
 import type { GameConfig } from './config';
+import { firstPlayerOf, localPlayer } from './players';
 import { createSquad, updateSoldiers } from './soldiers';
 import { createRng } from './rng';
 import type { GameState, Input } from './types';
@@ -9,12 +10,18 @@ import { updateWaves } from './waves';
 import { updateZombies } from './zombies';
 
 export function createGame(config: GameConfig, seed = 1): GameState {
-  const soldiers = createSquad(config);
+  const humanId = firstPlayerOf(config.players, 'human');
+  const soldiers = createSquad(config, humanId);
+  const players = config.players.map((p) => ({
+    ...p,
+    controlledId: p.id === humanId ? (soldiers[0]?.id ?? null) : null,
+  }));
   return {
     time: 0,
     status: 'playing',
     soldiers,
-    controlledId: soldiers[0]?.id ?? null,
+    players,
+    localPlayerId: humanId,
     nextSoldierId: soldiers.length + 1,
     stance: 'normal',
     zombies: [],
@@ -52,7 +59,7 @@ export function step(
 
   // The squad only changes stance while a soldier is under direct control.
   state.stance =
-    state.controlledId === null
+    localPlayer(state).controlledId === null
       ? 'normal'
       : input.crouch
         ? 'crouch'

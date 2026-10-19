@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { GameState, Vec2 } from '../sim';
+import { localPlayer, type GameState, type Vec2 } from '../sim';
 
 const RING_Y = 0.04;
 const PULSE_LIFE = 0.6;
@@ -64,7 +64,7 @@ export class SelectionMarkers {
         this.rings.set(s.id, ring);
         this.group.add(ring);
       }
-      const controlled = s.id === state.controlledId;
+      const controlled = s.id === localPlayer(state).controlledId;
       const show = !s.dead && (controlled || selected.has(s.id));
       ring.visible = show;
       if (show) {

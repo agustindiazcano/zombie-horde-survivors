@@ -2,6 +2,7 @@ import { rayAabb, resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { maybeDropCrate } from './inventory';
 import { dropLoot, rewardOf } from './loot';
+import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
 import type { GameState, Soldier, Zombie } from './types';
@@ -42,6 +43,7 @@ export function spawnZombie(
     : { health: 1, damage: 1, size: 1, speed: 1, reward: 1 };
   const zombie: Zombie = {
     id: state.nextZombieId++,
+    owner: firstPlayerOf(state.players, 'ai'),
     pos: { ...pos },
     prev: { ...pos },
     facing: 0,

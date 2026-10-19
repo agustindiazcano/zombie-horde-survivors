@@ -2,6 +2,7 @@ import './hud.css';
 import {
   getSoldier,
   levelInfo,
+  localPlayer,
   maxHealthOf,
   weaponDef,
   type GameConfig,
@@ -133,7 +134,8 @@ export class Hud {
   /** Reacts to events from a simulation step (call after every step). */
   onStep(state: GameState): void {
     for (const e of state.events) {
-      if (e.type === 'soldierHurt' && e.soldierId === state.controlledId) this.flashDamage();
+      if (e.type === 'soldierHurt' && e.soldierId === localPlayer(state).controlledId)
+        this.flashDamage();
       else if (e.type === 'levelUp') this.showBanner(`LEVEL UP! Lv ${e.level}`);
       else if (e.type === 'bossSpawned') this.showBanner('MINI BOSS!');
     }

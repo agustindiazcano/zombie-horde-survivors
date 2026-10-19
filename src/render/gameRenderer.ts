@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getSoldier, type GameConfig, type GameState, type Vec2 } from '../sim';
+import { getSoldier, localPlayer, type GameConfig, type GameState, type Vec2 } from '../sim';
 import { buildArena } from './arena';
 import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
@@ -292,7 +292,7 @@ export class GameRenderer {
   }
 
   private updateCamera(state: GameState, alpha: number, dt: number): void {
-    const leader = getSoldier(state, state.controlledId);
+    const leader = getSoldier(state, localPlayer(state).controlledId);
     if (leader && this.viewMode !== 'top') {
       this.focusInitialized = true;
       this.updatePersonCamera(leader, alpha, dt);
@@ -418,7 +418,7 @@ export class GameRenderer {
       const drone = s.kind === 'drone';
       view.object.position.set(lerp(s.prev.x, s.pos.x, alpha), 0, lerp(s.prev.z, s.pos.z, alpha));
       let heading: number;
-      if (this.viewMode !== 'top' && s.id === state.controlledId) {
+      if (this.viewMode !== 'top' && s.id === localPlayer(state).controlledId) {
         // Turns the instant the mouse does, in sync with the camera.
         heading = this.yaw + Math.PI;
       } else {
@@ -432,7 +432,9 @@ export class GameRenderer {
       view.update(dt);
       this.updateFlashlight(s.id, view.object, heading, !s.dead);
       // In first person you look out of the controlled unit's head, so hide its model.
-      view.object.visible = !(this.viewMode === 'first' && s.id === state.controlledId);
+      view.object.visible = !(
+        this.viewMode === 'first' && s.id === localPlayer(state).controlledId
+      );
 
       // Applied after the view's own update, which may reset its root transform.
       view.object.position.y = drone ? this.droneHeight : lerp(s.prevY, s.y, alpha);
@@ -456,14 +458,14 @@ export class GameRenderer {
     for (const e of state.events) {
       if (e.type === 'shot') {
         this.effects.spawnShot(e.from, e.to, e.facing, e.height, e.hitZombieId !== null);
-        if (e.shooterId === state.controlledId) {
+        if (e.shooterId === localPlayer(state).controlledId) {
           this.shake = Math.min(this.shake + SHOT_SHAKE, MAX_SHAKE);
         }
         if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
       } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
         const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
         this.gore.burst(e.pos.x, e.pos.z, Math.min(Math.max(size, 0.8), 1.8));
-      } else if (e.type === 'soldierHurt' && e.soldierId === state.controlledId) {
+      } else if (e.type === 'soldierHurt' && e.soldierId === localPlayer(state).controlledId) {
         this.shake = Math.min(this.shake + HURT_SHAKE, MAX_SHAKE);
       }
     }

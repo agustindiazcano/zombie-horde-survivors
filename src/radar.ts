@@ -1,4 +1,4 @@
-import type { GameState } from './sim';
+import { localPlayer, type GameState } from './sim';
 
 const SIZE = 210;
 const MARGIN = 8;
@@ -193,7 +193,7 @@ export class Radar {
       const px = this.sx(s.pos.x);
       const pz = this.sz(s.pos.z);
       if (Math.hypot(px - c, pz - c) > r) continue;
-      const mine = s.id === state.controlledId;
+      const mine = s.id === localPlayer(state).controlledId;
       ctx.strokeStyle = `rgba(${mine ? BRIGHT : CYAN}, 0.95)`;
       ctx.fillStyle = `rgba(${BRIGHT}, 0.95)`;
       ctx.lineWidth = 1.5;
