@@ -63,6 +63,38 @@
       {
         "item": "ammo_belt",
         "weight": 1
+      },
+      {
+        "item": "red_dot",
+        "weight": 0.8
+      },
+      {
+        "item": "scope",
+        "weight": 0.5
+      },
+      {
+        "item": "suppressor",
+        "weight": 0.6
+      },
+      {
+        "item": "compensator",
+        "weight": 0.6
+      },
+      {
+        "item": "extended_mag",
+        "weight": 0.7
+      },
+      {
+        "item": "quick_mag",
+        "weight": 0.7
+      },
+      {
+        "item": "foregrip",
+        "weight": 0.8
+      },
+      {
+        "item": "laser",
+        "weight": 0.6
       }
     ]
   },
@@ -219,7 +251,13 @@
       "weight": 4,
       "minWave": 1,
       "rewardScale": 1.5,
-      "acrobat": { "range": 12, "interval": 1.1, "duration": 0.55, "sideSpeed": 5, "height": 1.3 }
+      "acrobat": {
+        "range": 12,
+        "interval": 1.1,
+        "duration": 0.55,
+        "sideSpeed": 5,
+        "height": 1.3
+      }
     },
     "brute": {
       "name": "Brute",
@@ -377,6 +415,46 @@
         "kind": "item",
         "target": "drone_cannon",
         "cost": 50
+      },
+      {
+        "id": "red_dot",
+        "name": "Red dot sight",
+        "description": "Adds a red dot sight to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "red_dot",
+        "cost": 40
+      },
+      {
+        "id": "scope",
+        "name": "Scope",
+        "description": "Adds a scope to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "scope",
+        "cost": 70
+      },
+      {
+        "id": "suppressor",
+        "name": "Suppressor",
+        "description": "Adds a suppressor to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "suppressor",
+        "cost": 60
+      },
+      {
+        "id": "extended_mag",
+        "name": "Extended magazine",
+        "description": "Adds an extended magazine to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "extended_mag",
+        "cost": 60
+      },
+      {
+        "id": "foregrip",
+        "name": "Foregrip",
+        "description": "Adds a foregrip to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "foregrip",
+        "cost": 45
       },
       {
         "id": "up_damage",

@@ -1,6 +1,7 @@
 import './unitsScreen.css';
 import { itemInfo } from './itemInfo';
 import { MenuModel } from './menuModel';
+import { openWorkbench } from './workbench';
 import type { CharacterFactory } from './render/characters';
 import {
   cellAt,
@@ -8,6 +9,7 @@ import {
   maxHealthOf,
   equipFromBackpack,
   itemDef,
+  modsOf,
   moveItem,
   skillLevel,
   unequipSlot,
@@ -241,7 +243,9 @@ export class UnitsScreen {
   private roundsText(unit: Soldier, slot: SlotRef, item: string): string {
     const def = itemDef(this.config, item);
     if (def.type !== 'weapon' || !def.magazine) return '';
-    return ` · ${cellAt(unit, slot)?.state?.loaded ?? def.magazine}/${def.magazine}`;
+    const state = cellAt(unit, slot)?.state;
+    const size = def.magazine + modsOf(this.config, state).magazine;
+    return ` · ${state?.loaded ?? def.magazine}/${size}`;
   }
 
   /**
@@ -273,6 +277,17 @@ export class UnitsScreen {
         toggle.addEventListener('click', (e) => {
           e.stopPropagation(); // not a tap-to-move pick
           if (action.run(this.getState())) for (const id of this.open.keys()) this.renderWindow(id);
+        });
+      }
+      const sheet = itemDef(this.config, item);
+      if (sheet.type === 'weapon' && sheet.accessorySlots.length > 0) {
+        const bench = el('button', 'us__equip us__bench', cell, '⚙');
+        bench.title = 'Workbench: fit accessories';
+        bench.addEventListener('click', (e) => {
+          e.stopPropagation(); // not a tap-to-move pick
+          openWorkbench(this.root, this.config, this.getState, unit.id, slot, () => {
+            for (const id of this.open.keys()) this.renderWindow(id);
+          });
         });
       }
       cell.draggable = true;

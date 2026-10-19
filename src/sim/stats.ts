@@ -1,4 +1,5 @@
 import type { DamageType, FireMode, GameConfig, WeaponClass, WeaponItem } from './config';
+import { factor, modsOf, type FittedMods } from './accessoryMods';
 import type { GameState, Hand, Mods, Soldier, Stance } from './types';
 
 export interface WeaponDef {
@@ -76,6 +77,12 @@ export function gunHand(config: GameConfig, s: Soldier): Hand | null {
   return null;
 }
 
+/** What the accessories fitted to the unit's gun change (nothing when unarmed or bare). */
+export function gunMods(config: GameConfig, s: Soldier): FittedMods {
+  const hand = gunHand(config, s);
+  return modsOf(config, hand === null ? undefined : s.weaponStates[hand]);
+}
+
 /** Stats of a unit's equipped weapon (null when unarmed), plus how it shoots (height, cover). */
 export function weaponOf(
   config: GameConfig,
@@ -93,7 +100,10 @@ export function weaponOf(
   }
   // Both hands are on the body being dragged: only a one-handed gun can be used.
   if (s.dragging !== null && def.hands === 2) return null;
-  def.damage *= mods.damage;
+  const fitted = gunMods(config, s);
+  def.damage *= mods.damage * factor(fitted.damage);
+  def.range *= factor(fitted.range);
+  def.spread *= factor(fitted.spread);
   def.fireRate *= mods.fireRate;
   if (isDrone(s)) return { ...def, height: config.drone.height, ignoresCover: true };
   if (stance === 'crouch') {

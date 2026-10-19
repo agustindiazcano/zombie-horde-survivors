@@ -219,17 +219,32 @@
       "channelTime": 4,
       "reviveWindow": 30
     },
+    "red_dot": {
+      "type": "accessory",
+      "name": "Red dot sight",
+      "icon": "🔴",
+      "stack": 1,
+      "slot": "optic",
+      "modifiers": {
+        "aimSpread": -0.25,
+        "zoom": 0.1
+      },
+      "mocked": {
+        "weight": 0.2
+      }
+    },
     "scope": {
       "type": "accessory",
       "name": "Scope",
       "icon": "🔭",
       "stack": 1,
       "slot": "optic",
+      "modifiers": {
+        "aimSpread": -0.4,
+        "range": 0.15,
+        "zoom": 0.35
+      },
       "mocked": {
-        "modifiers": {
-          "accuracy": 0.05,
-          "range": 0.05
-        },
         "weight": 0.4
       }
     },
@@ -239,12 +254,54 @@
       "icon": "🔇",
       "stack": 1,
       "slot": "barrel",
+      "modifiers": {
+        "noise": -0.6,
+        "damage": -0.1,
+        "recoil": -0.1
+      },
       "mocked": {
-        "modifiers": {
-          "noise": -0.6,
-          "damage": -0.1
-        },
         "weight": 0.6
+      }
+    },
+    "compensator": {
+      "type": "accessory",
+      "name": "Compensator",
+      "icon": "🧯",
+      "stack": 1,
+      "slot": "barrel",
+      "modifiers": {
+        "recoil": -0.25,
+        "noise": 0.1
+      },
+      "mocked": {
+        "weight": 0.3
+      }
+    },
+    "extended_mag": {
+      "type": "accessory",
+      "name": "Extended magazine",
+      "icon": "📦",
+      "stack": 1,
+      "slot": "magazine",
+      "modifiers": {
+        "magazine": 10,
+        "reloadTime": 0.15
+      },
+      "mocked": {
+        "weight": 0.3
+      }
+    },
+    "quick_mag": {
+      "type": "accessory",
+      "name": "Quick-release magazine",
+      "icon": "⏱️",
+      "stack": 1,
+      "slot": "magazine",
+      "modifiers": {
+        "reloadTime": -0.3
+      },
+      "mocked": {
+        "weight": 0.2
       }
     },
     "foregrip": {
@@ -253,11 +310,25 @@
       "icon": "🪝",
       "stack": 1,
       "slot": "grip",
+      "modifiers": {
+        "recoil": -0.2,
+        "spread": -0.1
+      },
       "mocked": {
-        "modifiers": {
-          "recoil": -0.15
-        },
         "weight": 0.3
+      }
+    },
+    "laser": {
+      "type": "accessory",
+      "name": "Laser sight",
+      "icon": "🔺",
+      "stack": 1,
+      "slot": "underbarrel",
+      "modifiers": {
+        "spread": -0.2
+      },
+      "mocked": {
+        "weight": 0.1
       }
     },
     "ammo_556": {

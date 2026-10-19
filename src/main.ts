@@ -30,6 +30,7 @@ import {
   getSoldier,
   getVehicle,
   aimErrorOf,
+  aimZoomOf,
   startReload,
   meleeStrike,
   throwGrenade,
@@ -579,7 +580,7 @@ async function main(): Promise<void> {
       hud.setCrosshair(renderer.viewMode !== 'top' && shooter !== undefined);
       if (shooter) {
         hud.setCrosshairError(aimErrorOf(state, config, shooter) ?? 0);
-        renderer.setAimZoom(shooter.aiming ? config.accuracy.aimZoom : 1);
+        renderer.setAimZoom(shooter.aiming ? aimZoomOf(config, shooter) : 1);
       } else renderer.setAimZoom(1);
       rts.prune();
       if (localPlayer(state).controlledId !== null || paused || modalOpen()) rts.cancelGrenadeAim();

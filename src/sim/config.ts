@@ -362,7 +362,7 @@ export const DAMAGE_TYPES = [
 ] as const;
 export type DamageType = (typeof DAMAGE_TYPES)[number];
 
-/** Places on a weapon where an accessory can be fitted (mocked: nothing fits them yet). */
+/** Places on a weapon where an accessory can be fitted. */
 export const ACCESSORY_SLOTS = [
   'optic',
   'barrel',
@@ -375,6 +375,28 @@ export const FIRE_MODES = ['auto', 'semi'] as const;
 export type FireMode = (typeof FIRE_MODES)[number];
 
 export type AccessorySlot = (typeof ACCESSORY_SLOTS)[number];
+
+/** What a fitted accessory changes; the effects of all fitted ones add up. Left out means no change. */
+const accessoryMods = z
+  .object({
+    damage: z.number().optional(),
+    range: z.number().optional(),
+    /** Random aim error. */
+    spread: z.number().optional(),
+    /** Extra change to the aim error while aiming down the sights. */
+    aimSpread: z.number().optional(),
+    /** Recoil kick per shot. */
+    recoil: z.number().optional(),
+    /** Radius a shot can be heard from. */
+    noise: z.number().optional(),
+    reloadTime: z.number().optional(),
+    /** Extra rounds in the magazine. */
+    magazine: z.number().int().optional(),
+    /** Extra zoom while aiming (0.3 narrows the view by a further 30%). */
+    zoom: z.number().optional(),
+  })
+  .strict();
+export type AccessoryMods = z.infer<typeof accessoryMods>;
 
 const itemBase = {
   name: z.string().min(1),
@@ -438,7 +460,7 @@ const itemDef = z.discriminatedUnion('type', [
       reloadTime: nonNegative.optional(),
       /** Radius in metres a shot can be heard from (no rule uses it yet). */
       noise: nonNegative,
-      /** Which places an accessory can be fitted to (nothing fits them yet). */
+      /** Which places an accessory can be fitted to. */
       accessorySlots: z.array(z.enum(ACCESSORY_SLOTS)),
       mocked: z.object({ weight: nonNegative }).strict(),
     })
@@ -496,9 +518,9 @@ const itemDef = z.discriminatedUnion('type', [
       ...itemBase,
       type: z.literal('accessory'),
       slot: z.enum(ACCESSORY_SLOTS),
-      mocked: z
-        .object({ modifiers: z.record(z.string(), z.number()), weight: nonNegative })
-        .strict(),
+      /** Each number is a fraction added to the weapon's own value (-0.1 = 10% less), except `magazine` (rounds). */
+      modifiers: accessoryMods,
+      mocked: z.object({ weight: nonNegative }).strict(),
     })
     .strict(),
 ]);

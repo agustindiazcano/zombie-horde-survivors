@@ -35,8 +35,10 @@ export {
   useItem,
 } from './inventory';
 export { gunOf, skillLevel, weaponDef, type WeaponDef } from './stats';
-export { aimErrorOf } from './accuracy';
-export { ammoLabel, gunState, reserveOf, startReload } from './ammo';
+export { aimErrorOf, aimZoomOf } from './accuracy';
+export { fitAccessory, removeAccessory, reportOf, type WeaponReport } from './accessories';
+export { modsOf } from './accessoryMods';
+export { ammoLabel, gunState, magazineOf, reserveOf, startReload } from './ammo';
 export { handState, newWeaponState } from './weaponState';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';
 export type { Slot, SlotRef } from './inventory';

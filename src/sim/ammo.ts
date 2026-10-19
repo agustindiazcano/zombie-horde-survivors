@@ -1,5 +1,6 @@
 import type { GameConfig } from './config';
-import { gunHand, gunOf } from './stats';
+import { factor } from './accessoryMods';
+import { gunHand, gunMods, gunOf } from './stats';
 import type { GameState, Soldier, WeaponState } from './types';
 import { handState } from './weaponState';
 
@@ -9,6 +10,12 @@ function gunSheet(config: GameConfig, s: Soldier) {
   const def = gun === null ? undefined : config.items[gun];
   if (def?.type !== 'weapon' || !def.magazine) return null;
   return def;
+}
+
+/** Rounds in a full magazine of the unit's gun, with fitted accessories (0 if it never runs dry). */
+export function magazineOf(config: GameConfig, s: Soldier): number {
+  const def = gunSheet(config, s);
+  return def ? def.magazine! + gunMods(config, s).magazine : 0;
 }
 
 /** Rounds in the backpack for a gun, or Infinity when its spare magazines never run out. */
@@ -31,8 +38,12 @@ export function startReload(state: GameState, config: GameConfig, s: Soldier): b
   const hand = gunHand(config, s);
   if (!def || hand === null || s.reload || s.dead) return false;
   const weapon = handState(config, s, hand)!;
-  if (weapon.loaded >= def.magazine! || reserveOf(config, s) <= 0) return false;
-  s.reload = { hand, state: weapon, left: def.reloadTime ?? 0 };
+  if (weapon.loaded >= magazineOf(config, s) || reserveOf(config, s) <= 0) return false;
+  s.reload = {
+    hand,
+    state: weapon,
+    left: (def.reloadTime ?? 0) * factor(gunMods(config, s).reloadTime),
+  };
   state.events.push({ type: 'reloadStarted', soldierId: s.id });
   return true;
 }
@@ -50,7 +61,7 @@ export function updateReload(config: GameConfig, s: Soldier, dt: number): void {
   if (r.left > 0) return;
   s.reload = null;
   const def = gunSheet(config, s)!;
-  let take = Math.min(def.magazine! - r.state.loaded, reserveOf(config, s));
+  let take = Math.min(magazineOf(config, s) - r.state.loaded, reserveOf(config, s));
   r.state.loaded += take;
   if (def.infiniteSpare) return;
   for (const st of s.backpack) {
@@ -75,7 +86,7 @@ export function maintainAmmo(
   const def = gunSheet(config, s);
   const weapon = gunState(config, s);
   if (!def || !weapon) return;
-  if (weapon.loaded === 0 || (!engaged && weapon.loaded < def.magazine!)) {
+  if (weapon.loaded === 0 || (!engaged && weapon.loaded < magazineOf(config, s))) {
     startReload(state, config, s);
   }
 }
@@ -87,5 +98,5 @@ export function ammoLabel(config: GameConfig, s: Soldier): string {
   if (!def || !weapon) return '';
   const spare = reserveOf(config, s);
   const reload = s.reload ? ' · reloading' : '';
-  return `${weapon.loaded}/${def.magazine} + ${spare === Infinity ? '∞' : spare}${reload}`;
+  return `${weapon.loaded}/${magazineOf(config, s)} + ${spare === Infinity ? '∞' : spare}${reload}`;
 }

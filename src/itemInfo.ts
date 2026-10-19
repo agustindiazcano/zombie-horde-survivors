@@ -9,6 +9,34 @@ export interface ItemInfo {
   title: string;
 }
 
+const MOD_LABELS: Record<string, string> = {
+  damage: 'damage',
+  range: 'range',
+  spread: 'spread',
+  aimSpread: 'spread aiming',
+  recoil: 'recoil',
+  noise: 'noise',
+  reloadTime: 'reload time',
+  magazine: 'rounds',
+  zoom: 'zoom aiming',
+};
+
+/** `+10 rounds`, `-25% recoil`: one change of an accessory. */
+function modLine(key: string, value: number): string {
+  const label = MOD_LABELS[key] ?? key;
+  if (key === 'magazine') return `${value > 0 ? '+' : ''}${value} ${label}`;
+  const pct = Math.round(value * 100);
+  return `${pct > 0 ? '+' : ''}${pct}% ${label}`;
+}
+
+/** A short line for a slot: the first two changes of an accessory. */
+function modsText(mods: Record<string, number | undefined>): string {
+  const parts = Object.entries(mods)
+    .filter((e): e is [string, number] => e[1] !== undefined)
+    .map(([key, value]) => modLine(key, value));
+  return parts.slice(0, 2).join(' · ');
+}
+
 /** What the UI shows about an item of data/items.json. */
 export function itemInfo(config: GameConfig, id: string): ItemInfo {
   const def = itemDef(config, id);
@@ -56,8 +84,11 @@ export function itemInfo(config: GameConfig, id: string): ItemInfo {
       lines.push('Revives a fallen ally (not active yet)');
       break;
     case 'accessory':
-      stats = `${def.slot} accessory`;
-      lines.push(`Fits the ${def.slot} slot of a weapon (not active yet)`);
+      stats = modsText(def.modifiers);
+      lines.push(
+        `Fits the ${def.slot} slot of a weapon: open its workbench (⚙) in the squad screen`,
+        ...Object.entries(def.modifiers).map(([key, value]) => modLine(key, value)),
+      );
       break;
   }
   if (def.stack > 1) lines.push(`Stacks up to ${def.stack}`);

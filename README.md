@@ -48,6 +48,8 @@ A soldier who reaches zero health does not die at once: it goes **down** (lies o
 
 An ally on their feet who carries a **medkit** and stays within reach for 3 seconds uses it automatically and stands the soldier back up with the kit's health (small 25, medium 50, large 100); soldiers on `follow` walk over to help. Without a medkit the soldier dies when the timer ends. A soldier who died less than 30 seconds ago can be brought back by an ally with a **defibrillator** (4 seconds next to the body, one use, half health). The game is over when nobody is left on their feet. Medkits and the defibrillator come from crates and the shop; a medkit can also be used from the squad screen to heal yourself.
 
+**Accessories:** scopes, sights, suppressors, compensators, magazines, a foregrip and a laser come from crates and the shop. In the squad screen (pause) the **⚙** on a weapon opens its workbench: each accessory takes one of the weapon's places (optic, barrel, magazine, grip, underbarrel), changes its damage, range, spread, recoil, reload, magazine or zoom, and the table shows the weapon bare, as it is and with the accessory under the pointer.
+
 ## Loot, levels and gore
 
 Enemies drop a gold coin and an XP orb. Any of your units (the drone too) collects them by walking over them; they vanish after 60 s. XP raises your level (shown at the top). Enemies show a health bar and light up when hit, and about half of them burst when killed, spraying blood and gibs.

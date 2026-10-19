@@ -78,12 +78,13 @@ When you take control with **Y**, only the units that were selected follow you. 
 
 ## Windows and menus
 
-| Where                    | Action                                                                                                |
-| ------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Main menu                | Click the buttons (Enter / Space on the focused one); **Esc** steps back one screen; **O** settings   |
-| Squad screen (pause)     | Click a unit for its 3D view and inventory (up to four windows); drag weapons and items between slots |
-| Crate window (E)         | Take items from the crate or stash your own in it                                                     |
-| Unit dialogs, any window | **Esc** or a click outside closes it                                                                  |
+| Where                    | Action                                                                                                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Main menu                | Click the buttons (Enter / Space on the focused one); **Esc** steps back one screen; **O** settings                                                                                |
+| Squad screen (pause)     | Click a unit for its 3D view and inventory (up to four windows); drag weapons and items between slots; the **⚙** on a weapon opens its workbench                                   |
+| Weapon workbench (⚙)     | Click an accessory in the backpack to fit it (it takes that place of the weapon, swapping what was there); click a fitted one to take it off. **Esc** or a click outside closes it |
+| Crate window (E)         | Take items from the crate or stash your own in it                                                                                                                                  |
+| Unit dialogs, any window | **Esc** or a click outside closes it                                                                                                                                               |
 
 ## Map editor
 
