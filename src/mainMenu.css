@@ -222,3 +222,18 @@
   opacity: 0.55;
   pointer-events: none;
 }
+
+.menu__credits {
+  max-height: 46vh;
+  margin: 0 0 12px;
+  padding: 0 8px;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: left;
+}
+
+.menu__credits a {
+  color: #8fc4ff;
+}

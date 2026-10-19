@@ -1,4 +1,5 @@
 import './mainMenu.css';
+import credits from '../data/credits.json';
 import { deleteMap, importMapFile, listMaps, pickMapFile, type MapEntry } from './maps';
 import { MenuModel } from './menuModel';
 import type { CharacterFactory } from './render/characters';
@@ -17,7 +18,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 /** The screens of the menu flow: title → mode → single player → story or the map list. */
-type Screen = 'title' | 'mode' | 'single' | 'story' | 'maps';
+type Screen = 'title' | 'mode' | 'single' | 'story' | 'maps' | 'credits';
 
 /** Where "Back" goes from each screen. */
 const BACK: Record<Exclude<Screen, 'title'>, Screen> = {
@@ -25,6 +26,7 @@ const BACK: Record<Exclude<Screen, 'title'>, Screen> = {
   single: 'mode',
   story: 'single',
   maps: 'single',
+  credits: 'title',
 };
 
 /**
@@ -105,6 +107,8 @@ export class MainMenu {
         const settings = el('button', 'menu__settings', panel, '⚙ Settings (O)');
         settings.addEventListener('click', this.onSettings);
       }
+      const credits = el('button', 'menu__settings', panel, 'Credits');
+      credits.addEventListener('click', () => this.go('credits'));
       const tips = el('ul', 'menu__tips', panel);
       for (const tip of [
         'WASD move · Mouse aim · Click fire',
@@ -117,6 +121,27 @@ export class MainMenu {
     }
 
     el('h2', 'menu__heading', panel, TITLES[screen]);
+    if (screen === 'credits') {
+      el(
+        'p',
+        'menu__tagline',
+        panel,
+        'Zombie Horde Survivors · Wylan Engine · © 2026 Wylan Studios',
+      );
+      const roll = el('ul', 'menu__credits', panel);
+      for (const a of credits) {
+        const item = el('li', '', roll);
+        el('strong', '', item, a.name);
+        item.append(` by ${a.author} · `);
+        const link = el('a', '', item, a.license);
+        link.href = a.source;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }
+      const back = el('button', 'menu__back', panel, '← Back');
+      back.addEventListener('click', () => this.go(BACK[screen]));
+      return back;
+    }
     const list = el('div', 'menu__list', panel);
     let first: HTMLButtonElement | null = null;
     const option = (
@@ -211,4 +236,5 @@ const TITLES: Record<Exclude<Screen, 'title'>, string> = {
   single: 'Single Player',
   story: 'Story',
   maps: 'Choose a map',
+  credits: 'Credits',
 };

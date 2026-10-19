@@ -12,3 +12,4 @@ Branch `feat/editor-polish`, cut from `feat/story-mode` (twelfth in the stack; P
 - Still open: a real vehicle model.
 - **Fire (8b, first step):** `hazards.fire` in `game.json` (20 dps, 2.5 m), `logic.fires` in the map, `src/sim/hazards.ts` (half-second bursts; soldiers on foot and enemies, not the drone or riders), flames in the renderer, Fire section in the Game logic tab. Not done: spreading, fire grenades, explosive barrels.
 - **Wylan Engine / licence:** tab title, a footer on the main menu, `LICENSE` (all rights reserved, Wylan Studios), `"license": "UNLICENSED"`, README License section. Open: an in-game credits screen for the CC-BY assets before Steam.
+- **In-game credits:** a Credits button on the title screen lists every asset of `assets.toml` with its author and license link. `npm run credits` now also writes `data/credits.json` (the list the menu reads), so rerun it after adding an asset.
