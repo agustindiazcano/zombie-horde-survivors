@@ -16,7 +16,7 @@
   ],
   "enemies": {
     "marine_zombie": {
-      "model": "models/soldier-marine.glb",
+      "model": "models/soldier-marine-light.glb",
       "scale": 1.0,
       "yawOffset": 0,
       "clips": {
@@ -77,7 +77,7 @@
       "barHeight": 1.7
     },
     "brute": {
-      "model": "models/soldier-marine.glb",
+      "model": "models/soldier-marine-light.glb",
       "scale": 1.4,
       "yawOffset": 0,
       "clips": {
@@ -99,7 +99,7 @@
       "barHeight": 2.2
     },
     "marine_acrobat": {
-      "model": "models/soldier-marine.glb",
+      "model": "models/soldier-marine-light.glb",
       "scale": 1.0,
       "yawOffset": 0,
       "clips": {

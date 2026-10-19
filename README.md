@@ -129,6 +129,7 @@ Every third-party asset is listed in `assets.toml` (name, author, source, licens
 - **Worm (enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/KiNAaBa4cK)
 - **Spaceship (used as the drone)** by Quaternius — [CC0-1.0](https://poly.pizza/m/DbGajMHrvp)
 - **Digital Camo Soldier (marine soldier and infected marine enemy)** by Meshy AI — [CC-BY-4.0](https://www.meshy.ai)
+- **Digital Camo Soldier, light copy for the horde (4,900 triangles, 512 px textures; adapted from the model above)** by Meshy AI — [CC-BY-4.0](https://www.meshy.ai)
 - **SUV (Car Kit)** by Kenney — [CC0-1.0](https://kenney.nl/assets/car-kit)
 - **Dog (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
 - **Cat (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
