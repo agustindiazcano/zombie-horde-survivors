@@ -23,7 +23,7 @@ export type SoldierOrder =
   | { type: 'board'; vehicleId: number }
   | { type: 'hold' };
 
-export type Stance = 'normal' | 'crouch' | 'sprint';
+export type Stance = 'normal' | 'walk' | 'crouch' | 'sprint';
 
 export type UnitKind = 'soldier' | 'drone';
 
@@ -405,6 +405,8 @@ export interface Input {
   /** Squad-wide stances: crouch takes priority over sprint. */
   crouch: boolean;
   sprint: boolean;
+  /** Walk instead of run (the whole squad); crouch and sprint take priority. */
+  walk?: boolean;
   /** Only the controlled soldier jumps. */
   jump: boolean;
 }

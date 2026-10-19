@@ -841,6 +841,8 @@ export const GameConfigSchema = z
         crouchSpreadScale: nonNegative,
         crouchDamageScale: positive,
         sprintSpeedScale: positive,
+        /** Walking (the walk key): slower than a run, with the walk animation. */
+        walkSpeedScale: positive,
         /** Sprinting drains stamina per second; it refills when not sprinting. */
         staminaMax: positive,
         staminaDrain: positive,

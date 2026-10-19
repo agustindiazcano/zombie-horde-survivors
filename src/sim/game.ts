@@ -105,7 +105,9 @@ export function step(
         ? 'crouch'
         : input.sprint
           ? 'sprint'
-          : 'normal';
+          : input.walk
+            ? 'walk'
+            : 'normal';
   updateSoldiers(state, config, input, dt);
   updateDrag(state, config);
   updateVehicles(state, config, input, dt);

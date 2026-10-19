@@ -120,6 +120,7 @@ export class InputController {
     // C is an alternative to Ctrl, since browsers reserve Ctrl+W and friends.
     this.current.crouch =
       k.has('ControlLeft') || k.has('ControlRight') || k.has('KeyC') || this.touchHeld.crouch;
+    this.current.walk = k.has('KeyZ');
     this.current.sprint = k.has('ShiftLeft') || k.has('ShiftRight') || this.touchHeld.sprint;
     this.current.jump = k.has('Space') || this.touchHeld.jump;
     return this.current;

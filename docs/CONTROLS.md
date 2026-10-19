@@ -17,6 +17,7 @@ You control one soldier; the rest of the squad follows and shoots on its own.
 | F                               | Melee: strike the nearest enemy in front (knife if held, else the gun's butt, else fists), shove it back and stagger it; shares the cooldown with firing and interrupts a reload. AI soldiers do it by themselves when an enemy gets very close |
 | Right mouse button (hold)       | Aim down the sights, in third and first person only: best accuracy and less recoil, walking pace only, a narrower view; sprinting, being hit, going down or changing view (T) cancels it. Settings (O) can switch it to click on / click off    |
 | Ctrl (or **C**)                 | The whole squad crouches: tighter spread, +10% damage, half speed                                                                                                                                                                               |
+| Z                               | Hold to walk: the whole squad walks at a slower pace with the walk animation (crouch and sprint win over it)                                                                                                                                    |
 | Shift                           | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                                                                                                                                            |
 | Space                           | Jump (only the soldier you control); walking into a box, it vaults up onto it (30 stamina)                                                                                                                                                      |
 | Q                               | Throw a grenade at the aim point (the cursor in top-down, the crosshair in third / first person)                                                                                                                                                |
@@ -64,17 +65,18 @@ When you take control with **Y**, only the units that were selected follow you. 
 
 ## Anywhere in a run
 
-| Key         | Action                                                                        |
-| ----------- | ----------------------------------------------------------------------------- |
-| P / Esc / I | Pause / resume and show the squad screen (bonuses, stats, units, inventories) |
-| B           | Open / close the shop (only between waves)                                    |
-| O           | Settings (graphics, lighting, FPS counter, volume)                            |
-| L           | Dark mode: dim lights and a flashlight per soldier                            |
-| F3          | Show / hide the FPS counter                                                   |
-| M           | Mute / unmute                                                                 |
-| 1 / 2 / 3   | Pick a perk while the level-up menu is open (the game is frozen until you do) |
-| R           | Restart (on the game over screen)                                             |
-| Esc         | Closes the open window first (shop, squad screen, settings), then pauses      |
+| Key                                 | Action                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| P / Esc / I                         | Pause / resume and show the squad screen (bonuses, stats, units, inventories) |
+| Pause screen, **Exit to main menu** | Button at the top-left panel: leaves the run and returns to the main menu     |
+| B                                   | Open / close the shop (only between waves)                                    |
+| O                                   | Settings (graphics, lighting, FPS counter, volume)                            |
+| L                                   | Dark mode: dim lights and a flashlight per soldier                            |
+| F3                                  | Show / hide the FPS counter                                                   |
+| M                                   | Mute / unmute                                                                 |
+| 1 / 2 / 3                           | Pick a perk while the level-up menu is open (the game is frozen until you do) |
+| R                                   | Restart (on the game over screen)                                             |
+| Esc                                 | Closes the open window first (shop, squad screen, settings), then pauses      |
 
 ## Windows and menus
 

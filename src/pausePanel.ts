@@ -26,6 +26,7 @@ export class PausePanel {
     parent: HTMLElement,
     private readonly config: GameConfig,
     private readonly onSettings: () => void,
+    private readonly onExit: () => void,
   ) {
     parent.appendChild(this.root);
   }
@@ -42,6 +43,8 @@ export class PausePanel {
     this.root.replaceChildren();
     const settings = el('button', 'pp__settings', this.root, '⚙ Settings (O)');
     settings.addEventListener('click', this.onSettings);
+    const exit = el('button', 'pp__settings', this.root, '⏏ Exit to main menu');
+    exit.addEventListener('click', this.onExit);
     this.renderPerks(state);
     this.renderStats(state);
   }

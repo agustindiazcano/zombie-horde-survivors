@@ -65,7 +65,7 @@ const PAN_SPEED = 22;
 const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Z: walk · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -129,7 +129,12 @@ async function main(): Promise<void> {
   const ui = new InventoryUi(document.body, config, () => state);
   const cratePrompt = new CratePrompt();
   const vehiclePrompt = new CratePrompt('V');
-  const pausePanel = new PausePanel(document.body, config, openSettings);
+  const pausePanel = new PausePanel(document.body, config, openSettings, () => {
+    ui.close();
+    shop.close();
+    setPaused(false);
+    menu.show();
+  });
   const radar = new Radar(document.body);
   // The pause screen lists the squad: each unit's 3D view comes from the same models as in play.
   const unitsScreen = new UnitsScreen(
@@ -538,6 +543,7 @@ async function main(): Promise<void> {
     directInput.autoTrigger = mobile;
     directInput.crouch = raw.crouch;
     directInput.sprint = raw.sprint;
+    directInput.walk = raw.walk;
     directInput.jump = raw.jump;
     return directInput;
   };
