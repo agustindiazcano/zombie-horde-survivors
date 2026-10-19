@@ -72,16 +72,19 @@
       "barHeight": 2.1
     },
     "hound": {
-      "model": "models/enemy-hound.glb",
-      "scale": 0.45,
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
       "yawOffset": 0,
       "clips": {
-        "walk": "Gallop",
+        "walk": "Unsteady_Walk",
         "attack": "Attack",
-        "death": "Death"
+        "death": "Dead"
       },
       "once": ["death"],
-      "barHeight": 1.7
+      "tint": "#a8c898",
+      "blood": 0.85,
+      "barHeight": 1.1
     },
     "brute": {
       "model": "models/soldier-marine-light.glb",

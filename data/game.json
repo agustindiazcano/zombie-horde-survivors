@@ -235,15 +235,16 @@
       "limbs": true
     },
     "hound": {
-      "name": "Hound",
-      "speedScale": 2.0,
+      "name": "Crawler marine",
+      "speedScale": 1.4,
       "healthScale": 0.5,
       "damageScale": 0.7,
       "radiusScale": 1.0,
       "weight": 3,
       "minWave": 2,
       "rewardScale": 1.0,
-      "height": 1.0
+      "limbs": true,
+      "legless": true
     },
     "marine_acrobat": {
       "name": "Acrobat marine",
@@ -394,7 +395,9 @@
     "oneArmDamage": 0.6,
     "noArmDamage": 0.35,
     "crawlSpeed": 0.35,
-    "crawlHeight": 0.45
+    "crawlHeight": 0.45,
+    "cutDamage": 60,
+    "cutChance": 0.5
   },
   "wander": {
     "noiseAttracts": false,

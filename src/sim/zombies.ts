@@ -5,7 +5,7 @@ import { ageFlow, steerTarget } from './flowfield';
 import { CELL, PointGrid } from './grid';
 import { maybeDropCrate } from './inventory';
 import { dropLoot, rewardOf } from './loot';
-import { woundLimb } from './dismember';
+import { hasLimbs, severLimb, woundLimb } from './dismember';
 import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
@@ -85,7 +85,7 @@ export function spawnZombie(
     roam: null,
     roamTimer: variant?.wander ? variant.wander.pauseMax * nextFloat(state.rng) : 0,
     restless: 0,
-    parts: { armL: true, armR: true, legs: true },
+    parts: { armL: true, armR: true, legs: !variant?.legless },
     wounds: { armL: 0, armR: 0, legs: 0 },
   };
   if (loadout) {
@@ -134,6 +134,20 @@ export function damageZombie(
   zombie.exploded = exploded;
   // A burst enemy has no death animation to wait for.
   zombie.deathTimer = exploded ? EXPLODED_LINGER : config.zombie.deathDuration;
+  // A heavy killing blow on a legged marine cuts it in two: the legs stay behind.
+  if (
+    !exploded &&
+    zone !== 'head' &&
+    zombie.parts.legs &&
+    hasLimbs(config, zombie) &&
+    amount >= config.dismember.cutDamage &&
+    nextFloat(state.rng) < config.dismember.cutChance
+  ) {
+    const away = killer
+      ? Math.atan2(zombie.pos.x - killer.pos.x, zombie.pos.z - killer.pos.z)
+      : zombie.facing + Math.PI;
+    severLimb(state, config, zombie, 'legs', away);
+  }
   state.kills++;
   if (zombie.boss) state.bossKills++;
   if (killer) {

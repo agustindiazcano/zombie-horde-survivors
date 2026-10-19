@@ -71,6 +71,10 @@ interface ZombieEntry {
 /** A legless enemy's forward pitch (radians), and how far back its body is shifted (metres). */
 const CRAWL_PITCH = 1.25;
 const CRAWL_BACK = 0.5;
+/** The crawl's drag: pulls per second (radians/s), side roll and nose dip (radians). */
+const CRAWL_RATE = 7;
+const CRAWL_ROLL = 0.12;
+const CRAWL_DIP = 0.1;
 /** Heights at which thrown limbs rest on the ground. */
 const LIMB_REST = 0.2;
 const LEG_REST = 0.35;
@@ -960,6 +964,8 @@ export class GameRenderer {
         view.setFlash?.(0);
         this.scene.add(view.object);
         entry = { poolKey, type, view, seenFrame: this.frame };
+        // Born without legs: the hips end in stumps from the first frame.
+        if (!z.parts.legs) view.removePart?.('legs', { loose: false, stump: this.goreEnabled });
         this.zombies.set(z.id, entry);
       }
       entry.seenFrame = this.frame;
@@ -980,7 +986,10 @@ export class GameRenderer {
       if (!z.parts.legs && z.state !== 'death') {
         // No legs: it drags itself along on the ground, the torso pitched forward over its hips.
         object.rotation.order = 'YXZ';
-        object.rotation.x = CRAWL_PITCH;
+        // Each pull of an arm drags the body: it rolls side to side and the nose dips.
+        const pull = Math.sin(this.clock * CRAWL_RATE + z.id * 1.7);
+        object.rotation.x = CRAWL_PITCH + pull * pull * CRAWL_DIP;
+        object.rotation.z = pull * CRAWL_ROLL;
         object.position.x -= Math.sin(z.facing) * CRAWL_BACK * z.size;
         object.position.z -= Math.cos(z.facing) * CRAWL_BACK * z.size;
       }

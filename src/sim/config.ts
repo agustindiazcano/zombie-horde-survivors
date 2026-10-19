@@ -610,6 +610,8 @@ const enemyType = z
     headshots: z.boolean().optional(),
     /** Arms and legs can be shot off (the humanoid marine variants). */
     limbs: z.boolean().optional(),
+    /** Born without legs: it crawls from the start (keeps its own speed scale). */
+    legless: z.boolean().optional(),
     /** An acrobat: while it runs at the squad it hops up and sideways every so often. */
     acrobat: z
       .object({
@@ -952,6 +954,9 @@ export const GameConfigSchema = z
         /** Without legs: the share of its speed it keeps, and its height as a fraction of standing. */
         crawlSpeed: z.number().min(0).max(1),
         crawlHeight: z.number().min(0.1).max(1),
+        /** A killing hit of at least this damage on a legged enemy cuts it in two with `cutChance`. */
+        cutDamage: positive,
+        cutChance: z.number().min(0).max(1),
       })
       .strict(),
     wander: z
