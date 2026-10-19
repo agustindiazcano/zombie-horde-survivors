@@ -234,7 +234,20 @@ export interface Zombie {
   /** Seconds a wanderer has waited after its wave finished spawning; it wakes up after a while. */
   restless: number;
   deathTimer: number;
+  /** Which limbs are still on, and the damage taken by each so far (it comes off past a threshold). */
+  parts: Parts;
+  wounds: { armL: number; armR: number; legs: number };
 }
+
+/** The limbs a marine can lose; `true` means it is still attached. */
+export interface Parts {
+  armL: boolean;
+  armR: boolean;
+  legs: boolean;
+}
+export type Limb = keyof Parts;
+/** Where a hit landed. */
+export type BodyZone = 'head' | 'torso' | 'arm' | 'leg';
 
 /** A dropped container of items on the ground. */
 export interface Crate {
@@ -292,6 +305,16 @@ export type SimEvent =
       killerId: number | null;
       /** The kind of the killing hit. */
       hit: HitKind;
+    }
+  | {
+      type: 'dismember';
+      zombieId: number;
+      enemy: string;
+      /** The limb that came off. */
+      part: Limb;
+      pos: Vec2;
+      /** Heading (radians, 0 = +z) the limb is thrown towards. */
+      dir: number;
     }
   | { type: 'pickupCollected'; kind: 'gold' | 'xp'; amount: number; pos: Vec2 }
   | { type: 'levelUp'; level: number }

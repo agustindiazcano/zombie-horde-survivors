@@ -62,6 +62,13 @@ interface ZombieEntry {
   neckSpurt?: number;
 }
 
+/** A legless enemy's forward pitch (radians), and how far back its body is shifted (metres). */
+const CRAWL_PITCH = 1.25;
+const CRAWL_BACK = 0.5;
+/** Heights at which thrown limbs rest on the ground. */
+const LIMB_REST = 0.2;
+const LEG_REST = 0.35;
+
 /** Seconds a headless body keeps spraying from the neck. */
 const NECK_SPURT_TIME = 1.2;
 
@@ -835,6 +842,8 @@ export class GameRenderer {
       } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
         const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
         this.gore.burst(e.pos.x, e.pos.z, Math.min(Math.max(size, 0.8), 1.8));
+      } else if (e.type === 'dismember') {
+        this.loseLimb(e);
       } else if (e.type === 'melee') {
         this.strikeLeft.set(e.attackerId, STRIKE_TIME);
         if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
@@ -884,9 +893,9 @@ export class GameRenderer {
   /** A killing head hit: the head bursts or flies off, and the neck sprays for a moment. */
   private loseHead(state: GameState, e: Extract<SimEvent, { type: 'zombieKilled' }>): void {
     const entry = this.zombies.get(e.id);
-    if (!entry?.view.removeHead) return;
+    if (!entry?.view.removePart) return;
     const gore = this.goreEnabled;
-    const cut = entry.view.removeHead({ loose: gore && e.head === 'fly', stump: gore });
+    const cut = entry.view.removePart('head', { loose: gore && e.head === 'fly', stump: gore });
     if (!cut || !gore) return;
     const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
     entry.neckSpurt = NECK_SPURT_TIME;
@@ -901,10 +910,33 @@ export class GameRenderer {
       this.looseParts.throw(
         cut.loose,
         new THREE.Vector3(Math.sin(away) * speed, 4 + Math.random() * 3, Math.cos(away) * speed),
+        0.12,
       );
     } else {
       this.gore.headBurst(cut.at.x, cut.at.y, cut.at.z, Math.min(Math.max(size, 0.8), 1.8));
     }
+  }
+
+  /** A limb shot off a living enemy: the stump shows and the limb flies the way it was hit. */
+  private loseLimb(e: Extract<SimEvent, { type: 'dismember' }>): void {
+    const entry = this.zombies.get(e.zombieId);
+    const cut = entry?.view.removePart?.(e.part, {
+      loose: this.goreEnabled,
+      stump: this.goreEnabled,
+    });
+    if (!cut || !this.goreEnabled) return;
+    this.gore.spurt(cut.at.x, cut.at.y, cut.at.z, e.dir, 1);
+    if (!cut.loose) return;
+    const speed = 2 + Math.random() * 3;
+    this.looseParts.throw(
+      cut.loose,
+      new THREE.Vector3(
+        Math.sin(e.dir) * speed,
+        2.5 + Math.random() * 2.5,
+        Math.cos(e.dir) * speed,
+      ),
+      e.part === 'legs' ? LEG_REST : LIMB_REST,
+    );
   }
 
   private syncZombies(state: GameState, alpha: number, dt: number): void {
@@ -938,6 +970,13 @@ export class GameRenderer {
         object.rotation.z = -z.hopSide * 2 * Math.PI * t;
       }
       object.scale.setScalar(z.size);
+      if (!z.parts.legs && z.state !== 'death') {
+        // No legs: it drags itself along on the ground, the torso pitched forward over its hips.
+        object.rotation.order = 'YXZ';
+        object.rotation.x = CRAWL_PITCH;
+        object.position.x -= Math.sin(z.facing) * CRAWL_BACK * z.size;
+        object.position.z -= Math.cos(z.facing) * CRAWL_BACK * z.size;
+      }
       object.visible = !z.exploded;
       // A sleeping wanderer strolls (roam) or stands (idle); every other state plays as it is.
       entry.view.setState(
@@ -986,7 +1025,8 @@ export class GameRenderer {
     for (const [id, entry] of this.zombies) {
       if (entry.seenFrame === this.frame) continue;
       this.scene.remove(entry.view.object);
-      entry.view.restoreHead?.();
+      entry.view.restoreParts?.();
+      entry.view.object.rotation.set(0, 0, 0);
       entry.neckSpurt = undefined;
       const pool = this.pools.get(entry.poolKey) ?? [];
       pool.push(entry.view);

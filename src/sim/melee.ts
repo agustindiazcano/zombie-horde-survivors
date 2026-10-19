@@ -92,6 +92,6 @@ export function meleeStrike(state: GameState, config: GameConfig, s: Soldier): b
   resolveStatic(target.pos, target.radius, config.arena);
   target.stagger = target.boss ? m.stagger * 0.5 : m.stagger;
   target.state = 'walk';
-  damageZombie(state, config, target, damage, s, roll.kind);
+  damageZombie(state, config, target, damage, s, roll.kind, 0, roll.zone, roll.side);
   return true;
 }

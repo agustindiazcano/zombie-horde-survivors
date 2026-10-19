@@ -40,6 +40,7 @@ export class Sfx {
   onStep(state: GameState): void {
     if (!this.ctx || this.ctx.state !== 'running') return;
     let growled = false;
+    let torn = false;
     for (const e of state.events) {
       if (e.type === 'zombieAlerted') {
         if (!growled) this.tone('sawtooth', 150, 80, 0.4, 0.12);
@@ -48,6 +49,9 @@ export class Sfx {
         const mine = e.shooterId === localPlayer(state).controlledId;
         this.shot(mine ? 1 : 0.35);
         if (e.hit) this.hitMark(e.hit.kind, mine ? 1 : 0.4);
+      } else if (e.type === 'dismember') {
+        if (!torn) this.splat();
+        torn = true;
       } else if (e.type === 'zombieKilled') {
         if (e.exploded || e.head === 'burst') this.splat();
         else this.kill();

@@ -1,15 +1,17 @@
 import type { GameConfig } from './config';
+import { hasLimbs } from './dismember';
 import { nextFloat } from './rng';
 import { skillLevel, weaponDef } from './stats';
-import type { AimLine, GameState, HitKind, Soldier, Zombie } from './types';
+import type { AimLine, BodyZone, GameState, HitKind, Soldier, Zombie } from './types';
 
 /** How a hit landed: its kind and the damage multiplier that comes with it. */
 export interface HitRoll {
   kind: HitKind;
   multiplier: number;
+  /** Where it landed; for an arm, `side` is 0 (left) or 1 (right). */
+  zone: BodyZone;
+  side: 0 | 1;
 }
-
-const BODY: HitRoll = { kind: 'body', multiplier: 1 };
 
 /** Whether an enemy has a head to hit. */
 const hasHead = (config: GameConfig, z: Zombie): boolean =>
@@ -17,7 +19,35 @@ const hasHead = (config: GameConfig, z: Zombie): boolean =>
 
 /** The enemy's standing height in metres, scaled by its size (bosses are bigger). */
 const heightOf = (config: GameConfig, z: Zombie): number =>
-  (config.enemies[z.type]?.height ?? config.hits.bodyHeight) * z.size;
+  (config.enemies[z.type]?.height ?? config.hits.bodyHeight) *
+  z.size *
+  (z.parts.legs ? 1 : config.dismember.crawlHeight);
+
+/**
+ * The body part a hit that missed the head landed on. With a hit height the legs are the lower
+ * band and the rest is the torso (with a chance of an arm); without one every part has a chance.
+ */
+function bodyZone(
+  state: GameState,
+  config: GameConfig,
+  shooter: Soldier,
+  target: Zombie,
+  at: { x: number; z: number },
+  useLine: boolean,
+): { zone: BodyZone; side: 0 | 1 } {
+  const d = config.dismember;
+  if (!hasLimbs(config, target)) return { zone: 'torso', side: 0 };
+  const side = nextFloat(state.rng) < 0.5 ? 0 : 1;
+  if (useLine && shooter.aimLine) {
+    const line = shooter.aimLine;
+    const reach = Math.hypot(at.x - line.x, at.z - line.z);
+    const h = line.height + line.slope * reach;
+    if (h < heightOf(config, target) * d.legBand) return { zone: 'leg', side };
+  } else if (target.parts.legs && nextFloat(state.rng) < d.legChance) {
+    return { zone: 'leg', side };
+  }
+  return { zone: nextFloat(state.rng) < d.armChance ? 'arm' : 'torso', side };
+}
 
 /**
  * True if the line of sight passes through the top fraction of the enemy where the bullet
@@ -71,9 +101,13 @@ export function rollHit(
 
   const headMult = head ? (sheet?.headMultiplier ?? h.headMultiplier) : 1;
   const critMult = crit ? (sheet?.critMultiplier ?? h.critMultiplier) : 1;
-  if (headMult <= 1 && critMult <= 1) return BODY;
+  // A head hit lands on the head; anything else on a body part.
+  const where = head
+    ? { zone: 'head' as const, side: 0 as const }
+    : bodyZone(state, config, shooter, target, at, allowHead);
+  if (headMult <= 1 && critMult <= 1) return { kind: 'body', multiplier: 1, ...where };
   // The higher of the two wins; a tie goes to the head.
   return headMult >= critMult
-    ? { kind: 'head', multiplier: headMult }
-    : { kind: 'crit', multiplier: critMult };
+    ? { kind: 'head', multiplier: headMult, ...where }
+    : { kind: 'crit', multiplier: critMult, ...where };
 }

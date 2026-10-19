@@ -17,16 +17,16 @@ export interface CharacterView {
   /** Raises the arms onto the held gun, 0 (the clip's pose) to 1 (aimed). Optional. */
   aim?(amount: number): void;
   /**
-   * Takes the head off: hidden, with a bloody stump when `stump` is set. With `loose` it also
-   * returns a copy of the head posed as it was, centred on `at`, for the renderer to throw.
-   * Optional; null when there was no head to take.
+   * Takes a part off ('head', 'armL', 'armR' or 'legs'): it stops being drawn, with a bloody
+   * stump when `stump` is set. With `loose` it also returns a copy of the part posed as it was,
+   * centred on `at`, for the renderer to throw. Optional; null when there was nothing to take.
    */
-  removeHead?(options: { loose: boolean; stump: boolean }): {
-    at: THREE.Vector3;
-    loose: THREE.Object3D | null;
-  } | null;
-  /** Puts the head back (a pooled view is reused by another enemy). */
-  restoreHead?(): void;
+  removePart?(
+    part: 'head' | 'armL' | 'armR' | 'legs',
+    options: { loose: boolean; stump: boolean },
+  ): { at: THREE.Vector3; loose: THREE.Object3D | null } | null;
+  /** Puts every part back (a pooled view is reused by another enemy). */
+  restoreParts?(): void;
 }
 
 export type CharacterFactory = () => CharacterView;

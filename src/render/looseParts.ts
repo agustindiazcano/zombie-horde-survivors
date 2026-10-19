@@ -13,6 +13,8 @@ interface Part {
   spin: THREE.Vector3;
   life: number;
   size: number;
+  /** Height of the part's pivot above the ground when it lies there. */
+  rest: number;
 }
 
 /** Severed body parts flying and tumbling under gravity, then fading away. */
@@ -21,7 +23,7 @@ export class LooseParts {
   private readonly parts: Part[] = [];
 
   /** Throws `object` (already placed at its start) with velocity `vel` and a random tumble. */
-  throw(object: THREE.Object3D, vel: THREE.Vector3): void {
+  throw(object: THREE.Object3D, vel: THREE.Vector3, rest = REST_HEIGHT): void {
     if (this.parts.length >= MAX_PARTS) this.remove(this.parts[0]!);
     this.group.add(object);
     this.parts.push({
@@ -34,6 +36,7 @@ export class LooseParts {
       ),
       life: LIFE,
       size: object.scale.x,
+      rest,
     });
   }
 
@@ -51,7 +54,7 @@ export class LooseParts {
       o.rotation.x += p.spin.x * dt;
       o.rotation.y += p.spin.y * dt;
       o.rotation.z += p.spin.z * dt;
-      const floor = floorAt(o.position.x, o.position.z) + REST_HEIGHT;
+      const floor = floorAt(o.position.x, o.position.z) + p.rest;
       if (o.position.y < floor) {
         o.position.y = floor;
         p.vel.y = Math.abs(p.vel.y) > 1.5 ? -p.vel.y * 0.35 : 0;

@@ -93,5 +93,15 @@ export function fireWeapon(
   });
   hearShot(state, config, origin, weapon.noise);
   if (target && roll)
-    damageZombie(state, config, target, damage, soldier, roll.kind, weapon.damage);
+    damageZombie(
+      state,
+      config,
+      target,
+      damage,
+      soldier,
+      roll.kind,
+      weapon.damage,
+      roll.zone,
+      roll.side,
+    );
 }

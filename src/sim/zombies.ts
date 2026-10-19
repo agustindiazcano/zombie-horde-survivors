@@ -5,12 +5,13 @@ import { ageFlow, steerTarget } from './flowfield';
 import { CELL, PointGrid } from './grid';
 import { maybeDropCrate } from './inventory';
 import { dropLoot, rewardOf } from './loot';
+import { woundLimb } from './dismember';
 import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
 import { wanderStep } from './wander';
 import { gunOf, weaponDef } from './stats';
-import type { GameState, HitKind, Soldier, Vehicle, Zombie } from './types';
+import type { BodyZone, GameState, HitKind, Soldier, Vehicle, Zombie } from './types';
 import { hurtVehicle, isOccupied } from './vehicles';
 import type { Vec2 } from './vec';
 
@@ -84,6 +85,8 @@ export function spawnZombie(
     roam: null,
     roamTimer: variant?.wander ? variant.wander.pauseMax * nextFloat(state.rng) : 0,
     restless: 0,
+    parts: { armL: true, armR: true, legs: true },
+    wounds: { armL: 0, armR: 0, legs: 0 },
   };
   if (loadout) {
     if (loadout.name) zombie.name = loadout.name;
@@ -116,9 +119,13 @@ export function damageZombie(
   hit: HitKind = 'body',
   /** Base damage of the weapon that struck: a strong one bursts a head, a weak one knocks it off. */
   force = 0,
+  /** Where it landed: an arm or a leg adds up towards taking that limb off. */
+  zone: BodyZone = 'torso',
+  side: 0 | 1 = 0,
 ): void {
   if (zombie.state === 'death') return;
   zombie.health -= amount;
+  woundLimb(state, config, zombie, zone, side, amount, zombie.health <= 0, killer);
   if (zombie.health > 0) return;
   zombie.health = 0;
   zombie.state = 'death';
@@ -195,7 +202,8 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
 
     if (d > reach) {
       z.state = 'walk';
-      const climb = enemy?.climber?.maxHeight ?? 0;
+      // Without legs it can no longer climb.
+      const climb = z.parts.legs ? (enemy?.climber?.maxHeight ?? 0) : 0;
       const waypoint = steerTarget(state, config, z.pos, target, climb);
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
@@ -214,7 +222,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       continue;
     }
 
-    if (!enemy?.climber) z.y = 0;
+    if (!enemy?.climber || !z.parts.legs) z.y = 0;
     z.hopLeft = 0;
     // Entering melee range starts a full cooldown, so the first hit is not instant.
     if (z.state !== 'attack') {
@@ -319,7 +327,7 @@ function separateZombies(state: GameState, config: GameConfig): void {
   }
   for (const z of zombies) {
     if (z.state === 'death') continue;
-    const climb = config.enemies[z.type]?.climber?.maxHeight ?? 0;
+    const climb = z.parts.legs ? (config.enemies[z.type]?.climber?.maxHeight ?? 0) : 0;
     resolveStatic(z.pos, z.radius, config.arena, climbFeet(climb));
   }
 }

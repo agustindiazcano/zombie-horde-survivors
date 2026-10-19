@@ -608,6 +608,8 @@ const enemyType = z
     height: positive.optional(),
     /** False for an enemy with no head to hit (a worm). */
     headshots: z.boolean().optional(),
+    /** Arms and legs can be shot off (the humanoid marine variants). */
+    limbs: z.boolean().optional(),
     /** An acrobat: while it runs at the squad it hops up and sideways every so often. */
     acrobat: z
       .object({
@@ -930,6 +932,26 @@ export const GameConfigSchema = z
       .object({
         /** A killing head hit bursts the head when the weapon's base damage is at least this; weaker weapons knock it off. */
         headBurstDamage: positive,
+        /** A hit on the torso band takes an arm instead with this chance; with no hit height (top-down, the AI, blows) a hit lands on the legs with `legChance`, else on an arm / the torso as above. */
+        armChance: z.number().min(0).max(1),
+        legChance: z.number().min(0).max(1),
+        /** With a hit height: below this fraction of the enemy's height the shot lands on the legs. */
+        legBand: z.number().min(0.1).max(0.8),
+        /** Hits on legs (or an arm) add up; at this fraction of the enemy's max health it comes off. */
+        legFraction: positive,
+        armFraction: positive,
+        /** A mini boss needs this many times more damage to lose a limb. */
+        bossResist: z.number().min(1),
+        /** A killing hit on a limb takes it off with this chance, whatever the total. */
+        killSeverChance: z.number().min(0).max(1),
+        /** Each limb of an enemy caught in a blast comes off with this chance (less at the edge). */
+        blastSeverChance: z.number().min(0).max(1),
+        /** Bite damage left with one arm and with none. */
+        oneArmDamage: z.number().min(0).max(1),
+        noArmDamage: z.number().min(0).max(1),
+        /** Without legs: the share of its speed it keeps, and its height as a fraction of standing. */
+        crawlSpeed: z.number().min(0).max(1),
+        crawlHeight: z.number().min(0.1).max(1),
       })
       .strict(),
     wander: z
