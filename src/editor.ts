@@ -1488,6 +1488,16 @@ export class Editor {
       el('span', '', row, objectiveLabel(o));
       const del = el('button', 'editor__btn', row, 'Remove');
       del.addEventListener('click', () => setObjectives(objectives.filter((_, j) => j !== i)));
+      const change = (patch: Partial<Objective>) =>
+        setObjectives(objectives.map((x, j) => (j === i ? ({ ...x, ...patch } as Objective) : x)));
+      if (o.kind === 'kills' || o.kind === 'boss') {
+        const what = o.kind === 'kills' ? '   enemies to kill' : '   mini bosses to kill';
+        this.numberRow(goals, what, o.count, 1, (v) => change({ count: Math.round(v) }));
+      } else if (o.kind === 'survive') {
+        this.numberRow(goals, '   clear wave', o.wave, 1, (v) => change({ wave: Math.round(v) }));
+      } else {
+        this.numberRow(goals, '   ring radius (m)', o.radius, 1, (v) => change({ radius: v }), 0.5);
+      }
     });
     const addGoal = (label: string, make: () => Objective) => {
       const b = el('button', 'editor__item', goals, label);

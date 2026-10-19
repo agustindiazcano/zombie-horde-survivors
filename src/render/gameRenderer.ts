@@ -635,7 +635,30 @@ export class GameRenderer {
     this.ndc.set(ndcX, ndcY);
     this.raycaster.setFromCamera(this.ndc, this.camera);
     if (!this.raycaster.ray.intersectPlane(this.groundPlane, this.hit)) return null;
-    return { x: this.hit.x, z: this.hit.z };
+    const heights = this.config.arena.terrain.heights;
+    if (!heights) return { x: this.hit.x, z: this.hit.z };
+    // Hills: walk the ray from the camera and stop where it first dips under the ground.
+    const { origin, direction } = this.raycaster.ray;
+    const reach = origin.distanceTo(this.hit) + 60;
+    const below = (d: number): boolean =>
+      origin.y + direction.y * d <
+      heightAt(heights, this.halfSize, origin.x + direction.x * d, origin.z + direction.z * d);
+    let near = 0;
+    let far = -1;
+    for (let d = 1; d <= reach; d += 1) {
+      if (below(d)) {
+        far = d;
+        break;
+      }
+      near = d;
+    }
+    if (far < 0) return { x: this.hit.x, z: this.hit.z };
+    for (let i = 0; i < 12; i++) {
+      const mid = (near + far) / 2;
+      if (below(mid)) far = mid;
+      else near = mid;
+    }
+    return { x: origin.x + direction.x * far, z: origin.z + direction.z * far };
   };
 
   private syncZombies(state: GameState, alpha: number, dt: number): void {

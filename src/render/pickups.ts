@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { GameConfig, GameState } from '../sim';
+import { heightAt, type GameConfig, type GameState } from '../sim';
 
 const BLINK_SECONDS = 6;
 
@@ -44,7 +44,13 @@ export class PickupMeshes {
         this.group.add(obj);
       }
       const bob = Math.sin(this.clock * 3 + p.id) * 0.06;
-      obj.position.set(p.pos.x, 0.5 + bob, p.pos.z);
+      const ground = heightAt(
+        config.arena.terrain.heights,
+        config.arena.halfSize,
+        p.pos.x,
+        p.pos.z,
+      );
+      obj.position.set(p.pos.x, ground + 0.5 + bob, p.pos.z);
       obj.rotation.y = this.clock * 3 + p.id;
 
       const remaining = config.loot.lifetime - p.age;
