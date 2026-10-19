@@ -3,6 +3,7 @@ import { spawnerEnemy, type GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
 import { createAnimal, updateAnimals } from './animals';
 import { updateDrag } from './drag';
+import { updateGrenades } from './grenades';
 import { updateHazards } from './hazards';
 import { updateObjectives } from './objectives';
 import { updateRevives } from './revive';
@@ -33,6 +34,8 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     vehicles: [],
     animals: [],
     nextVehicleId: 1,
+    grenades: [],
+    nextGrenadeId: 1,
     stance: 'normal',
     zombies: [],
     nextZombieId: 1,
@@ -107,6 +110,7 @@ export function step(
   updateDrag(state, config);
   updateVehicles(state, config, input, dt);
   updateRevives(state, config, dt);
+  updateGrenades(state, config, dt);
   updateHazards(state, config, dt);
   updateAnimals(state, config, dt);
   updatePickups(state, config, dt);

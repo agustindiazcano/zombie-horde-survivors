@@ -16,6 +16,7 @@ import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
 import { PickupMeshes } from './pickups';
 import { createJeep } from './vehicles';
+import { GrenadeEffects, type GrenadePreview } from './grenades';
 import { SelectionMarkers } from './markers';
 
 /** Default camera: above and behind the focus point (towards +z), at zoom 1. */
@@ -119,6 +120,10 @@ export class GameRenderer {
   /** One flashlight per soldier: a group (moved and turned with the unit) holding a spotlight. */
   private readonly flashlights = new Map<number, { group: THREE.Group; light: THREE.SpotLight }>();
   private readonly markers = new SelectionMarkers();
+  private readonly grenades = new GrenadeEffects(
+    (x, z) => this.groundAt(x, z),
+    () => this.config,
+  );
   /** Ground point the camera looks at. Pan it in RTS mode; it follows the controlled soldier. */
   readonly focus: Vec2 = { x: 0, z: 0 };
   private zoom = ZOOM_DIRECT;
@@ -193,6 +198,7 @@ export class GameRenderer {
     this.scene.add(
       this.effects.group,
       this.markers.group,
+      this.grenades.group,
       this.healthBars.group,
       this.gore.group,
       this.pickups.group,
@@ -369,6 +375,7 @@ export class GameRenderer {
     this.syncAnimals(state, alpha, dt);
     this.syncCrates(state, dt);
     this.effects.update(dt);
+    this.grenades.update(state, dt);
     this.markers.update(state, this.selection, alpha, dt);
     this.pickups.update(state, this.config, dt);
     this.gore.update(dt);
@@ -453,6 +460,11 @@ export class GameRenderer {
     const cos = Math.cos(this.yaw);
     const sin = Math.sin(this.yaw);
     return { x: x * cos + z * sin, z: -x * sin + z * cos };
+  }
+
+  /** Shows the grenade arc and landing zone while aiming in RTS mode (null hides them). */
+  setGrenadePreview(preview: GrenadePreview | null): void {
+    this.grenades.setPreview(preview);
   }
 
   /** Feedback pulse on the ground where an order was given. */
@@ -717,6 +729,9 @@ export class GameRenderer {
       } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
         const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
         this.gore.burst(e.pos.x, e.pos.z, Math.min(Math.max(size, 0.8), 1.8));
+      } else if (e.type === 'explosion') {
+        this.grenades.explode(e.pos, e.radius);
+        this.shake = Math.min(this.shake + SHOT_SHAKE * 4, MAX_SHAKE);
       } else if (e.type === 'soldierHurt' && e.soldierId === localPlayer(state).controlledId) {
         this.shake = Math.min(this.shake + HURT_SHAKE, MAX_SHAKE);
       }

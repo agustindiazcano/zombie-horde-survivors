@@ -45,6 +45,10 @@
         "weight": 1
       },
       {
+        "item": "frag_grenade",
+        "weight": 1.5
+      },
+      {
         "item": "defibrillator",
         "weight": 0.6
       }
@@ -72,6 +76,13 @@
     "deathDuration": 1.5,
     "gold": 5,
     "xp": 10
+  },
+  "grenades": {
+    "throwSpeed": 14,
+    "releaseHeight": 1.4,
+    "gravity": 20,
+    "cooldown": 0.8,
+    "friendlyFire": 0.5
   },
   "drag": {
     "range": 1.8,
@@ -369,6 +380,14 @@
         "kind": "item",
         "target": "medkit_m",
         "cost": 45
+      },
+      {
+        "id": "frag_grenade",
+        "name": "Frag grenade",
+        "description": "Adds a frag grenade to the selected unit's backpack",
+        "kind": "item",
+        "target": "frag_grenade",
+        "cost": 30
       },
       {
         "id": "defibrillator",

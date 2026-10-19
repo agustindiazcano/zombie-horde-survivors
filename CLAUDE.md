@@ -52,6 +52,7 @@ The user raised the market as a reason for decisions (the name, going public); n
 | Shift                     | Sprint (the whole squad)                                                                                     |
 | Space                     | Jump; into a box: climb onto it                                                                              |
 | G                         | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go |
+| Q                         | Throw a grenade at the aim point (Call of Duty style); in RTS mode G aims it and a click throws it           |
 | T                         | Cycle view: top-down → third person → first person                                                           |
 | Mouse wheel / right-drag  | Zoom / rotate and tilt (top-down)                                                                            |
 | E                         | Open a crate next to you                                                                                     |

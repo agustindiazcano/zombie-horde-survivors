@@ -35,8 +35,11 @@ export function itemInfo(config: GameConfig, id: string): ItemInfo {
       lines.push('Worn at once from a crate');
       break;
     case 'grenade':
-      stats = 'explosive';
-      lines.push('Thrown (throwing is not active yet)');
+      stats = `${def.blastDamage} dmg · ${def.blastRadius} m`;
+      lines.push(
+        `Thrown up to ${def.throwRange} m, blows up after ${def.fuse} s; hurts allies too`,
+        'Q in direct control · G in RTS mode, then click',
+      );
       break;
     case 'defibrillator':
       stats = 'revives';

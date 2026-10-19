@@ -151,12 +151,12 @@
       "icon": "💣",
       "stack": 4,
       "damageType": "explosive",
+      "blastRadius": 4,
+      "blastDamage": 120,
+      "falloff": 0.5,
+      "fuse": 3,
+      "throwRange": 14,
       "mocked": {
-        "blastRadius": 4,
-        "blastDamage": 120,
-        "falloff": 0.5,
-        "fuse": 3,
-        "throwRange": 14,
         "weight": 0.5
       }
     },

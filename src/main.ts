@@ -28,6 +28,7 @@ import {
   nearestCrate,
   getSoldier,
   getVehicle,
+  throwGrenade,
   toggleDrag,
   toggleVehicle,
   vehicleInReach,
@@ -59,9 +60,9 @@ const PAN_SPEED = 22;
 const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
-  'RTS · WASD pan · Click/drag select · Right-click move · F follow · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
 async function main(): Promise<void> {
   const config = parseConfig(data, parseMap(map1), units, items);
@@ -409,6 +410,7 @@ async function main(): Promise<void> {
     }
     if (perks.onKey(e.code)) return;
     if (e.code === 'KeyM') sfx.toggleMute();
+    else if (e.code === 'Escape' && rts.grenadeAiming) rts.cancelGrenadeAim();
     else if (e.code === 'Escape' && ui.isOpen) ui.close();
     else if (e.code === 'Escape' && shop.isOpen) shop.close();
     else if (e.code === 'KeyB') {
@@ -429,9 +431,19 @@ async function main(): Promise<void> {
         }
       }
     } else if (e.code === 'KeyG') {
-      // Grab a downed or dead ally by the shoulders and drag it, or let go.
+      // Direct control: grab a downed or dead ally by the shoulders and drag it, or let go.
+      // RTS: aim a grenade with the selected units (the next click throws it).
       const controlled = localPlayer(state).controlledId;
-      if (playable() && !modalOpen() && controlled !== null) toggleDrag(state, config, controlled);
+      if (playable() && !modalOpen()) {
+        if (controlled !== null) toggleDrag(state, config, controlled);
+        else if (!e.repeat) rts.toggleGrenadeAim();
+      }
+    } else if (e.code === 'KeyQ') {
+      // Direct control: lob a grenade at the aim point, like a Call of Duty frag.
+      const controlled = localPlayer(state).controlledId;
+      if (playable() && !modalOpen() && controlled !== null && !e.repeat) {
+        throwGrenade(state, config, controlled, readInput().aim);
+      }
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
       const unitId = localPlayer(state).controlledId;
@@ -538,6 +550,8 @@ async function main(): Promise<void> {
       radar.update(state, paused || modalOpen() ? 0 : frameDt);
       hud.setCrosshair(renderer.viewMode !== 'top' && localPlayer(state).controlledId !== null);
       rts.prune();
+      if (localPlayer(state).controlledId !== null || paused || modalOpen()) rts.cancelGrenadeAim();
+      renderer.setGrenadePreview(rts.grenadePreview());
       renderer.render(state, alpha, frameDt);
       fps.tick(frameDt);
 
@@ -574,7 +588,12 @@ async function main(): Promise<void> {
       const stance = state.stance === 'normal' ? '' : `  [${state.stance.toUpperCase()}]`;
       const view =
         renderer.viewMode === 'top' ? '' : `  [${renderer.viewMode.toUpperCase()} PERSON]`;
-      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view + rideHint);
+      const aimHint = rts.grenadeAiming
+        ? '  [GRENADE: click to throw · Shift+click keeps aiming · G / Esc / right-click cancels]'
+        : performance.now() < rts.noticeUntil
+          ? `  [${rts.notice}]`
+          : '';
+      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view + rideHint + aimHint);
       squad.update(state, rts.selected, maxHealthOf(state, config));
     },
   );

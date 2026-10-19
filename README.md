@@ -37,6 +37,7 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 | Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                |
 | Space             | Jump (only the soldier you control); walking into a box, it vaults up onto it (30 stamina)                          |
 | G                 | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go        |
+| Q                 | Throw a grenade at the aim point (the cursor in top-down, the crosshair in third / first person)                    |
 | T                 | Change view: normal → third person → first person → normal                                                          |
 | I                 | Squad screen: units, inventories and bonuses (pauses the game)                                                      |
 | B                 | Open / close the shop (only between waves)                                                                          |
@@ -60,20 +61,21 @@ In third and first person the cursor is locked (so you can keep turning) and W /
 
 ### RTS mode
 
-| Key / mouse              | Action                                                                                                                |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| W / A / S / D            | Pan the camera                                                                                                        |
-| Left click               | Select a soldier                                                                                                      |
-| Left-drag                | Box select (hold **Shift** to add to the selection)                                                                   |
-| Right click              | Send the selected units to that point, or into a vehicle with a free seat (a right _drag_ rotates the camera instead) |
-| F                        | Selected units follow the controlled soldier again                                                                    |
-| E                        | Select all                                                                                                            |
-| 1 – 9                    | Select a unit by number (Shift adds)                                                                                  |
-| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                                                                   |
-| Y                        | Take direct control of the first selected unit                                                                        |
-| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                                                     |
-| I                        | Squad screen (pauses the game)                                                                                        |
-| B                        | Shop (only between waves)                                                                                             |
+| Key / mouse              | Action                                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| W / A / S / D            | Pan the camera                                                                                                                        |
+| Left click               | Select a soldier                                                                                                                      |
+| Left-drag                | Box select (hold **Shift** to add to the selection)                                                                                   |
+| Right click              | Send the selected units to that point, or into a vehicle with a free seat (a right _drag_ rotates the camera instead)                 |
+| F                        | Selected units follow the controlled soldier again                                                                                    |
+| G                        | Aim a grenade: an arc and the blast zone follow the cursor, click throws it (Shift+click keeps aiming; G / Esc / right-click cancels) |
+| E                        | Select all                                                                                                                            |
+| 1 – 9                    | Select a unit by number (Shift adds)                                                                                                  |
+| Squad panel (bottom)     | Click a unit to select it; shows each unit's health                                                                                   |
+| Y                        | Take direct control of the first selected unit                                                                                        |
+| Mouse wheel / right-drag | Zoom / rotate and tilt the camera                                                                                                     |
+| I                        | Squad screen (pauses the game)                                                                                                        |
+| B                        | Shop (only between waves)                                                                                                             |
 
 When you take control with **Y**, only the units that were selected follow you. The rest hold their position (or keep their move order). Every uncontrolled unit shoots the nearest enemy it can see.
 
