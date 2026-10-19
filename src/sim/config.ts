@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { waterObstacles } from './terrain';
 
 const positive = z.number().positive();
 const nonNegative = z.number().nonnegative();
@@ -55,7 +56,10 @@ export const MapSchema = z
         size: z.object({ width: positive, depth: positive }).strict(),
       })
       .strict(),
-    /** Not read yet: height grid, water and paint arrive with the editor's terrain phase. */
+    /**
+     * `heights` is (size + 1)² vertices, one per metre; `water` a level below which ground is
+     * wet; `paint` one texture id per 1 m cell (null = the default ground).
+     */
     terrain: z
       .object({
         heights: z.array(z.array(z.number())).nullable(),
@@ -65,7 +69,17 @@ export const MapSchema = z
       .strict(),
     props: z.array(mapProp),
     /** Floors and roads (not read yet). */
-    surfaces: z.array(z.object({ asset: z.string().min(1), path: z.array(point).min(2) }).strict()),
+    surfaces: z.array(
+      z
+        .object({
+          /** Terrain texture id (data/terrain.json) the strip is drawn with. */
+          asset: z.string().min(1),
+          path: z.array(point).min(2),
+          /** Strip width in metres. */
+          width: positive.default(3),
+        })
+        .strict(),
+    ),
     players: z.array(mapPlayer),
     units: z.array(mapUnit),
     logic: z.object({ mode: z.enum(['waves', 'story']) }).strict(),
@@ -74,6 +88,14 @@ export const MapSchema = z
   .superRefine((map, ctx) => {
     if (map.meta.size.width !== map.meta.size.depth) {
       ctx.addIssue({ code: 'custom', message: 'meta.size must be square for now' });
+    }
+    const n = map.meta.size.width;
+    const { heights, paint } = map.terrain;
+    if (heights && (heights.length !== n + 1 || heights.some((r) => r.length !== n + 1))) {
+      ctx.addIssue({ code: 'custom', message: 'terrain.heights must be (size + 1) x (size + 1)' });
+    }
+    if (paint && (paint.length !== n || paint.some((r) => r.length !== n))) {
+      ctx.addIssue({ code: 'custom', message: 'terrain.paint must be size x size' });
     }
     if (map.logic.mode === 'waves') {
       for (const kind of ['human', 'ai'] as const) {
@@ -104,14 +126,23 @@ export const parseMap = (raw: unknown): MapData => MapSchema.parse(raw);
 export function arenaOf(map: MapData): Arena {
   return {
     halfSize: map.meta.size.width / 2,
-    obstacles: map.props.flatMap((p) => {
-      if (!p.collider) return [];
-      // Colliders are axis-aligned: a quarter turn swaps the sides.
-      const turned = Math.round(p.rotation / (Math.PI / 2)) % 2 !== 0;
-      const { halfW, halfD } = p.collider;
-      return [{ x: p.x, z: p.z, halfW: turned ? halfD : halfW, halfD: turned ? halfW : halfD }];
-    }),
+    terrain: map.terrain,
+    surfaces: map.surfaces,
+    obstacles: [
+      ...waterObstacles(map.terrain.heights, map.terrain.water, map.meta.size.width / 2),
+      ...propObstacles(map),
+    ],
   };
+}
+
+function propObstacles(map: MapData): Obstacle[] {
+  return map.props.flatMap((p) => {
+    if (!p.collider) return [];
+    // Colliders are axis-aligned: a quarter turn swaps the sides.
+    const turned = Math.round(p.rotation / (Math.PI / 2)) % 2 !== 0;
+    const { halfW, halfD } = p.collider;
+    return [{ x: p.x, z: p.z, halfW: turned ? halfD : halfW, halfD: turned ? halfW : halfD }];
+  });
 }
 
 /** Weapon classes: a unit earns weapon-skill XP in the class of the weapon it kills with. */
@@ -559,9 +590,21 @@ export const GameConfigSchema = z
   });
 
 /** An axis-aligned blocking box (a prop's collider placed on the map). */
-export type Obstacle = { x: number; z: number; halfW: number; halfD: number };
+export type Obstacle = {
+  x: number;
+  z: number;
+  halfW: number;
+  halfD: number;
+  /** Open water: stops walkers but not bullets. */
+  water?: boolean;
+};
 /** The playfield the sim runs on, derived from the map (see `arenaOf`). */
-export type Arena = { halfSize: number; obstacles: Obstacle[] };
+export type Arena = {
+  halfSize: number;
+  obstacles: Obstacle[];
+  terrain: MapData['terrain'];
+  surfaces: MapData['surfaces'];
+};
 /** The balance numbers of game.json plus the arena of the chosen map. */
 export type GameConfig = z.infer<typeof GameConfigSchema> & {
   arena: Arena;

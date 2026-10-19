@@ -4,6 +4,7 @@ export * from './vec';
 export * from './rng';
 export * from './config';
 export * from './collision';
+export * from './terrain';
 export * from './types';
 export { firstPlayerOf, isHostile, localPlayer } from './players';
 export { createGame, step } from './game';

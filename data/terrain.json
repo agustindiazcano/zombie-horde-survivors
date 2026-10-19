@@ -1,0 +1,19 @@
+{
+  "defaultTexture": "concrete",
+  "textures": [
+    { "id": "concrete", "name": "Concrete", "color": "#3a4750" },
+    { "id": "grass", "name": "Grass", "color": "#4f7a3a" },
+    { "id": "dirt", "name": "Dirt", "color": "#7a5c3a" },
+    { "id": "sand", "name": "Sand", "color": "#c2b280" },
+    { "id": "stone", "name": "Stone", "color": "#8a8f94" },
+    { "id": "snow", "name": "Snow", "color": "#e8eef2" }
+  ],
+  "roads": [
+    { "id": "asphalt", "name": "Asphalt", "color": "#2b2d30" },
+    { "id": "gravel", "name": "Gravel", "color": "#9a9488" },
+    { "id": "planks", "name": "Wood planks", "color": "#8a6a45" }
+  ],
+  "water": { "color": "#2a6f9e", "opacity": 0.65 },
+  "minHeight": -3,
+  "maxHeight": 6
+}
