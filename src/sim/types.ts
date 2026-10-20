@@ -471,6 +471,32 @@ export interface Animal {
   fear: Vec2 | null;
 }
 
+/** A point in 3D (metres): the sky show flies in height too. */
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** One blue light of the sky show. */
+export interface SkyLight {
+  id: number;
+  pos: Vec3;
+  prev: Vec3;
+  vel: Vec3;
+  /** `star` stands still, `wander` drifts, `plane` crosses the sky, `formation` flies over the houses. */
+  role: 'star' | 'wander' | 'plane' | 'formation';
+  /** Formation number and the light's place in the triangle (0 is the leader), for formation lights. */
+  group: number;
+  slot: number;
+  /** Seconds left of the current heading, burst or pause. */
+  timer: number;
+  /** The point above a house a formation leader is heading for, and the waypoint of its current burst. */
+  target: Vec3 | null;
+  waypoint: Vec3 | null;
+  hovering: boolean;
+}
+
 /** A celestial orb: dormant until `wake`, then it hunts civilians one by one. */
 export interface Orb {
   id: number;
@@ -516,6 +542,8 @@ export interface GameState {
   animals: Animal[];
   orbs: Orb[];
   nextOrbId: number;
+  /** The sky show's lights (empty unless the map runs it). */
+  skyLights: SkyLight[];
   /** Civilians at the start of the run, and how many were vaporised. */
   civilians: number;
   casualties: number;

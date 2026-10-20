@@ -412,3 +412,25 @@
   border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 3px;
 }
+
+.hud__subtitle {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  transform: translateX(-50%);
+  max-width: 70vw;
+  text-align: center;
+  color: #ffe34d;
+  font-size: 26px;
+  font-weight: 600;
+  text-shadow:
+    0 0 6px rgba(0, 0, 0, 0.9),
+    0 2px 2px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+.hud--cinema .hud__health,
+.hud--cinema .hud__stats,
+.hud--cinema .hud__xp {
+  display: none;
+}

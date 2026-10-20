@@ -27,6 +27,10 @@ type Patch = {
       | 'noWaves'
       | 'startGold'
       | 'startOrbs'
+      | 'skyShowOn'
+      | 'startView'
+      | 'startPitch'
+      | 'subtitles'
       | 'startStructures'
       | 'startObjects'
     >
@@ -64,6 +68,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     hazards: { ...base.hazards },
     animals: { ...base.animals },
     orbs: { ...base.orbs },
+    skyShow: { ...base.skyShow },
     drag: { ...base.drag },
     grenades: { ...base.grenades },
     ammo: { ...base.ammo },

@@ -48,6 +48,9 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
       continue;
     }
 
+    // During the sky show the neighbours stand and watch until something scares them.
+    if (config.skyShowOn && state.time < config.skyShow.calmUntil) continue;
+
     if (!a.dest) {
       a.wait -= dt;
       if (a.wait > 0) continue;

@@ -191,6 +191,26 @@
       "fearRadius": 16
     }
   },
+  "skyShow": {
+    "count": 42,
+    "formations": 4,
+    "minDistance": 320,
+    "maxDistance": 520,
+    "calmUntil": 70,
+    "wanderAt": 10,
+    "flyAt": 22,
+    "comeAt": 32,
+    "formationGap": 7,
+    "wanderSpeed": 18,
+    "planeSpeed": 130,
+    "burstSpeedMin": 60,
+    "burstSpeedMax": 150,
+    "pauseMin": 0.3,
+    "pauseMax": 1.2,
+    "hoverMin": 24,
+    "hoverMax": 40,
+    "spread": 7
+  },
   "orbs": {
     "metal_sphere": {
       "name": "Metal sphere",

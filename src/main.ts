@@ -162,6 +162,11 @@ async function main(): Promise<void> {
     (entry) => {
       loadMap(entry.map);
       hud.showBriefing(config.briefing ?? '');
+      // Some maps start in a person's eyes (the sky show looks up from the street).
+      if (config.startView && localPlayer(state).controlledId !== null) {
+        setView(config.startView);
+        renderer.setLookPitch(config.startPitch);
+      }
     },
     preview,
     openSettings,

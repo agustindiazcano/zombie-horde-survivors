@@ -158,6 +158,19 @@ const mapLogic = z
     /** No waves spawn: only the units the map places (test maps, hide and seek). */
     noWaves: z.boolean().optional(),
     startGold: nonNegative.optional(),
+    /** Runs the sky show of `skyShow` in game.json: blue lights that wander, fly and come down over the houses. */
+    skyShow: z.boolean().optional(),
+    /** The camera the run starts in, and how far up (radians) a first-person view looks. */
+    startView: z.enum(['third', 'first']).optional(),
+    startPitch: z.number().min(-1.2).max(1.4).optional(),
+    /** Yellow lines shown at the bottom of the screen, `at` seconds into the run for `duration` seconds. */
+    subtitles: z
+      .array(
+        z
+          .object({ at: nonNegative, duration: positive, text: z.string().min(1).max(160) })
+          .strict(),
+      )
+      .optional(),
     /** Celestial orbs that wake up `at` seconds into the run, by `orbs` id of game.json. */
     orbs: z
       .array(
@@ -322,13 +335,28 @@ export function arenaOf(map: MapData): Arena {
   };
 }
 
+/** Heights (m) of the shaped props, for the line of sight; the plain block uses `OBSTACLE_HEIGHT`. */
+const PROP_HEIGHTS: Record<string, number> = { house: 6, tree: 6, lamp: 5, car: 1.5 };
+
 function propObstacles(map: MapData): Obstacle[] {
   return map.props.flatMap((p) => {
     if (!p.collider) return [];
     // Colliders are axis-aligned: a quarter turn swaps the sides.
     const turned = Math.round(p.rotation / (Math.PI / 2)) % 2 !== 0;
     const { halfW, halfD } = p.collider;
-    return [{ x: p.x, z: p.z, halfW: turned ? halfD : halfW, halfD: turned ? halfW : halfD }];
+    const box: Obstacle = {
+      x: p.x,
+      z: p.z,
+      halfW: turned ? halfD : halfW,
+      halfD: turned ? halfW : halfD,
+    };
+    if (p.asset !== 'block') {
+      box.asset = p.asset;
+      box.facing = p.rotation;
+      const height = PROP_HEIGHTS[p.asset];
+      if (height) box.height = height;
+    }
+    return [box];
   });
 }
 
@@ -959,6 +987,39 @@ export const GameConfigSchema = z
         .strict(),
     ),
     /**
+     * The sky show: `count` blue lights far away, `formations` groups of three of them that later
+     * come down over the houses. Times are seconds into the run.
+     */
+    skyShow: z
+      .object({
+        count: z.number().int().positive(),
+        formations: z.number().int().nonnegative(),
+        /** Distance (metres) of the lights from the middle of the map, between these two. */
+        minDistance: positive,
+        maxDistance: positive,
+        /** Civilians stand and watch the sky until this time, unless something scares them. */
+        calmUntil: nonNegative,
+        wanderAt: nonNegative,
+        flyAt: nonNegative,
+        comeAt: nonNegative,
+        /** Seconds between one formation setting off and the next. */
+        formationGap: nonNegative,
+        wanderSpeed: positive,
+        /** Speed (m/s) of the lights that cross the sky in a straight line, like aircraft. */
+        planeSpeed: positive,
+        /** Speed range (m/s) of a formation's bursts, and the pause between bursts (seconds). */
+        burstSpeedMin: positive,
+        burstSpeedMax: positive,
+        pauseMin: nonNegative,
+        pauseMax: nonNegative,
+        /** Height (m) above the ground where a formation hovers over a house, between these two. */
+        hoverMin: positive,
+        hoverMax: positive,
+        /** Distance (m) between the three lights of a formation. */
+        spread: positive,
+      })
+      .strict(),
+    /**
      * Celestial orbs by id. A `metal` sphere picks a civilian, appears beside its head without a
      * sound, charges and vaporises it, then picks the next one.
      */
@@ -1337,6 +1398,10 @@ export type Obstacle = {
   height?: number;
   /** Bullets cross it (a low sandbag wall, wire). */
   passShots?: boolean;
+  /** The prop it comes from ("house", "tree"...): the renderer draws that shape instead of a plain box. */
+  asset?: string;
+  /** The way the prop faces (radians, 0 is +Z): a house's door, the lean of a lamp. */
+  facing?: number;
   /** Set when a built structure makes this box; its path cost (cells) replaces a hard block for enemies. */
   structure?: { id: number; breakCost: number };
 };
@@ -1370,6 +1435,11 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   startGold: number;
   /** Orbs that wake up during the run. */
   startOrbs: NonNullable<MapLogic['orbs']>;
+  /** The sky show is on, the camera the run starts in, its first-person pitch and the subtitles. */
+  skyShowOn: boolean;
+  startView: 'third' | 'first' | undefined;
+  startPitch: number;
+  subtitles: NonNullable<MapLogic['subtitles']>;
   /** Structures that stand from the start. */
   startStructures: NonNullable<MapLogic['structures']>;
   /** Objects that lie on the ground from the start. */
@@ -1419,6 +1489,10 @@ type MapRules = Pick<
   | 'noWaves'
   | 'startGold'
   | 'startOrbs'
+  | 'skyShowOn'
+  | 'startView'
+  | 'startPitch'
+  | 'subtitles'
   | 'startStructures'
   | 'startObjects'
 >;
@@ -1469,6 +1543,10 @@ export function mapRules(
     noWaves: logic.noWaves ?? false,
     startGold: logic.startGold ?? 0,
     startOrbs: logic.orbs ?? [],
+    skyShowOn: logic.skyShow ?? false,
+    startView: logic.startView,
+    startPitch: logic.startPitch ?? 0,
+    subtitles: logic.subtitles ?? [],
     startStructures: logic.structures ?? [],
     startObjects: logic.objects ?? [],
   };

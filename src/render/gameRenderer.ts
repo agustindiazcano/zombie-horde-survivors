@@ -15,7 +15,9 @@ import { buildArena } from './arena';
 import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
 import { Gore } from './gore';
+import { StreetLights } from './neighbourhood';
 import { OrbViews } from './orbs';
+import { SkyLightViews } from './skyLights';
 import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
@@ -113,6 +115,8 @@ const CROUCH_EYE_DROP = 0.45;
  */
 const LOOK_SENSITIVITY = 0.0022;
 const MAX_LOOK_PITCH = 1.2;
+/** How far (radians) a neighbour watching the sky leans back. */
+const WATCH_LEAN = 0.2;
 /** Camera shake is only a light tremor in person views; big jolts feel like glitches. */
 const PERSON_SHAKE_SCALE = 0.12;
 /** How fast a model's drawn heading catches up with the simulated one (1/s). */
@@ -206,6 +210,8 @@ export class GameRenderer {
   private fireViews!: FireViews;
   private readonly gore = new Gore();
   private readonly orbViews: OrbViews;
+  private readonly skyLights = new SkyLightViews();
+  private readonly streetLights: StreetLights;
   private readonly looseParts = new LooseParts();
   private readonly pickups = new PickupMeshes();
   /** Remaining hit-flash time per enemy id. */
@@ -257,6 +263,8 @@ export class GameRenderer {
     this.droneHeight = config.drone.height;
     this.objectViews = new ObjectViews(config, (x, z) => this.groundAt(x, z));
     this.orbViews = new OrbViews((x, z) => this.groundAt(x, z));
+    this.streetLights = new StreetLights(this.scene);
+    this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
     this.fireViews = new FireViews(config, (x, z) => this.groundAt(x, z));
     this.structureViews = new StructureViews(
       config,
@@ -273,6 +281,7 @@ export class GameRenderer {
       this.fireViews.group,
       this.gore.group,
       this.orbViews.group,
+      this.skyLights.group,
       this.looseParts.group,
       this.pickups.group,
     );
@@ -306,6 +315,7 @@ export class GameRenderer {
     for (const view of this.animals.values()) this.scene.remove(view.object);
     this.animals.clear();
     this.orbViews.clear();
+    this.skyLights.clear();
     this.soldiers.clear();
     this.flashlights.clear();
     this.zombies.clear();
@@ -434,6 +444,7 @@ export class GameRenderer {
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.dispose();
     });
     this.arenaGroup = buildArena(arena);
+    this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
     this.scene.add(this.arenaGroup);
     this.halfSize = arena.halfSize;
     const cam = this.sun.shadow.camera;
@@ -463,6 +474,8 @@ export class GameRenderer {
     this.fireViews.group.visible = !state.sandbox;
     this.syncAnimals(state, alpha, dt);
     this.orbViews.update(state, this.config, alpha, dt, this.clock);
+    this.skyLights.update(state, alpha, this.clock);
+    this.streetLights.update(this.camera.position, dt);
     this.syncCrates(state, dt);
     this.effects.update(dt);
     this.grenades.update(state, dt);
@@ -549,6 +562,11 @@ export class GameRenderer {
       Math.max(this.lookPitch - dy * LOOK_SENSITIVITY, -MAX_LOOK_PITCH),
       MAX_LOOK_PITCH,
     );
+  }
+
+  /** Points a first or third person view up (positive) or down at `pitch` radians. */
+  setLookPitch(pitch: number): void {
+    this.lookPitch = Math.min(Math.max(pitch, -MAX_LOOK_PITCH), MAX_LOOK_PITCH);
   }
 
   /** The camera's line of sight in a person view (null in top-down): where a shot lands in height. */
@@ -736,7 +754,12 @@ export class GameRenderer {
       const x = lerp(a.prev.x, a.pos.x, alpha);
       const z = lerp(a.prev.z, a.pos.z, alpha);
       view.object.position.set(x, this.groundAt(x, z), z);
+      view.object.rotation.order = 'YXZ';
       view.object.rotation.y = a.facing;
+      // Neighbours watching the sky lean back a little.
+      const watching =
+        this.config.skyShowOn && a.panic <= 0 && state.time < this.config.skyShow.calmUntil;
+      view.object.rotation.x = watching ? -WATCH_LEAN : 0;
       view.setState(a.panic > 0 ? 'run' : a.dest ? 'walk' : 'idle');
       view.update(dt);
     }
