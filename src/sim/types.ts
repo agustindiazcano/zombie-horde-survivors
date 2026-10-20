@@ -435,6 +435,7 @@ export type SimEvent =
   | { type: 'reloadStarted'; soldierId: number }
   | { type: 'grenadeThrown'; throwerId: number }
   | { type: 'explosion'; pos: Vec2; radius: number }
+  | { type: 'vaporised'; pos: Vec2 }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
   | { type: 'zombieAlerted'; id: number; pos: Vec2 }
@@ -465,6 +466,27 @@ export interface Animal {
   dest: Vec2 | null;
   /** Seconds left to stand still before choosing a new spot. */
   wait: number;
+  /** Seconds left of a panic run (civilians only), and the point it runs away from. */
+  panic: number;
+  fear: Vec2 | null;
+}
+
+/** A celestial orb: dormant until `wake`, then it hunts civilians one by one. */
+export interface Orb {
+  id: number;
+  /** Key of `orbs` in game.json. */
+  type: string;
+  pos: Vec2;
+  prev: Vec2;
+  /** Seconds into the run when it wakes up. */
+  wake: number;
+  phase: 'dormant' | 'seek' | 'charge' | 'cool';
+  /** Seconds left in the current phase. */
+  timer: number;
+  /** The animal id it is after, or null. */
+  targetId: number | null;
+  /** Where its ray points while it charges. */
+  aim: Vec2 | null;
 }
 
 export interface GameState {
@@ -492,6 +514,11 @@ export interface GameState {
   grenades: Grenade[];
   nextGrenadeId: number;
   animals: Animal[];
+  orbs: Orb[];
+  nextOrbId: number;
+  /** Civilians at the start of the run, and how many were vaporised. */
+  civilians: number;
+  casualties: number;
   /** How the whole squad is moving/shooting, set by the controlled player's keys. */
   stance: Stance;
   zombies: Zombie[];

@@ -32,6 +32,8 @@ Only what is still open: read this first in every session. When an item here is 
 
 Also on that branch (later the same day): liftable and throwable objects, carrying bodies, spreading fire and barrels (Map 5, the interaction lab), soldier training with classes (the squad screen's Training box) and the title-screen carousel. [Worklog](docs/worklog/2026-10-19-interaction-and-training.md). Decisions the user gave: the carousel as recommended; a soldier's level gives points for stamina, strength, dexterity, weapon expertise and special bonuses, with a class (engineer, medic, demolitions...) chosen per soldier.
 
+Merged since: PR #53 (`feat/build-mode`) is in `main` (`0e14a2e`). Now on branch `feat/celestial-event-3` (not pushed, no PR): the plan [PLAN-celestial-event-3.md](docs/PLAN-celestial-event-3.md) and steps E0 to E2 (Map 6, civilians, the metal sphere; [worklog](docs/worklog/2026-10-20-celestial-event-3-e0-e2.md)). The user gave the go-ahead with placeholders; asset downloads (Kenney, grey alien) still need their OK.
+
 ## Open items (details in PENDING.md)
 
 - 🔴 The user has to look at the live game and report what looks or feels wrong (PENDING §0).

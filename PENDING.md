@@ -105,7 +105,9 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 Full plan and story: [docs/PLAN-celestial-event-3.md](docs/PLAN-celestial-event-3.md). A cinematic intro seen through a UMBRA drone (blackout, light orbs, metal spheres that vaporise people, a mother sphere that abducts, greys with a paralysing staff), then hide and seek. Placeholders first (existing models, procedural orbs, box houses); Kenney City Kit and a grey alien only after the licence check.
 
 - [ ] 🟡 Answer section 7 of the plan (who the player is after the intro, codename vs. level IV, civilians, UMBRA as a second threat, asset downloads).
-- [ ] 🔴 E0 Map 6 shell, E1 civilians, E2 metal sphere; then E3 event script, E4 cinematic camera, E5 mother sphere and greys, E6 playable hide and seek.
+- [x] E0 Map 6 shell, E1 civilians, E2 metal sphere built ([worklog](docs/worklog/2026-10-20-celestial-event-3-e0-e2.md)).
+- [ ] 🔴 Look at Map 6 in the browser (Start > Single Player > Waves > Map 6): night light, civilians, the sphere, ray, flash and ash.
+- [ ] 🟡 Next: E3 event script, E4 cinematic camera, E5 mother sphere and greys, E6 playable hide and seek.
 
 ### 2i — 🟡 Test maps, doors, interiors, urban maps, engine (planned 2026-10-19)
 

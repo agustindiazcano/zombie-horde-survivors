@@ -1,0 +1,406 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "map-6",
+    "name": "Map 6 - Celestial Event III",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-20",
+    "updated": "2026-10-20",
+    "size": {
+      "width": 130,
+      "depth": 130
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "surfaces": [],
+  "props": [
+    {
+      "asset": "block",
+      "x": -48,
+      "z": -20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -51,
+      "z": 20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -24,
+      "z": -20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -21,
+      "z": 20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 0,
+      "z": -20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -3,
+      "z": 20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 24,
+      "z": -20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 27,
+      "z": 20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 48,
+      "z": -20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 45,
+      "z": 20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 5,
+        "halfD": 4.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -30,
+      "z": -12,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 0.4
+      }
+    },
+    {
+      "asset": "block",
+      "x": 6,
+      "z": -12,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 0.4
+      }
+    },
+    {
+      "asset": "block",
+      "x": 30,
+      "z": 12,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 0.4
+      }
+    },
+    {
+      "asset": "block",
+      "x": -14,
+      "z": 4,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.2,
+        "halfD": 1.0
+      }
+    },
+    {
+      "asset": "block",
+      "x": 28,
+      "z": -5,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.2,
+        "halfD": 1.0
+      }
+    },
+    {
+      "asset": "block",
+      "x": -58,
+      "z": 0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 12
+      }
+    },
+    {
+      "asset": "block",
+      "x": 58,
+      "z": 0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 12
+      }
+    }
+  ],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The visitors",
+      "kind": "ai",
+      "team": 1,
+      "color": "#9fd8ff"
+    }
+  ],
+  "units": [
+    {
+      "type": "marine1",
+      "x": 0,
+      "z": 8,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "civilian_m",
+      "x": -40,
+      "z": -4,
+      "owner": "p1",
+      "rotation": 4.98
+    },
+    {
+      "type": "civilian_f",
+      "x": -34,
+      "z": 3,
+      "owner": "p1",
+      "rotation": 5.16
+    },
+    {
+      "type": "civilian_m2",
+      "x": -26,
+      "z": -6,
+      "owner": "p1",
+      "rotation": 3.05
+    },
+    {
+      "type": "civilian_f2",
+      "x": -18,
+      "z": 6,
+      "owner": "p1",
+      "rotation": 1.64
+    },
+    {
+      "type": "civilian_m",
+      "x": -8,
+      "z": -3,
+      "owner": "p1",
+      "rotation": 0.0
+    },
+    {
+      "type": "civilian_f",
+      "x": 2,
+      "z": 3,
+      "owner": "p1",
+      "rotation": 4.16
+    },
+    {
+      "type": "civilian_m2",
+      "x": 10,
+      "z": -6,
+      "owner": "p1",
+      "rotation": 2.95
+    },
+    {
+      "type": "civilian_f2",
+      "x": 16,
+      "z": 5,
+      "owner": "p1",
+      "rotation": 4.77
+    },
+    {
+      "type": "civilian_m",
+      "x": 24,
+      "z": -3,
+      "owner": "p1",
+      "rotation": 2.34
+    },
+    {
+      "type": "civilian_f",
+      "x": 32,
+      "z": 4,
+      "owner": "p1",
+      "rotation": 4.84
+    },
+    {
+      "type": "civilian_m2",
+      "x": 40,
+      "z": -5,
+      "owner": "p1",
+      "rotation": 1.71
+    },
+    {
+      "type": "civilian_f2",
+      "x": -44,
+      "z": 8,
+      "owner": "p1",
+      "rotation": 5.04
+    },
+    {
+      "type": "civilian_m",
+      "x": 46,
+      "z": 6,
+      "owner": "p1",
+      "rotation": 4.58
+    },
+    {
+      "type": "civilian_f",
+      "x": -2,
+      "z": -10,
+      "owner": "p1",
+      "rotation": 2.6
+    },
+    {
+      "type": "civilian_m2",
+      "x": 20,
+      "z": 10,
+      "owner": "p1",
+      "rotation": 3.38
+    },
+    {
+      "type": "civilian_f2",
+      "x": -22,
+      "z": 14,
+      "owner": "p1",
+      "rotation": 4.28
+    },
+    {
+      "type": "civilian_m",
+      "x": 36,
+      "z": -14,
+      "owner": "p1",
+      "rotation": 1.21
+    },
+    {
+      "type": "civilian_f",
+      "x": -36,
+      "z": -14,
+      "owner": "p1",
+      "rotation": 3.48
+    }
+  ],
+  "logic": {
+    "mode": "waves",
+    "noWaves": true,
+    "boss": {
+      "enabled": false
+    },
+    "orbs": [
+      {
+        "type": "metal_sphere",
+        "x": -60,
+        "z": -8,
+        "at": 12
+      },
+      {
+        "type": "metal_sphere",
+        "x": 60,
+        "z": 8,
+        "at": 26
+      }
+    ]
+  },
+  "environment": {
+    "sky": true,
+    "timeOfDay": 1.5,
+    "sun": false,
+    "moon": true,
+    "clouds": 0.08,
+    "fog": 0.12
+  }
+}

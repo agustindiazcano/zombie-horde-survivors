@@ -149,6 +149,61 @@
       "wanderRadius": 4,
       "pauseMin": 2,
       "pauseMax": 7
+    },
+    "civilian_m": {
+      "name": "Neighbour (man)",
+      "speed": 1.1,
+      "radius": 0.4,
+      "wanderRadius": 5,
+      "pauseMin": 2,
+      "pauseMax": 8,
+      "panicSpeed": 5.2,
+      "fearRadius": 16
+    },
+    "civilian_f": {
+      "name": "Neighbour (woman)",
+      "speed": 1.1,
+      "radius": 0.4,
+      "wanderRadius": 5,
+      "pauseMin": 2,
+      "pauseMax": 8,
+      "panicSpeed": 5.2,
+      "fearRadius": 16
+    },
+    "civilian_m2": {
+      "name": "Neighbour (man, jacket)",
+      "speed": 1.1,
+      "radius": 0.4,
+      "wanderRadius": 5,
+      "pauseMin": 2,
+      "pauseMax": 8,
+      "panicSpeed": 5.2,
+      "fearRadius": 16
+    },
+    "civilian_f2": {
+      "name": "Neighbour (woman, jacket)",
+      "speed": 1.1,
+      "radius": 0.4,
+      "wanderRadius": 5,
+      "pauseMin": 2,
+      "pauseMax": 8,
+      "panicSpeed": 5.2,
+      "fearRadius": 16
+    }
+  },
+  "orbs": {
+    "metal_sphere": {
+      "name": "Metal sphere",
+      "kind": "metal",
+      "height": 1.9,
+      "appearDelay": 2.5,
+      "appearDistance": 1.2,
+      "chargeTime": 0.7,
+      "cooldown": 1.2,
+      "chaseSpeed": 16,
+      "panicRadius": 22,
+      "radius": 0.35,
+      "color": "#c9d2da"
     }
   },
   "hazards": {

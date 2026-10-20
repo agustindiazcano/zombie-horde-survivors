@@ -15,6 +15,7 @@ import { buildArena } from './arena';
 import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
 import { Gore } from './gore';
+import { OrbViews } from './orbs';
 import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
@@ -204,6 +205,7 @@ export class GameRenderer {
   private objectViews!: ObjectViews;
   private fireViews!: FireViews;
   private readonly gore = new Gore();
+  private readonly orbViews: OrbViews;
   private readonly looseParts = new LooseParts();
   private readonly pickups = new PickupMeshes();
   /** Remaining hit-flash time per enemy id. */
@@ -254,6 +256,7 @@ export class GameRenderer {
     this.halfSize = config.arena.halfSize;
     this.droneHeight = config.drone.height;
     this.objectViews = new ObjectViews(config, (x, z) => this.groundAt(x, z));
+    this.orbViews = new OrbViews((x, z) => this.groundAt(x, z));
     this.fireViews = new FireViews(config, (x, z) => this.groundAt(x, z));
     this.structureViews = new StructureViews(
       config,
@@ -269,6 +272,7 @@ export class GameRenderer {
       this.objectViews.group,
       this.fireViews.group,
       this.gore.group,
+      this.orbViews.group,
       this.looseParts.group,
       this.pickups.group,
     );
@@ -301,6 +305,7 @@ export class GameRenderer {
     this.fireViews.clear();
     for (const view of this.animals.values()) this.scene.remove(view.object);
     this.animals.clear();
+    this.orbViews.clear();
     this.soldiers.clear();
     this.flashlights.clear();
     this.zombies.clear();
@@ -457,6 +462,7 @@ export class GameRenderer {
     if (this.fireMarkers) this.fireMarkers.visible = state.sandbox;
     this.fireViews.group.visible = !state.sandbox;
     this.syncAnimals(state, alpha, dt);
+    this.orbViews.update(state, this.config, alpha, dt, this.clock);
     this.syncCrates(state, dt);
     this.effects.update(dt);
     this.grenades.update(state, dt);
@@ -731,7 +737,7 @@ export class GameRenderer {
       const z = lerp(a.prev.z, a.pos.z, alpha);
       view.object.position.set(x, this.groundAt(x, z), z);
       view.object.rotation.y = a.facing;
-      view.setState(a.dest ? 'walk' : 'idle');
+      view.setState(a.panic > 0 ? 'run' : a.dest ? 'walk' : 'idle');
       view.update(dt);
     }
     for (const [id, view] of this.animals) {
@@ -900,6 +906,8 @@ export class GameRenderer {
         if (e.attackerId === localPlayer(state).controlledId) {
           this.shake = Math.min(this.shake + SHOT_SHAKE * 2, MAX_SHAKE);
         }
+      } else if (e.type === 'vaporised') {
+        this.orbViews.vaporise(e.pos);
       } else if (e.type === 'explosion') {
         this.grenades.explode(e.pos, e.radius);
         this.shake = Math.min(this.shake + SHOT_SHAKE * 4, MAX_SHAKE);

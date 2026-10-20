@@ -21,7 +21,14 @@ type Patch = {
   [
     K in Exclude<
       keyof GameConfig,
-      'items' | 'briefing' | 'build' | 'noWaves' | 'startGold' | 'startStructures' | 'startObjects'
+      | 'items'
+      | 'briefing'
+      | 'build'
+      | 'noWaves'
+      | 'startGold'
+      | 'startOrbs'
+      | 'startStructures'
+      | 'startObjects'
     >
   ]?: Partial<GameConfig[K]>;
 } & {
@@ -56,6 +63,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     objects: { ...base.objects, types: { ...base.objects.types } },
     hazards: { ...base.hazards },
     animals: { ...base.animals },
+    orbs: { ...base.orbs },
     drag: { ...base.drag },
     grenades: { ...base.grenades },
     ammo: { ...base.ammo },

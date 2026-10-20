@@ -158,6 +158,14 @@ const mapLogic = z
     /** No waves spawn: only the units the map places (test maps, hide and seek). */
     noWaves: z.boolean().optional(),
     startGold: nonNegative.optional(),
+    /** Celestial orbs that wake up `at` seconds into the run, by `orbs` id of game.json. */
+    orbs: z
+      .array(
+        z
+          .object({ type: z.string().min(1), x: z.number(), z: z.number(), at: nonNegative })
+          .strict(),
+      )
+      .optional(),
     /** Objects lying on the ground from the start (barrels, crates, boulders), by `objects.types` id. */
     objects: z
       .array(z.object({ type: z.string().min(1), x: z.number(), z: z.number() }).strict())
@@ -944,6 +952,38 @@ export const GameConfigSchema = z
           /** Seconds it stands still between walks, chosen between these two. */
           pauseMin: nonNegative,
           pauseMax: nonNegative,
+          /** Civilians run from orbs: the speed of the panic run and how far (metres) an orb scares them. */
+          panicSpeed: positive.optional(),
+          fearRadius: positive.optional(),
+        })
+        .strict(),
+    ),
+    /**
+     * Celestial orbs by id. A `metal` sphere picks a civilian, appears beside its head without a
+     * sound, charges and vaporises it, then picks the next one.
+     */
+    orbs: z.record(
+      z.string(),
+      z
+        .object({
+          name: z.string().min(1),
+          kind: z.enum(['metal']),
+          /** Hover height (metres). */
+          height: positive,
+          /** Seconds from waking up (and after each kill) to appearing beside the next target. */
+          appearDelay: nonNegative,
+          /** Distance (metres) from the target's head where it appears and stays. */
+          appearDistance: positive,
+          /** Seconds between appearing and firing the ray. */
+          chargeTime: positive,
+          /** Seconds of rest after a kill. */
+          cooldown: nonNegative,
+          /** Speed (m/s) at which it keeps up with a target that runs. */
+          chaseSpeed: positive,
+          /** Civilians within this distance (metres) of a kill panic. */
+          panicRadius: positive,
+          radius: positive,
+          color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
         })
         .strict(),
     ),
@@ -1328,6 +1368,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   build: boolean;
   noWaves: boolean;
   startGold: number;
+  /** Orbs that wake up during the run. */
+  startOrbs: NonNullable<MapLogic['orbs']>;
   /** Structures that stand from the start. */
   startStructures: NonNullable<MapLogic['structures']>;
   /** Objects that lie on the ground from the start. */
@@ -1376,6 +1418,7 @@ type MapRules = Pick<
   | 'build'
   | 'noWaves'
   | 'startGold'
+  | 'startOrbs'
   | 'startStructures'
   | 'startObjects'
 >;
@@ -1425,6 +1468,7 @@ export function mapRules(
     build: logic.build ?? false,
     noWaves: logic.noWaves ?? false,
     startGold: logic.startGold ?? 0,
+    startOrbs: logic.orbs ?? [],
     startStructures: logic.structures ?? [],
     startObjects: logic.objects ?? [],
   };

@@ -230,6 +230,22 @@
         {
           "id": "cat",
           "name": "Cat"
+        },
+        {
+          "id": "civilian_m",
+          "name": "Neighbour (man)"
+        },
+        {
+          "id": "civilian_f",
+          "name": "Neighbour (woman)"
+        },
+        {
+          "id": "civilian_m2",
+          "name": "Neighbour (man, jacket)"
+        },
+        {
+          "id": "civilian_f2",
+          "name": "Neighbour (woman, jacket)"
         }
       ]
     }

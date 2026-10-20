@@ -63,6 +63,7 @@ export class Hud {
   private readonly healthFill: HTMLElement;
   private readonly wave: HTMLElement;
   private readonly kills: HTMLElement;
+  private readonly casualties: HTMLElement;
   private readonly gold: HTMLElement;
   private readonly level: HTMLElement;
   private readonly xpFill: HTMLElement;
@@ -86,6 +87,7 @@ export class Hud {
     health: -1,
     wave: -1,
     kills: -1,
+    casualties: -1,
     over: false,
     objectives: '',
     countdown: '',
@@ -109,6 +111,7 @@ export class Hud {
     const stats = el('div', 'hud__stats', root);
     this.wave = el('span', '', stats);
     this.kills = el('span', '', stats);
+    this.casualties = el('span', 'hud__casualties', stats);
     this.gold = el('span', 'hud__gold', stats);
     this.level = el('span', 'hud__level', stats);
     this.xpFill = el('div', 'hud__xp-fill', el('div', 'hud__xp', root));
@@ -142,6 +145,7 @@ export class Hud {
       health: -1,
       wave: -1,
       kills: -1,
+      casualties: -1,
       over: false,
       objectives: '',
       countdown: '',
@@ -255,6 +259,12 @@ export class Hud {
       this.shown.kills = state.kills;
       this.kills.textContent = `Kills ${state.kills}`;
     }
+
+    if (state.civilians > 0 && state.casualties !== this.shown.casualties) {
+      this.shown.casualties = state.casualties;
+      this.casualties.textContent = `CIVILIAN CASUALTIES: ${state.casualties} / ${state.civilians}`;
+    }
+    this.kills.style.display = state.civilians > 0 ? 'none' : '';
 
     if (state.gold !== this.shown.gold) {
       this.shown.gold = state.gold;

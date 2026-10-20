@@ -17,6 +17,8 @@ export function createAnimal(id: number, type: string, pos: Vec2, facing = 0): A
     home: { ...pos },
     dest: null,
     wait: 1,
+    panic: 0,
+    fear: null,
   };
 }
 
@@ -30,6 +32,21 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
     if (!def) continue;
     a.prev.x = a.pos.x;
     a.prev.z = a.pos.z;
+
+    // A panicking civilian runs straight away from what scared it and forgets the stroll.
+    if (a.panic > 0 && a.fear) {
+      a.panic -= dt;
+      a.dest = null;
+      const dx = a.pos.x - a.fear.x;
+      const dz = a.pos.z - a.fear.z;
+      const d = Math.hypot(dx, dz) || 1;
+      a.facing = Math.atan2(dx, dz);
+      const step = (def.panicSpeed ?? def.speed) * dt;
+      a.pos.x += (dx / d) * step;
+      a.pos.z += (dz / d) * step;
+      resolveStatic(a.pos, def.radius, config.arena);
+      continue;
+    }
 
     if (!a.dest) {
       a.wait -= dt;

@@ -2,6 +2,7 @@ import { FIXED_DT } from './constants';
 import { spawnerEnemy, type GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
 import { createAnimal, updateAnimals } from './animals';
+import { createOrbs, updateOrbs } from './orbs';
 import { updateDrag } from './drag';
 import { updateGrenades } from './grenades';
 import { updateHazards } from './hazards';
@@ -35,6 +36,10 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     nextSoldierId: soldiers.length + 1,
     vehicles: [],
     animals: [],
+    orbs: [],
+    nextOrbId: 1,
+    civilians: 0,
+    casualties: 0,
     nextVehicleId: 1,
     structures: [],
     nextStructureId: 1,
@@ -80,6 +85,8 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
       state.animals.push(createAnimal(state.animals.length + 1, u.type, u, u.rotation));
     }
   }
+  state.civilians = state.animals.filter((a) => config.animals[a.type]?.fearRadius).length;
+  createOrbs(state, config);
   // Enemies placed in the editor stand waiting from the start.
   const aiId = firstPlayerOf(config.players, 'ai');
   for (const u of config.placed) {
@@ -127,6 +134,7 @@ export function step(
   updateHazards(state, config, dt);
   updateStructures(state, config, dt);
   updateAnimals(state, config, dt);
+  updateOrbs(state, config, dt);
   updatePickups(state, config, dt);
   if (!state.sandbox && !config.noWaves) updateWaves(state, config, dt);
   updateZombies(state, config, dt);

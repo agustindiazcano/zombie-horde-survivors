@@ -216,6 +216,13 @@
   pointer-events: none;
 }
 
+.hud__casualties {
+  color: #9fd8ff;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+}
+
 .hud__gold {
   color: #ffc83d;
 }
