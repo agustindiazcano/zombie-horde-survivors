@@ -30,7 +30,7 @@ The user asked for Map 6 to open as a scene: the player is an unarmed neighbour 
 | People watching | Civilians stand still and lean back until `skyShow.calmUntil` (90 s)                                                                                                                                                                                        | `src/sim/animals.ts`, `syncAnimals`                                                          |
 | Subtitles       | Yellow lines at the bottom (map rule `subtitles`: `at`, `duration`, `text`); the health, wave and gold readouts are hidden while a sky show runs                                                                                                            | `src/hud.ts`, `src/hud.css`                                                                  |
 
-To look at: lamp brightness (`LAMP_INTENSITY`, `LAMP_RANGE`), glow size (`GLOW_SIZE`), the lean (`WATCH_LEAN`), the timeline numbers in `skyShow`, the subtitle times, whether the flashlight cone of the night mode shows on the unarmed marine. The metal sphere is no longer in this map (it comes back after the show). Re-generate the map with the script if the layout changes (it is not kept in the repo).
+To look at: lamp brightness (`LAMP_INTENSITY`, `LAMP_RANGE`), glow size (`GLOW_SIZE`), the lean (`WATCH_LEAN`), the timeline numbers in `skyShow`, the subtitle times, whether the flashlight cone of the night mode shows on the unarmed marine. The metal sphere is no longer in this map (it comes back after the show). Re-generate the map with `python scripts/gen-map6.py .` if the layout changes.
 
 ## E3 (second part): scouts, blackout, abduction and hunters (same day)
 
