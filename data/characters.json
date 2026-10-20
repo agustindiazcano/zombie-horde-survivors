@@ -238,6 +238,64 @@
         "walk": "CatArmature|CatArmature|Walking"
       },
       "once": []
+    },
+    "civilian_m": {
+      "model": "models/soldier-quaternius-male.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run"
+      },
+      "once": []
+    },
+    "civilian_f": {
+      "model": "models/soldier-quaternius-female.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run"
+      },
+      "once": []
+    },
+    "civilian_m2": {
+      "model": "models/soldier-quaternius-male.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run"
+      },
+      "once": [],
+      "tint": "#c9a273"
+    },
+    "civilian_f2": {
+      "model": "models/soldier-quaternius-female.glb",
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run"
+      },
+      "once": [],
+      "tint": "#7f9bc4"
+    },
+    "grey_alien": {
+      "model": "models/enemy-alien.glb",
+      "scale": 0.9,
+      "yawOffset": 0,
+      "clips": {
+        "idle": "AlienArmature|Alien_Idle",
+        "walk": "AlienArmature|Alien_Walk",
+        "run": "AlienArmature|Alien_Run"
+      },
+      "once": [],
+      "tint": "#a9aeb6"
     }
   },
   "drone": {

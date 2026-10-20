@@ -149,6 +149,181 @@
       "wanderRadius": 4,
       "pauseMin": 2,
       "pauseMax": 7
+    },
+    "civilian_m": {
+      "name": "Neighbour (man)",
+      "speed": 1.1,
+      "radius": 0.4,
+      "wanderRadius": 5,
+      "pauseMin": 2,
+      "pauseMax": 8,
+      "panicSpeed": 5.2,
+      "fearRadius": 16
+    },
+    "civilian_f": {
+      "name": "Neighbour (woman)",
+      "speed": 1.1,
+      "radius": 0.4,
+      "wanderRadius": 5,
+      "pauseMin": 2,
+      "pauseMax": 8,
+      "panicSpeed": 5.2,
+      "fearRadius": 16
+    },
+    "civilian_m2": {
+      "name": "Neighbour (man, jacket)",
+      "speed": 1.1,
+      "radius": 0.4,
+      "wanderRadius": 5,
+      "pauseMin": 2,
+      "pauseMax": 8,
+      "panicSpeed": 5.2,
+      "fearRadius": 16
+    },
+    "civilian_f2": {
+      "name": "Neighbour (woman, jacket)",
+      "speed": 1.1,
+      "radius": 0.4,
+      "wanderRadius": 5,
+      "pauseMin": 2,
+      "pauseMax": 8,
+      "panicSpeed": 5.2,
+      "fearRadius": 16
+    },
+    "grey_alien": {
+      "name": "Grey",
+      "speed": 1.4,
+      "radius": 0.4,
+      "wanderRadius": 1,
+      "pauseMin": 1,
+      "pauseMax": 2,
+      "scripted": true
+    }
+  },
+  "skyShow": {
+    "count": 42,
+    "formations": 4,
+    "minDistance": 320,
+    "maxDistance": 520,
+    "calmUntil": 100000,
+    "wanderAt": 10,
+    "flyAt": 22,
+    "comeAt": 32,
+    "formationGap": 7,
+    "wanderSpeed": 18,
+    "planeSpeed": 130,
+    "burstSpeedMin": 60,
+    "burstSpeedMax": 150,
+    "pauseMin": 0.3,
+    "pauseMax": 1.2,
+    "hoverMin": 24,
+    "hoverMax": 40,
+    "spread": 7,
+    "flickerAt": 84,
+    "blackoutAt": 88,
+    "blackoutLight": 0.3,
+    "phonesAt": 98,
+    "gatherAt": 104,
+    "gatherX": 6,
+    "gatherZ": 4,
+    "gatherRadius": 11
+  },
+  "orbs": {
+    "scout_sphere": {
+      "name": "Scout sphere",
+      "kind": "scout",
+      "height": 14,
+      "roamRadius": 40,
+      "lowHeight": 5.5,
+      "appearDelay": 0,
+      "appearDistance": 1,
+      "chargeTime": 1,
+      "cooldown": 0,
+      "chaseSpeed": 55,
+      "panicRadius": 1,
+      "radius": 0.7,
+      "color": "#2e343b"
+    },
+    "abductor_sphere": {
+      "name": "Abductor sphere",
+      "kind": "abductor",
+      "height": 14,
+      "beamTime": 2.5,
+      "liftSpeed": 1.6,
+      "liftHeight": 10,
+      "leaveSpeed": 70,
+      "appearDelay": 0,
+      "appearDistance": 1,
+      "chargeTime": 1,
+      "cooldown": 0,
+      "chaseSpeed": 40,
+      "panicRadius": 30,
+      "radius": 3.2,
+      "color": "#2b3138",
+      "victims": 4,
+      "gap": 1.8,
+      "stayTime": 60,
+      "dimColor": "#aebbcc",
+      "floodColor": "#4f86ff",
+      "dimIntensity": 260,
+      "floodIntensity": 2000,
+      "sweepLength": 34,
+      "sweepTime": 3.2,
+      "floodDelay": 10,
+      "floodRadius": 16
+    },
+    "hunter_sphere": {
+      "name": "Hunter sphere",
+      "kind": "metal",
+      "height": 1.9,
+      "appearDelay": 1.8,
+      "appearDistance": 1.1,
+      "chargeTime": 0.6,
+      "cooldown": 1,
+      "chaseSpeed": 17,
+      "panicRadius": 24,
+      "radius": 0.22,
+      "color": "#2e343b",
+      "vaporTime": 2.6
+    },
+    "metal_sphere": {
+      "name": "Metal sphere",
+      "kind": "metal",
+      "height": 1.9,
+      "appearDelay": 2.5,
+      "appearDistance": 1.2,
+      "chargeTime": 0.7,
+      "cooldown": 1.2,
+      "chaseSpeed": 16,
+      "panicRadius": 22,
+      "radius": 0.35,
+      "color": "#c9d2da"
+    },
+    "carrier_sphere": {
+      "name": "Carrier sphere",
+      "kind": "abductor",
+      "height": 14,
+      "beamTime": 2.5,
+      "liftSpeed": 1.6,
+      "liftHeight": 10,
+      "leaveSpeed": 70,
+      "appearDelay": 0,
+      "appearDistance": 1,
+      "chargeTime": 1,
+      "cooldown": 0,
+      "chaseSpeed": 40,
+      "panicRadius": 30,
+      "radius": 3.6,
+      "color": "#2b3138",
+      "victims": 0,
+      "gap": 1.8,
+      "stayTime": 100000,
+      "dimColor": "#dfe6ee",
+      "floodColor": "#f4f8ff",
+      "dimIntensity": 500,
+      "floodIntensity": 3400,
+      "floodDelay": 3,
+      "floodRadius": 22
     }
   },
   "hazards": {
@@ -445,7 +620,7 @@
         "stat": "damage",
         "amount": 0.12,
         "maxStacks": 8,
-        "icon": "🔫"
+        "icon": "\ud83d\udd2b"
       },
       {
         "id": "rapid_fire",
@@ -454,7 +629,7 @@
         "stat": "fireRate",
         "amount": 0.1,
         "maxStacks": 8,
-        "icon": "⚡"
+        "icon": "\u26a1"
       },
       {
         "id": "fleet_foot",
@@ -463,7 +638,7 @@
         "stat": "speed",
         "amount": 0.08,
         "maxStacks": 5,
-        "icon": "👟"
+        "icon": "\ud83d\udc5f"
       },
       {
         "id": "tough",
@@ -472,7 +647,7 @@
         "stat": "maxHealth",
         "amount": 0.2,
         "maxStacks": 6,
-        "icon": "❤️"
+        "icon": "\u2764\ufe0f"
       },
       {
         "id": "regen",
@@ -481,7 +656,7 @@
         "stat": "regen",
         "amount": 0.6,
         "maxStacks": 5,
-        "icon": "🩹"
+        "icon": "\ud83e\ude79"
       },
       {
         "id": "magnet",
@@ -490,7 +665,7 @@
         "stat": "pickupRadius",
         "amount": 0.4,
         "maxStacks": 4,
-        "icon": "🧲"
+        "icon": "\ud83e\uddf2"
       }
     ]
   },
@@ -1196,5 +1371,21 @@
         ]
       }
     }
+  },
+  "greys": {
+    "count": 3,
+    "descendHeight": 13,
+    "descendSpeed": 2.2,
+    "landRadius": 4,
+    "descendDelay": 3,
+    "approachDelay": 14,
+    "rayRange": 16,
+    "walkSpeed": 5,
+    "fireInterval": 1.1,
+    "vaporTime": 1.0,
+    "reach": 60,
+    "gatherRadius": 14,
+    "someKills": 4,
+    "someGap": 2.4
   }
 }

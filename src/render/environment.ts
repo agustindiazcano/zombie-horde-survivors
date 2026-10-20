@@ -11,6 +11,7 @@ const NIGHT_BACKGROUND = 0x10141a;
 
 const SKY_RADIUS = 450;
 const DISC_DISTANCE = 400;
+const STAR_COUNT = 1600;
 const CLOUD_COUNT = 24;
 const CLOUD_RANGE = 700;
 const CLOUD_HEIGHT = 80;
@@ -32,6 +33,11 @@ const smooth = (a: number, b: number, x: number) => {
   const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
   return t * t * (3 - 2 * t);
 };
+/** A repeatable number in [0, 1) from an integer, so the stars are the same every run. */
+const pseudo = (n: number): number => {
+  const v = Math.sin(n * 91.3458) * 47453.5453;
+  return v - Math.floor(v);
+};
 const wrap = (v: number, range: number) =>
   ((((v + range / 2) % range) + range) % range) - range / 2;
 
@@ -52,6 +58,7 @@ export class EnvironmentView {
   private env: Environment = defaultEnvironment();
   private dark = false;
   private night = false;
+  private dim = 1;
 
   private readonly dome: THREE.Mesh;
   private readonly domeTop = { value: c(0x3f7fd0) };
@@ -60,6 +67,7 @@ export class EnvironmentView {
   private readonly domeBelow = { value: c(DAY_BACKGROUND) };
   private readonly sunDisc: THREE.Mesh;
   private readonly moonDisc: THREE.Mesh;
+  private readonly stars: THREE.Points;
   private readonly clouds: { group: THREE.Group; base: THREE.Vector3 }[] = [];
   private readonly cloudMaterial = new THREE.MeshBasicMaterial({
     color: 0xffffff,
@@ -118,6 +126,42 @@ export class EnvironmentView {
     this.sunDisc = disc(16);
     this.moonDisc = disc(11);
 
+    // A fixed scatter of stars on the dome, most white, some blue or warm.
+    const starPos = new Float32Array(STAR_COUNT * 3);
+    const starCol = new Float32Array(STAR_COUNT * 3);
+    const tint = new THREE.Color();
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const u = pseudo(i * 2 + 1);
+      const v = pseudo(i * 2 + 2);
+      // Uniform on the upper hemisphere (a little below the horizon is hidden by the ground).
+      const y = u * 0.97 + 0.03;
+      const a = v * Math.PI * 2;
+      const r = Math.sqrt(1 - y * y);
+      starPos.set([Math.cos(a) * r * 440, y * 440, Math.sin(a) * r * 440], i * 3);
+      const k = pseudo(i * 5 + 3);
+      tint
+        .set(k < 0.2 ? 0x9fc2ff : k > 0.9 ? 0xffe0b0 : 0xffffff)
+        .multiplyScalar(0.45 + pseudo(i * 7 + 4) * 0.55);
+      tint.toArray(starCol, i * 3);
+    }
+    const starGeometry = new THREE.BufferGeometry();
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    starGeometry.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+    this.stars = new THREE.Points(
+      starGeometry,
+      new THREE.PointsMaterial({
+        size: 1.6,
+        sizeAttenuation: false,
+        vertexColors: true,
+        fog: false,
+        depthWrite: false,
+        transparent: true,
+      }),
+    );
+    this.stars.renderOrder = -9.5;
+    this.stars.frustumCulled = false;
+    this.scene.add(this.stars);
+
     const puff = new THREE.SphereGeometry(1, 8, 6);
     for (let i = 0; i < CLOUD_COUNT; i++) {
       const group = new THREE.Group();
@@ -152,6 +196,13 @@ export class EnvironmentView {
 
   set(env: Environment): void {
     this.env = env;
+    this.apply();
+  }
+
+  /** Scales the sun and sky light (1 = as set): a blackout leaves only a little moonlight. */
+  setDim(dim: number): void {
+    if (dim === this.dim) return;
+    this.dim = dim;
     this.apply();
   }
 
@@ -216,7 +267,7 @@ export class EnvironmentView {
     const sunColor = mix(c(0x9db4ff), c(0xffffff), day).lerp(c(0xff9a55), twilight * 0.7);
     if (env.lightColor) sunColor.set(env.lightColor);
     this.sun.color.copy(sunColor);
-    this.sun.intensity = (NIGHT_SUN + (DAY_SUN - NIGHT_SUN) * day) * (1 - 0.35 * murk);
+    this.sun.intensity = (NIGHT_SUN + (DAY_SUN - NIGHT_SUN) * day) * (1 - 0.35 * murk) * this.dim;
     this.sun.position.set(12 + 24 * Math.cos(angle), 4 + 20 * Math.max(elevation, 0.2), 8);
     this.sunDir.set(Math.cos(angle), elevation, 0.25).normalize();
 
@@ -224,7 +275,8 @@ export class EnvironmentView {
     if (env.lightColor) hemiSky.lerp(c(parseInt(env.lightColor.slice(1), 16)), 0.4);
     this.hemi.color.copy(hemiSky);
     this.hemi.groundColor.copy(mix(c(0x1a1d24), c(0x30343a), day));
-    this.hemi.intensity = (NIGHT_AMBIENT + (DAY_AMBIENT - NIGHT_AMBIENT) * day) * (1 - 0.2 * murk);
+    this.hemi.intensity =
+      (NIGHT_AMBIENT + (DAY_AMBIENT - NIGHT_AMBIENT) * day) * (1 - 0.2 * murk) * this.dim;
 
     // Sky colours.
     const grey = mix(c(0x6e747c), c(0x1c2026), 1 - day);
@@ -251,6 +303,9 @@ export class EnvironmentView {
     const moonDir = this.sunDir.clone().multiplyScalar(-1);
     this.moonDisc.visible = env.sky && env.moon && above(moonDir) && murk < 0.95;
     (this.moonDisc.material as THREE.MeshBasicMaterial).color.set(0xe6ecff).lerp(grey, murk * 0.8);
+
+    // Stars: out at night under a sky that is not overcast.
+    this.stars.visible = env.sky && this.night && murk < 0.5;
 
     // Clouds: more of them, and greyer, with their strength.
     const shown = Math.ceil(env.clouds * CLOUD_COUNT);
@@ -287,6 +342,7 @@ export class EnvironmentView {
     this.dome.position.copy(camera);
     this.sunDisc.position.copy(camera).addScaledVector(this.sunDir, DISC_DISTANCE);
     this.moonDisc.position.copy(camera).addScaledVector(this.sunDir, -DISC_DISTANCE);
+    this.stars.position.copy(camera);
 
     if (this.env.sky && this.env.clouds > 0) {
       const drift = clock * CLOUD_SPEED;

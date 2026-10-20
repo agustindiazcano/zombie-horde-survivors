@@ -158,6 +158,41 @@ const mapLogic = z
     /** No waves spawn: only the units the map places (test maps, hide and seek). */
     noWaves: z.boolean().optional(),
     startGold: nonNegative.optional(),
+    /** Runs the sky show of `skyShow` in game.json: blue lights that wander, fly and come down over the houses. */
+    skyShow: z.boolean().optional(),
+    /** The camera the run starts in, and how far up (radians) a first-person view looks. */
+    startView: z.enum(['third', 'first']).optional(),
+    startPitch: z.number().min(-1.2).max(1.4).optional(),
+    /** Yellow lines shown at the bottom of the screen, `at` seconds into the run for `duration` seconds. */
+    subtitles: z
+      .array(
+        z
+          .object({ at: nonNegative, duration: positive, text: z.string().min(1).max(160) })
+          .strict(),
+      )
+      .optional(),
+    /** Celestial orbs that wake up `at` seconds into the run, by `orbs` id of game.json. */
+    orbs: z
+      .array(
+        z
+          .object({
+            type: z.string().min(1),
+            x: z.number(),
+            z: z.number(),
+            at: nonNegative,
+            /** Wake this many seconds after the greys start the panic, instead of at `at`. */
+            afterGreys: nonNegative.optional(),
+            /** Height (m) it starts at; the default is the type's `height`. */
+            y: z.number().optional(),
+            /** Scouts: when they come down to hang low over `hx`, `hz`. */
+            lowAt: nonNegative.optional(),
+            /** Where a scout hangs low, and where an abductor works. */
+            hx: z.number().optional(),
+            hz: z.number().optional(),
+          })
+          .strict(),
+      )
+      .optional(),
     /** Objects lying on the ground from the start (barrels, crates, boulders), by `objects.types` id. */
     objects: z
       .array(z.object({ type: z.string().min(1), x: z.number(), z: z.number() }).strict())
@@ -314,13 +349,28 @@ export function arenaOf(map: MapData): Arena {
   };
 }
 
+/** Heights (m) of the shaped props, for the line of sight; the plain block uses `OBSTACLE_HEIGHT`. */
+const PROP_HEIGHTS: Record<string, number> = { house: 6, tree: 6, lamp: 5, car: 1.5 };
+
 function propObstacles(map: MapData): Obstacle[] {
   return map.props.flatMap((p) => {
     if (!p.collider) return [];
     // Colliders are axis-aligned: a quarter turn swaps the sides.
     const turned = Math.round(p.rotation / (Math.PI / 2)) % 2 !== 0;
     const { halfW, halfD } = p.collider;
-    return [{ x: p.x, z: p.z, halfW: turned ? halfD : halfW, halfD: turned ? halfW : halfD }];
+    const box: Obstacle = {
+      x: p.x,
+      z: p.z,
+      halfW: turned ? halfD : halfW,
+      halfD: turned ? halfW : halfD,
+    };
+    if (p.asset !== 'block') {
+      box.asset = p.asset;
+      box.facing = p.rotation;
+      const height = PROP_HEIGHTS[p.asset];
+      if (height) box.height = height;
+    }
+    return [box];
   });
 }
 
@@ -944,6 +994,146 @@ export const GameConfigSchema = z
           /** Seconds it stands still between walks, chosen between these two. */
           pauseMin: nonNegative,
           pauseMax: nonNegative,
+          /** Civilians run from orbs: the speed of the panic run and how far (metres) an orb scares them. */
+          panicSpeed: positive.optional(),
+          fearRadius: positive.optional(),
+          /** Not a stroller: a scripted actor (the grey aliens) that other code moves. */
+          scripted: z.boolean().optional(),
+        })
+        .strict(),
+    ),
+    /**
+     * The sky show: `count` blue lights far away, `formations` groups of three of them that later
+     * come down over the houses. Times are seconds into the run.
+     */
+    skyShow: z
+      .object({
+        count: z.number().int().positive(),
+        formations: z.number().int().nonnegative(),
+        /** Distance (metres) of the lights from the middle of the map, between these two. */
+        minDistance: positive,
+        maxDistance: positive,
+        /** Civilians stand and watch the sky until this time, unless something scares them. */
+        calmUntil: nonNegative,
+        wanderAt: nonNegative,
+        flyAt: nonNegative,
+        comeAt: nonNegative,
+        /** Seconds between one formation setting off and the next. */
+        formationGap: nonNegative,
+        wanderSpeed: positive,
+        /** Speed (m/s) of the lights that cross the sky in a straight line, like aircraft. */
+        planeSpeed: positive,
+        /** Speed range (m/s) of a formation's bursts, and the pause between bursts (seconds). */
+        burstSpeedMin: positive,
+        burstSpeedMax: positive,
+        pauseMin: nonNegative,
+        pauseMax: nonNegative,
+        /** Height (m) above the ground where a formation hovers over a house, between these two. */
+        hoverMin: positive,
+        hoverMax: positive,
+        /** Distance (m) between the three lights of a formation. */
+        spread: positive,
+        /** The street lights and the windows flicker from `flickerAt` and go out at `blackoutAt`. */
+        flickerAt: nonNegative,
+        blackoutAt: nonNegative,
+        /** Strength of the moonlight left in the blackout (1 = as before). */
+        blackoutLight: positive,
+        /** From this time some neighbours light up their phones. */
+        phonesAt: nonNegative,
+        /** From `gatherAt` the neighbours walk to within `gatherRadius` of (`gatherX`, `gatherZ`). */
+        gatherAt: nonNegative,
+        gatherX: z.number(),
+        gatherZ: z.number(),
+        gatherRadius: positive,
+      })
+      .strict(),
+    /** The grey aliens' scene under the second ship (times in seconds, speeds in m/s). */
+    greys: z
+      .object({
+        /** How many come down, from what height (m), how fast, and how far (m) from the ship's point they land. */
+        count: z.number().int().positive(),
+        descendHeight: positive,
+        descendSpeed: positive,
+        landRadius: positive,
+        /** Seconds after the ship arrives before the first grey starts down, and before someone walks up. */
+        descendDelay: nonNegative,
+        approachDelay: nonNegative,
+        /** Distance (m) at which a grey fires, and how fast one walks after a target. */
+        rayRange: positive,
+        walkSpeed: positive,
+        /** People the greys vaporise before the panic starts, and the seconds between those shots. */
+        someKills: z.number().int().nonnegative(),
+        someGap: positive,
+        /** Seconds between two shots of the same grey, and the time (s) a vaporising ray takes. */
+        fireInterval: positive,
+        vaporTime: positive,
+        /** The survivors within `reach` metres of the ship walk to within `gatherRadius` of it. */
+        reach: positive,
+        gatherRadius: positive,
+      })
+      .strict(),
+    /**
+     * Celestial orbs by id. A `metal` sphere picks a civilian, appears beside its head without a
+     * sound, charges and vaporises it, then picks the next one.
+     */
+    orbs: z.record(
+      z.string(),
+      z
+        .object({
+          name: z.string().min(1),
+          /**
+           * `metal` hunts civilians and vaporises them; `scout` flies fast around the sky and later
+           * hangs low over the crowd; `abductor` comes to the crowd and lifts one person away.
+           */
+          kind: z.enum(['metal', 'scout', 'abductor']),
+          /** Hover height (metres). */
+          height: positive,
+          /** Scouts: the radius (m) of the area they dash around, and the height (m) they hang at. */
+          roamRadius: positive.optional(),
+          lowHeight: positive.optional(),
+          /** Abductors: the beam time (s), how fast (m/s) and how high (m) the victim rises, and the leaving speed (m/s). */
+          beamTime: positive.optional(),
+          liftSpeed: positive.optional(),
+          liftHeight: positive.optional(),
+          leaveSpeed: positive.optional(),
+          /** Abductors: people taken before it just hangs there, the seconds between two, and how long (s) from arriving it stays. */
+          victims: z.number().int().nonnegative().optional(),
+          gap: nonNegative.optional(),
+          stayTime: positive.optional(),
+          /** Hunters: seconds the ray burns a person before they turn to ash. */
+          vaporTime: positive.optional(),
+          /** Hunters: seconds from waking up that they keep hunting before they leave. */
+          huntTime: positive.optional(),
+          /** Abductors: the dim light on arriving and the strong flood later (colours, candela), and the sweep's length (m) and time (s) before leaving. */
+          dimColor: z
+            .string()
+            .regex(/^#[0-9a-fA-F]{6}$/)
+            .optional(),
+          floodColor: z
+            .string()
+            .regex(/^#[0-9a-fA-F]{6}$/)
+            .optional(),
+          dimIntensity: positive.optional(),
+          floodIntensity: positive.optional(),
+          sweepLength: positive.optional(),
+          sweepTime: positive.optional(),
+          /** Seconds after the first person is taken before the strong flood comes on, and how wide (m) the lit circle is. */
+          floodDelay: nonNegative.optional(),
+          floodRadius: positive.optional(),
+          /** Seconds from waking up (and after each kill) to appearing beside the next target. */
+          appearDelay: nonNegative,
+          /** Distance (metres) from the target's head where it appears and stays. */
+          appearDistance: positive,
+          /** Seconds between appearing and firing the ray. */
+          chargeTime: positive,
+          /** Seconds of rest after a kill. */
+          cooldown: nonNegative,
+          /** Speed (m/s) at which it keeps up with a target that runs. */
+          chaseSpeed: positive,
+          /** Civilians within this distance (metres) of a kill panic. */
+          panicRadius: positive,
+          radius: positive,
+          color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
         })
         .strict(),
     ),
@@ -1297,6 +1487,10 @@ export type Obstacle = {
   height?: number;
   /** Bullets cross it (a low sandbag wall, wire). */
   passShots?: boolean;
+  /** The prop it comes from ("house", "tree"...): the renderer draws that shape instead of a plain box. */
+  asset?: string;
+  /** The way the prop faces (radians, 0 is +Z): a house's door, the lean of a lamp. */
+  facing?: number;
   /** Set when a built structure makes this box; its path cost (cells) replaces a hard block for enemies. */
   structure?: { id: number; breakCost: number };
 };
@@ -1328,6 +1522,13 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   build: boolean;
   noWaves: boolean;
   startGold: number;
+  /** Orbs that wake up during the run. */
+  startOrbs: NonNullable<MapLogic['orbs']>;
+  /** The sky show is on, the camera the run starts in, its first-person pitch and the subtitles. */
+  skyShowOn: boolean;
+  startView: 'third' | 'first' | undefined;
+  startPitch: number;
+  subtitles: NonNullable<MapLogic['subtitles']>;
   /** Structures that stand from the start. */
   startStructures: NonNullable<MapLogic['structures']>;
   /** Objects that lie on the ground from the start. */
@@ -1376,6 +1577,11 @@ type MapRules = Pick<
   | 'build'
   | 'noWaves'
   | 'startGold'
+  | 'startOrbs'
+  | 'skyShowOn'
+  | 'startView'
+  | 'startPitch'
+  | 'subtitles'
   | 'startStructures'
   | 'startObjects'
 >;
@@ -1425,6 +1631,11 @@ export function mapRules(
     build: logic.build ?? false,
     noWaves: logic.noWaves ?? false,
     startGold: logic.startGold ?? 0,
+    startOrbs: logic.orbs ?? [],
+    skyShowOn: logic.skyShow ?? false,
+    startView: logic.startView,
+    startPitch: logic.startPitch ?? 0,
+    subtitles: logic.subtitles ?? [],
     startStructures: logic.structures ?? [],
     startObjects: logic.objects ?? [],
   };

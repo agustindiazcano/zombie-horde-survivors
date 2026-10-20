@@ -63,6 +63,9 @@ export class Hud {
   private readonly healthFill: HTMLElement;
   private readonly wave: HTMLElement;
   private readonly kills: HTMLElement;
+  private readonly casualties: HTMLElement;
+  private readonly subtitle: HTMLElement;
+  private readonly root: HTMLElement;
   private readonly gold: HTMLElement;
   private readonly level: HTMLElement;
   private readonly xpFill: HTMLElement;
@@ -86,6 +89,8 @@ export class Hud {
     health: -1,
     wave: -1,
     kills: -1,
+    casualties: -1,
+    subtitle: '',
     over: false,
     objectives: '',
     countdown: '',
@@ -101,6 +106,7 @@ export class Hud {
     onRestart: () => void,
   ) {
     const root = el('div', 'hud', parent);
+    this.root = root;
 
     const health = el('div', 'hud__health', root);
     this.healthLabel = el('div', 'hud__health-label', health);
@@ -109,6 +115,7 @@ export class Hud {
     const stats = el('div', 'hud__stats', root);
     this.wave = el('span', '', stats);
     this.kills = el('span', '', stats);
+    this.casualties = el('span', 'hud__casualties', stats);
     this.gold = el('span', 'hud__gold', stats);
     this.level = el('span', 'hud__level', stats);
     this.xpFill = el('div', 'hud__xp-fill', el('div', 'hud__xp', root));
@@ -120,6 +127,7 @@ export class Hud {
     this.countdown = el('div', 'hud__countdown', root);
     this.hint = el('div', 'hud__hint', root);
     this.crosshair = el('div', 'hud__crosshair', root);
+    this.subtitle = el('div', 'hud__subtitle', root);
 
     this.pause = el('div', 'hud__pause', root);
     el('h1', '', this.pause, 'PAUSED');
@@ -142,6 +150,8 @@ export class Hud {
       health: -1,
       wave: -1,
       kills: -1,
+      casualties: -1,
+      subtitle: '',
       over: false,
       objectives: '',
       countdown: '',
@@ -254,6 +264,25 @@ export class Hud {
     if (state.kills !== this.shown.kills) {
       this.shown.kills = state.kills;
       this.kills.textContent = `Kills ${state.kills}`;
+    }
+
+    if (state.civilians > 0 && state.casualties !== this.shown.casualties) {
+      this.shown.casualties = state.casualties;
+      this.casualties.textContent =
+        state.casualties > 0 ? `CIVILIAN CASUALTIES: ${state.casualties} / ${state.civilians}` : '';
+    }
+    this.kills.style.display = state.civilians > 0 ? 'none' : '';
+    // The sky show is a scene, not a fight: no health, wave or gold readouts.
+    this.root.classList.toggle('hud--cinema', this.config.skyShowOn);
+
+    // Yellow subtitles at the bottom, from the map's script.
+    const line = this.config.subtitles.find(
+      (s) => state.time >= s.at && state.time < s.at + s.duration,
+    );
+    const text = line?.text ?? '';
+    if (text !== this.shown.subtitle) {
+      this.shown.subtitle = text;
+      this.subtitle.textContent = text;
     }
 
     if (state.gold !== this.shown.gold) {

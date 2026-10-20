@@ -435,6 +435,9 @@ export type SimEvent =
   | { type: 'reloadStarted'; soldierId: number }
   | { type: 'grenadeThrown'; throwerId: number }
   | { type: 'explosion'; pos: Vec2; radius: number }
+  | { type: 'vaporiseStart'; pos: Vec2 }
+  | { type: 'greyRay'; id: number; from: Vec2; to: Vec2; kind: 'paralyse' | 'vaporise' }
+  | { type: 'vaporised'; pos: Vec2 }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
   | { type: 'zombieAlerted'; id: number; pos: Vec2 }
@@ -465,6 +468,120 @@ export interface Animal {
   dest: Vec2 | null;
   /** Seconds left to stand still before choosing a new spot. */
   wait: number;
+  /** Seconds left of a panic run (civilians only), and the point it runs away from. */
+  panic: number;
+  fear: Vec2 | null;
+  /** Walking to the crowd of the sky show has been ordered. */
+  gathered: boolean;
+  /** Metres it has been lifted off the ground by an abductor. */
+  lift: number;
+  /** 0 to 1: how far a ray has burned it (it stands rigid, glowing). */
+  burn: number;
+  /** Per second: when above 0 the burn advances by itself and ends in a vaporising. */
+  burnSpeed: number;
+  /** Walking backwards away from this point (a crowd stepping back from a beam), for this many more metres. */
+  retreat: Vec2 | null;
+  retreatLeft: number;
+  /** Running toward this point (someone going to help), then standing. */
+  rush: Vec2 | null;
+  /** Speed (m/s) of the walk to `rush`; 0 means the panic run. */
+  rushSpeed: number;
+}
+
+/** The scripted scene of the grey aliens: where it is and who is in it. */
+export interface GreyScene {
+  stage: 'descend' | 'approach' | 'paralysed' | 'rush' | 'cruel' | 'some' | 'hunt';
+  /** Seconds since the stage began. */
+  time: number;
+  /** The ship's work point. */
+  at: Vec2;
+  /** The person who walked up and the one who ran to help (animal ids), or null. */
+  walker: number | null;
+  helper: number | null;
+  /** Next time each grey may fire (seconds into the stage). */
+  nextShot: number[];
+  rayId: number;
+  /** People the greys have vaporised in the `some` stage. */
+  kills: number;
+  /** When (sim time) the panic began and the spheres were called, or null before that. */
+  huntAt: number | null;
+}
+
+/** A point in 3D (metres): the sky show flies in height too. */
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** One blue light of the sky show. */
+export interface SkyLight {
+  id: number;
+  pos: Vec3;
+  prev: Vec3;
+  vel: Vec3;
+  /** `star` stands still, `wander` drifts, `plane` crosses the sky, `formation` flies over the houses. */
+  role: 'star' | 'wander' | 'plane' | 'formation';
+  /** Formation number and the light's place in the triangle (0 is the leader), for formation lights. */
+  group: number;
+  slot: number;
+  /** Seconds left of the current heading, burst or pause. */
+  timer: number;
+  /** The point above a house a formation leader is heading for, and the waypoint of its current burst. */
+  target: Vec3 | null;
+  waypoint: Vec3 | null;
+  hovering: boolean;
+}
+
+/** A celestial orb: dormant until `wake`, then it hunts civilians one by one. */
+export interface Orb {
+  id: number;
+  /** Key of `orbs` in game.json. */
+  type: string;
+  pos: Vec2;
+  prev: Vec2;
+  /** Seconds into the run when it wakes up. */
+  wake: number;
+  phase:
+    | 'dormant'
+    | 'seek'
+    | 'charge'
+    | 'cool'
+    | 'roam'
+    | 'low'
+    | 'arrive'
+    | 'beam'
+    | 'lift'
+    | 'gap'
+    | 'hold'
+    | 'sweep'
+    | 'burn'
+    | 'leave'
+    | 'gone';
+  /** Height (m) above the ground, and the one of the step before. */
+  y: number;
+  prevY: number;
+  /** Scouts: when they come down; where they hang or where an abductor works. */
+  lowAt: number | null;
+  hover: Vec2 | null;
+  /** Abductors: when they arrived, how many people they have taken, and how bright their light is (0 to 1). */
+  /** Dim own light (0 to 1), on from arriving; `glow` is the strong flood that comes later. */
+  lamp: number;
+  /** Hunters: wake this many seconds after the greys start the panic (instead of at a fixed time). */
+  afterGreys: number | null;
+  /** A ray sweeping over the ground from one point to another (the big sphere's parting shot). */
+  sweep: { from: Vec2; to: Vec2; t: number; duration: number } | null;
+  arrivedAt: number | null;
+  victims: number;
+  glow: number;
+  /** Where its current dash is heading. */
+  waypoint: { x: number; y: number; z: number } | null;
+  /** Seconds left in the current phase. */
+  timer: number;
+  /** The animal id it is after, or null. */
+  targetId: number | null;
+  /** Where its ray points while it charges. */
+  aim: Vec2 | null;
 }
 
 export interface GameState {
@@ -492,6 +609,15 @@ export interface GameState {
   grenades: Grenade[];
   nextGrenadeId: number;
   animals: Animal[];
+  orbs: Orb[];
+  nextOrbId: number;
+  /** The sky show's lights (empty unless the map runs it). */
+  skyLights: SkyLight[];
+  /** The grey aliens' scene: its stage and clock (null until the second ship arrives). */
+  greyScene: GreyScene | null;
+  /** Civilians at the start of the run, and how many were vaporised. */
+  civilians: number;
+  casualties: number;
   /** How the whole squad is moving/shooting, set by the controlled player's keys. */
   stance: Stance;
   zombies: Zombie[];

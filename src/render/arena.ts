@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { heightAt, OBSTACLE_HEIGHT, type GameConfig } from '../sim';
 import { terrainData, textureColor } from '../terrainData';
+import { buildProp } from './neighbourhood';
 
 const WALL_HEIGHT = 1.5;
 const WALL_THICKNESS = 0.5;
@@ -16,7 +17,8 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
   const { heights, water } = arena.terrain;
 
   group.add(buildGround(arena));
-  if (!heights) {
+  // A painted map has its own ground: no guide grid over it.
+  if (!heights && !arena.terrain.paint) {
     const grid = new THREE.GridHelper(size, size / 2, 0x56656f, 0x46545d);
     grid.position.y = 0.01;
     group.add(grid);
@@ -41,8 +43,21 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
   }
 
   const obstacleMat = new THREE.MeshStandardMaterial({ color: 0x8a6d4b });
+  const lamps: { x: number; y: number; z: number }[] = [];
   for (const o of arena.base ?? arena.obstacles) {
     if (o.water) continue;
+    const shaped = buildProp(o);
+    if (shaped) {
+      const y = heightAt(heights, arena.halfSize, o.x, o.z);
+      shaped.position.y = y;
+      group.add(shaped);
+      // A lamp's real light hangs over the street at the head, which leans the way the lamp faces.
+      if (o.asset === 'lamp') {
+        const f = o.facing ?? 0;
+        lamps.push({ x: o.x + Math.sin(f) * 1.05, y, z: o.z + Math.cos(f) * 1.05 });
+      }
+      continue;
+    }
     const box = new THREE.Mesh(
       new THREE.BoxGeometry(o.halfW * 2, OBSTACLE_HEIGHT, o.halfD * 2),
       obstacleMat,
@@ -53,6 +68,7 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
     group.add(box);
   }
 
+  group.userData.lamps = lamps;
   return group;
 }
 
