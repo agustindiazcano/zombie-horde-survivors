@@ -98,7 +98,8 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [x] Lift and throw objects (**E**, click), carry a body (**E**), fire that spreads, explosive and fuel barrels, Map 5 ([worklog](docs/worklog/2026-10-19-interaction-and-training.md)).
 - [x] Action key **E** (Half-Life style) and RTS hover labels (Pick / Drag / Open / Close / Enter), click or E sends the closest selected soldier; select-all moved to Ctrl+A. Monster corpses are not draggable yet (they vanish after dying); loose items on the ground do not exist yet (only crates).
 - [ ] 🔴 Look at Map 5 in the browser: controls are in [docs/CONTROLS.md](docs/CONTROLS.md) (E lift / put down, click throw, shoot a barrel). Tune `objects` and `hazards.fire` in `game.json`.
-- [ ] 🟡 Next: objects that block movement, AI that carries the wounded, models and sounds, objects in the editor.
+- [x] Objects block movement ([worklog](docs/worklog/2026-10-20-objects-block-movement.md)).
+- [ ] 🟡 Next: AI that carries the wounded, models and sounds, objects in the editor.
 
 ### 2k — 🔴 Celestial Event III (Map 6, demo for another game on this engine; scene built 2026-10-20, branch `feat/celestial-event-3`)
 

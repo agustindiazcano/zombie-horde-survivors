@@ -3,7 +3,7 @@ import type { GameConfig } from './config';
 import { blastLimbs } from './dismember';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
-import { hurtStructure } from './structures';
+import { hurtStructure, syncStructures } from './structures';
 import type { Carry, Fire, GameObject, GameState, Soldier } from './types';
 import { hurtVehicle } from './vehicles';
 import type { Vec2 } from './vec';
@@ -56,6 +56,7 @@ export function createObject(
     flight: null,
   };
   state.objects.push(o);
+  syncStructures(state, config);
   return o;
 }
 
@@ -115,6 +116,7 @@ export function dropCarried(state: GameState, config: GameConfig, me: Soldier): 
     o.pos.z = me.pos.z + Math.cos(me.facing) * DROP_DISTANCE;
     resolveStatic(o.pos, objectDef(config, o).radius, config.arena);
     o.y = supportHeight(config.arena, o.pos, 0);
+    syncStructures(state, config);
     return;
   }
   const body = state.soldiers.find((s) => s.id === c.id);
@@ -172,7 +174,10 @@ export function liftOrDrop(
   for (const s of state.soldiers) if (s.dragging === pick.carry.id) s.dragging = null;
   me.dragging = null;
   me.carrying = { ...pick.carry, speed: loadSpeed(config, me, pick.carry.weight) };
-  if (pick.carry.kind === 'object') getObject(state, pick.carry.id)!.heldBy = me.id;
+  if (pick.carry.kind === 'object') {
+    getObject(state, pick.carry.id)!.heldBy = me.id;
+    syncStructures(state, config);
+  }
 }
 
 /** Throws the object in hand towards `aim`; heavier things fly shorter. Returns false if it holds none. */
@@ -206,6 +211,7 @@ export function throwCarried(
   };
   if (run > 0.01) me.facing = Math.atan2(to.x - me.pos.x, to.z - me.pos.z);
   me.carrying = null;
+  syncStructures(state, config);
   me.fireCooldown = Math.max(me.fireCooldown, 0.4);
   state.events.push({ type: 'objectThrown', objectId: o.id, throwerId: me.id });
   return true;
@@ -270,6 +276,7 @@ export function hurtObject(
   if (o.health > 0) return;
   const def = objectDef(config, o);
   state.objects = state.objects.filter((x) => x !== o);
+  syncStructures(state, config);
   if (o.heldBy !== null) {
     const holder = state.soldiers.find((s) => s.id === o.heldBy);
     if (holder) holder.carrying = null;
@@ -292,6 +299,7 @@ function land(state: GameState, config: GameConfig, o: GameObject): void {
   o.flight = null;
   resolveStatic(o.pos, def.radius, config.arena);
   o.y = supportHeight(config.arena, o.pos, 0);
+  syncStructures(state, config);
   const thrower = state.soldiers.find((s) => s.id === flight.thrower);
   const hit = def.radius + 0.8;
   for (const z of state.zombies) {

@@ -74,6 +74,19 @@ export function syncStructures(state: GameState, config: GameConfig): void {
       structure: { id: s.id, breakCost: def.breakCost * config.structures.pathCostScale },
     });
   }
+  // Things lying on the ground block walkers (bullets pass: the shootable ones are hit by hand).
+  for (const o of state.objects) {
+    if (o.heldBy !== null || o.flight !== null) continue;
+    const def = config.objects.types[o.type]!;
+    boxes.push({
+      x: o.pos.x,
+      z: o.pos.z,
+      halfW: def.radius,
+      halfD: def.radius,
+      height: def.height,
+      passShots: true,
+    });
+  }
   arena.obstacles = [...arena.base, ...boxes];
 }
 
