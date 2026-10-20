@@ -47,6 +47,8 @@ const loadoutShape = {
     })
     .strict()
     .optional(),
+  /** A soldier that starts on the floor and does not bleed out (a patient to carry or revive). */
+  downed: z.boolean().optional(),
   /** Carried stacks. An enemy drops these in a crate when it dies. */
   backpack: z
     .array(z.object({ item: z.string().min(1), count: z.number().int().positive() }).strict())
@@ -74,6 +76,7 @@ export type Loadout = {
   attributes?: Record<string, number>;
   equipment?: { rightHand?: string | null; leftHand?: string | null; chest?: string | null };
   backpack?: { item: string; count: number }[];
+  downed?: boolean;
 };
 
 /** A spawn point: where enemies appear, and for a placed spawner which enemy and what it carries. */
@@ -150,6 +153,30 @@ const mapLogic = z
     fires: z.array(point).optional(),
     /** Story missions: a text shown when the mission starts. */
     briefing: z.string().max(600).optional(),
+    /** Build mode: the squad can raise structures (key N); the gold the run starts with. */
+    build: z.boolean().optional(),
+    /** No waves spawn: only the units the map places (test maps, hide and seek). */
+    noWaves: z.boolean().optional(),
+    startGold: nonNegative.optional(),
+    /** Objects lying on the ground from the start (barrels, crates, boulders), by `objects.types` id. */
+    objects: z
+      .array(z.object({ type: z.string().min(1), x: z.number(), z: z.number() }).strict())
+      .optional(),
+    /** Structures standing from the start (already built), by `structures.types` id. */
+    structures: z
+      .array(
+        z
+          .object({
+            type: z.string().min(1),
+            x: z.number(),
+            z: z.number(),
+            /** Quarter turns (0 to 3): odd ones swap the sides of the footprint. */
+            turns: z.number().int().min(0).max(3).default(0),
+            level: z.number().int().min(1).default(1),
+          })
+          .strict(),
+      )
+      .optional(),
   })
   .strict();
 
@@ -296,6 +323,29 @@ function propObstacles(map: MapData): Obstacle[] {
     return [{ x: p.x, z: p.z, halfW: turned ? halfD : halfW, halfD: turned ? halfW : halfD }];
   });
 }
+
+/** What a point of an attribute or a rank of a class perk can improve (see `training` in game.json). */
+export const TRAINING_STATS = [
+  'health',
+  'stamina',
+  'damage',
+  'fireRate',
+  'range',
+  'accuracy',
+  'recoil',
+  'reload',
+  'melee',
+  'build',
+  'repair',
+  'heal',
+  'revive',
+  'aura',
+  'blast',
+  'blastRadius',
+  'throw',
+] as const;
+export type TrainingStat = (typeof TRAINING_STATS)[number];
+const trainingStat = z.enum(TRAINING_STATS);
 
 /** Weapon classes: a unit earns weapon-skill XP in the class of the weapon it kills with. */
 export const WEAPON_CLASSES = [
@@ -643,6 +693,8 @@ const enemyType = z
         sightArc: positive,
         /** The ones this close to an alerted wanderer wake with it. */
         shoutRadius: nonNegative,
+        /** A hunter: after this many seconds without seeing anyone it goes to the last place it saw them, then gives up and roams again. */
+        loseTrack: positive.optional(),
       })
       .strict()
       .optional(),
@@ -670,6 +722,58 @@ const vehicleType = z
     /** Damage per second to enemies under the hull, above `ramSpeed`. */
     ramDps: nonNegative,
     ramSpeed: nonNegative,
+  })
+  .strict();
+
+/** A buildable structure type (sandbags, walls, doors, turrets). Its footprint is an axis-aligned box. */
+const structureType = z
+  .object({
+    name: z.string().min(1),
+    /** Gold to place it (the refund of a cancelled blueprint is `structures.refund` of this). */
+    cost: nonNegative,
+    /** Health at level 1. */
+    health: positive,
+    /** Seconds one builder needs to finish it (the upkeep of repairs uses the same rate). */
+    buildWork: positive,
+    halfW: positive,
+    halfD: positive,
+    /** Height of the box; 2 m and over also hides what is behind it. */
+    height: positive,
+    /** Bullets fly over it (sandbags, wire): soldiers behind it still shoot. */
+    passShots: z.boolean().default(false),
+    /** Enemies attack it when it is the cheapest way to reach the squad; this is the path cost of breaking it (in cells). */
+    breakCost: nonNegative,
+    /** A door can be opened and closed; open, it blocks nobody. */
+    door: z.boolean().default(false),
+    /** Wood burns: a fire next to it hurts it and spreads. */
+    flammable: z.boolean().default(false),
+    /** Hurts what pushes on it: damage per second to every enemy attacking it. */
+    thorns: nonNegative.default(0),
+    /** An automatic gun: fires at the nearest visible enemy in range. */
+    turret: z
+      .object({
+        damage: positive,
+        range: positive,
+        fireRate: positive,
+        /** Enemies that are bosses come first, then the closest. */
+        bossFirst: z.boolean().default(false),
+      })
+      .strict()
+      .optional(),
+    color: z.string().min(1),
+    /** Upgrades: level 2 reads the first entry, level 3 the second. */
+    levels: z
+      .array(
+        z
+          .object({
+            cost: nonNegative,
+            healthScale: positive,
+            damageScale: positive.default(1),
+            rangeScale: positive.default(1),
+          })
+          .strict(),
+      )
+      .default([]),
   })
   .strict();
 
@@ -720,6 +824,14 @@ export const GameConfigSchema = z
             dps: positive,
             /** Radius of one fire (metres). */
             radius: positive,
+            /** Seconds a fire on bare ground burns (a fire on a burning thing lasts as long as it does). */
+            duration: positive,
+            /** Every this many seconds a fire may light flammable things (objects, wooden structures) near it. */
+            spreadInterval: positive,
+            spreadRadius: positive,
+            spreadChance: unit01,
+            /** Damage per second a fire does to a flammable object or structure inside its radius. */
+            thingDps: positive,
           })
           .strict(),
       })
@@ -837,6 +949,130 @@ export const GameConfigSchema = z
     ),
     /** Drivable vehicle types by id (placed in the editor, entered with V). */
     vehicles: z.record(z.string(), vehicleType),
+    /**
+     * What a soldier does with the skill points it earns by levelling: attributes, weapon expertise
+     * and a class with perks. Every effect is `per` (a fraction) for each point above the base of an
+     * attribute, or for each rank of a perk, added up per stat.
+     */
+    training: z
+      .object({
+        /** Points a soldier gets for each level above the first. */
+        pointsPerLevel: z.number().int().positive(),
+        /** The attribute value that gives no bonus, and the highest one a point can reach. */
+        attributeBase: positive,
+        attributeMax: positive,
+        /** Most levels of expertise per weapon class (added to the level earned by kills). */
+        expertiseMax: z.number().int().positive(),
+        /** Points a class, a perk rank and a level of expertise cost. */
+        classCost: z.number().int().positive(),
+        perkCost: z.number().int().positive(),
+        expertiseCost: z.number().int().positive(),
+        /** Medic aura: allies within this many metres of a medic heal over time. */
+        auraRange: positive,
+        attributes: z.record(
+          z.string(),
+          z
+            .object({
+              description: z.string().min(1),
+              effects: z.array(z.object({ stat: trainingStat, per: z.number() }).strict()),
+            })
+            .strict(),
+        ),
+        classes: z.record(
+          z.string(),
+          z
+            .object({
+              name: z.string().min(1),
+              description: z.string().min(1),
+              perks: z.array(
+                z
+                  .object({
+                    id: z.string().min(1),
+                    name: z.string().min(1),
+                    description: z.string().min(1),
+                    stat: trainingStat,
+                    per: z.number(),
+                    max: z.number().int().positive(),
+                  })
+                  .strict(),
+              ),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
+    /** Things lying on the ground that can be lifted, thrown, shot and burnt. */
+    objects: z
+      .object({
+        /** How close (metres) a soldier must be to lift an object or a body. */
+        liftRange: positive,
+        /** A unit lifts `strength` x this many kilos. */
+        liftPerStrength: positive,
+        /** What a soldier's body weighs (kilos): carrying one needs the strength for it. */
+        bodyWeight: positive,
+        /** Walking speed scale at the most a unit can lift (lighter loads are faster). */
+        carrySpeedFloor: z.number().min(0.1).max(1),
+        /** Height (metres) a lifted thing is held at, above the carrier's feet. */
+        holdHeight: positive,
+        /** Throw: horizontal speed, the farthest throw of a light object and the share a full load loses. */
+        throwSpeed: positive,
+        throwRange: positive,
+        throwLoadLoss: z.number().min(0).max(0.9),
+        /** Damage to an enemy a thrown object lands on, per kilo, and the seconds it is staggered. */
+        damagePerKg: nonNegative,
+        stagger: nonNegative,
+        /** Damage the object itself takes when it lands. */
+        impactDamage: nonNegative,
+        types: z.record(
+          z.string(),
+          z
+            .object({
+              name: z.string().min(1),
+              weight: positive,
+              /** Footprint radius and height for the pick-up, the bullets and the drawing. */
+              radius: positive,
+              height: positive,
+              shape: z.enum(['box', 'cylinder', 'sphere']),
+              color: z.string().min(1),
+              health: positive,
+              /** Burns when a fire is next to it, and spreads the fire on. */
+              flammable: z.boolean().default(false),
+              /** Bullets hit it (a fuel or explosive container). */
+              shootable: z.boolean().default(false),
+              /** Blows up when destroyed: blast radius, damage, and the fires it leaves. */
+              explosive: z
+                .object({ radius: positive, damage: positive, fires: z.number().int().min(0) })
+                .strict()
+                .optional(),
+              /** Bursts into this many fires when destroyed (no blast). */
+              fuel: z.object({ fires: z.number().int().positive() }).strict().optional(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
+    /** Build mode: the structure types and the rules for building them. */
+    structures: z
+      .object({
+        types: z.record(z.string(), structureType),
+        /** Most soldiers that add their work to one structure. */
+        maxBuilders: z.number().int().positive(),
+        /** How close (metres, to the footprint) a soldier must be to work on it. */
+        workRange: positive,
+        /** Idle allies this close to a blueprint help without being told. */
+        helpRange: positive,
+        /** Share of the cost given back for a cancelled blueprint. */
+        refund: unit01,
+        /** Cost of repairing all the missing health, as a share of the price. */
+        repairCost: unit01,
+        /** A structure cannot be placed this close (metres) to a soldier or an enemy. */
+        clearRadius: positive,
+        /** Cells of path cost a closed door or wall adds for the zombies' flow field, per unit of break cost. */
+        pathCostScale: positive,
+        /** Where the controlled soldier puts a quick build, metres in front of it. */
+        quickBuildDistance: positive,
+      })
+      .strict(),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
     enemies: z.record(z.string(), enemyType),
     /** Squad stances (set by the controlled player) and the controlled soldier's jump. */
@@ -972,6 +1208,8 @@ export const GameConfigSchema = z
         noiseMetres: positive,
         /** Seconds after a wave has finished spawning before its sleeping wanderers wake up anyway. */
         wakeDelay: positive,
+        /** Crouching shrinks the sense and sight radii of wanderers and hunters to this share (stealth). */
+        crouchStealth: unit01,
       })
       .strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
@@ -1055,11 +1293,19 @@ export type Obstacle = {
   halfD: number;
   /** Open water or a cliff (ground too steep to walk): stops walkers but not bullets. */
   water?: boolean;
+  /** Height of the box (default `OBSTACLE_HEIGHT`). */
+  height?: number;
+  /** Bullets cross it (a low sandbag wall, wire). */
+  passShots?: boolean;
+  /** Set when a built structure makes this box; its path cost (cells) replaces a hard block for enemies. */
+  structure?: { id: number; breakCost: number };
 };
 /** The playfield the sim runs on, derived from the map (see `arenaOf`). */
 export type Arena = {
   halfSize: number;
   obstacles: Obstacle[];
+  /** The map's own obstacles; `obstacles` is this plus the built structures (see `syncStructures`). */
+  base?: Obstacle[];
   terrain: MapData['terrain'];
   surfaces: MapData['surfaces'];
 };
@@ -1078,6 +1324,14 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   objectives: Objective[];
   /** Where the map's fires burn. */
   fires: Vec2[];
+  /** Build mode is on (the build menu opens) and the gold the run starts with. */
+  build: boolean;
+  noWaves: boolean;
+  startGold: number;
+  /** Structures that stand from the start. */
+  startStructures: NonNullable<MapLogic['structures']>;
+  /** Objects that lie on the ground from the start. */
+  startObjects: NonNullable<MapLogic['objects']>;
   /** Story missions: shown on a card when the mission starts. */
   briefing?: string | undefined;
   /** Stat sheets by unit type (from data/units.json). */
@@ -1111,7 +1365,19 @@ type GlobalRules = Pick<
 >;
 type MapRules = Pick<
   GameConfig,
-  'waves' | 'boss' | 'enemies' | 'level' | 'spawnPoints' | 'objectives' | 'briefing' | 'fires'
+  | 'waves'
+  | 'boss'
+  | 'enemies'
+  | 'level'
+  | 'spawnPoints'
+  | 'objectives'
+  | 'briefing'
+  | 'fires'
+  | 'build'
+  | 'noWaves'
+  | 'startGold'
+  | 'startStructures'
+  | 'startObjects'
 >;
 
 /**
@@ -1156,6 +1422,11 @@ export function mapRules(
     objectives: logic.mode === 'story' ? (logic.objectives ?? []) : [],
     briefing: logic.mode === 'story' ? logic.briefing : undefined,
     fires: logic.fires ?? [],
+    build: logic.build ?? false,
+    noWaves: logic.noWaves ?? false,
+    startGold: logic.startGold ?? 0,
+    startStructures: logic.structures ?? [],
+    startObjects: logic.objects ?? [],
   };
 }
 

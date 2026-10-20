@@ -389,3 +389,19 @@
   color: #ffd400;
   font-size: 19px;
 }
+
+/* The label that follows the RTS cursor over something the selected soldiers can use. */
+.rts-tip {
+  position: fixed;
+  display: none;
+  z-index: 20;
+  pointer-events: none;
+  padding: 1px 6px;
+  font:
+    600 11px/1.4 system-ui,
+    sans-serif;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 3px;
+}

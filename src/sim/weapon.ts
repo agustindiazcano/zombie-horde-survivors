@@ -1,6 +1,7 @@
 import { insideBox, rayAabb, rayCircle } from './collision';
 import type { GameConfig } from './config';
-import type { GameState, Soldier, Zombie } from './types';
+import type { GameObject, GameState, Soldier, Zombie } from './types';
+import { hurtObject, objectDef } from './objects';
 import { dirFromAngle, type Vec2 } from './vec';
 import { nextFloat } from './rng';
 import { weaponOf } from './stats';
@@ -13,7 +14,7 @@ import { hearShot } from './wander';
 /** True if an obstacle sits between `origin` and a point `distance` away along `dir`. */
 export function isBlocked(origin: Vec2, dir: Vec2, distance: number, config: GameConfig): boolean {
   for (const box of config.arena.obstacles) {
-    if (box.water || insideBox(origin, box)) continue;
+    if (box.water || box.passShots || insideBox(origin, box)) continue;
     const t = rayAabb(origin, dir, box);
     if (t !== null && t < distance) return true;
   }
@@ -58,19 +59,32 @@ export function fireWeapon(
   // Obstacles block bullets: any closer obstacle clears a farther zombie target.
   for (const box of weapon.ignoresCover ? [] : config.arena.obstacles) {
     // A shooter standing on a box fires over it.
-    if (box.water || insideBox(origin, box)) continue;
+    if (box.water || box.passShots || insideBox(origin, box)) continue;
     const t = rayAabb(origin, dir, box);
     if (t !== null && t < nearest) {
       nearest = t;
       target = null;
     }
   }
+  let container: GameObject | null = null;
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
     const t = rayCircle(origin, dir, z.pos, z.radius);
     if (t !== null && t < nearest) {
       nearest = t;
       target = z;
+      container = null;
+    }
+  }
+  // A shot fuel or explosive container goes off.
+  for (const o of state.objects) {
+    const def = objectDef(config, o);
+    if (!def.shootable || o.heldBy !== null) continue;
+    const t = rayCircle(origin, dir, o.pos, def.radius);
+    if (t !== null && t < nearest) {
+      nearest = t;
+      target = null;
+      container = o;
     }
   }
 
@@ -92,6 +106,7 @@ export function fireWeapon(
     hit: roll ? { kind: roll.kind, damage } : null,
   });
   hearShot(state, config, origin, weapon.noise);
+  if (container) hurtObject(state, config, container, weapon.damage);
   if (target && roll)
     damageZombie(
       state,

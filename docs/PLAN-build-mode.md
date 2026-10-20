@@ -1,6 +1,6 @@
 # Plan: build mode (bases, defences, emplacements)
 
-Status: **plan only, nothing built.** Written 2026-10-19 from the user's request; the open questions were answered the same day (section 13). Sizes are qualitative; nothing has been prototyped. Keys marked _proposed_ are not decided; once something is built, its keys go in [CONTROLS.md](CONTROLS.md) in the same commit.
+Status: **phases 0 to 4, 6 (partly), 8 (partly) and 9 are built on `feat/build-mode`** (see [the worklog](worklog/2026-10-19-build-mode.md)); the manned nest, the watchtower seat and the editor placement are not. Written 2026-10-19 from the user's request; the open questions were answered the same day (section 13). Sizes are qualitative; nothing has been prototyped. Keys marked _proposed_ are not decided; once something is built, its keys go in [CONTROLS.md](CONTROLS.md) in the same commit.
 
 ## 1. Goal
 

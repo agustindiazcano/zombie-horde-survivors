@@ -1,6 +1,7 @@
 import type { GameConfig } from './config';
 import { itemDef } from './inventory';
 import { maxHealthOf } from './stats';
+import { bonus } from './training';
 import type { GameState, Soldier } from './types';
 
 const distance = (a: Soldier, b: Soldier): number =>
@@ -65,6 +66,17 @@ export function rescueTarget(state: GameState, config: GameConfig, s: Soldier): 
  */
 export function updateRevives(state: GameState, config: GameConfig, dt: number): void {
   const rules = config.downed;
+  // A medic's presence heals the allies near it.
+  for (const medic of state.soldiers) {
+    const aura = standing(medic) ? bonus(config, medic, 'aura') : 0;
+    if (aura <= 0) continue;
+    for (const ally of state.soldiers) {
+      if (ally === medic || !standing(ally) || distance(ally, medic) > config.training.auraRange) {
+        continue;
+      }
+      ally.health = Math.min(maxHealthOf(state, config, ally), ally.health + aura * dt);
+    }
+  }
   for (const patient of state.soldiers) {
     if (!needsRescue(config, patient)) {
       patient.reviveProgress = 0;
@@ -85,7 +97,9 @@ export function updateRevives(state: GameState, config: GameConfig, dt: number):
     }
     const index = slotOfType(config, helper, tool);
     const def = itemDef(config, helper.backpack[index]!.item);
-    const needed = def.type === 'defibrillator' ? def.channelTime : rules.reviveTime;
+    const needed =
+      (def.type === 'defibrillator' ? def.channelTime : rules.reviveTime) *
+      Math.max(0.2, 1 - bonus(config, helper, 'revive'));
     patient.reviveProgress += dt;
     if (patient.reviveProgress < needed) continue;
 
@@ -94,7 +108,10 @@ export function updateRevives(state: GameState, config: GameConfig, dt: number):
     if (def.type === 'medical') {
       patient.downed = false;
       patient.bleedOut = 0;
-      patient.health = Math.min(maxHealthOf(state, config, patient), def.heal);
+      patient.health = Math.min(
+        maxHealthOf(state, config, patient),
+        def.heal * (1 + bonus(config, helper, 'heal')),
+      );
     } else {
       patient.dead = false;
       patient.deadTime = 0;

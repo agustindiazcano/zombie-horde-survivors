@@ -50,3 +50,37 @@ export { meleeStrike } from './melee';
 export { updateHazards } from './hazards';
 export { getVehicle, toggleVehicle, vehicleInReach } from './vehicles';
 export { objectiveProgress } from './objectives';
+export {
+  bonus,
+  buyPerk,
+  chooseClass,
+  pointsAvailable,
+  skillOf,
+  spendAttribute,
+  spendExpertise,
+} from './training';
+export {
+  interactableAt,
+  interactableFor,
+  orderInteract,
+  useNearest,
+  type Interactable,
+} from './interact';
+export { getObject, liftOrDrop, maxLift, objectDef, throwCarried } from './objects';
+export {
+  doorInReach,
+  edgeDistance,
+  footprint,
+  getStructure,
+  levelScale,
+  orderBuild,
+  placeStructure,
+  placementError,
+  removeStructure,
+  repairCost,
+  repairStructure,
+  structureDef,
+  toggleDoor,
+  upgradeCost,
+  upgradeStructure,
+} from './structures';

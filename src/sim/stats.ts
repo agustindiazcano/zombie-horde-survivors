@@ -1,5 +1,6 @@
 import type { DamageType, FireMode, GameConfig, WeaponClass, WeaponItem } from './config';
 import { factor, modsOf, type FittedMods } from './accessoryMods';
+import { bonus } from './training';
 import type { GameState, Hand, Mods, Soldier, Stance } from './types';
 
 export interface WeaponDef {
@@ -42,7 +43,7 @@ export function speedOf(
         : stance === 'walk'
           ? config.stance.walkSpeedScale
           : 1;
-  const load = s.dragging === null ? 1 : config.drag.speedScale;
+  const load = (s.dragging === null ? 1 : config.drag.speedScale) * (s.carrying?.speed ?? 1);
   const aim = s.aiming ? config.accuracy.aimSpeedScale : 1;
   return config.player.speed * scale * load * aim * mods.speed;
 }
@@ -117,11 +118,11 @@ export function weaponOf(
   // Both hands are on the body being dragged: only a one-handed gun can be used.
   if (s.dragging !== null && def.hands === 2) return null;
   const fitted = gunMods(config, s);
-  def.damage *= mods.damage * factor(fitted.damage);
-  def.range *= factor(fitted.range);
+  def.damage *= mods.damage * factor(fitted.damage) * (1 + bonus(config, s, 'damage'));
+  def.range *= factor(fitted.range) * (1 + bonus(config, s, 'range'));
   def.spread *= factor(fitted.spread);
   def.noise *= factor(fitted.noise);
-  def.fireRate *= mods.fireRate;
+  def.fireRate *= mods.fireRate * (1 + bonus(config, s, 'fireRate'));
   if (isDrone(s)) return { ...def, height: config.drone.height, ignoresCover: true };
   if (stance === 'crouch') {
     // A steadier stance: tighter spread and a bit more punch.
@@ -151,5 +152,8 @@ export function skillLevel(
 export const maxHealthOf = (
   state: GameState,
   config: GameConfig,
-  unit?: { baseHealth: number },
-): number => (unit?.baseHealth ?? config.player.maxHealth) * state.mods.maxHealth;
+  unit?: { baseHealth: number } | Soldier,
+): number =>
+  (unit?.baseHealth ?? config.player.maxHealth) *
+  state.mods.maxHealth *
+  (unit && 'training' in unit ? 1 + bonus(config, unit, 'health') : 1);

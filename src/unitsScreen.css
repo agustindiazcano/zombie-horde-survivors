@@ -375,3 +375,46 @@
 .us__bench {
   margin-left: 4px;
 }
+
+.us__points {
+  color: #ffd84a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.us__train {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.us__trow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.us__tname {
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.us__plus {
+  background: #2f6f3a;
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  min-width: 24px;
+  padding: 1px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.us__plus:disabled {
+  background: #333a46;
+  color: #777;
+  cursor: default;
+}

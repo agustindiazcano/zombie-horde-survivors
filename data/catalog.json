@@ -86,6 +86,10 @@
         {
           "id": "marine_climber",
           "name": "Climber marine"
+        },
+        {
+          "id": "marine_stalker",
+          "name": "Stalker (giant hunter)"
         }
       ]
     },
@@ -144,6 +148,10 @@
         {
           "id": "spawner:marine_climber",
           "name": "Spawner: Climber marine"
+        },
+        {
+          "id": "spawner:marine_stalker",
+          "name": "Spawner: Stalker"
         }
       ]
     },

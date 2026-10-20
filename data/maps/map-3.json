@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "map-3",
+    "name": "Map 3 - Weapons range",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-19",
+    "updated": "2026-10-19",
+    "size": {
+      "width": 100,
+      "depth": 100
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "surfaces": [],
+  "props": [
+    {
+      "asset": "block",
+      "x": -8,
+      "z": -6,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1,
+        "halfD": 0.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 8,
+      "z": -6,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1,
+        "halfD": 0.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 0,
+      "z": -16,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.5,
+        "halfD": 0.5
+      }
+    }
+  ],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
+  "units": [
+    {
+      "type": "marine_wanderer",
+      "x": -10.0,
+      "z": -0.2,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -4.9,
+      "z": -8.7,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 4.9,
+      "z": -8.7,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -20.0,
+      "z": -0.4,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -14.0,
+      "z": -14.3,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 0.0,
+      "z": -20.0,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 14.0,
+      "z": -14.3,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -35.0,
+      "z": -0.7,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -28.1,
+      "z": -20.9,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -10.7,
+      "z": -33.3,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 10.7,
+      "z": -33.3,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 28.1,
+      "z": -20.9,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "brute",
+      "x": 0,
+      "z": -45,
+      "owner": "horde",
+      "rotation": 0
+    }
+  ],
+  "logic": {
+    "mode": "waves",
+    "noWaves": true,
+    "startGold": 5000,
+    "boss": {
+      "enabled": false
+    }
+  }
+}

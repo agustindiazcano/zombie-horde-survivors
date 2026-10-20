@@ -199,6 +199,23 @@
       "once": ["death"],
       "tint": "#d49a52",
       "barHeight": 2.1
+    },
+    "marine_stalker": {
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 2.2,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Run_03",
+        "roam": "Casual_Walk",
+        "idle": "Alert",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#5b3a6b",
+      "blood": 0.6,
+      "barHeight": 5.2
     }
   },
   "animals": {

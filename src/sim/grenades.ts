@@ -1,6 +1,7 @@
 import { supportHeight, resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { blastLimbs } from './dismember';
+import { bonus } from './training';
 import { itemDef } from './inventory';
 import { hurtSoldier } from './soldiers';
 import type { GameState, Grenade, Soldier, Stack } from './types';
@@ -45,12 +46,13 @@ export function grenadeAim(
   const dx = target.x - soldier.pos.x;
   const dz = target.z - soldier.pos.z;
   const d = Math.hypot(dx, dz);
-  const clamped = d > def.throwRange;
-  const k = clamped ? def.throwRange / d : 1;
+  const reach = def.throwRange * (1 + bonus(config, soldier, 'throw'));
+  const clamped = d > reach;
+  const k = clamped ? reach / d : 1;
   return {
     landing: { x: soldier.pos.x + dx * k, z: soldier.pos.z + dz * k },
     clamped,
-    radius: def.blastRadius,
+    radius: def.blastRadius * (1 + bonus(config, soldier, 'blastRadius')),
     item: stack.item,
   };
 }
@@ -95,36 +97,45 @@ export function throwGrenade(
 }
 
 /** Damage at distance `d` from the centre: full in the middle, less towards the edge. */
-const blastAt = (def: GrenadeItem, d: number): number =>
-  def.blastDamage * (1 - def.falloff * Math.min(d / def.blastRadius, 1));
+const blastAt = (def: GrenadeItem, d: number, radius: number, scale: number): number =>
+  def.blastDamage * scale * (1 - def.falloff * Math.min(d / radius, 1));
 
 function explode(state: GameState, config: GameConfig, grenade: Grenade): void {
   const def = grenadeDef(config, grenade.item);
   const at = grenade.pos;
   const thrower = state.soldiers.find((s) => s.id === grenade.throwerId);
+  // A demolitions expert throws bigger blasts.
+  const scale = 1 + (thrower ? bonus(config, thrower, 'blast') : 0);
+  const radius = def.blastRadius * (1 + (thrower ? bonus(config, thrower, 'blastRadius') : 0));
 
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
     const d = Math.hypot(z.pos.x - at.x, z.pos.z - at.z);
-    if (d <= def.blastRadius + z.radius) {
-      damageZombie(state, config, z, blastAt(def, d), thrower);
-      blastLimbs(state, config, z, at, d, def.blastRadius);
+    if (d <= radius + z.radius) {
+      damageZombie(state, config, z, blastAt(def, d, radius, scale), thrower);
+      blastLimbs(state, config, z, at, d, radius);
     }
   }
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue;
     const d = Math.hypot(s.pos.x - at.x, s.pos.z - at.z);
-    if (d <= def.blastRadius && config.grenades.friendlyFire > 0) {
-      hurtSoldier(state, config, s, blastAt(def, d) * config.grenades.friendlyFire, -1);
+    if (d <= radius && config.grenades.friendlyFire > 0) {
+      hurtSoldier(
+        state,
+        config,
+        s,
+        blastAt(def, d, radius, scale) * config.grenades.friendlyFire,
+        -1,
+      );
     }
   }
   for (const v of [...state.vehicles]) {
     const d = Math.hypot(v.pos.x - at.x, v.pos.z - at.z);
-    const reach = def.blastRadius + config.vehicles[v.type]!.radius;
+    const reach = radius + config.vehicles[v.type]!.radius;
     if (d <= reach && v.seats.some((id) => id !== null))
-      hurtVehicle(state, config, v, blastAt(def, d));
+      hurtVehicle(state, config, v, blastAt(def, d, radius, scale));
   }
-  state.events.push({ type: 'explosion', pos: { x: at.x, z: at.z }, radius: def.blastRadius });
+  state.events.push({ type: 'explosion', pos: { x: at.x, z: at.z }, radius });
 }
 
 /**

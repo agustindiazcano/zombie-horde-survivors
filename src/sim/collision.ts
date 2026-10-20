@@ -65,7 +65,8 @@ export const insideBox = (p: Vec2, box: Obstacle): boolean =>
   Math.abs(p.x - box.x) <= box.halfW && Math.abs(p.z - box.z) <= box.halfD;
 
 /** Top of a box: water and cliffs have no top, so nobody can climb onto them. */
-export const topOf = (box: Obstacle): number => (box.water ? Infinity : OBSTACLE_HEIGHT);
+export const topOf = (box: Obstacle): number =>
+  box.water ? Infinity : (box.height ?? OBSTACLE_HEIGHT);
 
 /** Height of the surface a unit at `pos` with its feet at `y` would land on (0 = the ground). */
 export function supportHeight(arena: GameConfig['arena'], pos: Vec2, y: number): number {

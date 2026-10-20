@@ -1,7 +1,8 @@
 import type { GameConfig } from './config';
 import { hasLimbs } from './dismember';
 import { nextFloat } from './rng';
-import { skillLevel, weaponDef } from './stats';
+import { weaponDef } from './stats';
+import { skillOf } from './training';
 import type { AimLine, BodyZone, GameState, HitKind, Soldier, Zombie } from './types';
 
 /** How a hit landed: its kind and the damage multiplier that comes with it. */
@@ -82,7 +83,7 @@ export function rollHit(
   const item = weaponId === null ? undefined : config.items[weaponId];
   const sheet = item?.type === 'weapon' ? item : undefined;
   const cls = weaponId === null ? 'melee' : weaponDef(config, weaponId).class;
-  const level = skillLevel(config, shooter.skills[cls]).level;
+  const level = skillOf(config, shooter, cls);
 
   let head = false;
   if (allowHead && hasHead(config, target)) {

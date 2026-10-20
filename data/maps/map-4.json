@@ -1,0 +1,462 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "map-4",
+    "name": "Map 4 - Hide and seek",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-19",
+    "updated": "2026-10-19",
+    "size": {
+      "width": 100,
+      "depth": 100
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "surfaces": [],
+  "props": [
+    {
+      "asset": "block",
+      "x": -12,
+      "z": -4,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": 8,
+      "z": 19,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -34,
+      "z": -40,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": -5,
+      "z": -35,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": 26,
+      "z": 4,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -29,
+      "z": -9,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 40,
+      "z": -9,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -21,
+      "z": -3,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": 5,
+      "z": -31,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 7,
+      "z": 22,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -11,
+      "z": 18,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 28,
+      "z": -4,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 31,
+      "z": -3,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 10,
+      "z": 12,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 13,
+      "z": 15,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -3,
+      "z": -9,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -37,
+      "z": 17,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 24,
+      "z": 26,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 1,
+      "z": -24,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -34,
+      "z": 10,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": 38,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 3,
+      "z": 13,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": -1,
+      "z": 39,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -1,
+      "z": -30,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": -13,
+      "z": -7,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": -12,
+      "z": -27,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -5,
+      "z": 16,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 3,
+      "z": -32,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": -1,
+      "z": -40,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": -1,
+      "z": -23,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 37,
+      "z": -33,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 3
+      }
+    },
+    {
+      "asset": "block",
+      "x": -18,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": -10,
+      "z": 6,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 0,
+      "z": 31,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 2
+      }
+    }
+  ],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
+  "units": [
+    {
+      "type": "marine_stalker",
+      "x": 30,
+      "z": 30,
+      "owner": "horde",
+      "rotation": 0
+    }
+  ],
+  "logic": {
+    "mode": "waves",
+    "noWaves": true,
+    "boss": {
+      "enabled": false
+    }
+  }
+}

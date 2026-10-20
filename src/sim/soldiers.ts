@@ -1,3 +1,7 @@
+import { edgeDistance, getStructure, isWorking, mustFight } from './structures';
+import { ARRIVE_SHARE, findInteractable, performInteract } from './interact';
+import { throwCarried } from './objects';
+import { bonus } from './training';
 import { resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
@@ -44,6 +48,11 @@ export function applyLoadout(config: GameConfig, s: Soldier, l: Loadout): Soldie
     s.health = l.maxHealth;
   }
   if (l.attributes) s.attributes = { ...s.attributes, ...l.attributes };
+  if (l.downed && s.kind === 'soldier') {
+    s.downed = true;
+    s.health = 0;
+    s.bleedOut = Infinity;
+  }
   if (l.equipment) {
     s.equipment = { ...s.equipment, ...l.equipment };
     s.weaponStates = {};
@@ -112,7 +121,19 @@ function newUnit(
     deadTime: 0,
     reviveProgress: 0,
     vehicleId: null,
+    training: {
+      spent: 0,
+      expertise: Object.fromEntries(WEAPON_CLASSES.map((c) => [c, 0])) as Record<
+        WeaponClass,
+        number
+      >,
+      classId: null,
+      ranks: {},
+    },
     dragging: null,
+    carrying: null,
+    carriedBy: null,
+    throwHeld: false,
     ...sheetOf(config, unitType),
   };
 }
@@ -291,7 +312,8 @@ export function updateSoldiers(
 /** Sprinting while moving drains stamina; otherwise it refills. Running dry winds the unit. */
 function updateStamina(config: GameConfig, s: Soldier, stance: Stance, dt: number): void {
   if (isDrone(s)) return;
-  const { staminaMax, staminaDrain, staminaRegen, staminaResume } = config.stance;
+  const { staminaDrain, staminaRegen, staminaResume } = config.stance;
+  const staminaMax = config.stance.staminaMax * (1 + bonus(config, s, 'stamina'));
   const moved = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > 1e-6;
   if (stance === 'sprint' && moved) {
     s.stamina = Math.max(0, s.stamina - staminaDrain * dt);
@@ -372,6 +394,9 @@ function updateSeated(
     }
     return;
   }
+  // A builder at its blueprint keeps its hands on the work until an enemy gets close.
+  if (isWorking(state, config, s) && !mustFight(state, s)) return;
+
   const target = findTarget(state, config, s);
   maintainAmmo(state, config, s, target !== null);
   if (!target) return;
@@ -411,6 +436,13 @@ function updateControlled(
     s.vy = climbSpeed(config, s, move) ?? config.stance.jumpSpeed;
   }
 
+  // Hands full: a fresh press throws what is held instead of firing.
+  if (s.carrying) {
+    if (input.firing && !s.throwHeld) throwCarried(state, config, s.id, aim);
+    s.throwHeld = input.firing;
+    return;
+  }
+  s.throwHeld = input.firing;
   if (triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)) {
     fireWeapon(state, config, s);
   }
@@ -447,6 +479,19 @@ function updateAi(
       } else {
         dest = { ...v.pos };
       }
+    }
+  } else if (s.order.type === 'interact') {
+    const it = findInteractable(state, config, s.order.kind, s.order.id);
+    if (!it) s.order = { type: 'hold' };
+    else if (it.from(s.pos) <= it.reach * ARRIVE_SHARE) {
+      s.order = { type: 'hold' };
+      performInteract(state, config, s, it);
+    } else dest = { ...it.pos };
+  } else if (s.order.type === 'build') {
+    const st = getStructure(state, s.order.structureId);
+    if (!st || st.built) s.order = { type: 'follow' };
+    else if (edgeDistance(config, st, s.pos) > config.structures.workRange * 0.8) {
+      dest = { x: st.x, z: st.z };
     }
   } else if (s.order.type === 'follow' && leader) {
     const a = s.id * SLOT_ANGLE;
@@ -523,10 +568,10 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
   const list = state.soldiers;
   for (let i = 0; i < list.length; i++) {
     const a = list[i]!;
-    if (a.dead || isDrone(a) || a.vehicleId !== null) continue;
+    if (a.dead || isDrone(a) || a.vehicleId !== null || a.carriedBy !== null) continue;
     for (let j = i + 1; j < list.length; j++) {
       const b = list[j]!;
-      if (b.dead || isDrone(b) || b.vehicleId !== null) continue;
+      if (b.dead || isDrone(b) || b.vehicleId !== null || b.carriedBy !== null) continue;
       const dx = b.pos.x - a.pos.x;
       const dz = b.pos.z - a.pos.z;
       const d = Math.hypot(dx, dz);

@@ -237,3 +237,58 @@
 .menu__credits a {
   color: #8fc4ff;
 }
+
+.menu__carousel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  max-width: 460px;
+}
+
+.menu__slide {
+  flex: 1;
+  min-height: 130px;
+}
+
+.menu__slide-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #ffd84a;
+}
+
+.menu__arrow {
+  background: transparent;
+  color: #fff;
+  border: 1px solid #4a5366;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.menu__arrow:hover {
+  background: #38425a;
+}
+
+.menu__dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.menu__dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border-radius: 50%;
+  border: 0;
+  background: #4a5366;
+  cursor: pointer;
+}
+
+.menu__dot--on {
+  background: #ffd84a;
+}

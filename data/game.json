@@ -154,7 +154,12 @@
   "hazards": {
     "fire": {
       "dps": 20,
-      "radius": 2.5
+      "radius": 2.5,
+      "duration": 8,
+      "spreadInterval": 1.5,
+      "spreadRadius": 3.2,
+      "spreadChance": 0.6,
+      "thingDps": 12
     }
   },
   "vehicles": {
@@ -353,6 +358,29 @@
         "maxHeight": 2.2
       },
       "limbs": true
+    },
+    "marine_stalker": {
+      "name": "Stalker",
+      "speedScale": 1.5,
+      "healthScale": 30,
+      "damageScale": 4,
+      "radiusScale": 2.2,
+      "weight": 1,
+      "minWave": 99,
+      "rewardScale": 10,
+      "height": 4,
+      "limbs": false,
+      "wander": {
+        "roamRadius": 18,
+        "speedScale": 0.35,
+        "pauseMin": 2,
+        "pauseMax": 6,
+        "senseRadius": 4,
+        "sightRadius": 26,
+        "sightArc": 0.9,
+        "shoutRadius": 0,
+        "loseTrack": 10
+      }
     }
   },
   "stance": {
@@ -404,7 +432,8 @@
   "wander": {
     "noiseAttracts": false,
     "noiseMetres": 4,
-    "wakeDelay": 25
+    "wakeDelay": 25,
+    "crouchStealth": 0.5
   },
   "perks": {
     "choices": 3,
@@ -693,5 +722,479 @@
     "critChance": 0.05,
     "critMultiplier": 1.5,
     "critSkillBonus": 0.005
+  },
+  "structures": {
+    "maxBuilders": 4,
+    "workRange": 2.2,
+    "helpRange": 7,
+    "refund": 0.5,
+    "repairCost": 0.5,
+    "clearRadius": 0.9,
+    "pathCostScale": 1,
+    "quickBuildDistance": 2.5,
+    "types": {
+      "sandbags": {
+        "name": "Sandbags",
+        "cost": 15,
+        "health": 120,
+        "buildWork": 2,
+        "halfW": 1.0,
+        "halfD": 0.35,
+        "height": 1.0,
+        "passShots": true,
+        "breakCost": 6,
+        "color": "#b59a6a",
+        "levels": [
+          {
+            "cost": 20,
+            "healthScale": 1.6,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 40,
+            "healthScale": 2.4,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "barricade": {
+        "name": "Wooden barricade",
+        "cost": 25,
+        "health": 200,
+        "buildWork": 3,
+        "halfW": 1.25,
+        "halfD": 0.25,
+        "height": 1.8,
+        "breakCost": 10,
+        "color": "#7a5230",
+        "levels": [
+          {
+            "cost": 30,
+            "healthScale": 1.8,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 60,
+            "healthScale": 3,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ],
+        "flammable": true
+      },
+      "wall": {
+        "name": "Solid wall",
+        "cost": 80,
+        "health": 900,
+        "buildWork": 10,
+        "halfW": 2.0,
+        "halfD": 0.3,
+        "height": 2.6,
+        "breakCost": 40,
+        "color": "#8d8d90",
+        "levels": [
+          {
+            "cost": 90,
+            "healthScale": 1.6,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 180,
+            "healthScale": 2.5,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "wire": {
+        "name": "Wire fence",
+        "cost": 20,
+        "health": 80,
+        "buildWork": 2,
+        "halfW": 1.5,
+        "halfD": 0.12,
+        "height": 1.4,
+        "passShots": true,
+        "breakCost": 8,
+        "thorns": 12,
+        "color": "#9aa0a6",
+        "levels": [
+          {
+            "cost": 25,
+            "healthScale": 1.8,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 50,
+            "healthScale": 3,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "door": {
+        "name": "Door",
+        "cost": 40,
+        "health": 400,
+        "buildWork": 4,
+        "halfW": 1.0,
+        "halfD": 0.2,
+        "height": 2.2,
+        "breakCost": 20,
+        "door": true,
+        "color": "#3f6f9f",
+        "levels": [
+          {
+            "cost": 50,
+            "healthScale": 1.8,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 100,
+            "healthScale": 3,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "turret": {
+        "name": "Turret",
+        "cost": 120,
+        "health": 250,
+        "buildWork": 8,
+        "halfW": 0.5,
+        "halfD": 0.5,
+        "height": 1.2,
+        "breakCost": 15,
+        "color": "#4d6b4d",
+        "turret": {
+          "damage": 14,
+          "range": 22,
+          "fireRate": 4,
+          "bossFirst": false
+        },
+        "levels": [
+          {
+            "cost": 120,
+            "healthScale": 1.5,
+            "damageScale": 1.4,
+            "rangeScale": 1.15
+          },
+          {
+            "cost": 240,
+            "healthScale": 2,
+            "damageScale": 1.9,
+            "rangeScale": 1.3
+          }
+        ],
+        "passShots": true
+      },
+      "smartTurret": {
+        "name": "Smart turret",
+        "cost": 300,
+        "health": 350,
+        "buildWork": 14,
+        "halfW": 0.55,
+        "halfD": 0.55,
+        "height": 1.4,
+        "breakCost": 15,
+        "color": "#37506b",
+        "turret": {
+          "damage": 24,
+          "range": 28,
+          "fireRate": 5,
+          "bossFirst": true
+        },
+        "levels": [
+          {
+            "cost": 250,
+            "healthScale": 1.5,
+            "damageScale": 1.4,
+            "rangeScale": 1.15
+          },
+          {
+            "cost": 500,
+            "healthScale": 2,
+            "damageScale": 1.9,
+            "rangeScale": 1.3
+          }
+        ],
+        "passShots": true
+      }
+    }
+  },
+  "objects": {
+    "liftRange": 1.8,
+    "liftPerStrength": 4,
+    "bodyWeight": 70,
+    "carrySpeedFloor": 0.45,
+    "holdHeight": 1.9,
+    "throwSpeed": 11,
+    "throwRange": 14,
+    "throwLoadLoss": 0.6,
+    "damagePerKg": 1.4,
+    "stagger": 1.2,
+    "impactDamage": 12,
+    "types": {
+      "wood_crate": {
+        "name": "Wooden crate",
+        "weight": 18,
+        "radius": 0.45,
+        "height": 0.9,
+        "shape": "box",
+        "color": "#a0773f",
+        "health": 40,
+        "flammable": true
+      },
+      "barrel": {
+        "name": "Steel barrel",
+        "weight": 30,
+        "radius": 0.45,
+        "height": 1.0,
+        "shape": "cylinder",
+        "color": "#5d6b73",
+        "health": 120
+      },
+      "fuel_barrel": {
+        "name": "Fuel barrel",
+        "weight": 32,
+        "radius": 0.45,
+        "height": 1.0,
+        "shape": "cylinder",
+        "color": "#c08a1e",
+        "health": 30,
+        "flammable": true,
+        "shootable": true,
+        "fuel": {
+          "fires": 5
+        }
+      },
+      "explosive_barrel": {
+        "name": "Explosive barrel",
+        "weight": 34,
+        "radius": 0.45,
+        "height": 1.0,
+        "shape": "cylinder",
+        "color": "#b8321f",
+        "health": 30,
+        "flammable": true,
+        "shootable": true,
+        "explosive": {
+          "radius": 6,
+          "damage": 160,
+          "fires": 3
+        }
+      },
+      "boulder": {
+        "name": "Boulder",
+        "weight": 70,
+        "radius": 0.7,
+        "height": 1.2,
+        "shape": "sphere",
+        "color": "#7b7468",
+        "health": 400
+      }
+    }
+  },
+  "training": {
+    "pointsPerLevel": 1,
+    "attributeBase": 10,
+    "attributeMax": 30,
+    "expertiseMax": 8,
+    "classCost": 1,
+    "perkCost": 1,
+    "expertiseCost": 1,
+    "auraRange": 6,
+    "attributes": {
+      "strength": {
+        "description": "Melee damage +4% per point. Lifts 4 kg per point: bodies and boulders need 18 and up",
+        "effects": [
+          {
+            "stat": "melee",
+            "per": 0.04
+          }
+        ]
+      },
+      "dexterity": {
+        "description": "Aim error -2% and reload time -2% per point",
+        "effects": [
+          {
+            "stat": "accuracy",
+            "per": 0.02
+          },
+          {
+            "stat": "reload",
+            "per": 0.02
+          }
+        ]
+      },
+      "constitution": {
+        "description": "Health +4% and stamina +5% per point",
+        "effects": [
+          {
+            "stat": "health",
+            "per": 0.04
+          },
+          {
+            "stat": "stamina",
+            "per": 0.05
+          }
+        ]
+      },
+      "perception": {
+        "description": "Weapon range +1.5% per point",
+        "effects": [
+          {
+            "stat": "range",
+            "per": 0.015
+          }
+        ]
+      },
+      "intelligence": {
+        "description": "Builds and repairs +4% faster, medical kits heal +2% more per point",
+        "effects": [
+          {
+            "stat": "build",
+            "per": 0.04
+          },
+          {
+            "stat": "heal",
+            "per": 0.02
+          }
+        ]
+      },
+      "charisma": {
+        "description": "No effect yet",
+        "effects": []
+      }
+    },
+    "classes": {
+      "assault": {
+        "name": "Assault",
+        "description": "Front-line gunner",
+        "perks": [
+          {
+            "id": "firepower",
+            "name": "Firepower",
+            "description": "+6% weapon damage per rank",
+            "stat": "damage",
+            "per": 0.06,
+            "max": 3
+          },
+          {
+            "id": "rapid",
+            "name": "Rapid fire",
+            "description": "+6% fire rate per rank",
+            "stat": "fireRate",
+            "per": 0.06,
+            "max": 3
+          },
+          {
+            "id": "steady",
+            "name": "Steady hands",
+            "description": "-12% recoil per rank",
+            "stat": "recoil",
+            "per": -0.12,
+            "max": 3
+          }
+        ]
+      },
+      "engineer": {
+        "name": "Engineer",
+        "description": "Builds faster and keeps the base cheap to run",
+        "perks": [
+          {
+            "id": "builder",
+            "name": "Builder",
+            "description": "+25% build speed per rank",
+            "stat": "build",
+            "per": 0.25,
+            "max": 3
+          },
+          {
+            "id": "mender",
+            "name": "Mender",
+            "description": "-20% repair cost per rank, squad-wide while this engineer lives",
+            "stat": "repair",
+            "per": 0.2,
+            "max": 3
+          },
+          {
+            "id": "quick",
+            "name": "Quick hands",
+            "description": "-12% reload time per rank",
+            "stat": "reload",
+            "per": 0.12,
+            "max": 3
+          }
+        ]
+      },
+      "medic": {
+        "name": "Medic",
+        "description": "Brings the fallen back and keeps the squad alive",
+        "perks": [
+          {
+            "id": "swift",
+            "name": "Swift revive",
+            "description": "-20% revive time per rank",
+            "stat": "revive",
+            "per": 0.2,
+            "max": 3
+          },
+          {
+            "id": "medicine",
+            "name": "Field medicine",
+            "description": "Medical kits heal +25% more per rank",
+            "stat": "heal",
+            "per": 0.25,
+            "max": 3
+          },
+          {
+            "id": "aura",
+            "name": "Healing presence",
+            "description": "Allies near the medic regenerate 0.6 HP/s per rank",
+            "stat": "aura",
+            "per": 0.6,
+            "max": 3
+          }
+        ]
+      },
+      "demolitions": {
+        "name": "Demolitions",
+        "description": "Grenades and blasts",
+        "perks": [
+          {
+            "id": "payload",
+            "name": "Payload",
+            "description": "+15% grenade damage per rank",
+            "stat": "blast",
+            "per": 0.15,
+            "max": 3
+          },
+          {
+            "id": "wide",
+            "name": "Wide blast",
+            "description": "+10% blast radius per rank",
+            "stat": "blastRadius",
+            "per": 0.1,
+            "max": 3
+          },
+          {
+            "id": "arm",
+            "name": "Strong arm",
+            "description": "+15% grenade throw range per rank",
+            "stat": "throw",
+            "per": 0.15,
+            "max": 3
+          }
+        ]
+      }
+    }
   }
 }

@@ -17,6 +17,52 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+/** The slides of the title screen's carousel: what the game is, in a few lines each. */
+const SLIDES: { title: string; lines: string[] }[] = [
+  {
+    title: 'Your squad',
+    lines: [
+      'Four soldiers and a drone. Take direct control of one, the rest follow and shoot on their own.',
+      'The drone flies, ignores cover and cannot be hurt, but needs a drone gun.',
+      'A downed soldier can be revived with a medkit; a fallen one with a defibrillator.',
+    ],
+  },
+  {
+    title: 'The horde',
+    lines: [
+      'Infected marines, wanderers that sleep until they see you, runners, acrobats and climbers.',
+      'Every third wave a mini boss: darker, bigger, with red eyes.',
+      'Shoot a head, an arm or a leg: limbs come off, and legless enemies drag themselves.',
+    ],
+  },
+  {
+    title: 'How to play',
+    lines: [
+      'WASD move · mouse aim · click fire · R reload · F melee · Q grenade.',
+      'T: third / first person · Y: RTS mode, to command the squad from above.',
+      'B: shop between waves · level up for perks.',
+    ],
+  },
+  {
+    title: 'Build and fight',
+    lines: [
+      'N: build walls, doors, sandbags and turrets. Soldiers do the work.',
+      'E: lift crates, barrels and boulders (or a fallen ally) and throw them.',
+      'Fuel and explosive barrels burn and blow up. Fire spreads along wood.',
+    ],
+  },
+  {
+    title: 'Train your soldiers',
+    lines: [
+      'Each level gives a skill point: strength, dexterity, constitution, weapon expertise.',
+      'Pick a class: Assault, Engineer, Medic or Demolitions, and buy its perks.',
+      'Open the squad screen with I or Esc.',
+    ],
+  },
+];
+/** Milliseconds each slide stays before the carousel moves on by itself. */
+const SLIDE_MS = 7000;
+
 /** The screens of the menu flow: title → mode → single player → story or the map list. */
 type Screen = 'title' | 'mode' | 'single' | 'story' | 'maps' | 'credits';
 
@@ -42,6 +88,7 @@ export class MainMenu {
   private model: MenuModel | null = null;
   private stage: HTMLElement | null = null;
   private preview: CharacterFactory | undefined;
+  private carousel: number | undefined;
 
   /** `preview` makes the character that floats on the right of the title screen. */
   constructor(
@@ -84,10 +131,39 @@ export class MainMenu {
   }
 
   private go(screen: Screen): void {
+    window.clearInterval(this.carousel);
+    this.carousel = undefined;
     this.screen = screen;
     this.panel.replaceChildren();
     const first = this.build(screen);
     first?.focus();
+  }
+
+  /** A row of slides that moves on by itself; arrows and dots pick one. */
+  private buildCarousel(parent: HTMLElement): void {
+    const box = el('div', 'menu__carousel', parent);
+    const prev = el('button', 'menu__arrow', box, '‹');
+    const body = el('div', 'menu__slide', box);
+    const next = el('button', 'menu__arrow', box, '›');
+    const dots = el('div', 'menu__dots', parent);
+    let index = 0;
+    const show = (i: number) => {
+      index = (i + SLIDES.length) % SLIDES.length;
+      const slide = SLIDES[index]!;
+      body.replaceChildren();
+      el('h3', 'menu__slide-title', body, slide.title);
+      const list = el('ul', 'menu__tips', body);
+      for (const line of slide.lines) el('li', '', list, line);
+      [...dots.children].forEach((d, k) => d.classList.toggle('menu__dot--on', k === index));
+    };
+    SLIDES.forEach((_, k) => {
+      const dot = el('button', 'menu__dot', dots);
+      dot.addEventListener('click', () => show(k));
+    });
+    prev.addEventListener('click', () => show(index - 1));
+    next.addEventListener('click', () => show(index + 1));
+    show(0);
+    this.carousel = window.setInterval(() => show(index + 1), SLIDE_MS);
   }
 
   /** Fills the panel for `screen`; returns the button that gets focus. */
@@ -109,14 +185,7 @@ export class MainMenu {
       }
       const credits = el('button', 'menu__settings', panel, 'Credits');
       credits.addEventListener('click', () => this.go('credits'));
-      const tips = el('ul', 'menu__tips', panel);
-      for (const tip of [
-        'WASD move · Mouse aim · Click fire',
-        'T: third / first person · Y: RTS mode',
-        'Level up for perks · B: shop between waves',
-      ]) {
-        el('li', '', tips, tip);
-      }
+      this.buildCarousel(panel);
       return start;
     }
 

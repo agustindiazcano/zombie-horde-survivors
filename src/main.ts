@@ -34,6 +34,9 @@ import {
   startReload,
   meleeStrike,
   throwGrenade,
+  useNearest,
+  objectDef,
+  getObject,
   toggleDrag,
   toggleVehicle,
   vehicleInReach,
@@ -54,6 +57,7 @@ import { PausePanel } from './pausePanel';
 import { DEFAULT_SETTINGS, PRESETS, loadSettings, saveSettings, type Settings } from './settings';
 import { SettingsPanel } from './settingsPanel';
 import { Radar } from './radar';
+import { BuildUi } from './buildUi';
 import { PerkPicker, Shop } from './upgradesUi';
 
 /** Mobile: enemies within this distance (world units) are shot at automatically. */
@@ -65,7 +69,7 @@ const PAN_SPEED = 22;
 const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Z: walk · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Z: walk · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: use / pick up / open / enter · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -191,7 +195,7 @@ async function main(): Promise<void> {
     perks.isOpen ||
     shop.isOpen ||
     settingsPanel.isOpen;
-  const rts = new RtsController(
+  const rts: RtsController = new RtsController(
     renderer.domElement,
     renderer,
     config,
@@ -200,7 +204,20 @@ async function main(): Promise<void> {
       localPlayer(state).controlledId === null &&
       state.status === 'playing' &&
       !paused &&
-      !modalOpen(),
+      !modalOpen() &&
+      !build.isArmed,
+  );
+  const build: BuildUi = new BuildUi(
+    document.body,
+    renderer.domElement,
+    config,
+    () => state,
+    () => {
+      const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
+      if (unit && renderer.viewMode !== 'top') return renderer.lookAimPoint(unit.pos);
+      return input.read(renderer.screenToGround).aim;
+    },
+    () => [...rts.selected],
   );
   const hud = new Hud(document.body, config, () => resetGame());
   const damageNumbers = new DamageNumbers(document.body, (x, z, y) =>
@@ -224,6 +241,7 @@ async function main(): Promise<void> {
       controlSoldier(state, null);
     }
     hud.reset();
+    build.close();
     rts.set([]);
     ui.close();
     shop.close();
@@ -422,7 +440,10 @@ async function main(): Promise<void> {
       return;
     }
     if (perks.onKey(e.code)) return;
-    if (e.code === 'KeyM') sfx.toggleMute();
+    if (e.code === 'KeyN' && playable() && !modalOpen() && !e.repeat) build.toggle();
+    else if (e.code === 'KeyR' && build.isArmed) build.rotate();
+    else if (e.code === 'KeyM') sfx.toggleMute();
+    else if (e.code === 'Escape' && build.cancel()) return;
     else if (e.code === 'Escape' && rts.grenadeAiming) rts.cancelGrenadeAim();
     else if (e.code === 'Escape' && ui.isOpen) ui.close();
     else if (e.code === 'Escape' && shop.isOpen) shop.close();
@@ -466,11 +487,13 @@ async function main(): Promise<void> {
       const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
       if (playable() && !modalOpen() && unit && !e.repeat) startReload(state, config, unit);
     } else if (e.code === 'KeyE') {
-      const crate = crateInReach();
+      // The action key: close an open crate, else use the closest thing in reach.
       const unitId = localPlayer(state).controlledId;
       if (ui.isOpen) ui.close();
-      else if (playable() && !shop.isOpen && crate && unitId !== null)
-        ui.openCrate(unitId, crate.id);
+      else if (playable() && !modalOpen() && unitId !== null && !e.repeat) {
+        const crateId = useNearest(state, config, unitId);
+        if (crateId !== null) ui.openCrate(unitId, crateId);
+      }
     } else if (
       e.code === 'KeyT' &&
       playable() &&
@@ -507,7 +530,7 @@ async function main(): Promise<void> {
     directInput.aim =
       renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
     // Clicks edit the map in the editor, so the driven unit does not fire there.
-    directInput.firing = raw.firing && !editor.isEditing;
+    directInput.firing = raw.firing && !editor.isEditing && !build.isArmed;
     directInput.aimLine = renderer.sightLine() ?? undefined;
     // Aiming down the sights: the right button, only in third and first person.
     const presses = input.takeAimPresses();
@@ -561,6 +584,16 @@ async function main(): Promise<void> {
       hud.onStep(state);
       damageNumbers.onStep(state);
       sfx.onStep(state);
+      for (const e of state.events) {
+        if (e.type !== 'tooHeavy') continue;
+        rts.notice = `Too heavy: needs ${e.needed} strength`;
+        rts.noticeUntil = performance.now() + 2500;
+      }
+      // A soldier sent to a crate has arrived: open it for them.
+      for (const e of state.events) {
+        if (e.type === 'crateReached' && playable() && !modalOpen())
+          ui.openCrate(e.soldierId, e.crateId);
+      }
       if (state.events.some((e) => e.type === 'soldierHurt')) mobileUi?.vibrate(35);
     },
     (alpha, frameDt) => {
@@ -589,8 +622,12 @@ async function main(): Promise<void> {
         renderer.setAimZoom(shooter.aiming ? aimZoomOf(config, shooter) : 1);
       } else renderer.setAimZoom(1);
       rts.prune();
+      rts.updateHover();
       if (localPlayer(state).controlledId !== null || paused || modalOpen()) rts.cancelGrenadeAim();
+      if (paused || state.status !== 'playing') build.close();
       renderer.setGrenadePreview(rts.grenadePreview());
+      build.update();
+      renderer.setBuildGhost(build.ghost());
       renderer.render(state, alpha, frameDt);
       damageNumbers.update(paused ? 0 : frameDt);
       fps.tick(frameDt);
@@ -618,6 +655,12 @@ async function main(): Promise<void> {
       } else {
         vehiclePrompt.hide();
       }
+      const carry = unit?.carrying;
+      const carryHint = carry
+        ? carry.kind === 'object'
+          ? `  [HOLDING ${objectDef(config, getObject(state, carry.id)!).name.toUpperCase()} · click: throw · E: put down]`
+          : '  [CARRYING A BODY · E: put down]'
+        : '';
       const ride = getVehicle(state, unit?.vehicleId ?? null);
       const rideHint = ride
         ? `  [${config.vehicles[ride.type]!.name.toUpperCase()} ${Math.round((ride.health / ride.maxHealth) * 100)}% · V: get out]`
@@ -633,7 +676,9 @@ async function main(): Promise<void> {
         : performance.now() < rts.noticeUntil
           ? `  [${rts.notice}]`
           : '';
-      hud.setHint((rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view + rideHint + aimHint);
+      hud.setHint(
+        (rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view + rideHint + carryHint + aimHint,
+      );
       squad.update(state, rts.selected, maxHealthOf(state, config));
     },
   );

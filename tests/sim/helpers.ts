@@ -17,7 +17,14 @@ import {
 } from '../../src/sim';
 
 /** Config sections to override; `weapon` overrides the rifle, the test squad's weapon. */
-type Patch = { [K in Exclude<keyof GameConfig, 'items' | 'briefing'>]?: Partial<GameConfig[K]> } & {
+type Patch = {
+  [
+    K in Exclude<
+      keyof GameConfig,
+      'items' | 'briefing' | 'build' | 'noWaves' | 'startGold' | 'startStructures' | 'startObjects'
+    >
+  ]?: Partial<GameConfig[K]>;
+} & {
   weapon?: Partial<WeaponItem>;
 };
 
@@ -44,6 +51,9 @@ export function testConfig(patch: Patch = {}): GameConfig {
     player: { ...base.player },
     zombie: { ...base.zombie },
     vehicles: { ...base.vehicles },
+    structures: { ...base.structures },
+    training: { ...base.training },
+    objects: { ...base.objects, types: { ...base.objects.types } },
     hazards: { ...base.hazards },
     animals: { ...base.animals },
     drag: { ...base.drag },

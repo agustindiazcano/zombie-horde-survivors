@@ -17,10 +17,15 @@ export interface Player {
 export type ZombieState = 'walk' | 'attack' | 'death';
 
 /** What an AI-driven soldier is doing. Only the controlled soldier ignores its order. */
+/** What the action key (E, or a click in RTS) can do to a thing in the world. */
+export type InteractKind = 'object' | 'body' | 'crate' | 'door' | 'vehicle';
+
 export type SoldierOrder =
   | { type: 'follow' }
   | { type: 'move'; x: number; z: number }
   | { type: 'board'; vehicleId: number }
+  | { type: 'build'; structureId: number }
+  | { type: 'interact'; kind: InteractKind; id: number }
   | { type: 'hold' };
 
 export type Stance = 'normal' | 'walk' | 'crouch' | 'sprint';
@@ -79,10 +84,63 @@ export interface AimLine {
   slope: number;
 }
 
+/** Skill points spent so far, weapon expertise levels bought, the chosen class and its perk ranks. */
+export interface Training {
+  spent: number;
+  expertise: Record<WeaponClass, number>;
+  classId: string | null;
+  ranks: Record<string, number>;
+}
+
+/** What a soldier is carrying: an object (to throw) or the body of a downed or dead ally. */
+export interface Carry {
+  kind: 'object' | 'body';
+  id: number;
+  /** Walking speed scale while it is held. */
+  speed: number;
+  weight: number;
+}
+
+/** A thing on the ground that can be lifted, thrown, shot and burnt (a barrel, a crate, a boulder). */
+export interface GameObject {
+  id: number;
+  /** Key of `objects.types` in data/game.json. */
+  type: string;
+  pos: Vec2;
+  /** Height of the object's base above the ground (flying or held). */
+  y: number;
+  health: number;
+  /** The soldier holding it, or null. */
+  heldBy: number | null;
+  /** A throw in progress: where it started, where it lands, and seconds flown of the whole flight. */
+  flight: { from: Vec2; to: Vec2; y0: number; time: number; flown: number; thrower: number } | null;
+}
+
+/** A fire. On bare ground it dies after `hazards.fire.duration`; on a host it burns until the host is gone. */
+export interface Fire {
+  id: number;
+  x: number;
+  z: number;
+  /** Seconds burning; `life` is how long it may burn (Infinity for a map's own fires). */
+  age: number;
+  life: number;
+  host: { kind: 'object' | 'structure'; id: number } | null;
+  /** Seconds until it tries to spread. */
+  spread: number;
+}
+
 export interface Soldier {
   id: number;
+  /** What the skill points earned by levelling have bought. */
+  training: Training;
   /** Id of the downed or dead ally this soldier drags by the shoulders, if any. */
   dragging: number | null;
+  /** What it holds over its shoulders or head (an object to throw, or an ally's body), and the walking speed that costs. */
+  carrying: Carry | null;
+  /** The soldier that carries this body, or null. */
+  carriedBy: number | null;
+  /** The fire button was down last step (a throw needs a fresh press). */
+  throwHeld: boolean;
   /** Id of the player that owns this unit. */
   owner: string;
   kind: UnitKind;
@@ -166,6 +224,30 @@ export interface Grenade {
   fuse: number;
 }
 
+/** A built (or being built) structure of build mode: a wall, a door, a turret... */
+export interface Structure {
+  id: number;
+  /** Key of `structures.types` in data/game.json. */
+  type: string;
+  /** Centre of the footprint. */
+  x: number;
+  z: number;
+  /** Quarter turns (0 to 3); odd ones swap the sides of the footprint. */
+  turns: number;
+  level: number;
+  health: number;
+  maxHealth: number;
+  /** False while it is a blueprint: a ghost that does not block anyone. */
+  built: boolean;
+  /** Seconds of work done so far on a blueprint. */
+  progress: number;
+  /** A door that is open lets everyone through. */
+  open: boolean;
+  /** Turrets: seconds until the next shot and the direction they last aimed (radians, 0 = +z). */
+  cooldown: number;
+  facing: number;
+}
+
 /**
  * A drivable machine. It is neutral: it belongs to whoever sits in it. Seat 0 is the driver's
  * (no driver, no movement); the other seats hold passengers. Entries are soldier ids or null.
@@ -233,6 +315,9 @@ export interface Zombie {
   roamTimer: number;
   /** Seconds a wanderer has waited after its wave finished spawning; it wakes up after a while. */
   restless: number;
+  /** A hunter's memory: where it last saw the squad (null if never) and seconds since it last did. */
+  lastSeen: Vec2 | null;
+  unseen: number;
   deathTimer: number;
   /** Which limbs are still on, and the damage taken by each so far (it comes off past a threshold). */
   parts: Parts;
@@ -326,6 +411,21 @@ export type SimEvent =
   | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
   | { type: 'dryFire'; shooterId: number }
   | {
+      type: 'structureShot';
+      structureId: number;
+      from: Vec2;
+      to: Vec2;
+      hitZombieId: number | null;
+    }
+  | { type: 'structureBuilt'; structureId: number }
+  | { type: 'objectThrown'; objectId: number; throwerId: number }
+  | { type: 'objectLanded'; objectId: number; pos: Vec2 }
+  | { type: 'objectDestroyed'; objectId: number; pos: Vec2; kind: string }
+  | { type: 'fireStarted'; fireId: number; pos: Vec2 }
+  | { type: 'tooHeavy'; soldierId: number; needed: number }
+  | { type: 'crateReached'; soldierId: number; crateId: number }
+  | { type: 'structureDestroyed'; structureId: number; pos: Vec2 }
+  | {
       type: 'melee';
       attackerId: number;
       weapon: string;
@@ -379,6 +479,15 @@ export interface GameState {
   nextSoldierId: number;
   vehicles: Vehicle[];
   nextVehicleId: number;
+  /** Build mode: structures and blueprints. */
+  structures: Structure[];
+  nextStructureId: number;
+  /** Objects on the ground, in hands or in the air. */
+  objects: GameObject[];
+  nextObjectId: number;
+  /** Fires burning now. */
+  fires: Fire[];
+  nextFireId: number;
   /** Grenades in the air or waiting for their fuse. */
   grenades: Grenade[];
   nextGrenadeId: number;
