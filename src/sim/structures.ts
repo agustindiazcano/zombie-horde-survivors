@@ -9,7 +9,7 @@ import type { Vec2 } from './vec';
 /** Floor under the footprint test: boxes that only touch are not overlapping. */
 const EPSILON = 0.001;
 /** A door can be toggled by a soldier this close (metres, to the footprint). */
-const DOOR_REACH = 2.5;
+export const DOOR_REACH = 2.5;
 /** Builders keep shooting if an enemy is this close (metres). */
 const FIGHT_RANGE = 10;
 

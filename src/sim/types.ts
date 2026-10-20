@@ -17,11 +17,15 @@ export interface Player {
 export type ZombieState = 'walk' | 'attack' | 'death';
 
 /** What an AI-driven soldier is doing. Only the controlled soldier ignores its order. */
+/** What the action key (E, or a click in RTS) can do to a thing in the world. */
+export type InteractKind = 'object' | 'body' | 'crate' | 'door' | 'vehicle';
+
 export type SoldierOrder =
   | { type: 'follow' }
   | { type: 'move'; x: number; z: number }
   | { type: 'board'; vehicleId: number }
   | { type: 'build'; structureId: number }
+  | { type: 'interact'; kind: InteractKind; id: number }
   | { type: 'hold' };
 
 export type Stance = 'normal' | 'walk' | 'crouch' | 'sprint';
@@ -419,6 +423,7 @@ export type SimEvent =
   | { type: 'objectDestroyed'; objectId: number; pos: Vec2; kind: string }
   | { type: 'fireStarted'; fireId: number; pos: Vec2 }
   | { type: 'tooHeavy'; soldierId: number; needed: number }
+  | { type: 'crateReached'; soldierId: number; crateId: number }
   | { type: 'structureDestroyed'; structureId: number; pos: Vec2 }
   | {
       type: 'melee';

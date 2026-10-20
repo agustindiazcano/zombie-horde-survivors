@@ -13,7 +13,13 @@ export const releaseDrag = (s: Soldier): void => {
  * Grabs the closest downed or dead ally within reach by the shoulders, or lets go of the one being
  * dragged. A dragger is slow and can only shoot a one-handed gun (see `speedOf` and `weaponOf`).
  */
-export function toggleDrag(state: GameState, config: GameConfig, soldierId: number): void {
+export function toggleDrag(
+  state: GameState,
+  config: GameConfig,
+  soldierId: number,
+  /** Grab exactly this body (a click on it) instead of the closest one. */
+  bodyId?: number,
+): void {
   const me = state.soldiers.find((s) => s.id === soldierId);
   if (!me || me.dead || me.downed || me.kind !== 'soldier' || me.vehicleId !== null) return;
   if (me.dragging !== null) {
@@ -24,6 +30,7 @@ export function toggleDrag(state: GameState, config: GameConfig, soldierId: numb
   let bestDist = config.drag.range;
   for (const b of state.soldiers) {
     if (b === me || !isBody(b) || b.vehicleId !== null) continue;
+    if (bodyId !== undefined && b.id !== bodyId) continue;
     if (state.soldiers.some((s) => s.dragging === b.id)) continue;
     const d = Math.hypot(b.pos.x - me.pos.x, b.pos.z - me.pos.z);
     if (d <= bestDist) {

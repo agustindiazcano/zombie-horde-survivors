@@ -2,10 +2,12 @@ import type { GameRenderer } from './render/gameRenderer';
 import type { GrenadePreview } from './render/grenades';
 import {
   grenadeAim,
-  orderBoard,
+  interactableAt,
   orderFollow,
+  orderInteract,
   orderMove,
   throwGrenade,
+  type Interactable,
   type GameConfig,
   type GameState,
   type Soldier,
@@ -21,7 +23,8 @@ const BODY_MID = 1;
 
 /**
  * RTS-mode mouse and keyboard handling: click/box selection, right-click move orders,
- * number keys, E (select all), F (follow) and G (aim a grenade: the next click throws it).
+ * number keys, Ctrl+A (select all), F (follow), G (aim a grenade: the next click throws it) and
+ * the action key: E or a click on the thing under the cursor (a label names what it does).
  * Does nothing while `isActive()` is false.
  */
 export class RtsController {
@@ -33,12 +36,16 @@ export class RtsController {
   notice = '';
   noticeUntil = 0;
   private cursor = { x: 0, y: 0 };
+  private cursorPx = { x: 0, y: 0 };
+  /** The thing under the cursor that the selected soldiers could use, with its label shown. */
+  private hover: Interactable | null = null;
+  private readonly tip = document.createElement('div');
   private rightDown: { x: number; y: number } | null = null;
-  private drag: { x0: number; y0: number; x1: number; y1: number } | null = null;
+  private drag: { x0: number; y0: number; x1: number; y1: number; moved: boolean } | null = null;
   private readonly box = document.createElement('div');
 
   constructor(
-    canvas: HTMLElement,
+    private readonly canvas: HTMLElement,
     private readonly renderer: GameRenderer,
     private readonly config: GameConfig,
     private readonly getState: () => GameState,
@@ -46,6 +53,8 @@ export class RtsController {
   ) {
     this.box.className = 'selection-box';
     document.body.appendChild(this.box);
+    this.tip.className = 'rts-tip';
+    document.body.appendChild(this.tip);
 
     canvas.addEventListener('mousedown', this.onMouseDown);
     window.addEventListener('mousemove', this.onMouseMove);
@@ -113,6 +122,51 @@ export class RtsController {
     return best;
   }
 
+  /** A selected soldier on its feet can act, so there is something to show. */
+  private hasActor(): boolean {
+    return this.getState().soldiers.some(
+      (s) => this.selected.has(s.id) && !s.dead && !s.downed && s.kind === 'soldier',
+    );
+  }
+
+  /** A standing soldier close to the screen point: a click there selects it instead of acting. */
+  private soldierUnder(px: number, py: number): boolean {
+    return this.living().some((s) => {
+      if (s.downed) return false;
+      const p = this.screenPos(s);
+      return Math.hypot(p.x - px, p.z - py) < PICK_RADIUS;
+    });
+  }
+
+  private thingAt(px: number, py: number): Interactable | null {
+    if (!this.isActive() || !this.hasActor() || this.grenadeAiming || this.drag?.moved) return null;
+    if (this.soldierUnder(px, py)) return null;
+    const ground = this.renderer.screenToGround(
+      (px / window.innerWidth) * 2 - 1,
+      -(py / window.innerHeight) * 2 + 1,
+    );
+    return ground ? interactableAt(this.getState(), this.config, ground, this.selected) : null;
+  }
+
+  /** Call every frame: finds what the cursor is over and shows its action ("Pick", "Open"...). */
+  updateHover(): void {
+    this.hover = this.thingAt(this.cursorPx.x, this.cursorPx.y);
+    this.tip.style.display = this.hover ? 'block' : 'none';
+    this.canvas.style.cursor = this.hover ? 'pointer' : '';
+    if (!this.hover) return;
+    this.tip.textContent = this.hover.label;
+    this.tip.style.left = `${this.cursorPx.x + 14}px`;
+    this.tip.style.top = `${this.cursorPx.y + 12}px`;
+  }
+
+  /** Sends the selected soldiers to use a thing; true if there was one to use. */
+  private useThing(it: Interactable | null): boolean {
+    if (!it) return false;
+    orderInteract(this.getState(), [...this.selected], it);
+    this.renderer.pulse(it.pos);
+    return true;
+  }
+
   private cursorGround(): Vec2 | null {
     return this.renderer.screenToGround(this.cursor.x, this.cursor.y);
   }
@@ -156,7 +210,7 @@ export class RtsController {
       return;
     }
     if (e.button === 0) {
-      this.drag = { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY };
+      this.drag = { x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY, moved: false };
     } else if (e.button === 2) {
       // A right click orders on release; dragging with it rotates the camera instead.
       this.rightDown = { x: e.clientX, y: e.clientY };
@@ -177,19 +231,8 @@ export class RtsController {
       -(e.clientY / window.innerHeight) * 2 + 1,
     );
     if (!ground) return;
-    // Right-clicking a vehicle with a free seat sends the selection to climb in.
-    const state = this.getState();
-    const vehicle = state.vehicles.find(
-      (v) =>
-        v.seats.includes(null) &&
-        Math.hypot(v.pos.x - ground.x, v.pos.z - ground.z) <=
-          this.config.vehicles[v.type]!.radius + 1,
-    );
-    if (vehicle) {
-      orderBoard(state, [...this.selected], vehicle.id);
-      this.renderer.pulse(vehicle.pos);
-      return;
-    }
+    // Right-clicking a thing the soldiers can use (a vehicle, a crate, a door...) sends them to it.
+    if (this.useThing(this.thingAt(e.clientX, e.clientY))) return;
     orderMove(this.getState(), this.config, [...this.selected], ground);
     this.renderer.pulse(ground);
   }
@@ -197,11 +240,14 @@ export class RtsController {
   private onMouseMove = (e: MouseEvent): void => {
     this.cursor.x = (e.clientX / window.innerWidth) * 2 - 1;
     this.cursor.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    this.cursorPx.x = e.clientX;
+    this.cursorPx.y = e.clientY;
     if (!this.drag) return;
     this.drag.x1 = e.clientX;
     this.drag.y1 = e.clientY;
     const { x0, y0, x1, y1 } = this.drag;
     if (Math.hypot(x1 - x0, y1 - y0) < DRAG_THRESHOLD) return;
+    this.drag.moved = true;
     const style = this.box.style;
     style.display = 'block';
     style.left = `${Math.min(x0, x1)}px`;
@@ -223,8 +269,9 @@ export class RtsController {
     this.box.style.display = 'none';
     if (!this.isActive()) return;
 
-    if (Math.hypot(x1 - x0, y1 - y0) < DRAG_THRESHOLD) this.clickSelect(x1, y1, e.shiftKey);
-    else this.boxSelect(x0, y0, x1, y1, e.shiftKey);
+    if (Math.hypot(x1 - x0, y1 - y0) < DRAG_THRESHOLD) {
+      if (!this.useThing(this.thingAt(x1, y1))) this.clickSelect(x1, y1, e.shiftKey);
+    } else this.boxSelect(x0, y0, x1, y1, e.shiftKey);
   };
 
   private screenPos(s: Soldier) {
@@ -260,7 +307,10 @@ export class RtsController {
 
   private onKeyDown = (e: KeyboardEvent): void => {
     if (!this.isActive()) return;
-    if (e.code === 'KeyE') {
+    if (e.code === 'KeyE' && !e.repeat) {
+      this.useThing(this.hover);
+    } else if (e.code === 'KeyA' && e.ctrlKey) {
+      e.preventDefault();
       this.set(this.living().map((s) => s.id));
     } else if (e.code === 'KeyF') {
       orderFollow(this.getState(), [...this.selected]);

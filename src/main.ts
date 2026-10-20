@@ -34,7 +34,7 @@ import {
   startReload,
   meleeStrike,
   throwGrenade,
-  liftOrDrop,
+  useNearest,
   objectDef,
   getObject,
   toggleDrag,
@@ -69,7 +69,7 @@ const PAN_SPEED = 22;
 const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Z: walk · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · H: lift / put down · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Z: walk · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: use / pick up / open / enter · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -472,12 +472,6 @@ async function main(): Promise<void> {
         if (controlled !== null) toggleDrag(state, config, controlled);
         else if (!e.repeat) rts.toggleGrenadeAim();
       }
-    } else if (e.code === 'KeyH') {
-      // Direct control: lift the closest object or fallen ally onto the shoulders, or put it down.
-      const controlled = localPlayer(state).controlledId;
-      if (playable() && !modalOpen() && controlled !== null && !e.repeat) {
-        liftOrDrop(state, config, controlled);
-      }
     } else if (e.code === 'KeyQ') {
       // Direct control: lob a grenade at the aim point, like a Call of Duty frag.
       const controlled = localPlayer(state).controlledId;
@@ -493,12 +487,13 @@ async function main(): Promise<void> {
       const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
       if (playable() && !modalOpen() && unit && !e.repeat) startReload(state, config, unit);
     } else if (e.code === 'KeyE') {
-      const crate = crateInReach();
+      // The action key: close an open crate, else use the closest thing in reach.
       const unitId = localPlayer(state).controlledId;
       if (ui.isOpen) ui.close();
-      else if (playable() && !shop.isOpen && crate && unitId !== null)
-        ui.openCrate(unitId, crate.id);
-      else if (playable() && !modalOpen() && unitId !== null && !e.repeat) build.useDoor();
+      else if (playable() && !modalOpen() && unitId !== null && !e.repeat) {
+        const crateId = useNearest(state, config, unitId);
+        if (crateId !== null) ui.openCrate(unitId, crateId);
+      }
     } else if (
       e.code === 'KeyT' &&
       playable() &&
@@ -591,8 +586,13 @@ async function main(): Promise<void> {
       sfx.onStep(state);
       for (const e of state.events) {
         if (e.type !== 'tooHeavy') continue;
-        rts.notice = `Too heavy: needs ${e.needed} strength (H to lift)`;
+        rts.notice = `Too heavy: needs ${e.needed} strength`;
         rts.noticeUntil = performance.now() + 2500;
+      }
+      // A soldier sent to a crate has arrived: open it for them.
+      for (const e of state.events) {
+        if (e.type === 'crateReached' && playable() && !modalOpen())
+          ui.openCrate(e.soldierId, e.crateId);
       }
       if (state.events.some((e) => e.type === 'soldierHurt')) mobileUi?.vibrate(35);
     },
@@ -622,6 +622,7 @@ async function main(): Promise<void> {
         renderer.setAimZoom(shooter.aiming ? aimZoomOf(config, shooter) : 1);
       } else renderer.setAimZoom(1);
       rts.prune();
+      rts.updateHover();
       if (localPlayer(state).controlledId !== null || paused || modalOpen()) rts.cancelGrenadeAim();
       if (paused || state.status !== 'playing') build.close();
       renderer.setGrenadePreview(rts.grenadePreview());
@@ -657,8 +658,8 @@ async function main(): Promise<void> {
       const carry = unit?.carrying;
       const carryHint = carry
         ? carry.kind === 'object'
-          ? `  [HOLDING ${objectDef(config, getObject(state, carry.id)!).name.toUpperCase()} · click: throw · H: put down]`
-          : '  [CARRYING A BODY · H: put down]'
+          ? `  [HOLDING ${objectDef(config, getObject(state, carry.id)!).name.toUpperCase()} · click: throw · E: put down]`
+          : '  [CARRYING A BODY · E: put down]'
         : '';
       const ride = getVehicle(state, unit?.vehicleId ?? null);
       const rideHint = ride

@@ -95,8 +95,9 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 
 ### 2j — 🔴 Interaction lab (Map 5) and the rest of 8b
 
-- [x] Lift and throw objects (**H**, click), carry a body (**H**), fire that spreads, explosive and fuel barrels, Map 5 ([worklog](docs/worklog/2026-10-19-interaction-and-training.md)).
-- [ ] 🔴 Look at Map 5 in the browser: controls are in [docs/CONTROLS.md](docs/CONTROLS.md) (H lift / put down, click throw, shoot a barrel). Tune `objects` and `hazards.fire` in `game.json`.
+- [x] Lift and throw objects (**E**, click), carry a body (**E**), fire that spreads, explosive and fuel barrels, Map 5 ([worklog](docs/worklog/2026-10-19-interaction-and-training.md)).
+- [x] Action key **E** (Half-Life style) and RTS hover labels (Pick / Drag / Open / Close / Enter), click or E sends the closest selected soldier; select-all moved to Ctrl+A. Monster corpses are not draggable yet (they vanish after dying); loose items on the ground do not exist yet (only crates).
+- [ ] 🔴 Look at Map 5 in the browser: controls are in [docs/CONTROLS.md](docs/CONTROLS.md) (E lift / put down, click throw, shoot a barrel). Tune `objects` and `hazards.fire` in `game.json`.
 - [ ] 🟡 Next: objects that block movement, AI that carries the wounded, models and sounds, objects in the editor.
 
 ### 2i — 🟡 Test maps, doors, interiors, urban maps, engine (planned 2026-10-19)

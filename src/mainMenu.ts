@@ -47,7 +47,7 @@ const SLIDES: { title: string; lines: string[] }[] = [
     title: 'Build and fight',
     lines: [
       'N: build walls, doors, sandbags and turrets. Soldiers do the work.',
-      'H: lift crates, barrels and boulders (or a fallen ally) and throw them.',
+      'E: lift crates, barrels and boulders (or a fallen ally) and throw them.',
       'Fuel and explosive barrels burn and blow up. Fire spreads along wood.',
     ],
   },

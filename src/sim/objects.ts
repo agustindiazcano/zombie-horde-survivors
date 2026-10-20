@@ -128,7 +128,13 @@ export function dropCarried(state: GameState, config: GameConfig, me: Soldier): 
  * Lifts the closest object or fallen ally within reach onto the shoulders, or puts down what the
  * soldier is already holding. Too heavy for the soldier's strength: nothing happens but a message.
  */
-export function liftOrDrop(state: GameState, config: GameConfig, soldierId: number): void {
+export function liftOrDrop(
+  state: GameState,
+  config: GameConfig,
+  soldierId: number,
+  /** Lift exactly this thing (a click on it) instead of the closest one. */
+  only?: { kind: Carry['kind']; id: number },
+): void {
   const me = state.soldiers.find((s) => s.id === soldierId);
   if (!me || me.dead || me.downed || me.kind !== 'soldier' || me.vehicleId !== null) return;
   if (me.carrying) {
@@ -142,12 +148,14 @@ export function liftOrDrop(state: GameState, config: GameConfig, soldierId: numb
     if (d <= oc.liftRange && (!best || d < best.d)) best = { carry: { kind, id, weight }, d };
   };
   for (const o of state.objects) {
+    if (only && (only.kind !== 'object' || only.id !== o.id)) continue;
     if (o.heldBy === null && o.flight === null) {
       consider('object', o.id, objectDef(config, o).weight, o.pos.x, o.pos.z);
     }
   }
   for (const b of state.soldiers) {
     if (b === me || !isBody(b) || b.vehicleId !== null || b.carriedBy !== null) continue;
+    if (only && (only.kind !== 'body' || only.id !== b.id)) continue;
     consider('body', b.id, oc.bodyWeight, b.pos.x, b.pos.z);
   }
   const pick = best as { carry: Omit<Carry, 'speed'>; d: number } | null;

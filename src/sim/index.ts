@@ -59,6 +59,13 @@ export {
   spendAttribute,
   spendExpertise,
 } from './training';
+export {
+  interactableAt,
+  interactableFor,
+  orderInteract,
+  useNearest,
+  type Interactable,
+} from './interact';
 export { getObject, liftOrDrop, maxLift, objectDef, throwCarried } from './objects';
 export {
   doorInReach,

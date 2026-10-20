@@ -1,4 +1,5 @@
 import { edgeDistance, getStructure, isWorking, mustFight } from './structures';
+import { ARRIVE_SHARE, findInteractable, performInteract } from './interact';
 import { throwCarried } from './objects';
 import { bonus } from './training';
 import { resolveStatic, supportHeight, topOf } from './collision';
@@ -479,6 +480,13 @@ function updateAi(
         dest = { ...v.pos };
       }
     }
+  } else if (s.order.type === 'interact') {
+    const it = findInteractable(state, config, s.order.kind, s.order.id);
+    if (!it) s.order = { type: 'hold' };
+    else if (it.from(s.pos) <= it.reach * ARRIVE_SHARE) {
+      s.order = { type: 'hold' };
+      performInteract(state, config, s, it);
+    } else dest = { ...it.pos };
   } else if (s.order.type === 'build') {
     const st = getStructure(state, s.order.structureId);
     if (!st || st.built) s.order = { type: 'follow' };
