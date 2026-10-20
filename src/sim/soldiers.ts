@@ -454,7 +454,7 @@ function updateAi(
     }
   } else if (s.order.type === 'build') {
     const st = getStructure(state, s.order.structureId);
-    if (!st || st.built) s.order = { type: 'hold' };
+    if (!st || st.built) s.order = { type: 'follow' };
     else if (edgeDistance(config, st, s.pos) > config.structures.workRange * 0.8) {
       dest = { x: st.x, z: st.z };
     }

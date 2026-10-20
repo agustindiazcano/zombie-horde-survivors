@@ -64,13 +64,15 @@ Full plan: [docs/PLAN-multiplayer.md](docs/PLAN-multiplayer.md). Co-op for 2 to 
 - [ ] ⚪ Choose where to host the relay (prices and limits not checked yet). The design questions of section 6 are decided.
 - [ ] ⚪ Before any performance work (Wasm, a Web Worker, a flow field for pathfinding): profile in the browser first; the sim step is 2.7 ms with 1000 zombies, so the drawing is the likelier bottleneck (see section 8 of the plan).
 
-### 2e — ⚪ Build mode (planned 2026-10-19, nothing built)
+### 2e — 🔴 Build mode (first version built on `feat/build-mode`, 2026-10-19)
 
 Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watchtower, turret, wire fence, wooden barricade, solid wall, sandbags, doors) with upgrades; soldiers build from the RTS view (more soldiers, faster) and the player quick-builds sandbags and a turret in direct control; a manned machine-gun nest and an automatic "smart turret"; tested on a new Map 2, "Build mode test". Phase 0 is a flow-field pathfinding so zombies can reach and break structures.
 
 - [x] Decisions taken (2026-10-19): the recommendations of section 13 of the plan were accepted.
 - [x] Phase 0, the flow-field pathfinding, is built on `feat/flow-field` ([worklog](docs/worklog/2026-10-19-flow-field.md)); look at it in the browser (zombies go around long walls and into the squad's reach).
-- [ ] ⚪ Build order: structures in the sim next (they need break-cost in the field).
+- [x] Structures, blueprints, builders, doors, turrets, upgrades, repair, the **N** menu, Map 2 ([worklog](docs/worklog/2026-10-19-build-mode.md)).
+- [ ] 🔴 Look at it in the browser: open Map 2, press **N**, place a wall / door / turret, watch the soldiers build, open the door with **E**, let a wave hit the base. Tune `structures` in `game.json`.
+- [ ] 🟡 Next: manned machine-gun nest and watchtower (reuse vehicle seats), structures in the editor, soldiers pathing around structures, models and sounds, ammo for turrets.
 
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
@@ -90,6 +92,15 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [ ] 🟡 Measure with F3 and Chrome's profiler in a heavy wave and compare the light marine's look with a soldier.
 - [x] M1 built (variants, procedural blood, bleeder) and M1b built (wanderers that sleep, sense, see and shout; climbers over boxes): [worklog](docs/worklog/2026-10-19-marine-m1b.md). Look at the pale **wanderer** and the orange **climber**.
 - [x] M2 built: a killing head hit bursts or knocks off the head by weapon strength ([worklog](docs/worklog/2026-10-19-marine-m2.md)). Look at it in the browser (stump size, flying head, neck spray, `dismember.headBurstDamage`); - [x] M3 built: body zones, arms and legs come off, grenades tear limbs, legless enemies drag themselves ([worklog](docs/worklog/2026-10-19-marine-m3.md)). Look at it in the browser (stump sizes, throw, the pitched-forward crawl, `dismember.*` numbers); next is M4 (real crawl, `marine_crawler`).
+
+### 2i — 🟡 Test maps, doors, interiors, urban maps, engine (planned 2026-10-19)
+
+Plans: [PLAN-test-maps.md](docs/PLAN-test-maps.md) (weapons range, hide and seek, celestial event 4, human vs human with cover AI) and [PLAN-world-and-engine.md](docs/PLAN-world-and-engine.md) (door kinds incl. sci-fi and large gates, interiors, urban maps, the engine for several games).
+
+- [x] Maps 2 to 4 built: Build mode test, Weapons range, Hide and seek (a giant Stalker that hunts by sight, loses track and searches; crouching hides you better).
+- [ ] 🟡 Look at maps 3 and 4 in the browser (targets, the Stalker's size, how it searches, crouch stealth).
+- [ ] 🟡 Next by the user's order: soldier pathing (W0) and the door system v2 (W1), then celestial event 4, the cover AI map and interiors.
+- [ ] ⚪ Answer the questions of section 9 of PLAN-world-and-engine.md and the open questions of PLAN-test-maps.md section 3.
 
 ### 2h — ⚪ Phase B: WebGPU engine, VAT crowd, ragdoll pool, mocap (noted 2026-10-19, nothing decided or built)
 

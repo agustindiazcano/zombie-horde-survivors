@@ -65,18 +65,20 @@ When you take control with **Y**, only the units that were selected follow you. 
 
 ## Anywhere in a run
 
-| Key                                 | Action                                                                        |
-| ----------------------------------- | ----------------------------------------------------------------------------- |
-| P / Esc / I                         | Pause / resume and show the squad screen (bonuses, stats, units, inventories) |
-| Pause screen, **Exit to main menu** | Button at the top-left panel: leaves the run and returns to the main menu     |
-| B                                   | Open / close the shop (only between waves)                                    |
-| O                                   | Settings (graphics, lighting, FPS counter, volume)                            |
-| L                                   | Dark mode: dim lights and a flashlight per soldier                            |
-| F3                                  | Show / hide the FPS counter                                                   |
-| M                                   | Mute / unmute                                                                 |
-| 1 / 2 / 3                           | Pick a perk while the level-up menu is open (the game is frozen until you do) |
-| R                                   | Restart (on the game over screen)                                             |
-| Esc                                 | Closes the open window first (shop, squad screen, settings), then pauses      |
+| Key                                 | Action                                                                                                                                                                                                                              |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P / Esc / I                         | Pause / resume and show the squad screen (bonuses, stats, units, inventories)                                                                                                                                                       |
+| Pause screen, **Exit to main menu** | Button at the top-left panel: leaves the run and returns to the main menu                                                                                                                                                           |
+| B                                   | Open / close the shop (only between waves)                                                                                                                                                                                          |
+| N                                   | Build menu (only on maps with building, e.g. Map 2): pick a structure, click to place a blueprint, **R** turns it, **Esc** / right click puts it away. With nothing picked, click a structure to upgrade, repair, open or remove it |
+| E (next to a door)                  | Open / close the door (direct control; a crate in reach takes priority)                                                                                                                                                             |
+| O                                   | Settings (graphics, lighting, FPS counter, volume)                                                                                                                                                                                  |
+| L                                   | Dark mode: dim lights and a flashlight per soldier                                                                                                                                                                                  |
+| F3                                  | Show / hide the FPS counter                                                                                                                                                                                                         |
+| M                                   | Mute / unmute                                                                                                                                                                                                                       |
+| 1 / 2 / 3                           | Pick a perk while the level-up menu is open (the game is frozen until you do)                                                                                                                                                       |
+| R                                   | Restart (on the game over screen)                                                                                                                                                                                                   |
+| Esc                                 | Closes the open window first (shop, squad screen, settings), then pauses                                                                                                                                                            |
 
 ## Windows and menus
 
