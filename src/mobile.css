@@ -323,7 +323,31 @@ body.mobile .set__button {
   height: 50px;
 }
 
+/* Look pad: small, right side above the radar and action buttons. */
+.mob__look {
+  position: absolute;
+  right: max(14px, env(safe-area-inset-right));
+  top: 42%;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.mob__look--active {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .mob--menu .mob__zone,
+.mob--menu .mob__look,
 .mob--menu .mob__actions {
   display: none;
 }
