@@ -1,7 +1,8 @@
 import type { GameConfig } from './config';
 import { FIXED_DT } from './constants';
 import { factor } from './accessoryMods';
-import { gunMods, gunOf, skillLevel, weaponOf, type WeaponStats } from './stats';
+import { gunMods, gunOf, weaponOf, type WeaponStats } from './stats';
+import { bonus, skillOf } from './training';
 import type { GameState, Soldier } from './types';
 
 /** The recoil numbers of the gun in hand, if it has any. */
@@ -22,12 +23,13 @@ export function spreadNow(config: GameConfig, s: Soldier, weapon: WeaponStats): 
   if (weapon.spread > 0) {
     const speed = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) / FIXED_DT;
     const move = 1 + a.movementSpread * Math.min(2, speed / config.player.speed);
-    const level = skillLevel(config, s.skills[weapon.class]).level;
+    const level = skillOf(config, s, weapon.class);
     const trained = Math.min(1, (level - 1) / (a.skillMaxLevel - 1));
     const skill = 1 + (a.skillBestScale - 1) * trained;
     const still = s.stillTime >= a.standStillTime ? a.standStillScale : 1;
     const aim = s.aiming ? a.aimSpreadScale * factor(gunMods(config, s).aimSpread) : 1;
-    spread = Math.max(a.minError, weapon.spread * move * skill * still * aim);
+    const trainedAim = Math.max(0.3, 1 - bonus(config, s, 'accuracy'));
+    spread = Math.max(a.minError, weapon.spread * move * skill * still * aim * trainedAim);
   }
   return spread + s.recoil;
 }
@@ -46,7 +48,8 @@ export function kickRecoil(state: GameState, config: GameConfig, s: Soldier): nu
   const scale =
     (s.aiming ? a.aimRecoilScale : 1) *
     (state.stance === 'crouch' ? a.crouchRecoilScale : 1) *
-    factor(gunMods(config, s).recoil);
+    factor(gunMods(config, s).recoil) *
+    Math.max(0.2, 1 + bonus(config, s, 'recoil'));
   s.recoil = Math.min(r.maxKick, s.recoil + r.kick * scale);
   return r.cameraKick;
 }

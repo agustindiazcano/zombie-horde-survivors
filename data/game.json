@@ -1001,5 +1001,200 @@
         "health": 400
       }
     }
+  },
+  "training": {
+    "pointsPerLevel": 1,
+    "attributeBase": 10,
+    "attributeMax": 30,
+    "expertiseMax": 8,
+    "classCost": 1,
+    "perkCost": 1,
+    "expertiseCost": 1,
+    "auraRange": 6,
+    "attributes": {
+      "strength": {
+        "description": "Melee damage +4% per point. Lifts 4 kg per point: bodies and boulders need 18 and up",
+        "effects": [
+          {
+            "stat": "melee",
+            "per": 0.04
+          }
+        ]
+      },
+      "dexterity": {
+        "description": "Aim error -2% and reload time -2% per point",
+        "effects": [
+          {
+            "stat": "accuracy",
+            "per": 0.02
+          },
+          {
+            "stat": "reload",
+            "per": 0.02
+          }
+        ]
+      },
+      "constitution": {
+        "description": "Health +4% and stamina +5% per point",
+        "effects": [
+          {
+            "stat": "health",
+            "per": 0.04
+          },
+          {
+            "stat": "stamina",
+            "per": 0.05
+          }
+        ]
+      },
+      "perception": {
+        "description": "Weapon range +1.5% per point",
+        "effects": [
+          {
+            "stat": "range",
+            "per": 0.015
+          }
+        ]
+      },
+      "intelligence": {
+        "description": "Builds and repairs +4% faster, medical kits heal +2% more per point",
+        "effects": [
+          {
+            "stat": "build",
+            "per": 0.04
+          },
+          {
+            "stat": "heal",
+            "per": 0.02
+          }
+        ]
+      },
+      "charisma": {
+        "description": "No effect yet",
+        "effects": []
+      }
+    },
+    "classes": {
+      "assault": {
+        "name": "Assault",
+        "description": "Front-line gunner",
+        "perks": [
+          {
+            "id": "firepower",
+            "name": "Firepower",
+            "description": "+6% weapon damage per rank",
+            "stat": "damage",
+            "per": 0.06,
+            "max": 3
+          },
+          {
+            "id": "rapid",
+            "name": "Rapid fire",
+            "description": "+6% fire rate per rank",
+            "stat": "fireRate",
+            "per": 0.06,
+            "max": 3
+          },
+          {
+            "id": "steady",
+            "name": "Steady hands",
+            "description": "-12% recoil per rank",
+            "stat": "recoil",
+            "per": -0.12,
+            "max": 3
+          }
+        ]
+      },
+      "engineer": {
+        "name": "Engineer",
+        "description": "Builds faster and keeps the base cheap to run",
+        "perks": [
+          {
+            "id": "builder",
+            "name": "Builder",
+            "description": "+25% build speed per rank",
+            "stat": "build",
+            "per": 0.25,
+            "max": 3
+          },
+          {
+            "id": "mender",
+            "name": "Mender",
+            "description": "-20% repair cost per rank, squad-wide while this engineer lives",
+            "stat": "repair",
+            "per": 0.2,
+            "max": 3
+          },
+          {
+            "id": "quick",
+            "name": "Quick hands",
+            "description": "-12% reload time per rank",
+            "stat": "reload",
+            "per": 0.12,
+            "max": 3
+          }
+        ]
+      },
+      "medic": {
+        "name": "Medic",
+        "description": "Brings the fallen back and keeps the squad alive",
+        "perks": [
+          {
+            "id": "swift",
+            "name": "Swift revive",
+            "description": "-20% revive time per rank",
+            "stat": "revive",
+            "per": 0.2,
+            "max": 3
+          },
+          {
+            "id": "medicine",
+            "name": "Field medicine",
+            "description": "Medical kits heal +25% more per rank",
+            "stat": "heal",
+            "per": 0.25,
+            "max": 3
+          },
+          {
+            "id": "aura",
+            "name": "Healing presence",
+            "description": "Allies near the medic regenerate 0.6 HP/s per rank",
+            "stat": "aura",
+            "per": 0.6,
+            "max": 3
+          }
+        ]
+      },
+      "demolitions": {
+        "name": "Demolitions",
+        "description": "Grenades and blasts",
+        "perks": [
+          {
+            "id": "payload",
+            "name": "Payload",
+            "description": "+15% grenade damage per rank",
+            "stat": "blast",
+            "per": 0.15,
+            "max": 3
+          },
+          {
+            "id": "wide",
+            "name": "Wide blast",
+            "description": "+10% blast radius per rank",
+            "stat": "blastRadius",
+            "per": 0.1,
+            "max": 3
+          },
+          {
+            "id": "arm",
+            "name": "Strong arm",
+            "description": "+15% grenade throw range per rank",
+            "stat": "throw",
+            "per": 0.15,
+            "max": 3
+          }
+        ]
+      }
+    }
   }
 }

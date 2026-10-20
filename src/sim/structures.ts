@@ -2,6 +2,7 @@ import type { GameConfig, Obstacle } from './config';
 import { isBlocked } from './weapon';
 import type { GameState, Soldier, Structure } from './types';
 import { localPlayer } from './players';
+import { bonus, squadBonus } from './training';
 import { damageZombie } from './zombies';
 import type { Vec2 } from './vec';
 
@@ -211,15 +212,16 @@ export function upgradeStructure(state: GameState, config: GameConfig, id: numbe
 }
 
 /** Gold to mend a damaged structure fully, or null when it needs none. */
-export function repairCost(config: GameConfig, s: Structure): number | null {
+export function repairCost(state: GameState, config: GameConfig, s: Structure): number | null {
   if (!s.built || s.health >= s.maxHealth) return null;
   const missing = 1 - s.health / s.maxHealth;
-  return Math.ceil(structureDef(config, s).cost * config.structures.repairCost * missing);
+  const cheaper = 1 - Math.min(0.9, squadBonus(state, config, 'repair'));
+  return Math.ceil(structureDef(config, s).cost * config.structures.repairCost * missing * cheaper);
 }
 
 export function repairStructure(state: GameState, config: GameConfig, id: number): boolean {
   const s = getStructure(state, id);
-  const cost = s ? repairCost(config, s) : null;
+  const cost = s ? repairCost(state, config, s) : null;
   if (!s || cost === null || state.gold < cost) return false;
   state.gold -= cost;
   s.health = s.maxHealth;
@@ -309,16 +311,18 @@ function buildWork(state: GameState, config: GameConfig, dt: number): void {
   const controlled = localPlayer(state).controlledId;
   for (const st of state.structures) {
     if (st.built) continue;
-    let workers = 0;
+    let work = 0;
     for (const w of state.soldiers) {
       if (!canWork(w) || edgeDistance(config, st, w.pos) > sc.workRange) continue;
       const ordered = w.order.type === 'build' && w.order.structureId === st.id;
       // The player builds what they stand next to; idle allies nearby lend a hand.
       const helping = w.id === controlled || (w.order.type === 'follow' && !mustFight(state, w));
-      if ((ordered && !mustFight(state, w)) || helping) workers++;
+      // Intelligence and an engineer's builder perk make a worker count for more than one.
+      if ((ordered && !mustFight(state, w)) || helping)
+        work += 1 + Math.max(0, bonus(config, w, 'build'));
     }
-    if (workers === 0) continue;
-    st.progress += Math.min(workers, sc.maxBuilders) * dt;
+    if (work === 0) continue;
+    st.progress += Math.min(work, sc.maxBuilders * 2) * dt;
     const def = structureDef(config, st);
     if (st.progress < def.buildWork) continue;
     st.built = true;

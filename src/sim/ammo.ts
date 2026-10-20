@@ -1,6 +1,7 @@
 import type { GameConfig } from './config';
 import { factor } from './accessoryMods';
 import { gunHand, gunMods, gunOf } from './stats';
+import { bonus } from './training';
 import type { GameState, Soldier, WeaponState } from './types';
 import { handState } from './weaponState';
 
@@ -42,7 +43,10 @@ export function startReload(state: GameState, config: GameConfig, s: Soldier): b
   s.reload = {
     hand,
     state: weapon,
-    left: (def.reloadTime ?? 0) * factor(gunMods(config, s).reloadTime),
+    left:
+      (def.reloadTime ?? 0) *
+      factor(gunMods(config, s).reloadTime) *
+      Math.max(0.3, 1 - bonus(config, s, 'reload')),
   };
   state.events.push({ type: 'reloadStarted', soldierId: s.id });
   return true;

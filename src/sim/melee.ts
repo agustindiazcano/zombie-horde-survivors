@@ -2,6 +2,7 @@ import { resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { rollHit } from './hits';
 import { gunOf, weaponDef } from './stats';
+import { bonus } from './training';
 import type { GameState, Soldier, Zombie } from './types';
 import { damageZombie } from './zombies';
 
@@ -71,7 +72,9 @@ export function meleeStrike(state: GameState, config: GameConfig, s: Soldier): b
   s.reload = null;
   // A blow lands on the body (no head hit); only a critical hit can add to it.
   const roll = target ? rollHit(state, config, s, null, target, 0, target.pos, false) : null;
-  const damage = roll ? blow.damage * state.mods.damage * roll.multiplier : 0;
+  const damage = roll
+    ? blow.damage * state.mods.damage * (1 + bonus(config, s, 'melee')) * roll.multiplier
+    : 0;
   state.events.push({
     type: 'melee',
     attackerId: s.id,

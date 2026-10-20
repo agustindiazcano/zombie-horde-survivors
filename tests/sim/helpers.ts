@@ -52,6 +52,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     zombie: { ...base.zombie },
     vehicles: { ...base.vehicles },
     structures: { ...base.structures },
+    training: { ...base.training },
     objects: { ...base.objects, types: { ...base.objects.types } },
     hazards: { ...base.hazards },
     animals: { ...base.animals },

@@ -265,7 +265,7 @@ export class BuildUi {
     }
     const up = upgradeCost(this.config, sel);
     if (up !== null) act('Upgrade', up, () => upgradeStructure(state, this.config, sel.id));
-    const fix = repairCost(this.config, sel);
+    const fix = repairCost(state, this.config, sel);
     if (fix !== null) act('Repair', fix, () => repairStructure(state, this.config, sel.id));
     if (def.door) {
       act(sel.open ? 'Close' : 'Open', null, () => toggleDoor(state, this.config, sel.id));

@@ -80,6 +80,14 @@ export interface AimLine {
   slope: number;
 }
 
+/** Skill points spent so far, weapon expertise levels bought, the chosen class and its perk ranks. */
+export interface Training {
+  spent: number;
+  expertise: Record<WeaponClass, number>;
+  classId: string | null;
+  ranks: Record<string, number>;
+}
+
 /** What a soldier is carrying: an object (to throw) or the body of a downed or dead ally. */
 export interface Carry {
   kind: 'object' | 'body';
@@ -119,6 +127,8 @@ export interface Fire {
 
 export interface Soldier {
   id: number;
+  /** What the skill points earned by levelling have bought. */
+  training: Training;
   /** Id of the downed or dead ally this soldier drags by the shoulders, if any. */
   dragging: number | null;
   /** What it holds over its shoulders or head (an object to throw, or an ally's body), and the walking speed that costs. */

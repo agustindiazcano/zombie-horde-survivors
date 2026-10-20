@@ -51,7 +51,7 @@ export class SquadPanel {
       b.xp.style.width = `${(info.into / info.needed) * 100}%`;
       b.stamina.style.width = drone
         ? '100%'
-        : `${(s.stamina / this.config.stance.staminaMax) * 100}%`;
+        : `${Math.min(100, (s.stamina / this.config.stance.staminaMax) * 100)}%`;
     }
   }
 

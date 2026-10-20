@@ -1,5 +1,6 @@
 import { edgeDistance, getStructure, isWorking, mustFight } from './structures';
 import { throwCarried } from './objects';
+import { bonus } from './training';
 import { resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
@@ -119,6 +120,15 @@ function newUnit(
     deadTime: 0,
     reviveProgress: 0,
     vehicleId: null,
+    training: {
+      spent: 0,
+      expertise: Object.fromEntries(WEAPON_CLASSES.map((c) => [c, 0])) as Record<
+        WeaponClass,
+        number
+      >,
+      classId: null,
+      ranks: {},
+    },
     dragging: null,
     carrying: null,
     carriedBy: null,
@@ -301,7 +311,8 @@ export function updateSoldiers(
 /** Sprinting while moving drains stamina; otherwise it refills. Running dry winds the unit. */
 function updateStamina(config: GameConfig, s: Soldier, stance: Stance, dt: number): void {
   if (isDrone(s)) return;
-  const { staminaMax, staminaDrain, staminaRegen, staminaResume } = config.stance;
+  const { staminaDrain, staminaRegen, staminaResume } = config.stance;
+  const staminaMax = config.stance.staminaMax * (1 + bonus(config, s, 'stamina'));
   const moved = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > 1e-6;
   if (stance === 'sprint' && moved) {
     s.stamina = Math.max(0, s.stamina - staminaDrain * dt);

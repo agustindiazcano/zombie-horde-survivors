@@ -7,6 +7,12 @@ import {
   cellAt,
   levelInfo,
   maxHealthOf,
+  buyPerk,
+  chooseClass,
+  pointsAvailable,
+  spendAttribute,
+  spendExpertise,
+  WEAPON_CLASSES,
   equipFromBackpack,
   itemDef,
   modsOf,
@@ -139,6 +145,9 @@ export class UnitsScreen {
         `Lv ${info.level} · XP ${info.into} / ${info.needed}`,
       );
       el('div', 'us__kills', card, `☠ ${s.kills} kills`);
+      const free = pointsAvailable(this.config, s);
+      if (free > 0 && !s.dead)
+        el('div', 'us__points', card, `★ ${free} skill point${free > 1 ? 's' : ''}`);
       card.addEventListener('click', () => this.toggle(s.id));
     }
   }
@@ -201,15 +210,11 @@ export class UnitsScreen {
     );
     el('div', 'us__kills', w.info, `☠ ${unit.kills} kills`);
 
-    const attrs = el('div', 'us__sheet', w.info);
-    el('div', 'us__label', attrs, 'Attributes (not active yet)');
-    for (const name of this.config.units.attributes) {
-      el('span', 'us__stat', attrs, `${name.slice(0, 3).toUpperCase()} ${unit.attributes[name]}`);
-    }
+    if (unit.kind === 'soldier') this.renderTraining(w.info, unit);
     const skills = Object.entries(unit.skills).filter(([, xp]) => xp > 0);
     if (skills.length > 0) {
       const box = el('div', 'us__sheet', w.info);
-      el('div', 'us__label', box, 'Weapon skills (no effect yet)');
+      el('div', 'us__label', box, 'Weapon skills (from kills)');
       for (const [cls, xp] of skills) {
         const lv = skillLevel(this.config, xp);
         el('span', 'us__stat', box, `${cls} Lv ${lv.level} · ${lv.into}/${lv.needed}`);
@@ -236,6 +241,85 @@ export class UnitsScreen {
     const grid = el('div', 'us__grid', pack);
     for (let i = 0; i < this.config.inventory.backpackSlots; i++) {
       this.slot(grid, unit, i, unit.backpack[i]?.item, 'Empty', unit.backpack[i]?.count);
+    }
+  }
+
+  /** The training panel: spend skill points on attributes, weapon expertise, a class and its perks. */
+  private renderTraining(parent: HTMLElement, unit: Soldier): void {
+    const t = this.config.training;
+    const free = pointsAvailable(this.config, unit);
+    const box = el('div', 'us__sheet us__train', parent);
+    el('div', 'us__label', box, `Training · ${free} point${free === 1 ? '' : 's'} to spend`);
+    const buy = (
+      label: string,
+      hint: string,
+      ok: boolean,
+      run: () => boolean,
+      parent2: HTMLElement,
+    ) => {
+      const b = el('button', 'us__plus', parent2, label);
+      b.title = hint;
+      b.disabled = !ok;
+      b.addEventListener('click', () => {
+        if (run()) this.renderAll();
+      });
+    };
+    const state = this.getState();
+    for (const name of this.config.units.attributes) {
+      const def = t.attributes[name];
+      const value = unit.attributes[name] ?? t.attributeBase;
+      const row = el('div', 'us__trow', box);
+      el('span', 'us__tname', row, `${name.slice(0, 3).toUpperCase()} ${value}`).title =
+        def?.description ?? '';
+      buy(
+        '+',
+        def?.description ?? '',
+        free > 0 && value < t.attributeMax,
+        () => spendAttribute(state, this.config, unit.id, name),
+        row,
+      );
+    }
+    el('div', 'us__label', box, 'Weapon expertise (+1 skill level per point)');
+    for (const cls of WEAPON_CLASSES) {
+      const bought = unit.training.expertise[cls];
+      const row = el('div', 'us__trow', box);
+      el('span', 'us__tname', row, `${cls} +${bought}`);
+      buy(
+        '+',
+        `Costs ${t.expertiseCost} point`,
+        free >= t.expertiseCost && bought < t.expertiseMax,
+        () => spendExpertise(state, this.config, unit.id, cls),
+        row,
+      );
+    }
+    const chosen = unit.training.classId === null ? undefined : t.classes[unit.training.classId];
+    if (!chosen) {
+      el('div', 'us__label', box, `Class (costs ${t.classCost} point)`);
+      for (const [id, def] of Object.entries(t.classes)) {
+        const row = el('div', 'us__trow', box);
+        el('span', 'us__tname', row, def.name).title = def.description;
+        buy(
+          'Choose',
+          def.description,
+          free >= t.classCost,
+          () => chooseClass(state, this.config, unit.id, id),
+          row,
+        );
+      }
+      return;
+    }
+    el('div', 'us__label', box, `Class: ${chosen.name}`);
+    for (const perk of chosen.perks) {
+      const rank = unit.training.ranks[perk.id] ?? 0;
+      const row = el('div', 'us__trow', box);
+      el('span', 'us__tname', row, `${perk.name} ${rank}/${perk.max}`).title = perk.description;
+      buy(
+        '+',
+        perk.description,
+        free >= t.perkCost && rank < perk.max,
+        () => buyPerk(state, this.config, unit.id, perk.id),
+        row,
+      );
     }
   }
 

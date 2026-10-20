@@ -324,6 +324,29 @@ function propObstacles(map: MapData): Obstacle[] {
   });
 }
 
+/** What a point of an attribute or a rank of a class perk can improve (see `training` in game.json). */
+export const TRAINING_STATS = [
+  'health',
+  'stamina',
+  'damage',
+  'fireRate',
+  'range',
+  'accuracy',
+  'recoil',
+  'reload',
+  'melee',
+  'build',
+  'repair',
+  'heal',
+  'revive',
+  'aura',
+  'blast',
+  'blastRadius',
+  'throw',
+] as const;
+export type TrainingStat = (typeof TRAINING_STATS)[number];
+const trainingStat = z.enum(TRAINING_STATS);
+
 /** Weapon classes: a unit earns weapon-skill XP in the class of the weapon it kills with. */
 export const WEAPON_CLASSES = [
   'melee',
@@ -926,6 +949,58 @@ export const GameConfigSchema = z
     ),
     /** Drivable vehicle types by id (placed in the editor, entered with V). */
     vehicles: z.record(z.string(), vehicleType),
+    /**
+     * What a soldier does with the skill points it earns by levelling: attributes, weapon expertise
+     * and a class with perks. Every effect is `per` (a fraction) for each point above the base of an
+     * attribute, or for each rank of a perk, added up per stat.
+     */
+    training: z
+      .object({
+        /** Points a soldier gets for each level above the first. */
+        pointsPerLevel: z.number().int().positive(),
+        /** The attribute value that gives no bonus, and the highest one a point can reach. */
+        attributeBase: positive,
+        attributeMax: positive,
+        /** Most levels of expertise per weapon class (added to the level earned by kills). */
+        expertiseMax: z.number().int().positive(),
+        /** Points a class, a perk rank and a level of expertise cost. */
+        classCost: z.number().int().positive(),
+        perkCost: z.number().int().positive(),
+        expertiseCost: z.number().int().positive(),
+        /** Medic aura: allies within this many metres of a medic heal over time. */
+        auraRange: positive,
+        attributes: z.record(
+          z.string(),
+          z
+            .object({
+              description: z.string().min(1),
+              effects: z.array(z.object({ stat: trainingStat, per: z.number() }).strict()),
+            })
+            .strict(),
+        ),
+        classes: z.record(
+          z.string(),
+          z
+            .object({
+              name: z.string().min(1),
+              description: z.string().min(1),
+              perks: z.array(
+                z
+                  .object({
+                    id: z.string().min(1),
+                    name: z.string().min(1),
+                    description: z.string().min(1),
+                    stat: trainingStat,
+                    per: z.number(),
+                    max: z.number().int().positive(),
+                  })
+                  .strict(),
+              ),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
     /** Things lying on the ground that can be lifted, thrown, shot and burnt. */
     objects: z
       .object({
