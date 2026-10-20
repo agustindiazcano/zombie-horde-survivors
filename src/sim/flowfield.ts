@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import type { Arena, GameConfig, Obstacle } from './config';
 import { topOf } from './collision';
 import type { GameState } from './types';
@@ -282,7 +283,7 @@ function fieldOf(state: GameState, config: GameConfig): Field {
   }
   const targets: Vec2[] = [];
   for (const s of state.soldiers) {
-    if (!s.dead && s.kind !== 'drone' && s.vehicleId === null) targets.push(s.pos);
+    if (!s.dead && s.kind !== 'drone' && !inShelter(s)) targets.push(s.pos);
   }
   for (const v of state.vehicles) if (isOccupied(v)) targets.push(v.pos);
   search(blocked, field.dist, targets);

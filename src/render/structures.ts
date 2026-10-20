@@ -80,7 +80,7 @@ export class StructureViews {
     body.receiveShadow = true;
     group.add(body);
     let barrel: THREE.Mesh | null = null;
-    if (def.turret) {
+    if (def.turret || def.post) {
       barrel = new THREE.Mesh(box, new THREE.MeshStandardMaterial({ color: 0x222222 }));
       barrel.scale.set(0.14, 0.14, 0.9);
       group.add(barrel);
@@ -148,7 +148,7 @@ export class StructureViews {
         if (color !== null) (e.lamp.material as THREE.MeshBasicMaterial).color.set(color);
       }
       if (e.barrel) {
-        e.barrel.visible = s.built;
+        e.barrel.visible = s.built && (def.turret !== undefined || s.crew !== null);
         e.barrel.position.set(
           s.x + Math.sin(s.facing) * 0.5,
           ground + def.height + 0.1,

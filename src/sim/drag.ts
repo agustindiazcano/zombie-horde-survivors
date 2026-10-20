@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import { resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import type { GameState, Soldier, Zombie } from './types';
@@ -28,7 +29,7 @@ export function toggleDrag(
   bodyId?: number,
 ): void {
   const me = state.soldiers.find((s) => s.id === soldierId);
-  if (!me || me.dead || me.downed || me.kind !== 'soldier' || me.vehicleId !== null) return;
+  if (!me || me.dead || me.downed || me.kind !== 'soldier' || inShelter(me)) return;
   if (me.dragging !== null || me.dragCorpse !== null) {
     releaseDrag(me);
     return;
@@ -60,7 +61,7 @@ export function toggleDragCorpse(
   corpseId?: number,
 ): void {
   const me = state.soldiers.find((s) => s.id === soldierId);
-  if (!me || me.dead || me.downed || me.kind !== 'soldier' || me.vehicleId !== null) return;
+  if (!me || me.dead || me.downed || me.kind !== 'soldier' || inShelter(me)) return;
   if (me.dragging !== null || me.dragCorpse !== null) {
     releaseDrag(me);
     return;
@@ -94,7 +95,7 @@ export function updateDrag(state: GameState, config: GameConfig): void {
     }
     if (me.dragging === null) continue;
     const body = state.soldiers.find((s) => s.id === me.dragging);
-    if (!body || !isBody(body) || me.dead || me.downed || me.vehicleId !== null) {
+    if (!body || !isBody(body) || me.dead || me.downed || inShelter(me)) {
       releaseDrag(me);
       continue;
     }
@@ -114,7 +115,7 @@ export function updateDrag(state: GameState, config: GameConfig): void {
 /** The corpse trails behind its dragger like an ally's body does. */
 function dragCorpse(state: GameState, config: GameConfig, me: Soldier): void {
   const corpse = state.zombies.find((z) => z.id === me.dragCorpse);
-  if (!corpse || !isCorpse(corpse) || me.dead || me.downed || me.vehicleId !== null) {
+  if (!corpse || !isCorpse(corpse) || me.dead || me.downed || inShelter(me)) {
     releaseDrag(me);
     return;
   }

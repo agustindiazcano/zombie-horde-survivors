@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import type { GameConfig } from './config';
 import { releaseDrag, toggleDrag } from './drag';
 import { itemDef } from './inventory';
@@ -29,7 +30,7 @@ function woundedFor(state: GameState, config: GameConfig, s: Soldier): Soldier |
   let best: Soldier | null = null;
   let bestD = rules.aiSearch;
   for (const p of state.soldiers) {
-    if (p === s || p.kind !== 'soldier' || !p.downed || p.vehicleId !== null) continue;
+    if (p === s || p.kind !== 'soldier' || !p.downed || inShelter(p)) continue;
     if (p.carriedBy !== null || state.soldiers.some((t) => t.dragging === p.id)) continue;
     if (!nearestEnemy(state, p.pos, rules.dangerRadius)) continue;
     const d = dist(p.pos, s.pos);

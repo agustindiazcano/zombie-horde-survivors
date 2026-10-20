@@ -18,7 +18,8 @@ export type ZombieState = 'walk' | 'attack' | 'death';
 
 /** What an AI-driven soldier is doing. Only the controlled soldier ignores its order. */
 /** What the action key (E, or a click in RTS) can do to a thing in the world. */
-export type InteractKind = 'object' | 'body' | 'corpse' | 'crate' | 'item' | 'door' | 'vehicle';
+export type InteractKind =
+  'object' | 'body' | 'corpse' | 'crate' | 'item' | 'door' | 'vehicle' | 'post' | 'turret';
 
 export type SoldierOrder =
   | { type: 'follow' }
@@ -207,6 +208,8 @@ export interface Soldier {
   reviveProgress: number;
   /** The vehicle this unit sits in (it rides along and cannot be hit), or null. */
   vehicleId: number | null;
+  /** The post (nest or tower) this unit mans, and where it stood before climbing in; null otherwise. */
+  post: { id: number; exit: Vec2 } | null;
 }
 
 /** A thrown grenade: it flies along an arc from `from` to `to`, then waits for its fuse. */
@@ -253,6 +256,9 @@ export interface Structure {
   link: number;
   /** Auto doors: seconds left before it shuts again. */
   idle: number;
+  /** Turrets and posts: rounds left, and the soldier manning a post (null when empty). */
+  ammo: number;
+  crew: number | null;
   /** Turrets: seconds until the next shot and the direction they last aimed (radians, 0 = +z). */
   cooldown: number;
   facing: number;
@@ -447,6 +453,8 @@ export type SimEvent =
   | { type: 'tooHeavy'; soldierId: number; needed: number }
   | { type: 'crateReached'; soldierId: number; crateId: number }
   | { type: 'itemDropped'; itemId: number; pos: Vec2 }
+  /** A short message for the player (a turret ran dry, there is nothing to feed it with). */
+  | { type: 'notice'; text: string }
   | {
       type: 'doorDenied';
       structureId: number;

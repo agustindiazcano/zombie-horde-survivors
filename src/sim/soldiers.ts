@@ -1,3 +1,5 @@
+import { updatePosted } from './posts';
+import { inShelter } from './shelter';
 import { edgeDistance, getStructure, isWorking, mustFight, openDoorAhead } from './structures';
 import { ageWalk, walkTarget } from './flowfield';
 import { rescueDrag } from './rescueDrag';
@@ -123,6 +125,7 @@ function newUnit(
     deadTime: 0,
     reviveProgress: 0,
     vehicleId: null,
+    post: null,
     training: {
       spent: 0,
       expertise: Object.fromEntries(WEAPON_CLASSES.map((c) => [c, 0])) as Record<
@@ -304,13 +307,14 @@ export function updateSoldiers(
     // The squad's sprint order only works for a unit that still has breath.
     const stance =
       s.downed || (state.stance === 'sprint' && (s.winded || isDrone(s))) ? 'normal' : state.stance;
-    if (s.vehicleId !== null) updateSeated(state, config, s, input, controlledId);
+    if (s.post !== null) updatePosted(state, config, s, input, controlledId);
+    else if (s.vehicleId !== null) updateSeated(state, config, s, input, controlledId);
     else if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
     else {
       updateAi(state, config, s, leader, stance, dt);
     }
     updateStamina(config, s, stance, dt);
-    updateJump(config, s, dt);
+    if (s.post === null) updateJump(config, s, dt);
   }
   separateSoldiers(state, config);
 }
@@ -584,10 +588,10 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
   const list = state.soldiers;
   for (let i = 0; i < list.length; i++) {
     const a = list[i]!;
-    if (a.dead || isDrone(a) || a.vehicleId !== null || a.carriedBy !== null) continue;
+    if (a.dead || isDrone(a) || inShelter(a) || a.carriedBy !== null) continue;
     for (let j = i + 1; j < list.length; j++) {
       const b = list[j]!;
-      if (b.dead || isDrone(b) || b.vehicleId !== null || b.carriedBy !== null) continue;
+      if (b.dead || isDrone(b) || inShelter(b) || b.carriedBy !== null) continue;
       const dx = b.pos.x - a.pos.x;
       const dz = b.pos.z - a.pos.z;
       const d = Math.hypot(dx, dz);
@@ -601,5 +605,5 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
       b.pos.z += nz * push;
     }
   }
-  for (const s of list) if (!s.dead && !isDrone(s) && s.vehicleId === null) resolveUnit(s, config);
+  for (const s of list) if (!s.dead && !isDrone(s) && !inShelter(s)) resolveUnit(s, config);
 }

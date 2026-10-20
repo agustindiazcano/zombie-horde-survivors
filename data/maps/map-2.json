@@ -104,6 +104,20 @@
         "z": -6,
         "turns": 0,
         "level": 1
+      },
+      {
+        "type": "nest",
+        "x": -9,
+        "z": -6,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "tower",
+        "x": 9,
+        "z": -5,
+        "turns": 0,
+        "level": 1
       }
     ]
   }

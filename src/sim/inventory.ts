@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import type { GameConfig, ItemDef } from './config';
 import { nextFloat } from './rng';
 import { maxHealthOf } from './stats';
@@ -381,7 +382,7 @@ export function dropToGround(
   slot: SlotRef,
 ): boolean {
   const s = unit(state, soldierId);
-  if (!s || s.dead || s.vehicleId !== null) return false;
+  if (!s || s.dead || inShelter(s)) return false;
   const stack = cellAt(s, slot);
   if (!stack) return false;
   putCell(s, slot, null);
@@ -415,7 +416,7 @@ export function pickUpItem(
 ): boolean {
   const s = unit(state, soldierId);
   const loose = state.groundItems.find((g) => g.id === itemId);
-  if (!s || !loose || s.dead || s.vehicleId !== null) return false;
+  if (!s || !loose || s.dead || inShelter(s)) return false;
   if (Math.hypot(loose.pos.x - s.pos.x, loose.pos.z - s.pos.z) > config.drops.pickupRange) {
     return false;
   }

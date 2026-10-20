@@ -843,6 +843,24 @@ const structureType = z
     flammable: z.boolean().default(false),
     /** Hurts what pushes on it: damage per second to every enemy attacking it. */
     thorns: nonNegative.default(0),
+    /** A seat for one soldier behind a mounted gun (a nest) or high up (a tower): E on it climbs in, E again leaves. */
+    post: z
+      .object({
+        damage: positive,
+        range: positive,
+        fireRate: positive,
+        /** Shots fly over low cover (a tower looks down on it). */
+        ignoresCover: z.boolean().default(false),
+        /** How close (metres, to the footprint) a soldier must be to climb in. */
+        enterRange: positive.default(2),
+      })
+      .strict()
+      .optional(),
+    /** Rounds the turret or the mounted gun holds, and the item (an ammo item id) a soldier feeds it from the backpack. */
+    ammo: z
+      .object({ capacity: z.number().int().positive(), item: z.string().min(1) })
+      .strict()
+      .optional(),
     /** An automatic gun: fires at the nearest visible enemy in range. */
     turret: z
       .object({
@@ -1309,6 +1327,8 @@ export const GameConfigSchema = z
         pathCostScale: positive,
         /** Where the controlled soldier puts a quick build, metres in front of it. */
         quickBuildDistance: positive,
+        /** Gold per round to refill a turret or a mounted gun from the build panel. */
+        ammoCost: nonNegative,
       })
       .strict(),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */

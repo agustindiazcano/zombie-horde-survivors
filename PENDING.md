@@ -72,7 +72,9 @@ Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watch
 - [x] Phase 0, the flow-field pathfinding, is built on `feat/flow-field` ([worklog](docs/worklog/2026-10-19-flow-field.md)); look at it in the browser (zombies go around long walls and into the squad's reach).
 - [x] Structures, blueprints, builders, doors, turrets, upgrades, repair, the **N** menu, Map 2 ([worklog](docs/worklog/2026-10-19-build-mode.md)).
 - [ ] 🔴 Look at it in the browser: open Map 2, press **N**, place a wall / door / turret, watch the soldiers build, open the door with **E**, let a wave hit the base. Tune `structures` in `game.json`.
-- [ ] 🟡 Next: manned machine-gun nest and watchtower (reuse vehicle seats), structures in the editor, soldiers pathing around structures, models and sounds, ammo for turrets.
+- [x] Manned machine-gun nest, watchtower and ammo for turrets ([worklog](docs/worklog/2026-10-20-posts-and-turret-ammo.md)); soldier pathing around structures is on `feat/soldier-structure-pathing`.
+- [ ] 🔴 Look at them in the browser: Map 2 has a nest and a tower; **E** / **V** to climb in, the mouse aims the nest, turrets run dry and **Resupply**. Tune `post` and `ammo` of the structure types.
+- [ ] 🟡 Next: structures in the editor, models and sounds, the AI manning posts.
 
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 

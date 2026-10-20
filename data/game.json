@@ -912,6 +912,7 @@
     "clearRadius": 0.9,
     "pathCostScale": 1,
     "quickBuildDistance": 2.5,
+    "ammoCost": 0.2,
     "types": {
       "sandbags": {
         "name": "Sandbags",
@@ -1077,7 +1078,11 @@
             "rangeScale": 1.3
           }
         ],
-        "passShots": true
+        "passShots": true,
+        "ammo": {
+          "capacity": 300,
+          "item": "ammo_556"
+        }
       },
       "smartTurret": {
         "name": "Smart turret",
@@ -1109,7 +1114,11 @@
             "rangeScale": 1.3
           }
         ],
-        "passShots": true
+        "passShots": true,
+        "ammo": {
+          "capacity": 600,
+          "item": "ammo_belt"
+        }
       },
       "glassDoor": {
         "name": "Glass door",
@@ -1311,6 +1320,78 @@
         "switch": true,
         "color": "#e0a82e",
         "levels": []
+      },
+      "nest": {
+        "name": "Machine-gun nest",
+        "cost": 150,
+        "health": 350,
+        "buildWork": 8,
+        "halfW": 0.9,
+        "halfD": 0.7,
+        "height": 1.1,
+        "passShots": true,
+        "breakCost": 15,
+        "color": "#8a7a52",
+        "post": {
+          "damage": 11,
+          "range": 26,
+          "fireRate": 9,
+          "enterRange": 2.2
+        },
+        "ammo": {
+          "capacity": 500,
+          "item": "ammo_belt"
+        },
+        "levels": [
+          {
+            "cost": 120,
+            "healthScale": 1.6,
+            "damageScale": 1.3,
+            "rangeScale": 1.1
+          },
+          {
+            "cost": 240,
+            "healthScale": 2.4,
+            "damageScale": 1.7,
+            "rangeScale": 1.2
+          }
+        ]
+      },
+      "tower": {
+        "name": "Watchtower",
+        "cost": 220,
+        "health": 500,
+        "buildWork": 12,
+        "halfW": 1.0,
+        "halfD": 1.0,
+        "height": 4.2,
+        "breakCost": 30,
+        "color": "#6b5638",
+        "post": {
+          "damage": 28,
+          "range": 38,
+          "fireRate": 1.6,
+          "ignoresCover": true,
+          "enterRange": 2.2
+        },
+        "ammo": {
+          "capacity": 160,
+          "item": "ammo_556"
+        },
+        "levels": [
+          {
+            "cost": 180,
+            "healthScale": 1.6,
+            "damageScale": 1.3,
+            "rangeScale": 1.1
+          },
+          {
+            "cost": 360,
+            "healthScale": 2.4,
+            "damageScale": 1.7,
+            "rangeScale": 1.2
+          }
+        ]
       }
     }
   },

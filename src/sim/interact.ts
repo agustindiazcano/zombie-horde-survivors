@@ -2,7 +2,15 @@ import type { GameConfig } from './config';
 import { isCorpse, releaseDrag, toggleDrag, toggleDragCorpse } from './drag';
 import { pickUpItem } from './inventory';
 import { dropCarried, liftOrDrop, objectDef } from './objects';
-import { DOOR_REACH, doorRulesOf, edgeDistance, structureDef, toggleDoor } from './structures';
+import { enterPost, togglePost } from './posts';
+import {
+  DOOR_REACH,
+  doorRulesOf,
+  edgeDistance,
+  resupply,
+  structureDef,
+  toggleDoor,
+} from './structures';
 import type { GameState, InteractKind, Soldier } from './types';
 import { toggleVehicle } from './vehicles';
 import type { Vec2 } from './vec';
@@ -125,6 +133,33 @@ export function listInteractables(
       from: (p) => edgeDistance(config, s, p),
     });
   }
+  for (const s of state.structures) {
+    const def = structureDef(config, s);
+    if (!s.built) continue;
+    if (def.post) {
+      out.push({
+        kind: 'post',
+        id: s.id,
+        label: s.crew === null ? 'Man' : 'Manned',
+        pos: { x: s.x, z: s.z },
+        pick: 0.6,
+        reach: def.post.enterRange,
+        from: (p) => edgeDistance(config, s, p),
+      });
+    }
+    if (def.ammo && s.ammo < def.ammo.capacity) {
+      out.push({
+        kind: 'turret',
+        id: s.id,
+        label: 'Resupply',
+        pos: { x: s.x, z: s.z },
+        pick: 0.6,
+        reach: DOOR_REACH,
+        // A little behind a post's own label so the two can both be picked.
+        from: (p) => edgeDistance(config, s, p) + (def.post ? 0.3 : 0),
+      });
+    }
+  }
   for (const v of state.vehicles) {
     if (!v.seats.includes(null)) continue;
     const def = config.vehicles[v.type]!;
@@ -198,6 +233,8 @@ export function performInteract(
   else if (it.kind === 'body') toggleDrag(state, config, s.id, it.id);
   else if (it.kind === 'corpse') toggleDragCorpse(state, config, s.id, it.id);
   else if (it.kind === 'item') pickUpItem(state, config, s.id, it.id);
+  else if (it.kind === 'post') enterPost(state, config, s.id, it.id);
+  else if (it.kind === 'turret') resupply(state, config, it.id, s.id);
   else if (it.kind === 'door') toggleDoor(state, config, it.id, s.id);
   else if (it.kind === 'vehicle') toggleVehicle(state, config, s.id);
   else state.events.push({ type: 'crateReached', soldierId: s.id, crateId: it.id });
@@ -212,6 +249,7 @@ export function useNearest(state: GameState, config: GameConfig, soldierId: numb
   const me = state.soldiers.find((s) => s.id === soldierId);
   if (!me || me.dead || me.downed || me.kind !== 'soldier') return null;
   if (me.vehicleId !== null) toggleVehicle(state, config, me.id);
+  else if (me.post !== null) togglePost(state, config, me.id);
   else if (me.carrying) dropCarried(state, config, me);
   else if (me.dragging !== null || me.dragCorpse !== null) releaseDrag(me);
   else {

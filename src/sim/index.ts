@@ -68,6 +68,7 @@ export {
   useNearest,
   type Interactable,
 } from './interact';
+export { enterPost, leavePost, postInReach, togglePost } from './posts';
 export { getObject, liftOrDrop, maxLift, objectDef, throwCarried } from './objects';
 export {
   doorInReach,
@@ -82,6 +83,9 @@ export {
   removeStructure,
   repairCost,
   repairStructure,
+  ammoRefillCost,
+  refillWithGold,
+  resupply,
   structureDef,
   toggleDoor,
   upgradeCost,

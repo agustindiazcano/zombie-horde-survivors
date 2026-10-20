@@ -1,7 +1,9 @@
+import { inShelter } from './shelter';
 import { DEFAULT_DOOR_RULES } from './config';
 import type { Arena, DoorRules, GameConfig, Obstacle } from './config';
+import { supportHeight } from './collision';
 import { isBlocked } from './weapon';
-import type { GameState, Soldier, Structure } from './types';
+import type { GameState, Soldier, Structure, Zombie } from './types';
 import { localPlayer } from './players';
 import { bonus, squadBonus } from './training';
 import { damageZombie } from './zombies';
@@ -142,6 +144,8 @@ function makeStructure(
     lock: null,
     link: 0,
     idle: 0,
+    ammo: def.ammo?.capacity ?? 0,
+    crew: null,
     cooldown: 0,
     facing: 0,
   };
@@ -218,11 +222,25 @@ export function placeStructure(
   return makeStructure(state, config, type, x, z, turns, 1, false);
 }
 
+/** The crew of a post climbs out where it climbed in. */
+export function ejectCrew(state: GameState, config: GameConfig, s: Structure): void {
+  if (s.crew === null) return;
+  const crew = state.soldiers.find((u) => u.id === s.crew);
+  s.crew = null;
+  if (!crew?.post) return;
+  crew.pos.x = crew.prev.x = crew.post.exit.x;
+  crew.pos.z = crew.prev.z = crew.post.exit.z;
+  crew.post = null;
+  crew.y = crew.prevY = supportHeight(config.arena, crew.pos, 0);
+  crew.vy = 0;
+}
+
 /** Removes a structure: a blueprint gives back part of the gold, a finished one nothing. */
 export function removeStructure(state: GameState, config: GameConfig, id: number): void {
   const i = state.structures.findIndex((s) => s.id === id);
   if (i < 0) return;
   const s = state.structures[i]!;
+  ejectCrew(state, config, s);
   if (!s.built) state.gold += Math.floor(structureDef(config, s).cost * config.structures.refund);
   state.structures.splice(i, 1);
   syncStructures(state, config);
@@ -385,6 +403,7 @@ export function hurtStructure(
   if (!s.built) return;
   s.health -= amount;
   if (s.health > 0) return;
+  ejectCrew(state, config, s);
   state.structures = state.structures.filter((o) => o !== s);
   state.events.push({ type: 'structureDestroyed', structureId: s.id, pos: { x: s.x, z: s.z } });
   syncStructures(state, config);
@@ -408,7 +427,7 @@ export function isWorking(state: GameState, config: GameConfig, s: Soldier): boo
 
 /** A soldier that can lend a hand: on its feet, not driving, not a drone. */
 const canWork = (s: Soldier): boolean =>
-  !s.dead && !s.downed && s.kind === 'soldier' && s.vehicleId === null;
+  !s.dead && !s.downed && s.kind === 'soldier' && !inShelter(s);
 
 /** The enemy closest to a point, or Infinity when there is none. */
 export function nearestEnemyDistance(state: GameState, from: Vec2): number {
@@ -451,45 +470,134 @@ function buildWork(state: GameState, config: GameConfig, dt: number): void {
   }
 }
 
+/**
+ * The enemy a gun at `at` should shoot: the closest one in range that it can see (bosses first when
+ * `bossFirst`), or null. `ignoresCover` skips the sight check (a tower looks down on cover).
+ */
+export function pickTarget(
+  state: GameState,
+  config: GameConfig,
+  at: Vec2,
+  range: number,
+  bossFirst: boolean,
+  ignoresCover = false,
+): Zombie | null {
+  let best: { z: Zombie; d: number; boss: boolean } | null = null;
+  for (const z of state.zombies) {
+    if (z.state === 'death') continue;
+    const d = Math.hypot(z.pos.x - at.x, z.pos.z - at.z);
+    if (d > range) continue;
+    const boss = bossFirst && z.boss;
+    if (best && (best.boss && !boss ? true : boss === best.boss && d >= best.d)) continue;
+    const dir = { x: (z.pos.x - at.x) / (d || 1), z: (z.pos.z - at.z) / (d || 1) };
+    if (!ignoresCover && isBlocked(at, dir, d - z.radius, config)) continue;
+    best = { z, d, boss };
+  }
+  return best ? best.z : null;
+}
+
+/**
+ * One round from a structure's gun at `target`: spends a round, raises the shot event and hurts
+ * the enemy (the kill goes to `killer`, a crew member, when there is one). False when it is dry.
+ */
+export function fireStructure(
+  state: GameState,
+  config: GameConfig,
+  st: Structure,
+  target: Zombie,
+  damage: number,
+  fireRate: number,
+  killer?: Soldier,
+): boolean {
+  const def = structureDef(config, st);
+  if (def.ammo && st.ammo <= 0) return false;
+  st.facing = Math.atan2(target.pos.x - st.x, target.pos.z - st.z);
+  if (st.cooldown > 0) return false;
+  st.cooldown += 1 / fireRate;
+  if (def.ammo) {
+    st.ammo--;
+    if (st.ammo === 0) state.events.push({ type: 'notice', text: `${def.name} is out of ammo` });
+  }
+  state.events.push({
+    type: 'structureShot',
+    structureId: st.id,
+    from: { x: st.x, z: st.z },
+    to: { x: target.pos.x, z: target.pos.z },
+    hitZombieId: target.id,
+  });
+  damageZombie(state, config, target, damage, killer, 'body', damage);
+  return true;
+}
+
 function fireTurrets(state: GameState, config: GameConfig, dt: number): void {
   for (const st of state.structures) {
     const def = structureDef(config, st);
-    if (!st.built || !def.turret) continue;
     st.cooldown = Math.max(0, st.cooldown - dt);
+    if (!st.built || !def.turret) continue;
     const scale = levelScale(def, st.level);
-    const range = def.turret.range * scale.range;
-    let best: { id: number; d: number; boss: boolean } | null = null;
-    for (const z of state.zombies) {
-      if (z.state === 'death') continue;
-      const d = Math.hypot(z.pos.x - st.x, z.pos.z - st.z);
-      if (d > range) continue;
-      const boss = def.turret.bossFirst && z.boss;
-      if (best && (best.boss && !boss ? true : boss === best.boss && d >= best.d)) continue;
-      const dir = { x: (z.pos.x - st.x) / (d || 1), z: (z.pos.z - st.z) / (d || 1) };
-      if (isBlocked({ x: st.x, z: st.z }, dir, d - z.radius, config)) continue;
-      best = { id: z.id, d, boss };
-    }
-    const target = best ? state.zombies.find((z) => z.id === best!.id) : undefined;
+    const target = pickTarget(
+      state,
+      config,
+      st,
+      def.turret.range * scale.range,
+      def.turret.bossFirst,
+    );
     if (!target) continue;
-    st.facing = Math.atan2(target.pos.x - st.x, target.pos.z - st.z);
-    if (st.cooldown > 0) continue;
-    st.cooldown += 1 / def.turret.fireRate;
-    const damage = def.turret.damage * scale.damage;
-    state.events.push({
-      type: 'structureShot',
-      structureId: st.id,
-      from: { x: st.x, z: st.z },
-      to: { x: target.pos.x, z: target.pos.z },
-      hitZombieId: target.id,
-    });
-    damageZombie(state, config, target, damage, undefined, 'body', damage);
+    fireStructure(state, config, st, target, def.turret.damage * scale.damage, def.turret.fireRate);
   }
+}
+
+/** Gold to refill a turret or a mounted gun from the build panel, or null when it is full or has no magazine. */
+export function ammoRefillCost(config: GameConfig, s: Structure): number | null {
+  const cap = structureDef(config, s).ammo?.capacity;
+  if (!s.built || cap === undefined || s.ammo >= cap) return null;
+  return Math.ceil((cap - s.ammo) * config.structures.ammoCost);
+}
+
+export function refillWithGold(state: GameState, config: GameConfig, id: number): boolean {
+  const s = getStructure(state, id);
+  const cost = s ? ammoRefillCost(config, s) : null;
+  if (!s || cost === null || state.gold < cost) return false;
+  state.gold -= cost;
+  s.ammo = structureDef(config, s).ammo!.capacity;
+  return true;
+}
+
+/** A soldier feeds the structure rounds from its backpack stacks of the right ammo, as many as fit. */
+export function resupply(
+  state: GameState,
+  config: GameConfig,
+  id: number,
+  soldierId: number,
+): number {
+  const s = getStructure(state, id);
+  const unit = state.soldiers.find((u) => u.id === soldierId);
+  const ammo = s ? structureDef(config, s).ammo : undefined;
+  if (!s || !unit || !ammo || !s.built) return 0;
+  let given = 0;
+  for (let i = unit.backpack.length - 1; i >= 0 && s.ammo < ammo.capacity; i--) {
+    const stack = unit.backpack[i]!;
+    if (stack.item !== ammo.item) continue;
+    const put = Math.min(stack.count, ammo.capacity - s.ammo);
+    stack.count -= put;
+    s.ammo += put;
+    given += put;
+    if (stack.count === 0) unit.backpack.splice(i, 1);
+  }
+  state.events.push({
+    type: 'notice',
+    text:
+      given > 0
+        ? `Fed ${given} rounds to the ${structureDef(config, s).name.toLowerCase()}`
+        : `No ${config.items[ammo.item]?.name ?? 'ammo'} to feed it with`,
+  });
+  return given;
 }
 
 /** Someone who would walk through an auto door: a soldier on its feet, or a vehicle with a driver. */
 function someoneNear(state: GameState, config: GameConfig, s: Structure, range: number): boolean {
   for (const u of state.soldiers) {
-    if (u.dead || u.downed || u.kind === 'drone' || u.vehicleId !== null) continue;
+    if (u.dead || u.downed || u.kind === 'drone' || inShelter(u)) continue;
     if (edgeDistance(config, s, u.pos) <= range) return true;
   }
   for (const v of state.vehicles) {

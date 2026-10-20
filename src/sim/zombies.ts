@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import { resolveStatic, supportHeight } from './collision';
 import { STEP_UP } from './constants';
 import type { GameConfig, Loadout } from './config';
@@ -408,7 +409,7 @@ function nearestTarget(
   let best: { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null = null;
   let bestD = Infinity;
   for (const s of state.soldiers) {
-    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue; // flying units can't be reached
+    if (s.dead || s.kind === 'drone' || inShelter(s)) continue; // flying units can't be reached
     const d = Math.hypot(s.pos.x - from.x, s.pos.z - from.z);
     const felt = s.downed ? d * config.downed.targetDistanceScale : d;
     if (felt < bestD) {

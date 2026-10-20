@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import { resolveStatic, supportHeight } from './collision';
 import type { GameConfig } from './config';
 import { blastLimbs } from './dismember';
@@ -146,7 +147,7 @@ export function liftOrDrop(
   only?: { kind: Carry['kind']; id: number },
 ): void {
   const me = state.soldiers.find((s) => s.id === soldierId);
-  if (!me || me.dead || me.downed || me.kind !== 'soldier' || me.vehicleId !== null) return;
+  if (!me || me.dead || me.downed || me.kind !== 'soldier' || inShelter(me)) return;
   if (me.carrying) {
     dropCarried(state, config, me);
     return;
@@ -242,7 +243,7 @@ function explodeAt(state: GameState, config: GameConfig, o: GameObject, def: Obj
     }
   }
   for (const s of state.soldiers) {
-    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue;
+    if (s.dead || s.kind === 'drone' || inShelter(s)) continue;
     const d = Math.hypot(s.pos.x - at.x, s.pos.z - at.z);
     if (d <= blast.radius && config.grenades.friendlyFire > 0) {
       hurtSoldier(
@@ -327,7 +328,7 @@ export function updateObjects(state: GameState, config: GameConfig, dt: number):
   for (const me of state.soldiers) {
     const c = me.carrying;
     if (!c) continue;
-    if (me.dead || me.downed || me.vehicleId !== null) {
+    if (me.dead || me.downed || inShelter(me)) {
       dropCarried(state, config, me);
       continue;
     }

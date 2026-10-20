@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import { resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { canSee } from './flowfield';
@@ -76,7 +77,7 @@ export function wanderStep(
   dt: number,
 ): boolean {
   for (const s of state.soldiers) {
-    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue;
+    if (s.dead || s.kind === 'drone' || inShelter(s)) continue;
     if (noticed(state, config, z, rule, s)) {
       alertZombie(state, config, z);
       return false;
@@ -134,7 +135,7 @@ export function huntTarget(
   let seen: Soldier | null = null;
   let seenD = Infinity;
   for (const s of state.soldiers) {
-    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue;
+    if (s.dead || s.kind === 'drone' || inShelter(s)) continue;
     const d = Math.hypot(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
     if (d < seenD && noticed(state, config, z, rule, s)) {
       seen = s;
