@@ -8,6 +8,7 @@ import { updateHazards } from './hazards';
 import { updateObjectives } from './objectives';
 import { updateRevives } from './revive';
 import { resetStructures, updateStructures } from './structures';
+import { resetObjects, updateObjects } from './objects';
 import { createSquad, updateSoldiers } from './soldiers';
 import { createVehicle, updateVehicles } from './vehicles';
 import { createRng } from './rng';
@@ -37,6 +38,10 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     nextVehicleId: 1,
     structures: [],
     nextStructureId: 1,
+    objects: [],
+    nextObjectId: 1,
+    fires: [],
+    nextFireId: 1,
     grenades: [],
     nextGrenadeId: 1,
     stance: 'normal',
@@ -62,6 +67,7 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     events: [],
   };
   resetStructures(state, config);
+  resetObjects(state, config);
   // Vehicles placed in the editor wait for a driver.
   for (const u of config.placed) {
     if (u.type in config.vehicles) {
@@ -113,6 +119,7 @@ export function step(
             ? 'walk'
             : 'normal';
   updateSoldiers(state, config, input, dt);
+  updateObjects(state, config, dt);
   updateDrag(state, config);
   updateVehicles(state, config, input, dt);
   updateRevives(state, config, dt);

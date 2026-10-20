@@ -80,10 +80,53 @@ export interface AimLine {
   slope: number;
 }
 
+/** What a soldier is carrying: an object (to throw) or the body of a downed or dead ally. */
+export interface Carry {
+  kind: 'object' | 'body';
+  id: number;
+  /** Walking speed scale while it is held. */
+  speed: number;
+  weight: number;
+}
+
+/** A thing on the ground that can be lifted, thrown, shot and burnt (a barrel, a crate, a boulder). */
+export interface GameObject {
+  id: number;
+  /** Key of `objects.types` in data/game.json. */
+  type: string;
+  pos: Vec2;
+  /** Height of the object's base above the ground (flying or held). */
+  y: number;
+  health: number;
+  /** The soldier holding it, or null. */
+  heldBy: number | null;
+  /** A throw in progress: where it started, where it lands, and seconds flown of the whole flight. */
+  flight: { from: Vec2; to: Vec2; y0: number; time: number; flown: number; thrower: number } | null;
+}
+
+/** A fire. On bare ground it dies after `hazards.fire.duration`; on a host it burns until the host is gone. */
+export interface Fire {
+  id: number;
+  x: number;
+  z: number;
+  /** Seconds burning; `life` is how long it may burn (Infinity for a map's own fires). */
+  age: number;
+  life: number;
+  host: { kind: 'object' | 'structure'; id: number } | null;
+  /** Seconds until it tries to spread. */
+  spread: number;
+}
+
 export interface Soldier {
   id: number;
   /** Id of the downed or dead ally this soldier drags by the shoulders, if any. */
   dragging: number | null;
+  /** What it holds over its shoulders or head (an object to throw, or an ally's body), and the walking speed that costs. */
+  carrying: Carry | null;
+  /** The soldier that carries this body, or null. */
+  carriedBy: number | null;
+  /** The fire button was down last step (a throw needs a fresh press). */
+  throwHeld: boolean;
   /** Id of the player that owns this unit. */
   owner: string;
   kind: UnitKind;
@@ -361,6 +404,11 @@ export type SimEvent =
       hitZombieId: number | null;
     }
   | { type: 'structureBuilt'; structureId: number }
+  | { type: 'objectThrown'; objectId: number; throwerId: number }
+  | { type: 'objectLanded'; objectId: number; pos: Vec2 }
+  | { type: 'objectDestroyed'; objectId: number; pos: Vec2; kind: string }
+  | { type: 'fireStarted'; fireId: number; pos: Vec2 }
+  | { type: 'tooHeavy'; soldierId: number; needed: number }
   | { type: 'structureDestroyed'; structureId: number; pos: Vec2 }
   | {
       type: 'melee';
@@ -419,6 +467,12 @@ export interface GameState {
   /** Build mode: structures and blueprints. */
   structures: Structure[];
   nextStructureId: number;
+  /** Objects on the ground, in hands or in the air. */
+  objects: GameObject[];
+  nextObjectId: number;
+  /** Fires burning now. */
+  fires: Fire[];
+  nextFireId: number;
   /** Grenades in the air or waiting for their fuse. */
   grenades: Grenade[];
   nextGrenadeId: number;

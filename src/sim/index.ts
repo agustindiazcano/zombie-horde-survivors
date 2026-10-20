@@ -50,6 +50,7 @@ export { meleeStrike } from './melee';
 export { updateHazards } from './hazards';
 export { getVehicle, toggleVehicle, vehicleInReach } from './vehicles';
 export { objectiveProgress } from './objectives';
+export { getObject, liftOrDrop, maxLift, objectDef, throwCarried } from './objects';
 export {
   doorInReach,
   edgeDistance,

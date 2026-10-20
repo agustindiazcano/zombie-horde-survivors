@@ -47,6 +47,8 @@ const loadoutShape = {
     })
     .strict()
     .optional(),
+  /** A soldier that starts on the floor and does not bleed out (a patient to carry or revive). */
+  downed: z.boolean().optional(),
   /** Carried stacks. An enemy drops these in a crate when it dies. */
   backpack: z
     .array(z.object({ item: z.string().min(1), count: z.number().int().positive() }).strict())
@@ -74,6 +76,7 @@ export type Loadout = {
   attributes?: Record<string, number>;
   equipment?: { rightHand?: string | null; leftHand?: string | null; chest?: string | null };
   backpack?: { item: string; count: number }[];
+  downed?: boolean;
 };
 
 /** A spawn point: where enemies appear, and for a placed spawner which enemy and what it carries. */
@@ -155,6 +158,10 @@ const mapLogic = z
     /** No waves spawn: only the units the map places (test maps, hide and seek). */
     noWaves: z.boolean().optional(),
     startGold: nonNegative.optional(),
+    /** Objects lying on the ground from the start (barrels, crates, boulders), by `objects.types` id. */
+    objects: z
+      .array(z.object({ type: z.string().min(1), x: z.number(), z: z.number() }).strict())
+      .optional(),
     /** Structures standing from the start (already built), by `structures.types` id. */
     structures: z
       .array(
@@ -715,6 +722,8 @@ const structureType = z
     breakCost: nonNegative,
     /** A door can be opened and closed; open, it blocks nobody. */
     door: z.boolean().default(false),
+    /** Wood burns: a fire next to it hurts it and spreads. */
+    flammable: z.boolean().default(false),
     /** Hurts what pushes on it: damage per second to every enemy attacking it. */
     thorns: nonNegative.default(0),
     /** An automatic gun: fires at the nearest visible enemy in range. */
@@ -792,6 +801,14 @@ export const GameConfigSchema = z
             dps: positive,
             /** Radius of one fire (metres). */
             radius: positive,
+            /** Seconds a fire on bare ground burns (a fire on a burning thing lasts as long as it does). */
+            duration: positive,
+            /** Every this many seconds a fire may light flammable things (objects, wooden structures) near it. */
+            spreadInterval: positive,
+            spreadRadius: positive,
+            spreadChance: unit01,
+            /** Damage per second a fire does to a flammable object or structure inside its radius. */
+            thingDps: positive,
           })
           .strict(),
       })
@@ -909,6 +926,56 @@ export const GameConfigSchema = z
     ),
     /** Drivable vehicle types by id (placed in the editor, entered with V). */
     vehicles: z.record(z.string(), vehicleType),
+    /** Things lying on the ground that can be lifted, thrown, shot and burnt. */
+    objects: z
+      .object({
+        /** How close (metres) a soldier must be to lift an object or a body. */
+        liftRange: positive,
+        /** A unit lifts `strength` x this many kilos. */
+        liftPerStrength: positive,
+        /** What a soldier's body weighs (kilos): carrying one needs the strength for it. */
+        bodyWeight: positive,
+        /** Walking speed scale at the most a unit can lift (lighter loads are faster). */
+        carrySpeedFloor: z.number().min(0.1).max(1),
+        /** Height (metres) a lifted thing is held at, above the carrier's feet. */
+        holdHeight: positive,
+        /** Throw: horizontal speed, the farthest throw of a light object and the share a full load loses. */
+        throwSpeed: positive,
+        throwRange: positive,
+        throwLoadLoss: z.number().min(0).max(0.9),
+        /** Damage to an enemy a thrown object lands on, per kilo, and the seconds it is staggered. */
+        damagePerKg: nonNegative,
+        stagger: nonNegative,
+        /** Damage the object itself takes when it lands. */
+        impactDamage: nonNegative,
+        types: z.record(
+          z.string(),
+          z
+            .object({
+              name: z.string().min(1),
+              weight: positive,
+              /** Footprint radius and height for the pick-up, the bullets and the drawing. */
+              radius: positive,
+              height: positive,
+              shape: z.enum(['box', 'cylinder', 'sphere']),
+              color: z.string().min(1),
+              health: positive,
+              /** Burns when a fire is next to it, and spreads the fire on. */
+              flammable: z.boolean().default(false),
+              /** Bullets hit it (a fuel or explosive container). */
+              shootable: z.boolean().default(false),
+              /** Blows up when destroyed: blast radius, damage, and the fires it leaves. */
+              explosive: z
+                .object({ radius: positive, damage: positive, fires: z.number().int().min(0) })
+                .strict()
+                .optional(),
+              /** Bursts into this many fires when destroyed (no blast). */
+              fuel: z.object({ fires: z.number().int().positive() }).strict().optional(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
     /** Build mode: the structure types and the rules for building them. */
     structures: z
       .object({
@@ -1188,6 +1255,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   startGold: number;
   /** Structures that stand from the start. */
   startStructures: NonNullable<MapLogic['structures']>;
+  /** Objects that lie on the ground from the start. */
+  startObjects: NonNullable<MapLogic['objects']>;
   /** Story missions: shown on a card when the mission starts. */
   briefing?: string | undefined;
   /** Stat sheets by unit type (from data/units.json). */
@@ -1233,6 +1302,7 @@ type MapRules = Pick<
   | 'noWaves'
   | 'startGold'
   | 'startStructures'
+  | 'startObjects'
 >;
 
 /**
@@ -1281,6 +1351,7 @@ export function mapRules(
     noWaves: logic.noWaves ?? false,
     startGold: logic.startGold ?? 0,
     startStructures: logic.structures ?? [],
+    startObjects: logic.objects ?? [],
   };
 }
 

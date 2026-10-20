@@ -1,4 +1,5 @@
 import { edgeDistance, getStructure, isWorking, mustFight } from './structures';
+import { throwCarried } from './objects';
 import { resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
@@ -45,6 +46,11 @@ export function applyLoadout(config: GameConfig, s: Soldier, l: Loadout): Soldie
     s.health = l.maxHealth;
   }
   if (l.attributes) s.attributes = { ...s.attributes, ...l.attributes };
+  if (l.downed && s.kind === 'soldier') {
+    s.downed = true;
+    s.health = 0;
+    s.bleedOut = Infinity;
+  }
   if (l.equipment) {
     s.equipment = { ...s.equipment, ...l.equipment };
     s.weaponStates = {};
@@ -114,6 +120,9 @@ function newUnit(
     reviveProgress: 0,
     vehicleId: null,
     dragging: null,
+    carrying: null,
+    carriedBy: null,
+    throwHeld: false,
     ...sheetOf(config, unitType),
   };
 }
@@ -415,6 +424,13 @@ function updateControlled(
     s.vy = climbSpeed(config, s, move) ?? config.stance.jumpSpeed;
   }
 
+  // Hands full: a fresh press throws what is held instead of firing.
+  if (s.carrying) {
+    if (input.firing && !s.throwHeld) throwCarried(state, config, s.id, aim);
+    s.throwHeld = input.firing;
+    return;
+  }
+  s.throwHeld = input.firing;
   if (triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)) {
     fireWeapon(state, config, s);
   }
@@ -533,10 +549,10 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
   const list = state.soldiers;
   for (let i = 0; i < list.length; i++) {
     const a = list[i]!;
-    if (a.dead || isDrone(a) || a.vehicleId !== null) continue;
+    if (a.dead || isDrone(a) || a.vehicleId !== null || a.carriedBy !== null) continue;
     for (let j = i + 1; j < list.length; j++) {
       const b = list[j]!;
-      if (b.dead || isDrone(b) || b.vehicleId !== null) continue;
+      if (b.dead || isDrone(b) || b.vehicleId !== null || b.carriedBy !== null) continue;
       const dx = b.pos.x - a.pos.x;
       const dz = b.pos.z - a.pos.z;
       const d = Math.hypot(dx, dz);

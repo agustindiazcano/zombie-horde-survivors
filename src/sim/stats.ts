@@ -42,7 +42,7 @@ export function speedOf(
         : stance === 'walk'
           ? config.stance.walkSpeedScale
           : 1;
-  const load = s.dragging === null ? 1 : config.drag.speedScale;
+  const load = (s.dragging === null ? 1 : config.drag.speedScale) * (s.carrying?.speed ?? 1);
   const aim = s.aiming ? config.accuracy.aimSpeedScale : 1;
   return config.player.speed * scale * load * aim * mods.speed;
 }

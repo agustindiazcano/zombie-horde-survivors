@@ -21,7 +21,7 @@ type Patch = {
   [
     K in Exclude<
       keyof GameConfig,
-      'items' | 'briefing' | 'build' | 'noWaves' | 'startGold' | 'startStructures'
+      'items' | 'briefing' | 'build' | 'noWaves' | 'startGold' | 'startStructures' | 'startObjects'
     >
   ]?: Partial<GameConfig[K]>;
 } & {
@@ -52,6 +52,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     zombie: { ...base.zombie },
     vehicles: { ...base.vehicles },
     structures: { ...base.structures },
+    objects: { ...base.objects, types: { ...base.objects.types } },
     hazards: { ...base.hazards },
     animals: { ...base.animals },
     drag: { ...base.drag },

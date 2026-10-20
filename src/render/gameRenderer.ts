@@ -24,6 +24,7 @@ import { GrenadeEffects, type GrenadePreview } from './grenades';
 import { SelectionMarkers } from './markers';
 import { ViewModel } from './viewModel';
 import { StructureViews, type BuildGhost } from './structures';
+import { FireViews, ObjectViews } from './objects';
 
 /** Default camera: above and behind the focus point (towards +z), at zoom 1. */
 const BASE_DISTANCE = Math.hypot(13, 9);
@@ -200,6 +201,8 @@ export class GameRenderer {
   private readonly stanceVisual = new Map<number, { crouch: number; lean: number }>();
   private readonly healthBars = new HealthBars();
   private structureViews!: StructureViews;
+  private objectViews!: ObjectViews;
+  private fireViews!: FireViews;
   private readonly gore = new Gore();
   private readonly looseParts = new LooseParts();
   private readonly pickups = new PickupMeshes();
@@ -250,6 +253,8 @@ export class GameRenderer {
     this.config = config;
     this.halfSize = config.arena.halfSize;
     this.droneHeight = config.drone.height;
+    this.objectViews = new ObjectViews(config, (x, z) => this.groundAt(x, z));
+    this.fireViews = new FireViews(config, (x, z) => this.groundAt(x, z));
     this.structureViews = new StructureViews(
       config,
       (x, z) => this.groundAt(x, z),
@@ -261,6 +266,8 @@ export class GameRenderer {
       this.grenades.group,
       this.healthBars.group,
       this.structureViews.group,
+      this.objectViews.group,
+      this.fireViews.group,
       this.gore.group,
       this.looseParts.group,
       this.pickups.group,
@@ -290,6 +297,8 @@ export class GameRenderer {
     for (const entry of this.vehicles.values()) this.scene.remove(entry.object);
     this.vehicles.clear();
     this.structureViews.clear();
+    this.objectViews.clear();
+    this.fireViews.clear();
     for (const view of this.animals.values()) this.scene.remove(view.object);
     this.animals.clear();
     this.soldiers.clear();
@@ -442,6 +451,11 @@ export class GameRenderer {
     this.syncZombies(state, alpha, dt);
     this.syncVehicles(state, alpha);
     this.structureViews.update(state, this.camera);
+    this.objectViews.update(state);
+    this.fireViews.update(state, this.clock);
+    // The editor previews the map's fires with static markers; in play the fires come from the state.
+    if (this.fireMarkers) this.fireMarkers.visible = state.sandbox;
+    this.fireViews.group.visible = !state.sandbox;
     this.syncAnimals(state, alpha, dt);
     this.syncCrates(state, dt);
     this.effects.update(dt);

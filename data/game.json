@@ -154,7 +154,12 @@
   "hazards": {
     "fire": {
       "dps": 20,
-      "radius": 2.5
+      "radius": 2.5,
+      "duration": 8,
+      "spreadInterval": 1.5,
+      "spreadRadius": 3.2,
+      "spreadChance": 0.6,
+      "thingDps": 12
     }
   },
   "vehicles": {
@@ -777,7 +782,8 @@
             "damageScale": 1,
             "rangeScale": 1
           }
-        ]
+        ],
+        "flammable": true
       },
       "wall": {
         "name": "Solid wall",
@@ -920,6 +926,79 @@
           }
         ],
         "passShots": true
+      }
+    }
+  },
+  "objects": {
+    "liftRange": 1.8,
+    "liftPerStrength": 4,
+    "bodyWeight": 70,
+    "carrySpeedFloor": 0.45,
+    "holdHeight": 1.9,
+    "throwSpeed": 11,
+    "throwRange": 14,
+    "throwLoadLoss": 0.6,
+    "damagePerKg": 1.4,
+    "stagger": 1.2,
+    "impactDamage": 12,
+    "types": {
+      "wood_crate": {
+        "name": "Wooden crate",
+        "weight": 18,
+        "radius": 0.45,
+        "height": 0.9,
+        "shape": "box",
+        "color": "#a0773f",
+        "health": 40,
+        "flammable": true
+      },
+      "barrel": {
+        "name": "Steel barrel",
+        "weight": 30,
+        "radius": 0.45,
+        "height": 1.0,
+        "shape": "cylinder",
+        "color": "#5d6b73",
+        "health": 120
+      },
+      "fuel_barrel": {
+        "name": "Fuel barrel",
+        "weight": 32,
+        "radius": 0.45,
+        "height": 1.0,
+        "shape": "cylinder",
+        "color": "#c08a1e",
+        "health": 30,
+        "flammable": true,
+        "shootable": true,
+        "fuel": {
+          "fires": 5
+        }
+      },
+      "explosive_barrel": {
+        "name": "Explosive barrel",
+        "weight": 34,
+        "radius": 0.45,
+        "height": 1.0,
+        "shape": "cylinder",
+        "color": "#b8321f",
+        "health": 30,
+        "flammable": true,
+        "shootable": true,
+        "explosive": {
+          "radius": 6,
+          "damage": 160,
+          "fires": 3
+        }
+      },
+      "boulder": {
+        "name": "Boulder",
+        "weight": 70,
+        "radius": 0.7,
+        "height": 1.2,
+        "shape": "sphere",
+        "color": "#7b7468",
+        "health": 400
       }
     }
   }
