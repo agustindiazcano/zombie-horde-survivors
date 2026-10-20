@@ -4,6 +4,11 @@ import './mobile.css';
 const STICK_RADIUS = 52;
 /** Below this fraction of the radius the stick reads as "no input". */
 const DEAD_ZONE = 0.12;
+/** Look pad: finger travel (px) is multiplied by this, since the pad is small. */
+const LOOK_GAIN = 2.6;
+/** A touch that moves less than this (px) and ends within TAP_MS is a tap, not a drag. */
+const TAP_SLOP = 8;
+const TAP_MS = 300;
 
 /** Phones and tablets (coarse pointer), or `?mobile=1` to try the layout on a desktop browser. */
 export function isMobile(): boolean {
@@ -30,6 +35,10 @@ function el<K extends keyof HTMLElementTagNameMap>(
 
 export interface MobileActions {
   onMove: (x: number, z: number) => void;
+  /** Drag on the look pad, in pixels (right = positive x, down = positive y). */
+  onLook: (dx: number, dy: number) => void;
+  /** Tap on the look pad: cycles normal, third and first person view. */
+  onView: () => void;
   onSettings: () => void;
   onMenu: () => void;
   onShop: () => void;
@@ -42,7 +51,8 @@ export interface MobileActions {
 /**
  * Touch layout for a phone held sideways: a translucent joystick on the left that moves the whole
  * squad (the leader walks, the rest follow, everyone shoots on their own) and four buttons on the
- * right. The drag hint pulses until the first time the stick is used.
+ * right. The drag hint pulses until the first time the stick is used. A small look pad on the right
+ * turns the view: drag to look up and sideways, tap to change the view.
  */
 export class MobileControls {
   private readonly root = el('div', 'mob');
@@ -72,6 +82,8 @@ export class MobileControls {
     zone.addEventListener('pointerup', (e) => this.up(e));
     zone.addEventListener('pointercancel', (e) => this.up(e));
 
+    this.buildLookPad();
+
     const bar = el('div', 'mob__buttons', this.root);
     this.button(bar, '⚙', 'Settings', actions.onSettings);
     this.button(bar, '☰', 'Main menu', actions.onMenu);
@@ -95,6 +107,44 @@ export class MobileControls {
     // No page scroll, zoom or long-press menu while playing.
     this.root.addEventListener('contextmenu', (e) => e.preventDefault());
     parent.appendChild(this.root);
+  }
+
+  /** A small pad on the right: drag turns the camera, a quick tap cycles the view. */
+  private buildLookPad(): void {
+    const pad = el('div', 'mob__look', this.root, '👁');
+    pad.setAttribute('aria-label', 'Look around (drag) or change view (tap)');
+    let id: number | null = null;
+    let lastX = 0;
+    let lastY = 0;
+    let startX = 0;
+    let startY = 0;
+    let startT = 0;
+    pad.addEventListener('pointerdown', (e) => {
+      if (id !== null) return;
+      id = e.pointerId;
+      pad.setPointerCapture(id);
+      pad.classList.add('mob__look--active');
+      lastX = startX = e.clientX;
+      lastY = startY = e.clientY;
+      startT = performance.now();
+    });
+    pad.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== id) return;
+      this.actions.onLook((e.clientX - lastX) * LOOK_GAIN, (e.clientY - lastY) * LOOK_GAIN);
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+    const end = (e: PointerEvent) => {
+      if (e.pointerId !== id) return;
+      id = null;
+      pad.classList.remove('mob__look--active');
+      const moved = Math.hypot(e.clientX - startX, e.clientY - startY);
+      if (e.type === 'pointerup' && moved < TAP_SLOP && performance.now() - startT < TAP_MS) {
+        this.actions.onView();
+      }
+    };
+    pad.addEventListener('pointerup', end);
+    pad.addEventListener('pointercancel', end);
   }
 
   private button(

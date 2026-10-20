@@ -62,6 +62,8 @@ import { PerkPicker, Shop } from './upgradesUi';
 
 /** Mobile: enemies within this distance (world units) are shot at automatically. */
 const MOBILE_AIM_RANGE = 22;
+/** Mobile person view: fires when the nearest enemy is within this cosine of the view direction (about 30 degrees). */
+const MOBILE_LOOK_FIRE_COS = 0.87;
 
 /** Camera pan speed in RTS mode (world units per second). */
 const PAN_SPEED = 22;
@@ -295,6 +297,15 @@ async function main(): Promise<void> {
     // Touch play: one joystick moves the whole squad; the leader auto-aims and everyone fires.
     mobileUi = new MobileControls(document.body, {
       onMove: (x, z) => input.setTouchMove(x, z),
+      onLook: (dx, dy) => {
+        if (paused || modalOpen() || localPlayer(state).controlledId === null) return;
+        if (renderer.viewMode === 'top') setView('third');
+        renderer.look(dx, dy);
+      },
+      onView: () => {
+        if (playable() && !modalOpen() && localPlayer(state).controlledId !== null)
+          setView(NEXT_VIEW[renderer.viewMode]);
+      },
       onSettings: () => openSettings(),
       onMenu: () => {
         if (settingsPanel.isOpen) settingsPanel.close();
@@ -392,6 +403,7 @@ async function main(): Promise<void> {
     const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
     renderer.setViewMode(mode, unit?.facing ?? 0);
     input.takeLook(); // drop movement accumulated before the switch
+    if (mobile) return; // touch has no cursor to lock: the look pad turns the view
     if (mode === 'top') {
       if (document.pointerLockElement) document.exitPointerLock();
       return;
@@ -567,6 +579,18 @@ async function main(): Promise<void> {
           z: unit.pos.z + Math.cos(unit.facing),
         };
       directInput.firing = best !== null;
+      if (renderer.viewMode !== 'top') {
+        // The look pad aims: keep the view's aim point and fire only at an enemy near the line of sight.
+        const aim = renderer.lookAimPoint(unit.pos);
+        const ax = aim.x - unit.pos.x;
+        const az = aim.z - unit.pos.z;
+        directInput.aim = aim;
+        directInput.firing =
+          best !== null &&
+          (ax * (best.x - unit.pos.x) + az * (best.z - unit.pos.z)) /
+            (Math.hypot(ax, az) * bestDist) >
+            MOBILE_LOOK_FIRE_COS;
+      }
     }
     directInput.autoTrigger = mobile;
     directInput.crouch = raw.crouch;
