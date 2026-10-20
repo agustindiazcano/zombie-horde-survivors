@@ -126,7 +126,12 @@
     "releaseHeight": 1.4,
     "gravity": 20,
     "cooldown": 0.8,
-    "friendlyFire": 0.5
+    "friendlyFire": 0.5,
+    "aiMinEnemies": 4,
+    "aiBossWeight": 6,
+    "aiCooldown": 8,
+    "aiSafeFactor": 1.3,
+    "aiClusterShare": 0.8
   },
   "drag": {
     "range": 1.8,
