@@ -30,6 +30,8 @@ Only what is still open: read this first in every session. When an item here is 
 
 `main` is at `860abc5` (PR #52 merged: the weapons, marines, flow field and everything before). Branch `feat/build-mode` adds, on top of it: build mode (structures, blueprints, doors, turrets, the **N** menu, break cost in the flow field), Map 2 (build test), Map 3 (weapons range), Map 4 (hide and seek with the Stalker hunter), `noWaves` / `build` / `startGold` / `structures` map rules, and crouch stealth. Details: [worklog](docs/worklog/2026-10-19-build-mode.md). Plans written: [test maps](docs/PLAN-test-maps.md) and [world and engine](docs/PLAN-world-and-engine.md). The user's priority order now: build mode first, the engine, graphics and mechanics; balance and going public (GoatCounter, Search Console) come later.
 
+Also on that branch (later the same day): liftable and throwable objects, carrying bodies, spreading fire and barrels (Map 5, the interaction lab), soldier training with classes (the squad screen's Training box) and the title-screen carousel. [Worklog](docs/worklog/2026-10-19-interaction-and-training.md). Decisions the user gave: the carousel as recommended; a soldier's level gives points for stamina, strength, dexterity, weapon expertise and special bonuses, with a class (engineer, medic, demolitions...) chosen per soldier.
+
 ## Open items (details in PENDING.md)
 
 - 🔴 The user has to look at the live game and report what looks or feels wrong (PENDING §0).

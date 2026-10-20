@@ -28,8 +28,8 @@ Claude has no browser, so every visual and feel decision below is an estimate. T
 
 ### 2 — 🟡 Decisions waiting for the user
 
-- [ ] 🟡 **Main-menu "carousel":** the request was cut off mid-sentence ("un carousel d..."). Options offered: enemies, soldiers and drone, or how-to-play slides. Ask again.
-- [ ] 🟡 **What a soldier's own level does.** Per-soldier XP, level and kills are tracked and shown, but give nothing. Idea: a small damage or health bonus per level, or unlocks.
+- [x] Main-menu carousel built (five slides; [worklog](docs/worklog/2026-10-19-interaction-and-training.md)). Look at it and edit the text in `SLIDES` of `src/mainMenu.ts`.
+- [x] Soldier level: skill points for attributes, weapon expertise and classes (Assault, Engineer, Medic, Demolitions) are built. Look at it in the squad screen (I) and tune `training` in `game.json`. Open: AI auto-spending, respec, charisma.
 - [ ] 🟡 **Gold between runs.** Gold, perks and purchases reset every run (only the best kill count is saved). Option offered: keep some gold in localStorage and add a shop on the main menu for permanent upgrades.
 - [ ] 🟢 **Crate contents in the squad screen:** today crates are opened only with E next to them (the old inventory window, crate mode). Decide whether nearby crates should also appear in the squad screen.
 
@@ -92,6 +92,12 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [ ] 🟡 Measure with F3 and Chrome's profiler in a heavy wave and compare the light marine's look with a soldier.
 - [x] M1 built (variants, procedural blood, bleeder) and M1b built (wanderers that sleep, sense, see and shout; climbers over boxes): [worklog](docs/worklog/2026-10-19-marine-m1b.md). Look at the pale **wanderer** and the orange **climber**.
 - [x] M2 built: a killing head hit bursts or knocks off the head by weapon strength ([worklog](docs/worklog/2026-10-19-marine-m2.md)). Look at it in the browser (stump size, flying head, neck spray, `dismember.headBurstDamage`); - [x] M3 built: body zones, arms and legs come off, grenades tear limbs, legless enemies drag themselves ([worklog](docs/worklog/2026-10-19-marine-m3.md)). Look at it in the browser (stump sizes, throw, the pitched-forward crawl, `dismember.*` numbers); next is M4 (real crawl, `marine_crawler`).
+
+### 2j — 🔴 Interaction lab (Map 5) and the rest of 8b
+
+- [x] Lift and throw objects (**H**, click), carry a body (**H**), fire that spreads, explosive and fuel barrels, Map 5 ([worklog](docs/worklog/2026-10-19-interaction-and-training.md)).
+- [ ] 🔴 Look at Map 5 in the browser: controls are in [docs/CONTROLS.md](docs/CONTROLS.md) (H lift / put down, click throw, shoot a barrel). Tune `objects` and `hazards.fire` in `game.json`.
+- [ ] 🟡 Next: objects that block movement, AI that carries the wounded, models and sounds, objects in the editor.
 
 ### 2i — 🟡 Test maps, doors, interiors, urban maps, engine (planned 2026-10-19)
 

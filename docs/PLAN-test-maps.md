@@ -4,14 +4,15 @@ Status: written 2026-10-19 from the user's requests. Maps 2 to 4 are built (firs
 
 ## 1. The maps
 
-| Map                                                    | Purpose                                                                                    | Status                                                                                                       |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| **Map 2: Build mode test** (`map-2.json`)              | Build walls, doors, turrets and sandbags; survive slow waves                               | Built: 600 starting gold, a pre-built gate (two walls, a door), sandbags, turret                             |
-| **Map 3: Weapons range** (`map-3.json`)                | Try every weapon, accessory and grenade                                                    | Built: no waves, 5,000 gold (shop with **B** any time), sleeping targets at 10, 20 and 35 m, a brute at 45 m |
-| **Map 4: Hide and seek** (`map-4.json`)                | A giant hunter and an AI that looks for the squad; first stealth rules                     | Built: 34 blocks to hide behind and one Stalker (see section 2)                                              |
-| **Map 5: Celestial Event 4**                           | An alien invasion seen from the ground: orbs from the sky vaporise civilians, hide or flee | Plan only (section 3)                                                                                        |
-| **Map 6: Human vs human**                              | Soldiers against intelligent enemies that shoot, to build cover AI on both sides           | Plan only (section 4)                                                                                        |
-| **Map 7: Doors and interiors**, **Map 8: Urban block** | Door types, rooms, streets with enterable buildings                                        | Plan only: [PLAN-world-and-engine.md](PLAN-world-and-engine.md)                                              |
+| Map                                                | Purpose                                                                                    | Status                                                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Map 2: Build mode test** (`map-2.json`)          | Build walls, doors, turrets and sandbags; survive slow waves                               | Built: 600 starting gold, a pre-built gate (two walls, a door), sandbags, turret                             |
+| **Map 3: Weapons range** (`map-3.json`)            | Try every weapon, accessory and grenade                                                    | Built: no waves, 5,000 gold (shop with **B** any time), sleeping targets at 10, 20 and 35 m, a brute at 45 m |
+| **Map 4: Hide and seek** (`map-4.json`)            | A giant hunter and an AI that looks for the squad; first stealth rules                     | Built: 34 blocks to hide behind and one Stalker (see section 2)                                              |
+| **Map 5: Interaction lab** (`map-5.json`)          | Lift and throw objects, carry a body, fire spreading, explosive barrels                    | Built ([worklog](worklog/2026-10-19-interaction-and-training.md))                                            |
+| **Map 6: Celestial Event 4**                       | An alien invasion seen from the ground: orbs from the sky vaporise civilians, hide or flee | Plan only (section 3)                                                                                        |
+| **Map 7: Human vs human**                          | Soldiers against intelligent enemies that shoot, to build cover AI on both sides           | Plan only (section 4)                                                                                        |
+| **Maps 8 and 9: Doors and interiors, Urban block** | Door types, rooms, streets with enterable buildings                                        | Plan only: [PLAN-world-and-engine.md](PLAN-world-and-engine.md)                                              |
 
 Map rules that were added for these labs (all in the map's `logic`, so no code per map):
 
