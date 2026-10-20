@@ -9,6 +9,7 @@ import { hasLimbs, severLimb, woundLimb } from './dismember';
 import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
+import { blockingStructure, hurtStructure, structureDef } from './structures';
 import { wanderStep } from './wander';
 import { gunOf, weaponDef } from './stats';
 import type { BodyZone, GameState, HitKind, Soldier, Vehicle, Zombie } from './types';
@@ -215,10 +216,30 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     if (d > 1e-9) z.facing = Math.atan2(dx, dz);
 
     if (d > reach) {
-      z.state = 'walk';
       // Without legs it can no longer climb.
       const climb = z.parts.legs ? (enemy?.climber?.maxHeight ?? 0) : 0;
       const waypoint = steerTarget(state, config, z.pos, target, climb);
+      // A wall, door or barricade in the way gets bitten through.
+      const wall =
+        state.structures.length > 0 && climb === 0
+          ? blockingStructure(state, config, z.pos, z.radius, z.attackRange + 0.15, waypoint)
+          : undefined;
+      if (wall) {
+        const def = structureDef(config, wall);
+        if (z.state !== 'attack') {
+          z.state = 'attack';
+          z.attackTimer = zc.attackCooldown;
+        }
+        z.facing = Math.atan2(wall.x - z.pos.x, wall.z - z.pos.z);
+        if (def.thorns > 0) damageZombie(state, config, z, def.thorns * dt);
+        z.attackTimer -= dt;
+        if (z.attackTimer <= 0) {
+          z.attackTimer += zc.attackCooldown;
+          hurtStructure(state, config, wall, z.damage);
+        }
+        continue;
+      }
+      z.state = 'walk';
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
       const td = Math.hypot(tx, tz) || 1;

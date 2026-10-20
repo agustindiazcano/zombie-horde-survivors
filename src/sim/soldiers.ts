@@ -1,3 +1,4 @@
+import { edgeDistance, getStructure, isWorking, mustFight } from './structures';
 import { resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
@@ -372,6 +373,9 @@ function updateSeated(
     }
     return;
   }
+  // A builder at its blueprint keeps its hands on the work until an enemy gets close.
+  if (isWorking(state, config, s) && !mustFight(state, s)) return;
+
   const target = findTarget(state, config, s);
   maintainAmmo(state, config, s, target !== null);
   if (!target) return;
@@ -447,6 +451,12 @@ function updateAi(
       } else {
         dest = { ...v.pos };
       }
+    }
+  } else if (s.order.type === 'build') {
+    const st = getStructure(state, s.order.structureId);
+    if (!st || st.built) s.order = { type: 'hold' };
+    else if (edgeDistance(config, st, s.pos) > config.structures.workRange * 0.8) {
+      dest = { x: st.x, z: st.z };
     }
   } else if (s.order.type === 'follow' && leader) {
     const a = s.id * SLOT_ANGLE;

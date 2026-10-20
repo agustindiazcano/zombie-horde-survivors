@@ -21,6 +21,7 @@ export type SoldierOrder =
   | { type: 'follow' }
   | { type: 'move'; x: number; z: number }
   | { type: 'board'; vehicleId: number }
+  | { type: 'build'; structureId: number }
   | { type: 'hold' };
 
 export type Stance = 'normal' | 'walk' | 'crouch' | 'sprint';
@@ -164,6 +165,30 @@ export interface Grenade {
   flown: number;
   /** Seconds left until it goes off. */
   fuse: number;
+}
+
+/** A built (or being built) structure of build mode: a wall, a door, a turret... */
+export interface Structure {
+  id: number;
+  /** Key of `structures.types` in data/game.json. */
+  type: string;
+  /** Centre of the footprint. */
+  x: number;
+  z: number;
+  /** Quarter turns (0 to 3); odd ones swap the sides of the footprint. */
+  turns: number;
+  level: number;
+  health: number;
+  maxHealth: number;
+  /** False while it is a blueprint: a ghost that does not block anyone. */
+  built: boolean;
+  /** Seconds of work done so far on a blueprint. */
+  progress: number;
+  /** A door that is open lets everyone through. */
+  open: boolean;
+  /** Turrets: seconds until the next shot and the direction they last aimed (radians, 0 = +z). */
+  cooldown: number;
+  facing: number;
 }
 
 /**
@@ -326,6 +351,15 @@ export type SimEvent =
   | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
   | { type: 'dryFire'; shooterId: number }
   | {
+      type: 'structureShot';
+      structureId: number;
+      from: Vec2;
+      to: Vec2;
+      hitZombieId: number | null;
+    }
+  | { type: 'structureBuilt'; structureId: number }
+  | { type: 'structureDestroyed'; structureId: number; pos: Vec2 }
+  | {
       type: 'melee';
       attackerId: number;
       weapon: string;
@@ -379,6 +413,9 @@ export interface GameState {
   nextSoldierId: number;
   vehicles: Vehicle[];
   nextVehicleId: number;
+  /** Build mode: structures and blueprints. */
+  structures: Structure[];
+  nextStructureId: number;
   /** Grenades in the air or waiting for their fuse. */
   grenades: Grenade[];
   nextGrenadeId: number;

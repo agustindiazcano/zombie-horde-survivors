@@ -50,3 +50,20 @@ export { meleeStrike } from './melee';
 export { updateHazards } from './hazards';
 export { getVehicle, toggleVehicle, vehicleInReach } from './vehicles';
 export { objectiveProgress } from './objectives';
+export {
+  doorInReach,
+  edgeDistance,
+  footprint,
+  getStructure,
+  levelScale,
+  orderBuild,
+  placeStructure,
+  placementError,
+  removeStructure,
+  repairCost,
+  repairStructure,
+  structureDef,
+  toggleDoor,
+  upgradeCost,
+  upgradeStructure,
+} from './structures';

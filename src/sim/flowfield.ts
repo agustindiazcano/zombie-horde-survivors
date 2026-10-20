@@ -29,7 +29,9 @@ interface Blocked {
   length: number;
   half: number;
   n: number;
+  /** 0 free, 1 blocked, 2 a structure enemies can break: passable at the cost in `extra`. */
   cells: Uint8Array;
+  extra: Float32Array;
 }
 
 /** Walking distance from every cell to the nearest target, and how old it is. */
@@ -69,6 +71,7 @@ function blockedOf(arena: Arena, climbHeight = 0): Blocked {
     half: arena.halfSize,
     n,
     cells: new Uint8Array(n * n),
+    extra: new Float32Array(n * n),
   };
   for (const box of arena.obstacles) {
     if (climbHeight > 0 && topOf(box) <= climbHeight) continue;
@@ -82,7 +85,17 @@ function blockedOf(arena: Arena, climbHeight = 0): Blocked {
           Math.abs(centre(made, cx) - box.x) <= box.halfW + CLEARANCE &&
           Math.abs(centre(made, cz) - box.z) <= box.halfD + CLEARANCE
         ) {
-          made.cells[cz * n + cx] = 1;
+          const at = cz * n + cx;
+          if (box.structure) {
+            // Breakable: a hard block wins over it, otherwise the cheapest break cost counts.
+            if (made.cells[at] === 1) continue;
+            made.cells[at] = 2;
+            made.extra[at] = made.extra[at]
+              ? Math.min(made.extra[at]!, box.structure.breakCost)
+              : box.structure.breakCost;
+          } else {
+            made.cells[at] = 1;
+          }
         }
       }
     }
@@ -158,7 +171,7 @@ export function canSee(config: GameConfig, a: Vec2, b: Vec2, climbHeight = 0): b
 
 /** Fills `dist` with the walking distance from every free cell to the nearest of `targets`. */
 function search(blocked: Blocked, dist: Float64Array, targets: Vec2[]): void {
-  const { n, cells } = blocked;
+  const { n, cells, extra } = blocked;
   dist.fill(Infinity);
   heapCost.length = 0;
   heapCell.length = 0;
@@ -183,10 +196,10 @@ function search(blocked: Blocked, dist: Float64Array, targets: Vec2[]): void {
       const nz = cz + dz;
       if (nx < 0 || nz < 0 || nx >= n || nz >= n) continue;
       const next = nz * n + nx;
-      if (cells[next]) continue;
+      if (cells[next] === 1) continue;
       // No cutting a corner: both cells beside a diagonal step must be free.
       if (dx !== 0 && dz !== 0 && (cells[cz * n + nx] || cells[nz * n + cx])) continue;
-      const total = cost + step;
+      const total = cost + step + extra[next]!;
       if (total < dist[next]!) {
         dist[next] = total;
         heapPush(total, next);
@@ -250,7 +263,7 @@ export function steerTarget(
   const cx = cellIndex(blocked, from.x);
   const cz = cellIndex(blocked, from.z);
   // From a free cell only a cell closer to the target counts; from a blocked one, any reached cell.
-  let best = cells[cz * n + cx] ? Infinity : dist[cz * n + cx]!;
+  let best = cells[cz * n + cx] === 1 ? Infinity : dist[cz * n + cx]!;
   let bx = -1;
   let bz = -1;
   for (const [dx, dz] of NEIGHBOURS) {

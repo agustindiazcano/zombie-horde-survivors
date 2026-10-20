@@ -7,6 +7,7 @@ import { updateGrenades } from './grenades';
 import { updateHazards } from './hazards';
 import { updateObjectives } from './objectives';
 import { updateRevives } from './revive';
+import { resetStructures, updateStructures } from './structures';
 import { createSquad, updateSoldiers } from './soldiers';
 import { createVehicle, updateVehicles } from './vehicles';
 import { createRng } from './rng';
@@ -34,6 +35,8 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     vehicles: [],
     animals: [],
     nextVehicleId: 1,
+    structures: [],
+    nextStructureId: 1,
     grenades: [],
     nextGrenadeId: 1,
     stance: 'normal',
@@ -43,7 +46,7 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     nextCrateId: 1,
     pickups: [],
     nextPickupId: 1,
-    gold: 0,
+    gold: config.startGold,
     xp: 0,
     upgrades: {},
     mods: baseMods(),
@@ -58,6 +61,7 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     rng: createRng(seed),
     events: [],
   };
+  resetStructures(state, config);
   // Vehicles placed in the editor wait for a driver.
   for (const u of config.placed) {
     if (u.type in config.vehicles) {
@@ -114,6 +118,7 @@ export function step(
   updateRevives(state, config, dt);
   updateGrenades(state, config, dt);
   updateHazards(state, config, dt);
+  updateStructures(state, config, dt);
   updateAnimals(state, config, dt);
   updatePickups(state, config, dt);
   if (!state.sandbox) updateWaves(state, config, dt);
