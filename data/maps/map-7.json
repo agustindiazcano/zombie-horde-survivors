@@ -1,0 +1,250 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "map-7",
+    "name": "Map 7 - Door gallery",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-20",
+    "updated": "2026-10-20",
+    "size": {
+      "width": 90,
+      "depth": 90
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "surfaces": [],
+  "props": [],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
+  "units": [
+    {
+      "type": "marine1",
+      "x": 0,
+      "z": -14,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "marine2",
+      "x": 2,
+      "z": -15,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "marine3",
+      "x": -2,
+      "z": -15,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -24,
+      "z": 14,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -14,
+      "z": 14,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -4,
+      "z": 14,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 6,
+      "z": 14,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 16,
+      "z": 14,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 26,
+      "z": 14,
+      "owner": "horde",
+      "rotation": 0
+    }
+  ],
+  "logic": {
+    "mode": "waves",
+    "noWaves": true,
+    "build": true,
+    "startGold": 600,
+    "boss": {
+      "enabled": false
+    },
+    "structures": [
+      {
+        "type": "wall",
+        "x": -28.0,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "door",
+        "x": -25.0,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "wall",
+        "x": -22.0,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "glassDoor",
+        "x": -19.0,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "wall",
+        "x": -16.0,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "slidingDoor",
+        "x": -12.9,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "wall",
+        "x": -9.8,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "scifiDoor",
+        "x": -6.6,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "wall",
+        "x": -3.4000000000000004,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "gate",
+        "x": 1.2,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "wall",
+        "x": 5.8,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "shutter",
+        "x": 9.8,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "wall",
+        "x": 13.8,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "door",
+        "x": 16.8,
+        "z": 0,
+        "turns": 0,
+        "level": 1,
+        "lock": "keycard_red"
+      },
+      {
+        "type": "wall",
+        "x": 19.8,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "blastDoor",
+        "x": 23.4,
+        "z": 0,
+        "turns": 0,
+        "level": 1,
+        "link": 1
+      },
+      {
+        "type": "wall",
+        "x": 27.000000000000004,
+        "z": 0,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "switch",
+        "x": 26.4,
+        "z": -2.5,
+        "turns": 0,
+        "level": 1,
+        "link": 1
+      }
+    ],
+    "items": [
+      {
+        "item": "keycard_red",
+        "x": 16.8,
+        "z": -6,
+        "count": 1
+      }
+    ]
+  }
+}

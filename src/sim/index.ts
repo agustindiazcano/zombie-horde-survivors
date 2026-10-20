@@ -71,6 +71,7 @@ export {
 export { getObject, liftOrDrop, maxLift, objectDef, throwCarried } from './objects';
 export {
   doorInReach,
+  doorRulesOf,
   edgeDistance,
   footprint,
   getStructure,

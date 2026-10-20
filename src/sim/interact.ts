@@ -2,7 +2,7 @@ import type { GameConfig } from './config';
 import { isCorpse, releaseDrag, toggleDrag, toggleDragCorpse } from './drag';
 import { pickUpItem } from './inventory';
 import { dropCarried, liftOrDrop, objectDef } from './objects';
-import { DOOR_REACH, edgeDistance, structureDef, toggleDoor } from './structures';
+import { DOOR_REACH, doorRulesOf, edgeDistance, structureDef, toggleDoor } from './structures';
 import type { GameState, InteractKind, Soldier } from './types';
 import { toggleVehicle } from './vehicles';
 import type { Vec2 } from './vec';
@@ -103,11 +103,22 @@ export function listInteractables(
     });
   }
   for (const s of state.structures) {
-    if (!s.built || !structureDef(config, s).door) continue;
+    const def = structureDef(config, s);
+    if (!s.built || !(def.door || def.switch)) continue;
     out.push({
       kind: 'door',
       id: s.id,
-      label: s.open ? 'Close' : 'Open',
+      label: def.switch
+        ? s.open
+          ? 'Switch off'
+          : 'Switch on'
+        : doorRulesOf(def).powered
+          ? 'Powered'
+          : s.lock !== null
+            ? 'Locked'
+            : s.open
+              ? 'Close'
+              : 'Open',
       pos: { x: s.x, z: s.z },
       pick: DOOR_PICK,
       reach: DOOR_REACH,
@@ -187,7 +198,7 @@ export function performInteract(
   else if (it.kind === 'body') toggleDrag(state, config, s.id, it.id);
   else if (it.kind === 'corpse') toggleDragCorpse(state, config, s.id, it.id);
   else if (it.kind === 'item') pickUpItem(state, config, s.id, it.id);
-  else if (it.kind === 'door') toggleDoor(state, config, it.id);
+  else if (it.kind === 'door') toggleDoor(state, config, it.id, s.id);
   else if (it.kind === 'vehicle') toggleVehicle(state, config, s.id);
   else state.events.push({ type: 'crateReached', soldierId: s.id, crateId: it.id });
 }

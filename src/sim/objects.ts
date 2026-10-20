@@ -65,6 +65,14 @@ export function resetObjects(state: GameState, config: GameConfig): void {
   for (const p of config.startObjects) {
     if (p.type in config.objects.types) createObject(state, config, p.type, p);
   }
+  for (const p of config.startItems) {
+    state.groundItems.push({
+      id: state.nextGroundItemId++,
+      pos: { x: p.x, z: p.z },
+      item: p.item,
+      count: p.count,
+    });
+  }
   // A map's own fires burn for ever, but they still spread to what is flammable near them.
   for (const f of config.fires) {
     state.fires.push({

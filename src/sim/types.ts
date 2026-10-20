@@ -243,8 +243,16 @@ export interface Structure {
   built: boolean;
   /** Seconds of work done so far on a blueprint. */
   progress: number;
-  /** A door that is open lets everyone through. */
+  /** A door that is open lets everyone through once it has swung wide (`openness`); a switch that is on. */
   open: boolean;
+  /** How far a door has moved towards `open`: 0 shut, 1 wide open. */
+  openness: number;
+  /** The key item that must be carried to open this door, or null (a key opens it for good). */
+  lock: string | null;
+  /** Switches and powered doors with the same link belong together. */
+  link: number;
+  /** Auto doors: seconds left before it shuts again. */
+  idle: number;
   /** Turrets: seconds until the next shot and the direction they last aimed (radians, 0 = +z). */
   cooldown: number;
   facing: number;
@@ -439,6 +447,12 @@ export type SimEvent =
   | { type: 'tooHeavy'; soldierId: number; needed: number }
   | { type: 'crateReached'; soldierId: number; crateId: number }
   | { type: 'itemDropped'; itemId: number; pos: Vec2 }
+  | {
+      type: 'doorDenied';
+      structureId: number;
+      reason: 'locked' | 'powered' | 'blocked';
+      key?: string;
+    }
   | { type: 'itemTaken'; soldierId: number; itemId: number }
   | { type: 'structureDestroyed'; structureId: number; pos: Vec2 }
   | {

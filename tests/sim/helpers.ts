@@ -33,6 +33,7 @@ type Patch = {
       | 'subtitles'
       | 'startStructures'
       | 'startObjects'
+      | 'startItems'
     >
   ]?: Partial<GameConfig[K]>;
 } & {

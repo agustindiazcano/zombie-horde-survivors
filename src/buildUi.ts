@@ -212,7 +212,7 @@ export class BuildUi {
     const state = this.getState();
     const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
     const door = unit ? doorInReach(state, this.config, unit.pos) : undefined;
-    return door ? toggleDoor(state, this.config, door.id) : false;
+    return door ? toggleDoor(state, this.config, door.id, unit?.id) : false;
   }
 
   /** Redraws the panel when something it shows changed. Call every frame. */
@@ -267,8 +267,10 @@ export class BuildUi {
     if (up !== null) act('Upgrade', up, () => upgradeStructure(state, this.config, sel.id));
     const fix = repairCost(state, this.config, sel);
     if (fix !== null) act('Repair', fix, () => repairStructure(state, this.config, sel.id));
-    if (def.door) {
-      act(sel.open ? 'Close' : 'Open', null, () => toggleDoor(state, this.config, sel.id));
+    if (def.door || def.switch) {
+      const on = def.switch ? ['Switch off', 'Switch on'] : ['Close', 'Open'];
+      const by = localPlayer(state).controlledId ?? undefined;
+      act(sel.open ? on[0]! : on[1]!, null, () => toggleDoor(state, this.config, sel.id, by));
     }
     act('Remove', null, () => removeStructure(state, this.config, sel.id));
   }

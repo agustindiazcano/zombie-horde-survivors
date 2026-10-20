@@ -60,6 +60,10 @@ export function itemInfo(config: GameConfig, id: string): ItemInfo {
       stats = `${def.pack} rounds`;
       lines.push(`Loads into a gun on R; a crate or shop unit gives ${def.pack} rounds`);
       break;
+    case 'key':
+      stats = 'opens a locked door';
+      lines.push('Carry it to open the locked door it belongs to; the door stays open after');
+      break;
     case 'medical':
       stats = `+${def.heal} HP`;
       lines.push(`Heals ${def.heal} health when used`);

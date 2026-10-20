@@ -344,6 +344,18 @@
       "icon": "🟧",
       "stack": 300,
       "pack": 100
+    },
+    "keycard_red": {
+      "type": "key",
+      "name": "Red keycard",
+      "icon": "🔴",
+      "stack": 1
+    },
+    "keycard_blue": {
+      "type": "key",
+      "name": "Blue keycard",
+      "icon": "🔵",
+      "stack": 1
     }
   }
 }

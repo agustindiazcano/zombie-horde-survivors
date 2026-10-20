@@ -23,6 +23,7 @@ import {
   controlSoldier,
   defaultEnvironment,
   isSquadUnit,
+  itemDef,
   createGame,
   localPlayer,
   maxHealthOf,
@@ -614,8 +615,16 @@ async function main(): Promise<void> {
       damageNumbers.onStep(state);
       sfx.onStep(state);
       for (const e of state.events) {
-        if (e.type !== 'tooHeavy') continue;
-        rts.notice = `Too heavy: needs ${e.needed} strength`;
+        if (e.type === 'tooHeavy') {
+          rts.notice = `Too heavy: needs ${e.needed} strength`;
+        } else if (e.type === 'doorDenied') {
+          rts.notice =
+            e.reason === 'locked'
+              ? `Locked: needs ${e.key ? itemDef(config, e.key).name : 'a key'}`
+              : e.reason === 'powered'
+                ? 'Powered: use its switch'
+                : 'Something is in the doorway';
+        } else continue;
         rts.noticeUntil = performance.now() + 2500;
       }
       // A soldier sent to a crate has arrived: open it for them.

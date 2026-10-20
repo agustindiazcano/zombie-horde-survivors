@@ -48,6 +48,8 @@ const blockedGrids = new WeakMap<Obstacle[], Blocked>();
 /** The same grid with only the obstacles a climber cannot cross, per climbing height. */
 const hardGrids = new WeakMap<Obstacle[], Map<number, Blocked>>();
 const allyGrids = new WeakMap<Obstacle[], Blocked>();
+/** Grids for sight: the same, except that see-through boxes (glass doors) do not block. */
+const sightGrids = new WeakMap<Obstacle[], Map<number, Blocked>>();
 const fields = new WeakMap<GameState, Field>();
 /** A soldier's own walk-to field: where it was searched for, and how old it is. */
 interface WalkField {
@@ -69,6 +71,7 @@ export function invalidateFlow(arena: Arena): void {
   blockedGrids.delete(arena.obstacles);
   allyGrids.delete(arena.obstacles);
   hardGrids.delete(arena.obstacles);
+  sightGrids.delete(arena.obstacles);
 }
 
 function blockedOf(arena: Arena, climbHeight = 0): Blocked {
@@ -99,7 +102,17 @@ function allyBlockedOf(arena: Arena): Blocked {
   return made;
 }
 
-function makeBlocked(arena: Arena, climbHeight: number, ally: boolean): Blocked {
+function sightOf(arena: Arena, climbHeight: number): Blocked {
+  const perHeight = sightGrids.get(arena.obstacles) ?? new Map<number, Blocked>();
+  const cached = perHeight.get(climbHeight);
+  if (cached && cached.length === arena.obstacles.length) return cached;
+  const made = makeBlocked(arena, climbHeight, false, true);
+  perHeight.set(climbHeight, made);
+  sightGrids.set(arena.obstacles, perHeight);
+  return made;
+}
+
+function makeBlocked(arena: Arena, climbHeight: number, ally: boolean, sight = false): Blocked {
   const n = Math.ceil((arena.halfSize * 2) / FLOW_CELL);
   const made: Blocked = {
     source: arena.obstacles,
@@ -112,6 +125,7 @@ function makeBlocked(arena: Arena, climbHeight: number, ally: boolean): Blocked 
   for (const box of arena.obstacles) {
     if (climbHeight > 0 && topOf(box) <= climbHeight) continue;
     if (ally && box.structure?.door) continue;
+    if (sight && box.seeThrough) continue;
     const x0 = cellIndex(made, box.x - box.halfW - CLEARANCE);
     const x1 = cellIndex(made, box.x + box.halfW + CLEARANCE);
     const z0 = cellIndex(made, box.z - box.halfD - CLEARANCE);
@@ -208,8 +222,13 @@ function heapPop(): void {
 
 /** True if nothing blocks the straight way from `a` to `b` (an obstacle a climber crosses does not count). */
 export function canSee(config: GameConfig, a: Vec2, b: Vec2, climbHeight = 0): boolean {
-  return (
-    config.arena.obstacles.length === 0 || lineClear(blockedOf(config.arena, climbHeight), a, b)
+  const obstacles = config.arena.obstacles;
+  if (obstacles.length === 0) return true;
+  const glass = obstacles.some((o) => o.seeThrough);
+  return lineClear(
+    glass ? sightOf(config.arena, climbHeight) : blockedOf(config.arena, climbHeight),
+    a,
+    b,
   );
 }
 

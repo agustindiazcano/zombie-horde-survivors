@@ -625,7 +625,7 @@
         "stat": "damage",
         "amount": 0.12,
         "maxStacks": 8,
-        "icon": "\ud83d\udd2b"
+        "icon": "🔫"
       },
       {
         "id": "rapid_fire",
@@ -634,7 +634,7 @@
         "stat": "fireRate",
         "amount": 0.1,
         "maxStacks": 8,
-        "icon": "\u26a1"
+        "icon": "⚡"
       },
       {
         "id": "fleet_foot",
@@ -643,7 +643,7 @@
         "stat": "speed",
         "amount": 0.08,
         "maxStacks": 5,
-        "icon": "\ud83d\udc5f"
+        "icon": "👟"
       },
       {
         "id": "tough",
@@ -652,7 +652,7 @@
         "stat": "maxHealth",
         "amount": 0.2,
         "maxStacks": 6,
-        "icon": "\u2764\ufe0f"
+        "icon": "❤️"
       },
       {
         "id": "regen",
@@ -661,7 +661,7 @@
         "stat": "regen",
         "amount": 0.6,
         "maxStacks": 5,
-        "icon": "\ud83e\ude79"
+        "icon": "🩹"
       },
       {
         "id": "magnet",
@@ -670,7 +670,7 @@
         "stat": "pickupRadius",
         "amount": 0.4,
         "maxStacks": 4,
-        "icon": "\ud83e\uddf2"
+        "icon": "🧲"
       }
     ]
   },
@@ -1041,7 +1041,11 @@
             "damageScale": 1,
             "rangeScale": 1
           }
-        ]
+        ],
+        "doorRules": {
+          "look": "swing",
+          "openTime": 0.5
+        }
       },
       "turret": {
         "name": "Turret",
@@ -1106,6 +1110,207 @@
           }
         ],
         "passShots": true
+      },
+      "glassDoor": {
+        "name": "Glass door",
+        "cost": 50,
+        "health": 150,
+        "buildWork": 4,
+        "halfW": 1.0,
+        "halfD": 0.1,
+        "height": 2.2,
+        "breakCost": 10,
+        "door": true,
+        "doorRules": {
+          "look": "swing",
+          "openTime": 0.5,
+          "seeThrough": true
+        },
+        "color": "#8fc6d8",
+        "levels": [
+          {
+            "cost": 60,
+            "healthScale": 1.8,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 120,
+            "healthScale": 3,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "slidingDoor": {
+        "name": "Sliding door",
+        "cost": 90,
+        "health": 300,
+        "buildWork": 6,
+        "halfW": 1.1,
+        "halfD": 0.15,
+        "height": 2.3,
+        "breakCost": 16,
+        "door": true,
+        "doorRules": {
+          "look": "slide",
+          "openTime": 0.35,
+          "auto": true,
+          "autoRange": 2.2,
+          "closeDelay": 1.5
+        },
+        "color": "#6d7b86",
+        "levels": [
+          {
+            "cost": 80,
+            "healthScale": 1.8,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 160,
+            "healthScale": 3,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "gate": {
+        "name": "Large gate",
+        "cost": 160,
+        "health": 1100,
+        "buildWork": 12,
+        "halfW": 2.6,
+        "halfD": 0.3,
+        "height": 2.6,
+        "breakCost": 45,
+        "door": true,
+        "doorRules": {
+          "look": "double",
+          "openTime": 1.6
+        },
+        "color": "#55606b",
+        "levels": [
+          {
+            "cost": 180,
+            "healthScale": 1.8,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 360,
+            "healthScale": 3,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "shutter": {
+        "name": "Garage shutter",
+        "cost": 120,
+        "health": 500,
+        "buildWork": 8,
+        "halfW": 2.0,
+        "halfD": 0.2,
+        "height": 2.6,
+        "breakCost": 25,
+        "door": true,
+        "doorRules": {
+          "look": "shutter",
+          "openTime": 1.2
+        },
+        "color": "#9a9a8f",
+        "levels": [
+          {
+            "cost": 120,
+            "healthScale": 1.8,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 240,
+            "healthScale": 3,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "scifiDoor": {
+        "name": "Sci-fi door",
+        "cost": 220,
+        "health": 700,
+        "buildWork": 10,
+        "halfW": 1.2,
+        "halfD": 0.2,
+        "height": 2.6,
+        "breakCost": 30,
+        "door": true,
+        "doorRules": {
+          "look": "double",
+          "openTime": 0.6,
+          "auto": true,
+          "autoRange": 2.4,
+          "closeDelay": 1.2
+        },
+        "color": "#c9d4dc",
+        "levels": [
+          {
+            "cost": 200,
+            "healthScale": 1.8,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 400,
+            "healthScale": 3,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "blastDoor": {
+        "name": "Blast door",
+        "cost": 320,
+        "health": 2500,
+        "buildWork": 16,
+        "halfW": 1.6,
+        "halfD": 0.4,
+        "height": 3.0,
+        "breakCost": 80,
+        "door": true,
+        "doorRules": {
+          "look": "slide",
+          "openTime": 3.0,
+          "powered": true
+        },
+        "color": "#4a4f55",
+        "levels": [
+          {
+            "cost": 300,
+            "healthScale": 1.8,
+            "damageScale": 1,
+            "rangeScale": 1
+          },
+          {
+            "cost": 600,
+            "healthScale": 3,
+            "damageScale": 1,
+            "rangeScale": 1
+          }
+        ]
+      },
+      "switch": {
+        "name": "Wall switch",
+        "cost": 30,
+        "health": 120,
+        "buildWork": 2,
+        "halfW": 0.25,
+        "halfD": 0.25,
+        "height": 1.2,
+        "breakCost": 6,
+        "switch": true,
+        "color": "#e0a82e",
+        "levels": []
       }
     }
   },
