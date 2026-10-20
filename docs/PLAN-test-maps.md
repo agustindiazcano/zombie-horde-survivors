@@ -47,6 +47,8 @@ Next steps, in order (none built):
 
 ## 3. Celestial Event 4: alien invasion
 
+> Superseded by [PLAN-celestial-event-3.md](PLAN-celestial-event-3.md) (story, three threats, cinematic intro and the step plan). The notes below are the first sketch.
+
 The idea (the user's): metallic orbs and orbs of light come down from the sky and vaporise civilians; the squad has to flee and hide so they are not seen.
 
 | Piece       | Proposal                                                                                                                                                                                                                                               |

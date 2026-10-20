@@ -100,6 +100,13 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [ ] 🔴 Look at Map 5 in the browser: controls are in [docs/CONTROLS.md](docs/CONTROLS.md) (E lift / put down, click throw, shoot a barrel). Tune `objects` and `hazards.fire` in `game.json`.
 - [ ] 🟡 Next: objects that block movement, AI that carries the wounded, models and sounds, objects in the editor.
 
+### 2k — 🟡 Celestial Event III (Map 6, demo for another game on this engine; planned 2026-10-20, nothing built)
+
+Full plan and story: [docs/PLAN-celestial-event-3.md](docs/PLAN-celestial-event-3.md). A cinematic intro seen through a UMBRA drone (blackout, light orbs, metal spheres that vaporise people, a mother sphere that abducts, greys with a paralysing staff), then hide and seek. Placeholders first (existing models, procedural orbs, box houses); Kenney City Kit and a grey alien only after the licence check.
+
+- [ ] 🟡 Answer section 7 of the plan (who the player is after the intro, codename vs. level IV, civilians, UMBRA as a second threat, asset downloads).
+- [ ] 🔴 E0 Map 6 shell, E1 civilians, E2 metal sphere; then E3 event script, E4 cinematic camera, E5 mother sphere and greys, E6 playable hide and seek.
+
 ### 2i — 🟡 Test maps, doors, interiors, urban maps, engine (planned 2026-10-19)
 
 Plans: [PLAN-test-maps.md](docs/PLAN-test-maps.md) (weapons range, hide and seek, celestial event 4, human vs human with cover AI) and [PLAN-world-and-engine.md](docs/PLAN-world-and-engine.md) (door kinds incl. sci-fi and large gates, interiors, urban maps, the engine for several games).
