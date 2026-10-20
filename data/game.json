@@ -284,8 +284,7 @@
       "panicRadius": 24,
       "radius": 0.22,
       "color": "#2e343b",
-      "vaporTime": 2.6,
-      "huntTime": 42
+      "vaporTime": 2.6
     },
     "metal_sphere": {
       "name": "Metal sphere",
@@ -1385,6 +1384,8 @@
     "fireInterval": 1.1,
     "vaporTime": 1.0,
     "reach": 60,
-    "gatherRadius": 14
+    "gatherRadius": 14,
+    "someKills": 4,
+    "someGap": 2.4
   }
 }

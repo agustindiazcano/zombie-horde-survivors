@@ -204,7 +204,6 @@ subtitles = [
     (109, 4, "Don't get too close..."),
     (113, 3, "That thing is HUGE!"),
     (110, 3, "Everybody, step back..."),
-    (172, 3.5, "The light! It's moving! RUN!"),
     (116, 4.5, "Oh my god, it's taking him!"),
     (121, 4.5, "Let him go!"),
     (126, 4.5, "This can't be happening..."),
@@ -213,28 +212,26 @@ subtitles = [
     (141, 4.5, "I can't move... I can't move!"),
     (146, 4.5, "No way... no way..."),
     (151, 3.5, "They're not going to get me!"),
-    (176, 2.5, "RUN!!!"),
-    (178.5, 2.5, "Who's got a gun?!"),
-    (181, 3, "Help! Somebody help us!"),
-    (191, 3, "They're killing everyone!"),
-    (187, 3, "RUN!!"),
-    (184, 3, "Aaaaah!"),
-    (195, 4, "Please, no, no, no!"),
-    (200, 4, "Somebody do something!"),
-    (224, 4, "Another one... another one is coming!"),
-    (229, 4, "It's lighting up everything!"),
-    (234, 4, "Something is coming down in the light..."),
-    (239, 4.5, "Those are... aliens. Real aliens."),
-    (245, 4, "Don't go near them..."),
-    (250, 4, "Hello? Can you understand me?"),
-    (257, 3, "Why isn't he moving?! What did you do?!"),
-    (261, 3, "Let him go! Let him go!"),
-    (265, 2.5, "NO!"),
-    (267.5, 3, "RUN! RUN!"),
-    (271, 3, "They're killing us!"),
-    (275, 3, "Run! Don't look back!"),
-    (280, 3.5, "Help! Somebody help!"),
-    (285, 4, "Please... please..."),
+    (172, 3.5, "It's... it's sweeping the light across us!"),
+    (176, 4, "Oh my god... they just... they just vanished."),
+    (181, 4.5, "They don't care about us... they're just looking."),
+    (187, 4, "Another one... it's lighting up everything!"),
+    (192, 4.5, "Something is coming down in the light..."),
+    (197, 4, "Those are... aliens. Real aliens."),
+    (197.5, 3.5, "Hello? Can you understand me?"),
+    (201, 3, "Why isn't he moving?! What did you do?!"),
+    (203.5, 2.5, "Let him go! Let him go!"),
+    (205.5, 2, "NO!"),
+    (209, 3.5, "Why are they doing this?!"),
+    (213.5, 3.5, "They're picking us off one by one!"),
+    (220.5, 2.5, "RUN!!!"),
+    (223.5, 2.5, "Who's got a gun?!"),
+    (226.5, 3, "Help! Somebody help us!"),
+    (230, 3, "They're killing everyone!"),
+    (233.5, 3, "RUN!!"),
+    (237, 3, "Aaaaah!"),
+    (241, 4, "No, no, no, please!"),
+    (246, 4, "Somebody do something!"),
 ]
 
 ORBS = []
@@ -245,12 +242,12 @@ for i in range(4):  # fast scouts that dash about and later hang low over the cr
                  "at": 74 + i * 1.5, "y": 30, "lowAt": 100 + i, "hx": GX, "hz": GZ})
 # the first big sphere: takes four people, then sweeps a ray over the crowd and leaves
 ORBS.append({"type": "abductor_sphere", "x": 80, "z": -60, "at": 110, "y": 90, "hx": GX, "hz": GZ})
-for i in range(8):  # small hunters that vaporise people after the big one has gone
+for i in range(8):  # small hunters that vaporise people once the greys have started the panic
     a = i / 8 * math.tau
     ORBS.append({"type": "hunter_sphere", "x": round(GX + math.cos(a) * 45, 1), "z": round(GZ + math.sin(a) * 45, 1),
-                 "at": 178 + i * 0.6, "y": 25})
+                 "at": 0, "afterGreys": round(1.0 + i * 0.6, 1), "y": 25})
 # the second big sphere: lights up whoever stayed and brings the greys
-ORBS.append({"type": "carrier_sphere", "x": -80, "z": 50, "at": 228, "y": 90, "hx": GX, "hz": GZ})
+ORBS.append({"type": "carrier_sphere", "x": -80, "z": 50, "at": 184, "y": 90, "hx": GX, "hz": GZ})
 
 m = {
     "version": 1,

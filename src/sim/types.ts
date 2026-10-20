@@ -490,7 +490,7 @@ export interface Animal {
 
 /** The scripted scene of the grey aliens: where it is and who is in it. */
 export interface GreyScene {
-  stage: 'descend' | 'approach' | 'paralysed' | 'rush' | 'cruel' | 'hunt';
+  stage: 'descend' | 'approach' | 'paralysed' | 'rush' | 'cruel' | 'some' | 'hunt';
   /** Seconds since the stage began. */
   time: number;
   /** The ship's work point. */
@@ -501,6 +501,10 @@ export interface GreyScene {
   /** Next time each grey may fire (seconds into the stage). */
   nextShot: number[];
   rayId: number;
+  /** People the greys have vaporised in the `some` stage. */
+  kills: number;
+  /** When (sim time) the panic began and the spheres were called, or null before that. */
+  huntAt: number | null;
 }
 
 /** A point in 3D (metres): the sky show flies in height too. */
@@ -563,6 +567,8 @@ export interface Orb {
   /** Abductors: when they arrived, how many people they have taken, and how bright their light is (0 to 1). */
   /** Dim own light (0 to 1), on from arriving; `glow` is the strong flood that comes later. */
   lamp: number;
+  /** Hunters: wake this many seconds after the greys start the panic (instead of at a fixed time). */
+  afterGreys: number | null;
   /** A ray sweeping over the ground from one point to another (the big sphere's parting shot). */
   sweep: { from: Vec2; to: Vec2; t: number; duration: number } | null;
   arrivedAt: number | null;

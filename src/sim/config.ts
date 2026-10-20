@@ -180,6 +180,8 @@ const mapLogic = z
             x: z.number(),
             z: z.number(),
             at: nonNegative,
+            /** Wake this many seconds after the greys start the panic, instead of at `at`. */
+            afterGreys: nonNegative.optional(),
             /** Height (m) it starts at; the default is the type's `height`. */
             y: z.number().optional(),
             /** Scouts: when they come down to hang low over `hx`, `hz`. */
@@ -1059,6 +1061,9 @@ export const GameConfigSchema = z
         /** Distance (m) at which a grey fires, and how fast one walks after a target. */
         rayRange: positive,
         walkSpeed: positive,
+        /** People the greys vaporise before the panic starts, and the seconds between those shots. */
+        someKills: z.number().int().nonnegative(),
+        someGap: positive,
         /** Seconds between two shots of the same grey, and the time (s) a vaporising ray takes. */
         fireInterval: positive,
         vaporTime: positive,

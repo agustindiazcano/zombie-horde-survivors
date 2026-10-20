@@ -23,7 +23,8 @@ export function createOrbs(state: GameState, config: GameConfig): void {
       prev: { x: o.x, z: o.z },
       y,
       prevY: y,
-      wake: o.at,
+      wake: o.afterGreys !== undefined ? Infinity : o.at,
+      afterGreys: o.afterGreys ?? null,
       phase: 'dormant',
       timer: 0,
       targetId: null,
@@ -85,6 +86,10 @@ export function updateOrbs(state: GameState, config: GameConfig, dt: number): vo
     orb.prev.z = orb.pos.z;
     orb.prevY = orb.y;
     if (orb.phase === 'gone') continue;
+    // Spheres called by the greys' panic wake when it begins.
+    if (orb.afterGreys !== null && orb.wake === Infinity && state.greyScene?.huntAt != null) {
+      orb.wake = state.greyScene.huntAt + orb.afterGreys;
+    }
     if (orb.phase === 'dormant' && state.time >= orb.wake) {
       orb.phase = def.kind === 'scout' ? 'roam' : def.kind === 'abductor' ? 'arrive' : 'seek';
       orb.timer = def.kind === 'metal' ? def.appearDelay : 0;
@@ -300,8 +305,6 @@ function updateAbductor(
       orb.sweep = null;
       orb.aim = null;
       orb.phase = 'leave';
-      // The rest of the crowd breaks and runs.
-      scare(state, config, work, 200);
     }
     return;
   }

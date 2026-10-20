@@ -78,3 +78,16 @@ Checked headlessly (throwaway test, deleted): 116 people, the sphere takes 4, le
 | Greys                 | `src/sim/greys.ts`: three grey aliens (`grey_alien`, the Quaternius alien tinted grey) come down the light. One person walks up and is frozen by a yellow-green ray; another runs to help and is vaporised by the second grey; the rest panic ("RUN"); the greys walk after them and vaporise them all. Each ray (`greyRay` event) is a bright line and lights where it lands |
 
 Checked headlessly (throwaway test, deleted): the crowd steps back at 113 s, the 4 abductions run, the sweep takes 8 people, the hunters kill about 40, the second ship comes at 231 s, the greys land, the first person is frozen at about 256 s, the helper is vaporised at about 266 s and the greys then kill the survivors. Nothing seen in a browser. To look at: the dim and blue lights, the sweep ray and its look, the grey rays (colours, thickness, light), the grey model (it is an existing alien, scaled 0.9 and tinted), and whether the subtitle times fit what happens (the grey scene times depend on distances).
+
+## E3 (fifth part): new order, people in a ring (same day)
+
+The user asked to reorder the scene: the abductions do not bother the crowd, and the hunter spheres and the panic come only after the greys come down and start vaporising people.
+
+| Time (s) | What                                                                                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 110-180  | The first big sphere takes 4 people and then fires its parting ray over the crowd (kills several); **nobody runs**; the people only step back and comment, and the scout spheres hang low over them as if curious  |
+| 184-197  | The second big sphere comes at once; the survivors within 60 m walk into the white light and stand **in a ring** (radius 8 m, then wider rings) round the point where the greys land (`startScene`)                |
+| 198-217  | The three greys land; a man walks up and is frozen; a woman runs to help from at least 5 m away and is vaporised; then the greys vaporise 4 more people from the ring (`greys.someKills`, `someGap`); no panic yet |
+| 217+     | **The panic starts**: everyone runs and the 8 hunter spheres wake (`afterGreys` on the map's orbs) and vaporise them; the greys stand and watch                                                                    |
+
+Checked headlessly (throwaway test, deleted): the first panic is at 217 s, after the greys' fourth shot; the stage times above are the measured ones and the subtitles in `scripts/gen-map6.py` follow them. Nothing seen in a browser.

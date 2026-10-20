@@ -5,12 +5,18 @@ import type { Animal, GameState, GreyScene } from './types';
 import type { Vec2 } from './vec';
 
 /** A grey fires at someone when they are this close to its target stage position, in metres. */
-const WALKER_STOP = 6.5;
+const WALKER_STOP = 3.4;
 /** Seconds the first person stays frozen before another runs to help, and the pause before the killing. */
-const FROZEN_BEFORE_HELP = 1.8;
+const FROZEN_BEFORE_HELP = 3;
+/** The helper starts at least this far (m) from the frozen person. */
+const HELPER_MIN_RUN = 5;
 const CRUEL_PAUSE = 2.2;
 /** Height (m) of a grey's hand and of a person's chest, for the rays. */
 const HAND_Z_OFFSET = 0.4;
+/** The ring of people round the greys: its radius, the step between rings and the room (m) each person takes. */
+const RING_RADIUS = 8;
+const RING_STEP = 1.6;
+const RING_SPACING = 0.9;
 
 const isCivilian = (config: GameConfig, a: Animal): boolean => !!config.animals[a.type]?.fearRadius;
 const isGrey = (config: GameConfig, a: Animal): boolean =>
@@ -76,7 +82,15 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
         scene.walker = walker.id;
         // He walks, not runs, toward the greys.
         walker.dest = null;
-        walker.rush = { x: scene.at.x + 5, z: scene.at.z + 1 };
+        // He walks up to a few steps from the first grey.
+        const g0 = greysOf(state, config)[0];
+        const gx = g0 ? g0.pos.x : scene.at.x;
+        const gz = g0 ? g0.pos.z : scene.at.z;
+        const away = Math.hypot(walker.pos.x - gx, walker.pos.z - gz) || 1;
+        walker.rush = {
+          x: gx + ((walker.pos.x - gx) / away) * (WALKER_STOP - 0.6),
+          z: gz + ((walker.pos.z - gz) / away) * (WALKER_STOP - 0.6),
+        };
         walker.rushSpeed = 1.3;
       }
     }
@@ -90,7 +104,7 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
 
   if (scene.stage === 'approach') {
     if (!grey0 || !walker) {
-      scene.stage = 'hunt';
+      startPanic(state, config, scene);
       return;
     }
     // The grey turns to watch him come.
@@ -109,11 +123,15 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
 
   if (scene.stage === 'paralysed') {
     if (scene.time < FROZEN_BEFORE_HELP || !walker) return;
-    const next = nearestTo(freeCivilians(state, config), walker.pos, walker);
+    // The one who runs to help comes from a few metres away, so there is a run to see.
+    const far = freeCivilians(state, config).filter(
+      (a) => dist(a.pos, walker.pos) >= HELPER_MIN_RUN,
+    );
+    const next = nearestTo(far, walker.pos, walker);
     if (next) {
       scene.helper = next.id;
       next.dest = null;
-      next.rushSpeed = 0;
+      next.rushSpeed = 3.6;
       // Runs to a spot beside the frozen person.
       const angle = nextFloat(state.rng) * Math.PI * 2;
       next.rush = {
@@ -122,18 +140,18 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
       };
       scene.stage = 'rush';
       scene.time = 0;
-    } else scene.stage = 'hunt';
+    } else startPanic(state, config, scene);
     return;
   }
 
   if (scene.stage === 'rush') {
     if (!helper || !grey1) {
-      scene.stage = 'hunt';
+      startPanic(state, config, scene);
       return;
     }
     // The second grey raises its staff as the helper comes close.
     grey1.facing = Math.atan2(helper.pos.x - grey1.pos.x, helper.pos.z - grey1.pos.z);
-    const near = walker ? dist(helper.pos, walker.pos) < 3.2 : true;
+    const near = walker ? dist(helper.pos, walker.pos) < 2.4 : true;
     if (near || scene.time > 5) {
       fire(state, scene, grey1, helper, 'vaporise');
       helper.rush = null;
@@ -145,40 +163,41 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
 
   if (scene.stage === 'cruel') {
     if (scene.time < CRUEL_PAUSE) return;
-    // Everyone left breaks and runs.
-    for (const a of freeCivilians(state, config)) {
-      a.panic = 30;
-      a.fear = { x: scene.at.x, z: scene.at.z };
-      a.dest = null;
-      a.rush = null;
-      a.retreatLeft = 0;
-    }
-    scene.stage = 'hunt';
+    scene.stage = 'some';
     scene.time = 0;
     return;
   }
 
-  // Hunt: each grey walks after the nearest person and vaporises them from a distance.
-  greys.forEach((g, i) => {
-    g.dest = null;
-    const targets = state.animals.filter(
-      (a) => isCivilian(config, a) && a.lift <= 0 && a.burnSpeed <= 0,
-    );
-    const target = nearestTo(targets, g.pos);
-    if (!target) return;
-    const d = dist(target.pos, g.pos);
-    g.facing = Math.atan2(target.pos.x - g.pos.x, target.pos.z - g.pos.z);
-    if (d > rules.rayRange * 0.8) {
-      g.dest = { x: target.pos.x, z: target.pos.z };
-      g.pos.x += Math.sin(g.facing) * rules.walkSpeed * dt;
-      g.pos.z += Math.cos(g.facing) * rules.walkSpeed * dt;
+  if (scene.stage === 'some') {
+    // The greys pick off a few more from the ring, one every `someGap` seconds; nobody runs yet.
+    if (scene.kills < rules.someKills) {
+      if (scene.time < (scene.kills + 1) * rules.someGap) return;
+      const g = greys[scene.kills % greys.length];
+      const target = g ? nearestTo(freeCivilians(state, config), g.pos) : null;
+      if (g && target && dist(target.pos, g.pos) < rules.rayRange * 1.5) {
+        fire(state, scene, g, target, 'vaporise');
+      }
+      scene.kills++;
       return;
     }
-    if (scene.time >= (scene.nextShot[i] ?? 0)) {
-      fire(state, scene, g, target, 'vaporise');
-      scene.nextShot[i] = scene.time + rules.fireInterval * (0.8 + nextFloat(state.rng) * 0.5);
-    }
-  });
+    if (scene.time > (rules.someKills + 1) * rules.someGap) startPanic(state, config, scene);
+    return;
+  }
+  // 'hunt': the panic is on and the spheres do the killing; the greys stand and watch.
+}
+
+/** Everyone left breaks and runs, and the hunter spheres are called. */
+function startPanic(state: GameState, config: GameConfig, scene: GreyScene): void {
+  for (const a of freeCivilians(state, config)) {
+    a.panic = 30;
+    a.fear = { x: scene.at.x, z: scene.at.z };
+    a.dest = null;
+    a.rush = null;
+    a.retreatLeft = 0;
+  }
+  scene.stage = 'hunt';
+  scene.time = 0;
+  scene.huntAt = state.time;
 }
 
 /** One grey fires a ray at one person: the ray is an event for the screen; the effect is set here. */
@@ -219,6 +238,8 @@ function startScene(state: GameState, config: GameConfig, at: Vec2): void {
     helper: null,
     nextShot: Array.from({ length: rules.count }, () => 0),
     rayId: 1,
+    kills: 0,
+    huntAt: null,
   };
   const nextId = Math.max(0, ...state.animals.map((a) => a.id)) + 1;
   for (let i = 0; i < rules.count; i++) {
@@ -231,14 +252,31 @@ function startScene(state: GameState, config: GameConfig, at: Vec2): void {
     grey.lift = rules.descendHeight;
     state.animals.push(grey);
   }
-  // Whoever is still around and within reach is drawn into the white light.
-  for (const a of freeCivilians(state, config)) {
-    if (dist(a.pos, at) > rules.reach) continue;
+  // Whoever is still around and within reach walks into the light and stands in a ring round the
+  // greys, facing them. Taken in order of the angle they come from, so paths do not cross.
+  const near = freeCivilians(state, config)
+    .filter((a) => dist(a.pos, at) <= rules.reach)
+    .sort(
+      (p, q) =>
+        Math.atan2(p.pos.x - at.x, p.pos.z - at.z) - Math.atan2(q.pos.x - at.x, q.pos.z - at.z),
+    );
+  const slots: Vec2[] = [];
+  for (let ring = 0; slots.length < near.length; ring++) {
+    const r = RING_RADIUS + ring * RING_STEP;
+    const count = Math.max(6, Math.floor((Math.PI * 2 * r) / RING_SPACING));
+    for (let k = 0; k < count; k++) {
+      const angle = (k / count) * Math.PI * 2 + ring * 0.4;
+      slots.push({ x: at.x + Math.sin(angle) * r, z: at.z + Math.cos(angle) * r });
+    }
+  }
+  // Pair people and slots by angle, so each walks to the part of the ring on their side.
+  const bySlotAngle = [...slots].sort(
+    (p, q) => Math.atan2(p.x - at.x, p.z - at.z) - Math.atan2(q.x - at.x, q.z - at.z),
+  );
+  near.forEach((a, i) => {
     a.panic = 0;
     a.retreatLeft = 0;
     a.gathered = true;
-    const r = 7 + Math.sqrt(nextFloat(state.rng)) * Math.max(rules.gatherRadius - 7, 1);
-    const angle = nextFloat(state.rng) * Math.PI * 2;
-    a.dest = { x: at.x + Math.sin(angle) * r, z: at.z + Math.cos(angle) * r };
-  }
+    a.dest = bySlotAngle[Math.floor((i * bySlotAngle.length) / near.length)] ?? null;
+  });
 }
