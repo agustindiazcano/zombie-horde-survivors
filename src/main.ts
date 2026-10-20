@@ -712,8 +712,17 @@ async function main(): Promise<void> {
           : '  [CARRYING A BODY · E: put down]'
         : '';
       const ride = getVehicle(state, unit?.vehicleId ?? null);
+      const airDef = ride?.air ? config.vehicles[ride.type]!.air : undefined;
+      const flightHint =
+        ride?.air && airDef
+          ? !ride.air.engine
+            ? ride.air.spool > 0 || localPlayer(state).controlledId === unit?.id
+              ? `  [ENGINE ${Math.round((ride.air.spool / airDef.spoolTime) * 100)}% · hold W to start]`
+              : ''
+            : `  [ALT ${ride.air.alt.toFixed(0)} m · Space: up · C: down · Shift: faster]`
+          : '';
       const rideHint = ride
-        ? `  [${config.vehicles[ride.type]!.name.toUpperCase()} ${Math.round((ride.health / ride.maxHealth) * 100)}% · V: get out]`
+        ? `  [${config.vehicles[ride.type]!.name.toUpperCase()} ${Math.round((ride.health / ride.maxHealth) * 100)}% · V: get out]${flightHint}`
         : '';
 
       const focusId = localPlayer(state).controlledId ?? [...rts.selected][0] ?? null;

@@ -23,7 +23,7 @@ import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
 import { GroundItemViews } from './groundItems';
 import { PickupMeshes } from './pickups';
-import { createJeep } from './vehicles';
+import { createGroundShadow, createHelicopter, createJeep, type HelicopterParts } from './vehicles';
 import { GrenadeEffects, type GrenadePreview } from './grenades';
 import { SelectionMarkers } from './markers';
 import { ViewModel } from './viewModel';
@@ -158,6 +158,24 @@ const GUN_RAISE_RATE = 12;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** A vehicle in the scene; aircraft also carry their rotors and a ground shadow. */
+interface VehicleView {
+  object: THREE.Group;
+  wheels: THREE.Object3D[];
+  heli?: HelicopterParts;
+  shadow?: THREE.Mesh;
+  pitch?: number;
+  bank?: number;
+}
+
+/** Radians the helicopter's nose drops at top speed. */
+const HELI_PITCH = 0.22;
+/** The most it banks into a turn (radians), and how much per radian turned per tick. */
+const HELI_BANK = 0.35;
+const HELI_BANK_PER_TURN = 6;
+/** Rotor radians per frame at full speed. */
+const HELI_ROTOR_STEP = 0.7;
+
 export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
   get domElement(): HTMLCanvasElement {
@@ -166,7 +184,7 @@ export class GameRenderer {
   readonly scene = new THREE.Scene();
   private readonly renderer = new THREE.WebGLRenderer({ antialias: true });
   private readonly soldiers = new Map<number, CharacterView>();
-  private readonly vehicles = new Map<number, { object: THREE.Group; wheels: THREE.Object3D[] }>();
+  private readonly vehicles = new Map<number, VehicleView>();
   /** One flashlight per soldier: a group (moved and turned with the unit) holding a spotlight. */
   private readonly flashlights = new Map<number, { group: THREE.Group; light: THREE.SpotLight }>();
   private readonly markers = new SelectionMarkers();
@@ -313,7 +331,10 @@ export class GameRenderer {
     for (const view of this.soldiers.values()) this.scene.remove(view.object);
     for (const lamp of this.flashlights.values()) this.scene.remove(lamp.group);
     for (const entry of this.zombies.values()) this.scene.remove(entry.view.object);
-    for (const entry of this.vehicles.values()) this.scene.remove(entry.object);
+    for (const entry of this.vehicles.values()) {
+      this.scene.remove(entry.object);
+      if (entry.shadow) this.scene.remove(entry.shadow);
+    }
     this.vehicles.clear();
     this.structureViews.clear();
     this.objectViews.clear();
@@ -804,29 +825,65 @@ export class GameRenderer {
     this.environment.setDim(power === 0 ? this.config.skyShow.blackoutLight : 1);
   }
 
-  /** Draws the vehicles of the state (a jeep for every type until more models exist). */
+  /** Draws the vehicles of the state: a jeep for every ground type, the procedural helicopter for aircraft. */
   private syncVehicles(state: GameState, alpha: number): void {
     const live = new Set<number>();
     for (const v of state.vehicles) {
       live.add(v.id);
       let entry = this.vehicles.get(v.id);
       if (!entry) {
-        entry = createJeep(this.vehicleModel);
+        if (v.air) {
+          const heli = createHelicopter();
+          entry = {
+            object: heli.object,
+            wheels: [],
+            heli,
+            shadow: createGroundShadow(),
+            pitch: 0,
+            bank: 0,
+          };
+          this.scene.add(entry.shadow!);
+        } else entry = createJeep(this.vehicleModel);
         this.vehicles.set(v.id, entry);
         this.scene.add(entry.object);
       }
       const x = lerp(v.prev.x, v.pos.x, alpha);
       const z = lerp(v.prev.z, v.pos.z, alpha);
-      entry.object.position.set(x, this.groundAt(x, z), z);
+      const ground = this.groundAt(x, z);
+      const alt = v.air ? lerp(v.air.prevAlt, v.air.alt, alpha) : 0;
+      entry.object.position.set(x, ground + alt, z);
       const turn = Math.atan2(Math.sin(v.facing - v.prevFacing), Math.cos(v.facing - v.prevFacing));
       entry.object.rotation.y = v.prevFacing + turn * alpha;
       for (const wheel of entry.wheels) wheel.rotation.x += v.speed * 0.02;
+      if (v.air && entry.heli) {
+        const def = this.config.vehicles[v.type]!;
+        // Nose down with speed, banked into the turn; both ease so the machine does not snap.
+        const pitchTarget = (v.speed / def.maxSpeed) * HELI_PITCH;
+        const bankTarget = Math.max(
+          -HELI_BANK,
+          Math.min(HELI_BANK, turn * 60 * HELI_BANK_PER_TURN),
+        );
+        entry.pitch = lerp(entry.pitch ?? 0, pitchTarget, 0.1);
+        entry.bank = lerp(entry.bank ?? 0, bankTarget, 0.1);
+        entry.heli.tilt.rotation.x = entry.pitch;
+        entry.heli.tilt.rotation.z = entry.bank;
+        entry.heli.mainRotor.rotation.y += v.air.rotor * HELI_ROTOR_STEP;
+        entry.heli.tailRotor.rotation.x += v.air.rotor * HELI_ROTOR_STEP * 1.6;
+        if (entry.shadow) {
+          entry.shadow.position.set(x, ground + 0.06, z);
+          entry.shadow.scale.setScalar(1 + alt * 0.03);
+          (entry.shadow.material as THREE.MeshBasicMaterial).opacity = Math.max(
+            0.1,
+            0.35 - alt * 0.008,
+          );
+        }
+      }
       // Only a vehicle with a crew can be hurt, so only then does it show a bar.
       if (v.seats.some((id) => id !== null)) {
         this.healthBars.show(
           -v.id - 1,
           x,
-          this.groundAt(x, z) + 2.6,
+          ground + alt + (v.air ? 4.6 : 2.6),
           z,
           2.2,
           v.health / v.maxHealth,
@@ -839,6 +896,7 @@ export class GameRenderer {
     for (const [id, entry] of this.vehicles) {
       if (live.has(id)) continue;
       this.scene.remove(entry.object);
+      if (entry.shadow) this.scene.remove(entry.shadow);
       this.healthBars.release(-id - 1);
       this.vehicles.delete(id);
     }

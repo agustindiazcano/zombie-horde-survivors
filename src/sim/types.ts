@@ -282,6 +282,25 @@ export interface Vehicle {
   health: number;
   maxHealth: number;
   seats: (number | null)[];
+  /** Only aircraft have this. */
+  air?: AirState;
+}
+
+/** What an aircraft adds to a vehicle: engine, rotor and height. */
+export interface AirState {
+  /** The engine runs; before that the pilot spools it up. */
+  engine: boolean;
+  /** Seconds the engine has been spooling (a player holds forward; an AI pilot just waits). */
+  spool: number;
+  /** Rotor speed from 0 (stopped) to 1 (flying); only for the drawing. */
+  rotor: number;
+  /** Height above the ground in metres. */
+  alt: number;
+  prevAlt: number;
+  /** The height an AI pilot flies to (0 = land). A pilot under direct control keeps it equal to `alt`. */
+  wantAlt: number;
+  /** What an AI pilot does with no destination: stay still in the air or fly circles. */
+  idle: 'hover' | 'orbit';
 }
 
 export interface Zombie {

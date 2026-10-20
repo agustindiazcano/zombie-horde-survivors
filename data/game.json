@@ -360,6 +360,32 @@
       "enterRange": 2.5,
       "ramDps": 400,
       "ramSpeed": 5
+    },
+    "helicopter": {
+      "name": "Helicopter",
+      "health": 500,
+      "maxSpeed": 20,
+      "accel": 6,
+      "turnRate": 1.6,
+      "radius": 2.2,
+      "seats": 4,
+      "passengersShoot": true,
+      "enterRange": 3,
+      "ramDps": 0,
+      "ramSpeed": 0,
+      "air": {
+        "spoolTime": 10,
+        "aiSpoolTime": 3,
+        "minFlyAlt": 2,
+        "maxAlt": 40,
+        "cruiseAlt": 14,
+        "climbRate": 5,
+        "descendRate": 6,
+        "boostScale": 1.6,
+        "orbitRadius": 14,
+        "orbitSpeed": 8,
+        "safeAlt": 2.5
+      }
     }
   },
   "difficulty": {

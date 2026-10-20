@@ -419,6 +419,9 @@ function nearestTarget(
   }
   for (const v of state.vehicles) {
     if (!isOccupied(v)) continue;
+    // A helicopter above reach cannot be bitten.
+    const safe = config.vehicles[v.type]!.air?.safeAlt;
+    if (v.air && safe !== undefined && v.air.alt > safe) continue;
     const d = Math.hypot(v.pos.x - from.x, v.pos.z - from.z) - config.vehicles[v.type]!.radius;
     if (d < bestD) {
       bestD = d;

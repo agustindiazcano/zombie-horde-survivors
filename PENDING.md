@@ -78,6 +78,14 @@ Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watch
 - [ ] 🔴 Try the editor: Assets tab > Structures / Objects / Loose items, place a door, lock it and set its link, Play.
 - [ ] 🟡 Next: models and sounds for structures, the AI manning posts and feeding turrets.
 
+### 2l — 🔴 Helicopter and Map 8 (built 2026-10-21, branch `feat/helicopter`)
+
+Procedural helicopter with its own mechanics ([worklog](docs/worklog/2026-10-21-helicopter.md)); controls in [docs/CONTROLS.md](docs/CONTROLS.md).
+
+- [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 8. Hold W 10 s in the helicopter, Space / C / Shift, V on the ground; in RTS order the second one around (Space, C, H). Tune `vehicles.helicopter.air` in `game.json` and the `HELI_*` look constants (the bank sign is a guess).
+- [ ] 🟡 Models for vehicles, police, civilians and military units: ask before downloading (CC0 / CC-BY only; Kenney and Quaternius are the usual candidates, check each licence).
+- [ ] 🟢 Next for aircraft: sound, crash damage, AI soldiers boarding by themselves, wreck, a second type (transport / gunship).
+
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
 Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. W1 to W6 are built on `feat/weapon-instances` (worklogs 2026-10-19 `weapons-w1`, `w2`, `w3`, `w4`, `w5`, `w6`, `weapons-in-hand`).

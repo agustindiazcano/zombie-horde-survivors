@@ -18,6 +18,7 @@ export {
   orderHold,
   orderMove,
 } from './soldiers';
+export { orderAircraft } from './aircraft';
 export { bossStats, spawnZombie } from './zombies';
 export {
   ARMOR_PLATE,

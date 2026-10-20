@@ -1,3 +1,4 @@
+import { BOARD_ALT, createAirState, updateAircraft } from './aircraft';
 import { resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { localPlayer } from './players';
@@ -35,6 +36,7 @@ export function createVehicle(
     health: def.health,
     maxHealth: def.health,
     seats: Array.from({ length: def.seats }, () => null),
+    ...(def.air ? { air: createAirState() } : {}),
   };
 }
 
@@ -59,6 +61,8 @@ export function vehicleInReach(
   let bestDist = Infinity;
   for (const v of state.vehicles) {
     if (!v.seats.includes(null)) continue;
+    // Nobody climbs into a helicopter that has left the ground.
+    if (v.air && v.air.alt > BOARD_ALT) continue;
     const def = config.vehicles[v.type]!;
     const d = Math.hypot(v.pos.x - from.x, v.pos.z - from.z);
     if (d <= def.enterRange + def.radius && d < bestDist) {
@@ -105,6 +109,8 @@ export function toggleVehicle(state: GameState, config: GameConfig, soldierId: n
   if (!s || s.dead || s.downed || s.kind !== 'soldier') return;
   const current = getVehicle(state, s.vehicleId);
   if (current) {
+    // No jumping out of a helicopter in the air.
+    if (current.air && current.air.alt > BOARD_ALT) return;
     const crew =
       current.seats[0] === s.id ? current.seats.filter((id): id is number => id !== null) : [s.id];
     crew.forEach((id, i) => {
@@ -112,6 +118,11 @@ export function toggleVehicle(state: GameState, config: GameConfig, soldierId: n
       if (member) dismount(config, current, member, i);
     });
     current.speed = 0;
+    if (current.air && current.seats[0] === null) {
+      current.air.engine = false;
+      current.air.spool = 0;
+      current.air.wantAlt = 0;
+    }
     return;
   }
   const v = vehicleInReach(state, config, s.pos);
@@ -184,6 +195,10 @@ export function updateVehicles(
     v.prevFacing = v.facing;
 
     const driver = driverOf(state, v);
+    if (v.air) {
+      updateAircraft(state, config, v, driver, input, dt);
+      continue;
+    }
     const want =
       driver && !driver.dead && !driver.downed ? driveVector(state, v, driver, input) : null;
     const mag = want ? Math.min(1, Math.hypot(want.x, want.z)) : 0;

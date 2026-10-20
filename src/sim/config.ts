@@ -793,6 +793,31 @@ const vehicleType = z
     /** Damage per second to enemies under the hull, above `ramSpeed`. */
     ramDps: nonNegative,
     ramSpeed: nonNegative,
+    /** Present on aircraft: they climb, hover and need the engine started. */
+    air: z
+      .object({
+        /** Seconds a player holds forward on the ground to start the engine. */
+        spoolTime: positive,
+        /** Seconds an AI pilot needs to start the engine before taking off. */
+        aiSpoolTime: positive,
+        /** Below this height (metres) it cannot fly sideways. */
+        minFlyAlt: positive,
+        maxAlt: positive,
+        /** Height an AI pilot climbs to when told to go somewhere or to take off. */
+        cruiseAlt: positive,
+        /** Metres per second up and down. */
+        climbRate: positive,
+        descendRate: positive,
+        /** Speed multiplier while Shift is held in direct control. */
+        boostScale: positive,
+        /** An idle AI pilot circles on this radius at this speed (metres, metres per second). */
+        orbitRadius: positive,
+        orbitSpeed: positive,
+        /** Higher than this, zombies cannot reach the machine. */
+        safeAlt: positive,
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
