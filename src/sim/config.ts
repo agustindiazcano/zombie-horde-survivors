@@ -979,6 +979,10 @@ export const GameConfigSchema = z
         ropeLength: positive,
         /** Speed of the dragger against normal walking. */
         speedScale: positive,
+        /** An AI soldier pulls a downed ally out when an enemy is this close to it (metres)... */
+        dangerRadius: positive,
+        /** ...and it looks for such an ally within this distance of itself. */
+        aiSearch: positive,
       })
       .strict(),
     /** Harmless wandering animals by id (placed in the editor under Units > Animals). */
@@ -1412,6 +1416,8 @@ export const GameConfigSchema = z
         /** How close a unit must be to open or use a crate. */
         pickupRange: positive,
         maxCrates: z.number().int().positive(),
+        /** Items dropped on the ground; past this the oldest vanish. */
+        maxLoose: z.number().int().positive(),
         /** Crate contents: an item id from data/items.json and its relative likelihood. */
         table: z.array(z.object({ item: z.string(), weight: positive }).strict()).min(1),
       })
@@ -1425,6 +1431,9 @@ export const GameConfigSchema = z
         attackRange: positive,
         attackCooldown: positive,
         deathDuration: positive,
+        /** A dead enemy stays on the ground this many seconds (bursts do not), at most `maxCorpses` of them. */
+        corpseLife: positive,
+        maxCorpses: z.number().int().nonnegative(),
         /** Rewards for killing the base zombie; variants scale them with `rewardScale`. */
         gold: z.number().int().nonnegative(),
         xp: z.number().int().nonnegative(),

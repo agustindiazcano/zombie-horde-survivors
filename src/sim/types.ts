@@ -18,7 +18,7 @@ export type ZombieState = 'walk' | 'attack' | 'death';
 
 /** What an AI-driven soldier is doing. Only the controlled soldier ignores its order. */
 /** What the action key (E, or a click in RTS) can do to a thing in the world. */
-export type InteractKind = 'object' | 'body' | 'crate' | 'door' | 'vehicle';
+export type InteractKind = 'object' | 'body' | 'corpse' | 'crate' | 'item' | 'door' | 'vehicle';
 
 export type SoldierOrder =
   | { type: 'follow' }
@@ -135,6 +135,8 @@ export interface Soldier {
   training: Training;
   /** Id of the downed or dead ally this soldier drags by the shoulders, if any. */
   dragging: number | null;
+  /** Id of the dead enemy this soldier drags, if any. */
+  dragCorpse: number | null;
   /** What it holds over its shoulders or head (an object to throw, or an ally's body), and the walking speed that costs. */
   carrying: Carry | null;
   /** The soldier that carries this body, or null. */
@@ -343,6 +345,18 @@ export interface Crate {
   states?: (WeaponState | undefined)[];
 }
 
+/** One item (or a stack of them) lying loose on the ground: dropped from an inventory, taken with E. */
+export interface GroundItem {
+  id: number;
+  pos: Vec2;
+  /** Item id in data/items.json. */
+  item: string;
+  /** Stack size (rounds, for ammo). */
+  count: number;
+  /** A weapon keeps its rounds and accessories. */
+  state?: WeaponState;
+}
+
 /** A gold coin or XP orb lying on the ground. */
 export interface Pickup {
   id: number;
@@ -424,6 +438,8 @@ export type SimEvent =
   | { type: 'fireStarted'; fireId: number; pos: Vec2 }
   | { type: 'tooHeavy'; soldierId: number; needed: number }
   | { type: 'crateReached'; soldierId: number; crateId: number }
+  | { type: 'itemDropped'; itemId: number; pos: Vec2 }
+  | { type: 'itemTaken'; soldierId: number; itemId: number }
   | { type: 'structureDestroyed'; structureId: number; pos: Vec2 }
   | {
       type: 'melee';
@@ -624,6 +640,9 @@ export interface GameState {
   nextZombieId: number;
   crates: Crate[];
   nextCrateId: number;
+  /** Single items dropped on the ground. */
+  groundItems: GroundItem[];
+  nextGroundItemId: number;
   pickups: Pickup[];
   nextPickupId: number;
   gold: number;

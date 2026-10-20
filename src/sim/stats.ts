@@ -43,7 +43,9 @@ export function speedOf(
         : stance === 'walk'
           ? config.stance.walkSpeedScale
           : 1;
-  const load = (s.dragging === null ? 1 : config.drag.speedScale) * (s.carrying?.speed ?? 1);
+  const load =
+    (s.dragging === null && s.dragCorpse === null ? 1 : config.drag.speedScale) *
+    (s.carrying?.speed ?? 1);
   const aim = s.aiming ? config.accuracy.aimSpeedScale : 1;
   return config.player.speed * scale * load * aim * mods.speed;
 }
@@ -116,7 +118,7 @@ export function weaponOf(
     def.spread += config.downed.extraSpread;
   }
   // Both hands are on the body being dragged: only a one-handed gun can be used.
-  if (s.dragging !== null && def.hands === 2) return null;
+  if ((s.dragging !== null || s.dragCorpse !== null) && def.hands === 2) return null;
   const fitted = gunMods(config, s);
   def.damage *= mods.damage * factor(fitted.damage) * (1 + bonus(config, s, 'damage'));
   def.range *= factor(fitted.range) * (1 + bonus(config, s, 'range'));

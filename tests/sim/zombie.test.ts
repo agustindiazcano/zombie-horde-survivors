@@ -39,7 +39,8 @@ describe('zombie AI', () => {
   });
 
   it('plays death, then is removed after the death duration', () => {
-    const { state, config } = makeGame({ zombie: { health: 25 } });
+    // No corpses kept, so the body goes as soon as the animation ends.
+    const { state, config } = makeGame({ zombie: { health: 25, maxCorpses: 0 } });
     spawnZombie(state, config, { x: 0, z: 5 });
     run(state, config, { ...idle, firing: true }, 0.1);
     run(state, config, idle, config.zombie.deathDuration - 0.3);

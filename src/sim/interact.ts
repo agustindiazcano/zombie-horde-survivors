@@ -1,5 +1,6 @@
 import type { GameConfig } from './config';
-import { toggleDrag } from './drag';
+import { isCorpse, releaseDrag, toggleDrag, toggleDragCorpse } from './drag';
+import { pickUpItem } from './inventory';
 import { dropCarried, liftOrDrop, objectDef } from './objects';
 import { DOOR_REACH, edgeDistance, structureDef, toggleDoor } from './structures';
 import type { GameState, InteractKind, Soldier } from './types';
@@ -12,7 +13,10 @@ export const ARRIVE_SHARE = 0.8;
 const PICK_SLACK = 0.6;
 const BODY_PICK = 1;
 const CRATE_PICK = 1.2;
+const ITEM_PICK = 0.7;
 const DOOR_PICK = 0.6;
+/** A corpse always loses to a nearby door, crate or ally: its distance counts this much more. */
+const CORPSE_PENALTY = 0.8;
 const VEHICLE_PICK = 1;
 
 /** Something the action key can act on, with the text the RTS cursor shows over it. */
@@ -64,6 +68,18 @@ export function listInteractables(
       from: centre(b.pos),
     });
   }
+  for (const z of state.zombies) {
+    if (!isCorpse(z) || state.soldiers.some((s) => s.dragCorpse === z.id)) continue;
+    out.push({
+      kind: 'corpse',
+      id: z.id,
+      label: 'Drag',
+      pos: z.pos,
+      pick: BODY_PICK * z.size + CORPSE_PENALTY,
+      reach: config.drag.range + CORPSE_PENALTY,
+      from: (p) => Math.hypot(z.pos.x - p.x, z.pos.z - p.z) + CORPSE_PENALTY,
+    });
+  }
   for (const c of state.crates) {
     out.push({
       kind: 'crate',
@@ -73,6 +89,17 @@ export function listInteractables(
       pick: CRATE_PICK,
       reach: config.drops.pickupRange,
       from: centre(c.pos),
+    });
+  }
+  for (const g of state.groundItems) {
+    out.push({
+      kind: 'item',
+      id: g.id,
+      label: 'Take',
+      pos: g.pos,
+      pick: ITEM_PICK,
+      reach: config.drops.pickupRange,
+      from: centre(g.pos),
     });
   }
   for (const s of state.structures) {
@@ -158,6 +185,8 @@ export function performInteract(
 ): void {
   if (it.kind === 'object') liftOrDrop(state, config, s.id, { kind: 'object', id: it.id });
   else if (it.kind === 'body') toggleDrag(state, config, s.id, it.id);
+  else if (it.kind === 'corpse') toggleDragCorpse(state, config, s.id, it.id);
+  else if (it.kind === 'item') pickUpItem(state, config, s.id, it.id);
   else if (it.kind === 'door') toggleDoor(state, config, it.id);
   else if (it.kind === 'vehicle') toggleVehicle(state, config, s.id);
   else state.events.push({ type: 'crateReached', soldierId: s.id, crateId: it.id });
@@ -173,7 +202,7 @@ export function useNearest(state: GameState, config: GameConfig, soldierId: numb
   if (!me || me.dead || me.downed || me.kind !== 'soldier') return null;
   if (me.vehicleId !== null) toggleVehicle(state, config, me.id);
   else if (me.carrying) dropCarried(state, config, me);
-  else if (me.dragging !== null) me.dragging = null;
+  else if (me.dragging !== null || me.dragCorpse !== null) releaseDrag(me);
   else {
     const it = interactableFor(state, config, me);
     if (it?.kind === 'crate') return it.id;

@@ -5,6 +5,7 @@ import { openWorkbench } from './workbench';
 import type { CharacterFactory } from './render/characters';
 import {
   cellAt,
+  dropToGround,
   levelInfo,
   maxHealthOf,
   buyPerk,
@@ -363,6 +364,14 @@ export class UnitsScreen {
           if (action.run(this.getState())) for (const id of this.open.keys()) this.renderWindow(id);
         });
       }
+      const drop = el('button', 'us__equip', cell, 'Drop');
+      drop.title = 'Leave it on the ground in front of the unit (E picks it up)';
+      drop.addEventListener('click', (e) => {
+        e.stopPropagation(); // not a tap-to-move pick
+        if (dropToGround(this.getState(), this.config, unit.id, slot)) {
+          for (const id of this.open.keys()) this.renderWindow(id);
+        }
+      });
       const sheet = itemDef(this.config, item);
       if (sheet.type === 'weapon' && sheet.accessorySlots.length > 0) {
         const bench = el('button', 'us__equip us__bench', cell, '⚙');

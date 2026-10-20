@@ -1,5 +1,6 @@
 import { edgeDistance, getStructure, isWorking, mustFight, openDoorAhead } from './structures';
 import { ageWalk, walkTarget } from './flowfield';
+import { rescueDrag } from './rescueDrag';
 import { ARRIVE_SHARE, findInteractable, performInteract } from './interact';
 import { throwCarried } from './objects';
 import { bonus } from './training';
@@ -132,6 +133,7 @@ function newUnit(
       ranks: {},
     },
     dragging: null,
+    dragCorpse: null,
     carrying: null,
     carriedBy: null,
     throwHeld: false,
@@ -513,6 +515,11 @@ function updateAi(
   if (patient) {
     const near = Math.hypot(patient.pos.x - s.pos.x, patient.pos.z - s.pos.z);
     dest = near > config.downed.reviveRange * 0.7 ? { ...patient.pos } : null;
+  }
+  // Nobody can heal a downed ally under attack: pull it away from the enemies.
+  if (s.order.type === 'follow' && !patient && !isDrone(s)) {
+    const pull = rescueDrag(state, config, s);
+    if (pull !== undefined) dest = pull;
   }
   // A downed unit cannot walk on its own; it can still shoot.
   if (s.downed) dest = null;
