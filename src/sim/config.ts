@@ -208,6 +208,25 @@ const mapLogic = z
             /** Quarter turns (0 to 3): odd ones swap the sides of the footprint. */
             turns: z.number().int().min(0).max(3).default(0),
             level: z.number().int().min(1).default(1),
+            /** A door that starts open, or a switch that starts on. */
+            open: z.boolean().optional(),
+            /** A door that needs this key item (a `key` in data/items.json) to open. */
+            lock: z.string().min(1).optional(),
+            /** Switches and powered doors with the same link belong together (0 is the default group). */
+            link: z.number().int().min(0).optional(),
+          })
+          .strict(),
+      )
+      .optional(),
+    /** Items lying on the ground from the start (a keycard, a medkit), by item id. */
+    items: z
+      .array(
+        z
+          .object({
+            item: z.string().min(1),
+            x: z.number(),
+            z: z.number(),
+            count: z.number().int().positive().default(1),
           })
           .strict(),
       )
@@ -613,6 +632,8 @@ const itemDef = z.discriminatedUnion('type', [
       mocked: z.object({ weight: nonNegative }).strict(),
     })
     .strict(),
+  /** A keycard: a locked door of this key opens for a soldier carrying it. */
+  z.object({ ...itemBase, type: z.literal('key') }).strict(),
   z
     .object({
       ...itemBase,
@@ -775,6 +796,26 @@ const vehicleType = z
   })
   .strict();
 
+/** How a door looks and behaves; every field has a default, so a plain `door: true` is a hand-opened swing door. */
+const doorRulesSchema = z
+  .object({
+    /** The motion: one leaf on a hinge, one leaf sliding along the wall, two leaves parting, or a shutter rolling up. */
+    look: z.enum(['swing', 'slide', 'double', 'shutter']).default('swing'),
+    /** Seconds from shut to fully open (and back). It blocks until nearly open. */
+    openTime: positive.default(0.5),
+    /** Opens by itself when a soldier on its feet comes near, and shuts `closeDelay` seconds after the last one leaves. */
+    auto: z.boolean().default(false),
+    autoRange: positive.default(2.5),
+    closeDelay: nonNegative.default(2),
+    /** Sight passes through it when shut (glass); bullets and bodies do not. */
+    seeThrough: z.boolean().default(false),
+    /** Moved only by a switch of the same link (E on the door does nothing). */
+    powered: z.boolean().default(false),
+  })
+  .strict();
+export type DoorRules = z.infer<typeof doorRulesSchema>;
+export const DEFAULT_DOOR_RULES: DoorRules = doorRulesSchema.parse({});
+
 /** A buildable structure type (sandbags, walls, doors, turrets). Its footprint is an axis-aligned box. */
 const structureType = z
   .object({
@@ -795,10 +836,31 @@ const structureType = z
     breakCost: nonNegative,
     /** A door can be opened and closed; open, it blocks nobody. */
     door: z.boolean().default(false),
+    doorRules: doorRulesSchema.optional(),
+    /** A wall switch: E toggles it, and every powered door of the same link follows. */
+    switch: z.boolean().default(false),
     /** Wood burns: a fire next to it hurts it and spreads. */
     flammable: z.boolean().default(false),
     /** Hurts what pushes on it: damage per second to every enemy attacking it. */
     thorns: nonNegative.default(0),
+    /** A seat for one soldier behind a mounted gun (a nest) or high up (a tower): E on it climbs in, E again leaves. */
+    post: z
+      .object({
+        damage: positive,
+        range: positive,
+        fireRate: positive,
+        /** Shots fly over low cover (a tower looks down on it). */
+        ignoresCover: z.boolean().default(false),
+        /** How close (metres, to the footprint) a soldier must be to climb in. */
+        enterRange: positive.default(2),
+      })
+      .strict()
+      .optional(),
+    /** Rounds the turret or the mounted gun holds, and the item (an ammo item id) a soldier feeds it from the backpack. */
+    ammo: z
+      .object({ capacity: z.number().int().positive(), item: z.string().min(1) })
+      .strict()
+      .optional(),
     /** An automatic gun: fires at the nearest visible enemy in range. */
     turret: z
       .object({
@@ -988,6 +1050,10 @@ export const GameConfigSchema = z
         ropeLength: positive,
         /** Speed of the dragger against normal walking. */
         speedScale: positive,
+        /** An AI soldier pulls a downed ally out when an enemy is this close to it (metres)... */
+        dangerRadius: positive,
+        /** ...and it looks for such an ally within this distance of itself. */
+        aiSearch: positive,
       })
       .strict(),
     /** Harmless wandering animals by id (placed in the editor under Units > Animals). */
@@ -1270,6 +1336,8 @@ export const GameConfigSchema = z
         pathCostScale: positive,
         /** Where the controlled soldier puts a quick build, metres in front of it. */
         quickBuildDistance: positive,
+        /** Gold per round to refill a turret or a mounted gun from the build panel. */
+        ammoCost: nonNegative,
       })
       .strict(),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
@@ -1421,6 +1489,8 @@ export const GameConfigSchema = z
         /** How close a unit must be to open or use a crate. */
         pickupRange: positive,
         maxCrates: z.number().int().positive(),
+        /** Items dropped on the ground; past this the oldest vanish. */
+        maxLoose: z.number().int().positive(),
         /** Crate contents: an item id from data/items.json and its relative likelihood. */
         table: z.array(z.object({ item: z.string(), weight: positive }).strict()).min(1),
       })
@@ -1434,6 +1504,9 @@ export const GameConfigSchema = z
         attackRange: positive,
         attackCooldown: positive,
         deathDuration: positive,
+        /** A dead enemy stays on the ground this many seconds (bursts do not), at most `maxCorpses` of them. */
+        corpseLife: positive,
+        maxCorpses: z.number().int().nonnegative(),
         /** Rewards for killing the base zombie; variants scale them with `rewardScale`. */
         gold: z.number().int().nonnegative(),
         xp: z.number().int().nonnegative(),
@@ -1496,12 +1569,14 @@ export type Obstacle = {
   height?: number;
   /** Bullets cross it (a low sandbag wall, wire). */
   passShots?: boolean;
+  /** Sight crosses it (a glass door) although movement and bullets do not. */
+  seeThrough?: boolean;
   /** The prop it comes from ("house", "tree"...): the renderer draws that shape instead of a plain box. */
   asset?: string;
   /** The way the prop faces (radians, 0 is +Z): a house's door, the lean of a lamp. */
   facing?: number;
   /** Set when a built structure makes this box; its path cost (cells) replaces a hard block for enemies. */
-  structure?: { id: number; breakCost: number };
+  structure?: { id: number; breakCost: number; door?: boolean };
 };
 /** The playfield the sim runs on, derived from the map (see `arenaOf`). */
 export type Arena = {
@@ -1509,6 +1584,8 @@ export type Arena = {
   obstacles: Obstacle[];
   /** The map's own obstacles; `obstacles` is this plus the built structures (see `syncStructures`). */
   base?: Obstacle[];
+  /** The footprints of every built door, open or closed: soldiers path through them (see `syncStructures`). */
+  doors?: { x: number; z: number; halfW: number; halfD: number }[];
   terrain: MapData['terrain'];
   surfaces: MapData['surfaces'];
 };
@@ -1542,6 +1619,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   startStructures: NonNullable<MapLogic['structures']>;
   /** Objects that lie on the ground from the start. */
   startObjects: NonNullable<MapLogic['objects']>;
+  /** Items that lie on the ground from the start. */
+  startItems: NonNullable<MapLogic['items']>;
   /** Story missions: shown on a card when the mission starts. */
   briefing?: string | undefined;
   /** Stat sheets by unit type (from data/units.json). */
@@ -1565,6 +1644,25 @@ function checkItemRefs(cfg: z.infer<typeof GameConfigSchema>, items: ItemsData['
   for (const entry of cfg.drops.table) {
     if (!(entry.item in items))
       problems.push(`drops.table references unknown item "${entry.item}"`);
+  }
+  if (problems.length > 0) throw new Error(problems.join('; '));
+}
+
+/** Checks that the structures and items a map starts with exist (a lock names a real key). */
+function checkMapRefs(
+  map: MapData,
+  cfg: z.infer<typeof GameConfigSchema>,
+  items: ItemsData['items'],
+): void {
+  const problems: string[] = [];
+  for (const p of map.logic.structures ?? []) {
+    if (p.lock && items[p.lock]?.type !== 'key')
+      problems.push(`lock "${p.lock}" is not a key item`);
+    if (p.lock && !cfg.structures.types[p.type]?.door)
+      problems.push(`"${p.type}" cannot be locked`);
+  }
+  for (const it of map.logic.items ?? []) {
+    if (!(it.item in items)) problems.push(`map item "${it.item}" is not in data/items.json`);
   }
   if (problems.length > 0) throw new Error(problems.join('; '));
 }
@@ -1593,6 +1691,7 @@ type MapRules = Pick<
   | 'subtitles'
   | 'startStructures'
   | 'startObjects'
+  | 'startItems'
 >;
 
 /**
@@ -1647,6 +1746,7 @@ export function mapRules(
     subtitles: logic.subtitles ?? [],
     startStructures: logic.structures ?? [],
     startObjects: logic.objects ?? [],
+    startItems: logic.items ?? [],
   };
 }
 
@@ -1659,6 +1759,7 @@ export function parseConfig(
   const game = GameConfigSchema.parse(raw);
   const catalog = ItemsSchema.parse(items).items;
   checkItemRefs(game, catalog);
+  checkMapRefs(map, game, catalog);
   return {
     ...game,
     ...mapRules(game, map.logic, map.units),

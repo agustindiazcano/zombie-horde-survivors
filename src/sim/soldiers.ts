@@ -1,4 +1,8 @@
-import { edgeDistance, getStructure, isWorking, mustFight } from './structures';
+import { updatePosted } from './posts';
+import { inShelter } from './shelter';
+import { edgeDistance, getStructure, isWorking, mustFight, openDoorAhead } from './structures';
+import { ageWalk, walkTarget } from './flowfield';
+import { rescueDrag } from './rescueDrag';
 import { ARRIVE_SHARE, findInteractable, performInteract } from './interact';
 import { aiThrowGrenade } from './grenades';
 import { throwCarried } from './objects';
@@ -122,6 +126,7 @@ function newUnit(
     deadTime: 0,
     reviveProgress: 0,
     vehicleId: null,
+    post: null,
     training: {
       spent: 0,
       expertise: Object.fromEntries(WEAPON_CLASSES.map((c) => [c, 0])) as Record<
@@ -132,6 +137,7 @@ function newUnit(
       ranks: {},
     },
     dragging: null,
+    dragCorpse: null,
     carrying: null,
     carriedBy: null,
     throwHeld: false,
@@ -268,6 +274,7 @@ export function updateSoldiers(
 ): void {
   const controlledId = localPlayer(state).controlledId;
   const leader = getSoldier(state, controlledId);
+  ageWalk(state, dt);
   for (const s of state.soldiers) {
     // How far it moved last step decides how long it has stood still.
     s.stillTime =
@@ -301,11 +308,14 @@ export function updateSoldiers(
     // The squad's sprint order only works for a unit that still has breath.
     const stance =
       s.downed || (state.stance === 'sprint' && (s.winded || isDrone(s))) ? 'normal' : state.stance;
-    if (s.vehicleId !== null) updateSeated(state, config, s, input, controlledId);
+    if (s.post !== null) updatePosted(state, config, s, input, controlledId);
+    else if (s.vehicleId !== null) updateSeated(state, config, s, input, controlledId);
     else if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
-    else updateAi(state, config, s, leader, stance, dt);
+    else {
+      updateAi(state, config, s, leader, stance, dt);
+    }
     updateStamina(config, s, stance, dt);
-    updateJump(config, s, dt);
+    if (s.post === null) updateJump(config, s, dt);
   }
   separateSoldiers(state, config);
 }
@@ -511,19 +521,29 @@ function updateAi(
     const near = Math.hypot(patient.pos.x - s.pos.x, patient.pos.z - s.pos.z);
     dest = near > config.downed.reviveRange * 0.7 ? { ...patient.pos } : null;
   }
+  // Nobody can heal a downed ally under attack: pull it away from the enemies.
+  if (s.order.type === 'follow' && !patient && !isDrone(s)) {
+    const pull = rescueDrag(state, config, s);
+    if (pull !== undefined) dest = pull;
+  }
   // A downed unit cannot walk on its own; it can still shoot.
   if (s.downed) dest = null;
 
   let moveAngle: number | null = null;
   if (dest) {
-    const dx = dest.x - s.pos.x;
-    const dz = dest.z - s.pos.z;
+    // On foot, walk round walls and structures along the shared path grid (a drone flies over).
+    const via = isDrone(s) ? dest : walkTarget(state, config, s.id, s.pos, dest);
+    const dx = via.x - s.pos.x;
+    const dz = via.z - s.pos.z;
     const d = Math.hypot(dx, dz);
-    const step = Math.min(speed * dt, d);
-    s.pos.x += (dx / d) * step;
-    s.pos.z += (dz / d) * step;
-    resolveUnit(s, config);
-    moveAngle = Math.atan2(dx, dz);
+    if (d > 1e-6) {
+      const step = Math.min(speed * dt, d);
+      if (!isDrone(s)) openDoorAhead(state, config, s.pos, { x: dx / d, z: dz / d });
+      s.pos.x += (dx / d) * step;
+      s.pos.z += (dz / d) * step;
+      resolveUnit(s, config);
+      moveAngle = Math.atan2(dx, dz);
+    }
   }
 
   // An enemy right at the unit's feet gets a blow (and a shove) instead of a shot.
@@ -572,10 +592,10 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
   const list = state.soldiers;
   for (let i = 0; i < list.length; i++) {
     const a = list[i]!;
-    if (a.dead || isDrone(a) || a.vehicleId !== null || a.carriedBy !== null) continue;
+    if (a.dead || isDrone(a) || inShelter(a) || a.carriedBy !== null) continue;
     for (let j = i + 1; j < list.length; j++) {
       const b = list[j]!;
-      if (b.dead || isDrone(b) || b.vehicleId !== null || b.carriedBy !== null) continue;
+      if (b.dead || isDrone(b) || inShelter(b) || b.carriedBy !== null) continue;
       const dx = b.pos.x - a.pos.x;
       const dz = b.pos.z - a.pos.z;
       const d = Math.hypot(dx, dz);
@@ -589,5 +609,5 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
       b.pos.z += nz * push;
     }
   }
-  for (const s of list) if (!s.dead && !isDrone(s) && s.vehicleId === null) resolveUnit(s, config);
+  for (const s of list) if (!s.dead && !isDrone(s) && !inShelter(s)) resolveUnit(s, config);
 }

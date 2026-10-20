@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import { supportHeight, resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { blastLimbs } from './dismember';
@@ -29,7 +30,7 @@ export const grenadeCount = (config: GameConfig, s: Soldier): number =>
   s.backpack.reduce((n, st) => (itemDef(config, st.item).type === 'grenade' ? n + st.count : n), 0);
 
 const canThrow = (s: Soldier): boolean =>
-  s.kind === 'soldier' && !s.dead && !s.downed && s.vehicleId === null;
+  s.kind === 'soldier' && !s.dead && !s.downed && !inShelter(s);
 
 /**
  * Where a throw towards `target` would land: the point is pulled in to the throw range of the
@@ -167,7 +168,7 @@ function explode(state: GameState, config: GameConfig, grenade: Grenade): void {
     }
   }
   for (const s of state.soldiers) {
-    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue;
+    if (s.dead || s.kind === 'drone' || inShelter(s)) continue;
     const d = Math.hypot(s.pos.x - at.x, s.pos.z - at.z);
     if (d <= radius && config.grenades.friendlyFire > 0) {
       hurtSoldier(

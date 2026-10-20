@@ -23,6 +23,7 @@ import {
   controlSoldier,
   defaultEnvironment,
   isSquadUnit,
+  itemDef,
   createGame,
   localPlayer,
   maxHealthOf,
@@ -38,6 +39,8 @@ import {
   objectDef,
   getObject,
   toggleDrag,
+  togglePost,
+  postInReach,
   toggleVehicle,
   vehicleInReach,
   shopAvailable,
@@ -478,7 +481,15 @@ async function main(): Promise<void> {
       if (playable() && !modalOpen()) {
         const controlled = localPlayer(state).controlledId;
         for (const id of controlled !== null ? [controlled] : [...rts.selected]) {
-          toggleVehicle(state, config, id);
+          const unit = getSoldier(state, id);
+          // A post (nest, tower) when one is nearer than any vehicle, else the vehicle.
+          if (
+            unit &&
+            (unit.post ||
+              (!vehicleInReach(state, config, unit.pos) && postInReach(state, config, unit.pos)))
+          ) {
+            togglePost(state, config, id);
+          } else toggleVehicle(state, config, id);
         }
       }
     } else if (e.code === 'KeyG') {
@@ -614,8 +625,18 @@ async function main(): Promise<void> {
       damageNumbers.onStep(state);
       sfx.onStep(state);
       for (const e of state.events) {
-        if (e.type !== 'tooHeavy') continue;
-        rts.notice = `Too heavy: needs ${e.needed} strength`;
+        if (e.type === 'tooHeavy') {
+          rts.notice = `Too heavy: needs ${e.needed} strength`;
+        } else if (e.type === 'doorDenied') {
+          rts.notice =
+            e.reason === 'locked'
+              ? `Locked: needs ${e.key ? itemDef(config, e.key).name : 'a key'}`
+              : e.reason === 'powered'
+                ? 'Powered: use its switch'
+                : 'Something is in the doorway';
+        } else if (e.type === 'notice') {
+          rts.notice = e.text;
+        } else continue;
         rts.noticeUntil = performance.now() + 2500;
       }
       // A soldier sent to a crate has arrived: open it for them.

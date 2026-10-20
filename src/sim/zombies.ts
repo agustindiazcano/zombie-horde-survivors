@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import { resolveStatic, supportHeight } from './collision';
 import { STEP_UP } from './constants';
 import type { GameConfig, Loadout } from './config';
@@ -281,13 +282,27 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
 
   separateZombies(state, config);
 
-  // Drop zombies whose death animation has finished (in place, no allocation).
+  // Drop zombies that burst, or whose body has lain long enough (in place, no allocation).
   let kept = 0;
+  let corpses = 0;
   for (const z of state.zombies) {
-    if (z.state === 'death' && z.deathTimer <= 0) continue;
+    if (z.state === 'death' && z.deathTimer <= 0) {
+      if (z.exploded || -z.deathTimer >= zc.corpseLife) continue;
+      corpses++;
+    }
     state.zombies[kept++] = z;
   }
   state.zombies.length = kept;
+  if (corpses > zc.maxCorpses) trimCorpses(state, corpses - zc.maxCorpses);
+}
+
+/** Removes the `extra` oldest corpses (the ones dead the longest). */
+function trimCorpses(state: GameState, extra: number): void {
+  const dead = state.zombies
+    .filter((z) => z.state === 'death' && z.deathTimer <= 0)
+    .sort((a, b) => a.deathTimer - b.deathTimer)
+    .slice(0, extra);
+  state.zombies = state.zombies.filter((z) => !dead.includes(z));
 }
 
 /**
@@ -394,7 +409,7 @@ function nearestTarget(
   let best: { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null = null;
   let bestD = Infinity;
   for (const s of state.soldiers) {
-    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue; // flying units can't be reached
+    if (s.dead || s.kind === 'drone' || inShelter(s)) continue; // flying units can't be reached
     const d = Math.hypot(s.pos.x - from.x, s.pos.z - from.z);
     const felt = s.downed ? d * config.downed.targetDistanceScale : d;
     if (felt < bestD) {

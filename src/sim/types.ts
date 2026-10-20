@@ -18,7 +18,8 @@ export type ZombieState = 'walk' | 'attack' | 'death';
 
 /** What an AI-driven soldier is doing. Only the controlled soldier ignores its order. */
 /** What the action key (E, or a click in RTS) can do to a thing in the world. */
-export type InteractKind = 'object' | 'body' | 'crate' | 'door' | 'vehicle';
+export type InteractKind =
+  'object' | 'body' | 'corpse' | 'crate' | 'item' | 'door' | 'vehicle' | 'post' | 'turret';
 
 export type SoldierOrder =
   | { type: 'follow' }
@@ -135,6 +136,8 @@ export interface Soldier {
   training: Training;
   /** Id of the downed or dead ally this soldier drags by the shoulders, if any. */
   dragging: number | null;
+  /** Id of the dead enemy this soldier drags, if any. */
+  dragCorpse: number | null;
   /** What it holds over its shoulders or head (an object to throw, or an ally's body), and the walking speed that costs. */
   carrying: Carry | null;
   /** The soldier that carries this body, or null. */
@@ -205,6 +208,8 @@ export interface Soldier {
   reviveProgress: number;
   /** The vehicle this unit sits in (it rides along and cannot be hit), or null. */
   vehicleId: number | null;
+  /** The post (nest or tower) this unit mans, and where it stood before climbing in; null otherwise. */
+  post: { id: number; exit: Vec2 } | null;
 }
 
 /** A thrown grenade: it flies along an arc from `from` to `to`, then waits for its fuse. */
@@ -241,8 +246,19 @@ export interface Structure {
   built: boolean;
   /** Seconds of work done so far on a blueprint. */
   progress: number;
-  /** A door that is open lets everyone through. */
+  /** A door that is open lets everyone through once it has swung wide (`openness`); a switch that is on. */
   open: boolean;
+  /** How far a door has moved towards `open`: 0 shut, 1 wide open. */
+  openness: number;
+  /** The key item that must be carried to open this door, or null (a key opens it for good). */
+  lock: string | null;
+  /** Switches and powered doors with the same link belong together. */
+  link: number;
+  /** Auto doors: seconds left before it shuts again. */
+  idle: number;
+  /** Turrets and posts: rounds left, and the soldier manning a post (null when empty). */
+  ammo: number;
+  crew: number | null;
   /** Turrets: seconds until the next shot and the direction they last aimed (radians, 0 = +z). */
   cooldown: number;
   facing: number;
@@ -343,6 +359,18 @@ export interface Crate {
   states?: (WeaponState | undefined)[];
 }
 
+/** One item (or a stack of them) lying loose on the ground: dropped from an inventory, taken with E. */
+export interface GroundItem {
+  id: number;
+  pos: Vec2;
+  /** Item id in data/items.json. */
+  item: string;
+  /** Stack size (rounds, for ammo). */
+  count: number;
+  /** A weapon keeps its rounds and accessories. */
+  state?: WeaponState;
+}
+
 /** A gold coin or XP orb lying on the ground. */
 export interface Pickup {
   id: number;
@@ -424,6 +452,16 @@ export type SimEvent =
   | { type: 'fireStarted'; fireId: number; pos: Vec2 }
   | { type: 'tooHeavy'; soldierId: number; needed: number }
   | { type: 'crateReached'; soldierId: number; crateId: number }
+  | { type: 'itemDropped'; itemId: number; pos: Vec2 }
+  /** A short message for the player (a turret ran dry, there is nothing to feed it with). */
+  | { type: 'notice'; text: string }
+  | {
+      type: 'doorDenied';
+      structureId: number;
+      reason: 'locked' | 'powered' | 'blocked';
+      key?: string;
+    }
+  | { type: 'itemTaken'; soldierId: number; itemId: number }
   | { type: 'structureDestroyed'; structureId: number; pos: Vec2 }
   | {
       type: 'melee';
@@ -624,6 +662,9 @@ export interface GameState {
   nextZombieId: number;
   crates: Crate[];
   nextCrateId: number;
+  /** Single items dropped on the ground. */
+  groundItems: GroundItem[];
+  nextGroundItemId: number;
   pickups: Pickup[];
   nextPickupId: number;
   gold: number;

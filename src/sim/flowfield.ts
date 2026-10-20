@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import type { Arena, GameConfig, Obstacle } from './config';
 import { topOf } from './collision';
 import type { GameState } from './types';
@@ -10,6 +11,9 @@ const FLOW_CELL = 1;
 const CLEARANCE = 0.6;
 /** Seconds a field stays valid; the squad moves, so it is searched again after this. */
 const REFRESH = 0.25;
+/** How far (metres) past a door's footprint its passable cells reach: along the door and through it. */
+const DOOR_PASS_LONG = 0.3;
+const DOOR_PASS_THIN = 0.7;
 const SQRT2 = Math.SQRT2;
 /** Cell neighbours: dx, dz and the cost of the step. */
 const NEIGHBOURS: readonly (readonly [number, number, number])[] = [
@@ -44,7 +48,20 @@ interface Field {
 const blockedGrids = new WeakMap<Obstacle[], Blocked>();
 /** The same grid with only the obstacles a climber cannot cross, per climbing height. */
 const hardGrids = new WeakMap<Obstacle[], Map<number, Blocked>>();
+const allyGrids = new WeakMap<Obstacle[], Blocked>();
+/** Grids for sight: the same, except that see-through boxes (glass doors) do not block. */
+const sightGrids = new WeakMap<Obstacle[], Map<number, Blocked>>();
 const fields = new WeakMap<GameState, Field>();
+/** A soldier's own walk-to field: where it was searched for, and how old it is. */
+interface WalkField {
+  blocked: Blocked;
+  dist: Float64Array;
+  cell: number;
+  age: number;
+}
+const walkFields = new WeakMap<GameState, Map<number, WalkField>>();
+/** Seconds before a soldier's field may be searched again for a destination that moved. */
+const WALK_REFRESH = 0.3;
 
 const cellIndex = (b: Blocked, v: number): number =>
   Math.min(Math.max(Math.floor((v + b.half) / FLOW_CELL), 0), b.n - 1);
@@ -53,7 +70,9 @@ const centre = (b: Blocked, c: number): number => (c + 0.5) * FLOW_CELL - b.half
 /** Forgets the cached grids of an arena; call it when obstacles change without changing the count. */
 export function invalidateFlow(arena: Arena): void {
   blockedGrids.delete(arena.obstacles);
+  allyGrids.delete(arena.obstacles);
   hardGrids.delete(arena.obstacles);
+  sightGrids.delete(arena.obstacles);
 }
 
 function blockedOf(arena: Arena, climbHeight = 0): Blocked {
@@ -64,6 +83,37 @@ function blockedOf(arena: Arena, climbHeight = 0): Blocked {
   if (cached && cached.source === arena.obstacles && cached.length === arena.obstacles.length) {
     return cached;
   }
+  const made = makeBlocked(arena, climbHeight, false);
+  if (climbHeight > 0) {
+    const perHeight = hardGrids.get(arena.obstacles) ?? new Map<number, Blocked>();
+    perHeight.set(climbHeight, made);
+    hardGrids.set(arena.obstacles, perHeight);
+  } else {
+    blockedGrids.set(arena.obstacles, made);
+  }
+  return made;
+}
+
+/** The grid an ally walks: closed doors are passable (the walker opens them), other structures are walls. */
+function allyBlockedOf(arena: Arena): Blocked {
+  const cached = allyGrids.get(arena.obstacles);
+  if (cached && cached.length === arena.obstacles.length) return cached;
+  const made = makeBlocked(arena, 0, true);
+  allyGrids.set(arena.obstacles, made);
+  return made;
+}
+
+function sightOf(arena: Arena, climbHeight: number): Blocked {
+  const perHeight = sightGrids.get(arena.obstacles) ?? new Map<number, Blocked>();
+  const cached = perHeight.get(climbHeight);
+  if (cached && cached.length === arena.obstacles.length) return cached;
+  const made = makeBlocked(arena, climbHeight, false, true);
+  perHeight.set(climbHeight, made);
+  sightGrids.set(arena.obstacles, perHeight);
+  return made;
+}
+
+function makeBlocked(arena: Arena, climbHeight: number, ally: boolean, sight = false): Blocked {
   const n = Math.ceil((arena.halfSize * 2) / FLOW_CELL);
   const made: Blocked = {
     source: arena.obstacles,
@@ -75,6 +125,8 @@ function blockedOf(arena: Arena, climbHeight = 0): Blocked {
   };
   for (const box of arena.obstacles) {
     if (climbHeight > 0 && topOf(box) <= climbHeight) continue;
+    if (ally && box.structure?.door) continue;
+    if (sight && box.seeThrough) continue;
     const x0 = cellIndex(made, box.x - box.halfW - CLEARANCE);
     const x1 = cellIndex(made, box.x + box.halfW + CLEARANCE);
     const z0 = cellIndex(made, box.z - box.halfD - CLEARANCE);
@@ -86,7 +138,7 @@ function blockedOf(arena: Arena, climbHeight = 0): Blocked {
           Math.abs(centre(made, cz) - box.z) <= box.halfD + CLEARANCE
         ) {
           const at = cz * n + cx;
-          if (box.structure) {
+          if (box.structure && !ally) {
             // Breakable: a hard block wins over it, otherwise the cheapest break cost counts.
             if (made.cells[at] === 1) continue;
             made.cells[at] = 2;
@@ -100,12 +152,19 @@ function blockedOf(arena: Arena, climbHeight = 0): Blocked {
       }
     }
   }
-  if (climbHeight > 0) {
-    const perHeight = hardGrids.get(arena.obstacles) ?? new Map<number, Blocked>();
-    perHeight.set(climbHeight, made);
-    hardGrids.set(arena.obstacles, perHeight);
-  } else {
-    blockedGrids.set(arena.obstacles, made);
+  if (ally) {
+    // A door's gap can be narrower than the clearance of the walls beside it: open its cells.
+    for (const box of arena.doors ?? []) {
+      const thinX = box.halfW < box.halfD;
+      const mx = box.halfW + (thinX ? DOOR_PASS_THIN : DOOR_PASS_LONG);
+      const mz = box.halfD + (thinX ? DOOR_PASS_LONG : DOOR_PASS_THIN);
+      for (let cz = cellIndex(made, box.z - mz); cz <= cellIndex(made, box.z + mz); cz++) {
+        for (let cx = cellIndex(made, box.x - mx); cx <= cellIndex(made, box.x + mx); cx++) {
+          if (Math.abs(centre(made, cx) - box.x) <= mx && Math.abs(centre(made, cz) - box.z) <= mz)
+            made.cells[cz * n + cx] = 0;
+        }
+      }
+    }
   }
   return made;
 }
@@ -164,8 +223,13 @@ function heapPop(): void {
 
 /** True if nothing blocks the straight way from `a` to `b` (an obstacle a climber crosses does not count). */
 export function canSee(config: GameConfig, a: Vec2, b: Vec2, climbHeight = 0): boolean {
-  return (
-    config.arena.obstacles.length === 0 || lineClear(blockedOf(config.arena, climbHeight), a, b)
+  const obstacles = config.arena.obstacles;
+  if (obstacles.length === 0) return true;
+  const glass = obstacles.some((o) => o.seeThrough);
+  return lineClear(
+    glass ? sightOf(config.arena, climbHeight) : blockedOf(config.arena, climbHeight),
+    a,
+    b,
   );
 }
 
@@ -219,7 +283,7 @@ function fieldOf(state: GameState, config: GameConfig): Field {
   }
   const targets: Vec2[] = [];
   for (const s of state.soldiers) {
-    if (!s.dead && s.kind !== 'drone' && s.vehicleId === null) targets.push(s.pos);
+    if (!s.dead && s.kind !== 'drone' && !inShelter(s)) targets.push(s.pos);
   }
   for (const v of state.vehicles) if (isOccupied(v)) targets.push(v.pos);
   search(blocked, field.dist, targets);
@@ -258,7 +322,11 @@ export function steerTarget(
     waypoint.z = to.z;
     return waypoint;
   }
-  const { dist } = fieldOf(state, config);
+  return nextWaypoint(blocked, fieldOf(state, config).dist, from, to);
+}
+
+/** The centre of the neighbouring cell nearest the target, or `to` when no cell is better. */
+function nextWaypoint(blocked: Blocked, dist: Float64Array, from: Vec2, to: Vec2): Vec2 {
   const { n, cells } = blocked;
   const cx = cellIndex(blocked, from.x);
   const cz = cellIndex(blocked, from.z);
@@ -286,4 +354,45 @@ export function steerTarget(
     waypoint.z = centre(blocked, bz);
   }
   return waypoint;
+}
+
+/**
+ * Where a soldier on foot should head to reach `to`: `to` itself with a free straight way,
+ * otherwise the next cell of the shortest walk around walls and structures. Closed doors count
+ * as open ground (see `doorAhead`). Each soldier keeps its own field, searched again when the
+ * destination moves to another cell. The returned point is reused by the next call.
+ */
+export function walkTarget(
+  state: GameState,
+  config: GameConfig,
+  id: number,
+  from: Vec2,
+  to: Vec2,
+): Vec2 {
+  const blocked = allyBlockedOf(config.arena);
+  if (config.arena.obstacles.length === 0 || lineClear(blocked, from, to)) {
+    waypoint.x = to.x;
+    waypoint.z = to.z;
+    return waypoint;
+  }
+  let perSoldier = walkFields.get(state);
+  if (!perSoldier) walkFields.set(state, (perSoldier = new Map()));
+  let field = perSoldier.get(id);
+  const cell = cellIndex(blocked, to.z) * blocked.n + cellIndex(blocked, to.x);
+  if (!field || field.blocked !== blocked) {
+    field = { blocked, dist: new Float64Array(blocked.n * blocked.n), cell: -1, age: 0 };
+    perSoldier.set(id, field);
+  }
+  if (field.cell !== cell && (field.cell < 0 || field.age >= WALK_REFRESH)) {
+    search(blocked, field.dist, [to]);
+    field.cell = cell;
+    field.age = 0;
+  }
+  return nextWaypoint(blocked, field.dist, from, to);
+}
+
+/** Makes the soldiers' fields age; call once per step with the step length. */
+export function ageWalk(state: GameState, dt: number): void {
+  const perSoldier = walkFields.get(state);
+  if (perSoldier) for (const f of perSoldier.values()) f.age += dt;
 }

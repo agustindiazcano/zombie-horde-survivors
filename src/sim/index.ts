@@ -24,11 +24,13 @@ export {
   addToBackpack,
   backpackFull,
   cellAt,
+  dropToGround,
   equipFromBackpack,
   getCrate,
   itemDef,
   moveItem,
   nearestCrate,
+  pickUpItem,
   stashInCrate,
   takeFromCrate,
   unequipSlot,
@@ -66,9 +68,11 @@ export {
   useNearest,
   type Interactable,
 } from './interact';
+export { enterPost, leavePost, postInReach, togglePost } from './posts';
 export { getObject, liftOrDrop, maxLift, objectDef, throwCarried } from './objects';
 export {
   doorInReach,
+  doorRulesOf,
   edgeDistance,
   footprint,
   getStructure,
@@ -79,6 +83,9 @@ export {
   removeStructure,
   repairCost,
   repairStructure,
+  ammoRefillCost,
+  refillWithGold,
+  resupply,
   structureDef,
   toggleDoor,
   upgradeCost,

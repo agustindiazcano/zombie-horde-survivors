@@ -9,6 +9,23 @@ Only what is still open: read this first in every session. When an item here is 
 - **Nothing has been seen in a browser by Claude.** Lighting, boss eyes, radar, menus, the squad screen, drag and drop and the settings presets are all untested visually, and the balance comes from headless simulations of a passive squad. Expect the user to report visual and feel problems; tune with the constants named in the code (see PENDING §0–1).
 - Last verified on `main`: lint, format check, typecheck, the 48 tests, build and the asset check all pass.
 
+## Branches of 2026-10-20 (none pushed, no PR, all from `main` at `3a6c454`)
+
+`main` has PRs #54 to #56 (Celestial Event III, mobile look pad). The rest is local:
+
+| Branch                           | What                                                               | Based on                               |
+| -------------------------------- | ------------------------------------------------------------------ | -------------------------------------- |
+| `fix/suv-colormap`               | The jeep's colour texture (Kenney, CC0)                            | `main`                                 |
+| `feat/ai-grenades`               | AI soldiers throw grenades at groups of 4+                         | `main`                                 |
+| `feat/soldier-structure-pathing` | W0: soldiers path round structures and open doors                  | `main`                                 |
+| `feat/objects-block-movement`    | Objects on the ground block movement                               | `main`                                 |
+| `feat/corpses-and-loose-items`   | Draggable corpses, loose items (Drop / Take), AI drags the wounded | `feat/objects-block-movement`          |
+| `feat/doors-v2`                  | Door system v2, large gates, Map 7 "Door gallery"                  | W0 branch + corpses branch merged      |
+| `feat/posts-and-ammo`            | Machine-gun nest, watchtower, turret ammo                          | `feat/doors-v2`                        |
+| `feat/editor-structures`         | Structures, objects and loose items in the map editor              | `feat/posts-and-ammo` (the active one) |
+
+The last branch contains everything except `fix/suv-colormap` and `feat/ai-grenades`. Merge them in any order; the stacked ones must go in the order of the table (or open one PR from `feat/editor-structures`). Possible small docs conflicts in PENDING.md / LASTCONTEXT.md. Worklogs of 2026-10-20: `w0-soldier-pathing`, `ai-grenades`, `objects-block-movement`, `corpses-and-loose-items`, `doors-v2`, `posts-and-turret-ammo`, `editor-structures`. Nothing was seen in a browser.
+
 ## Decisions the user has made (do not re-litigate)
 
 - **No new tests / no TDD** for the prototype; keep the 48 sim tests passing.
@@ -33,6 +50,8 @@ Only what is still open: read this first in every session. When an item here is 
 Also on that branch (later the same day): liftable and throwable objects, carrying bodies, spreading fire and barrels (Map 5, the interaction lab), soldier training with classes (the squad screen's Training box) and the title-screen carousel. [Worklog](docs/worklog/2026-10-19-interaction-and-training.md). Decisions the user gave: the carousel as recommended; a soldier's level gives points for stamina, strength, dexterity, weapon expertise and special bonuses, with a class (engineer, medic, demolitions...) chosen per soldier.
 
 Merged since: PR #53 (`feat/build-mode`) is in `main` (`0e14a2e`). Now on branch `feat/celestial-event-3` (not pushed, no PR, last commit `d2e311c`): the plan [PLAN-celestial-event-3.md](docs/PLAN-celestial-event-3.md) and Map 6 "Celestial Event III", a scripted ~5 minute scene: a night suburb, the sky show, blackout, metal scouts, a big abductor with cold light and a parting ray (110-180 s, the crowd stays calm), a second ship with a ring of survivors round the landing point (184-197 s), three grey aliens that freeze one man and vaporise a helper and four more from the ring (198-217 s), and only then the panic and the 8 hunter spheres (217 s+) ([worklog](docs/worklog/2026-10-20-celestial-event-3-e0-e2.md), fifth part). Script times live in `scripts/gen-map6.py` and in `game.json` (`skyShow`, `orbs`, `greys`, `animals`): change both together. The plan now also holds the Nodes lore (Nodes 1-10, the player is Node 10, remote-projection intro) and the cosmic horror layer (open hypotheses that are never confirmed), plus the Node 10 mechanics (psychic signature, 5 s premonition, living geometry) for E6, which need interiors. Placeholders only (existing models, procedural spheres); no new asset was downloaded. The user has not seen it in a browser yet.
+
+W0 (soldier pathing round structures, doors opened on the way) is built on `feat/soldier-structure-pathing` ([worklog](docs/worklog/2026-10-20-w0-soldier-pathing.md)), waiting for the user's look and OK. The SUV colour texture fix is on `fix/suv-colormap`.
 
 ## Open items (details in PENDING.md)
 

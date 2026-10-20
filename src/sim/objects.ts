@@ -1,9 +1,10 @@
+import { inShelter } from './shelter';
 import { resolveStatic, supportHeight } from './collision';
 import type { GameConfig } from './config';
 import { blastLimbs } from './dismember';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
-import { hurtStructure } from './structures';
+import { hurtStructure, syncStructures } from './structures';
 import type { Carry, Fire, GameObject, GameState, Soldier } from './types';
 import { hurtVehicle } from './vehicles';
 import type { Vec2 } from './vec';
@@ -56,6 +57,7 @@ export function createObject(
     flight: null,
   };
   state.objects.push(o);
+  syncStructures(state, config);
   return o;
 }
 
@@ -63,6 +65,14 @@ export function createObject(
 export function resetObjects(state: GameState, config: GameConfig): void {
   for (const p of config.startObjects) {
     if (p.type in config.objects.types) createObject(state, config, p.type, p);
+  }
+  for (const p of config.startItems) {
+    state.groundItems.push({
+      id: state.nextGroundItemId++,
+      pos: { x: p.x, z: p.z },
+      item: p.item,
+      count: p.count,
+    });
   }
   // A map's own fires burn for ever, but they still spread to what is flammable near them.
   for (const f of config.fires) {
@@ -115,6 +125,7 @@ export function dropCarried(state: GameState, config: GameConfig, me: Soldier): 
     o.pos.z = me.pos.z + Math.cos(me.facing) * DROP_DISTANCE;
     resolveStatic(o.pos, objectDef(config, o).radius, config.arena);
     o.y = supportHeight(config.arena, o.pos, 0);
+    syncStructures(state, config);
     return;
   }
   const body = state.soldiers.find((s) => s.id === c.id);
@@ -136,7 +147,7 @@ export function liftOrDrop(
   only?: { kind: Carry['kind']; id: number },
 ): void {
   const me = state.soldiers.find((s) => s.id === soldierId);
-  if (!me || me.dead || me.downed || me.kind !== 'soldier' || me.vehicleId !== null) return;
+  if (!me || me.dead || me.downed || me.kind !== 'soldier' || inShelter(me)) return;
   if (me.carrying) {
     dropCarried(state, config, me);
     return;
@@ -171,8 +182,12 @@ export function liftOrDrop(
   // Nobody else may hold the same body, and it stops being dragged.
   for (const s of state.soldiers) if (s.dragging === pick.carry.id) s.dragging = null;
   me.dragging = null;
+  me.dragCorpse = null;
   me.carrying = { ...pick.carry, speed: loadSpeed(config, me, pick.carry.weight) };
-  if (pick.carry.kind === 'object') getObject(state, pick.carry.id)!.heldBy = me.id;
+  if (pick.carry.kind === 'object') {
+    getObject(state, pick.carry.id)!.heldBy = me.id;
+    syncStructures(state, config);
+  }
 }
 
 /** Throws the object in hand towards `aim`; heavier things fly shorter. Returns false if it holds none. */
@@ -206,6 +221,7 @@ export function throwCarried(
   };
   if (run > 0.01) me.facing = Math.atan2(to.x - me.pos.x, to.z - me.pos.z);
   me.carrying = null;
+  syncStructures(state, config);
   me.fireCooldown = Math.max(me.fireCooldown, 0.4);
   state.events.push({ type: 'objectThrown', objectId: o.id, throwerId: me.id });
   return true;
@@ -227,7 +243,7 @@ function explodeAt(state: GameState, config: GameConfig, o: GameObject, def: Obj
     }
   }
   for (const s of state.soldiers) {
-    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue;
+    if (s.dead || s.kind === 'drone' || inShelter(s)) continue;
     const d = Math.hypot(s.pos.x - at.x, s.pos.z - at.z);
     if (d <= blast.radius && config.grenades.friendlyFire > 0) {
       hurtSoldier(
@@ -270,6 +286,7 @@ export function hurtObject(
   if (o.health > 0) return;
   const def = objectDef(config, o);
   state.objects = state.objects.filter((x) => x !== o);
+  syncStructures(state, config);
   if (o.heldBy !== null) {
     const holder = state.soldiers.find((s) => s.id === o.heldBy);
     if (holder) holder.carrying = null;
@@ -292,6 +309,7 @@ function land(state: GameState, config: GameConfig, o: GameObject): void {
   o.flight = null;
   resolveStatic(o.pos, def.radius, config.arena);
   o.y = supportHeight(config.arena, o.pos, 0);
+  syncStructures(state, config);
   const thrower = state.soldiers.find((s) => s.id === flight.thrower);
   const hit = def.radius + 0.8;
   for (const z of state.zombies) {
@@ -310,7 +328,7 @@ export function updateObjects(state: GameState, config: GameConfig, dt: number):
   for (const me of state.soldiers) {
     const c = me.carrying;
     if (!c) continue;
-    if (me.dead || me.downed || me.vehicleId !== null) {
+    if (me.dead || me.downed || inShelter(me)) {
       dropCarried(state, config, me);
       continue;
     }

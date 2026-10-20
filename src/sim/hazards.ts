@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import type { GameConfig } from './config';
 import { hurtObject, ignite, objectDef } from './objects';
 import { hurtSoldier } from './soldiers';
@@ -70,7 +71,7 @@ export function updateHazards(state: GameState, config: GameConfig, dt: number):
 
   for (const fire of [...state.fires]) {
     for (const s of state.soldiers) {
-      if (s.dead || s.kind === 'drone' || s.vehicleId !== null || s.carriedBy !== null) continue;
+      if (s.dead || s.kind === 'drone' || inShelter(s) || s.carriedBy !== null) continue;
       if (Math.hypot(s.pos.x - fire.x, s.pos.z - fire.z) <= f.radius) {
         hurtSoldier(state, config, s, amount, -1);
       }

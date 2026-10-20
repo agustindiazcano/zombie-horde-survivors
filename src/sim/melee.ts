@@ -1,3 +1,4 @@
+import { inShelter } from './shelter';
 import { resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import { rollHit } from './hits';
@@ -62,7 +63,7 @@ export function enemyInMeleeReach(state: GameState, config: GameConfig, s: Soldi
  * shares the cooldown with shooting and interrupts a reload. Returns false if the unit cannot.
  */
 export function meleeStrike(state: GameState, config: GameConfig, s: Soldier): boolean {
-  if (s.dead || s.downed || s.vehicleId !== null || s.kind === 'drone' || s.fireCooldown > 0) {
+  if (s.dead || s.downed || inShelter(s) || s.kind === 'drone' || s.fireCooldown > 0) {
     return false;
   }
   const blow = blowOf(config, s);

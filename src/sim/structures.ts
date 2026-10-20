@@ -1,6 +1,9 @@
-import type { GameConfig, Obstacle } from './config';
+import { inShelter } from './shelter';
+import { DEFAULT_DOOR_RULES } from './config';
+import type { Arena, DoorRules, GameConfig, Obstacle } from './config';
+import { supportHeight } from './collision';
 import { isBlocked } from './weapon';
-import type { GameState, Soldier, Structure } from './types';
+import type { GameState, Soldier, Structure, Zombie } from './types';
 import { localPlayer } from './players';
 import { bonus, squadBonus } from './training';
 import { damageZombie } from './zombies';
@@ -17,6 +20,19 @@ type StructureDef = GameConfig['structures']['types'][string];
 
 export const structureDef = (config: GameConfig, s: Structure): StructureDef =>
   config.structures.types[s.type]!;
+
+/** A door is passable once it has swung this far open (it blocks while it opens and as soon as it starts shutting). */
+const PASS_OPENNESS = 0.85;
+
+export const doorRulesOf = (def: StructureDef): DoorRules => def.doorRules ?? DEFAULT_DOOR_RULES;
+
+/** True while a built structure stops walkers: everything but a door that is open and wide. */
+export const blocks = (config: GameConfig, s: Structure): boolean =>
+  !(structureDef(config, s).door && s.open && s.openness >= PASS_OPENNESS);
+
+/** A door soldiers may open on their own: not locked and not run by a switch. */
+const usableDoor = (def: StructureDef, s: Structure): boolean =>
+  def.door && s.lock === null && !doorRulesOf(def).powered;
 
 /** Half sides of the footprint after the quarter turns. */
 export function footprint(
@@ -60,10 +76,14 @@ export function syncStructures(state: GameState, config: GameConfig): void {
   const arena = config.arena;
   arena.base ??= arena.obstacles;
   const boxes: Obstacle[] = [];
+  const doors: NonNullable<Arena['doors']> = [];
   for (const s of state.structures) {
-    if (!s.built || s.open) continue;
+    if (!s.built) continue;
     const def = structureDef(config, s);
     const { halfW, halfD } = footprint(config, s.type, s.turns);
+    if (usableDoor(def, s)) doors.push({ x: s.x, z: s.z, halfW, halfD });
+    if (!blocks(config, s)) continue;
+    const glass = def.door && doorRulesOf(def).seeThrough;
     boxes.push({
       x: s.x,
       z: s.z,
@@ -71,10 +91,29 @@ export function syncStructures(state: GameState, config: GameConfig): void {
       halfD,
       height: def.height,
       passShots: def.passShots,
-      structure: { id: s.id, breakCost: def.breakCost * config.structures.pathCostScale },
+      ...(glass ? { seeThrough: true } : {}),
+      structure: {
+        id: s.id,
+        breakCost: def.breakCost * config.structures.pathCostScale,
+        door: usableDoor(def, s) ? true : undefined,
+      },
+    });
+  }
+  // Things lying on the ground block walkers (bullets pass: the shootable ones are hit by hand).
+  for (const o of state.objects) {
+    if (o.heldBy !== null || o.flight !== null) continue;
+    const def = config.objects.types[o.type]!;
+    boxes.push({
+      x: o.pos.x,
+      z: o.pos.z,
+      halfW: def.radius,
+      halfD: def.radius,
+      height: def.height,
+      passShots: true,
     });
   }
   arena.obstacles = [...arena.base, ...boxes];
+  arena.doors = doors;
 }
 
 function makeStructure(
@@ -101,6 +140,12 @@ function makeStructure(
     built,
     progress: 0,
     open: false,
+    openness: 0,
+    lock: null,
+    link: 0,
+    idle: 0,
+    ammo: def.ammo?.capacity ?? 0,
+    crew: null,
     cooldown: 0,
     facing: 0,
   };
@@ -115,7 +160,11 @@ export function resetStructures(state: GameState, config: GameConfig): void {
   for (const p of config.startStructures) {
     if (!(p.type in config.structures.types)) continue;
     const level = Math.min(p.level, config.structures.types[p.type]!.levels.length + 1);
-    makeStructure(state, config, p.type, p.x, p.z, p.turns, level, true);
+    const s = makeStructure(state, config, p.type, p.x, p.z, p.turns, level, true);
+    s.open = p.open ?? false;
+    s.openness = s.open ? 1 : 0;
+    s.lock = p.lock ?? null;
+    s.link = p.link ?? 0;
   }
   if (state.structures.length > 0) syncStructures(state, config);
 }
@@ -173,11 +222,25 @@ export function placeStructure(
   return makeStructure(state, config, type, x, z, turns, 1, false);
 }
 
+/** The crew of a post climbs out where it climbed in. */
+export function ejectCrew(state: GameState, config: GameConfig, s: Structure): void {
+  if (s.crew === null) return;
+  const crew = state.soldiers.find((u) => u.id === s.crew);
+  s.crew = null;
+  if (!crew?.post) return;
+  crew.pos.x = crew.prev.x = crew.post.exit.x;
+  crew.pos.z = crew.prev.z = crew.post.exit.z;
+  crew.post = null;
+  crew.y = crew.prevY = supportHeight(config.arena, crew.pos, 0);
+  crew.vy = 0;
+}
+
 /** Removes a structure: a blueprint gives back part of the gold, a finished one nothing. */
 export function removeStructure(state: GameState, config: GameConfig, id: number): void {
   const i = state.structures.findIndex((s) => s.id === id);
   if (i < 0) return;
   const s = state.structures[i]!;
+  ejectCrew(state, config, s);
   if (!s.built) state.gold += Math.floor(structureDef(config, s).cost * config.structures.refund);
   state.structures.splice(i, 1);
   syncStructures(state, config);
@@ -228,13 +291,85 @@ export function repairStructure(state: GameState, config: GameConfig, id: number
   return true;
 }
 
-/** Opens or closes a door. */
-export function toggleDoor(state: GameState, config: GameConfig, id: number): boolean {
+/** True if something stands in the doorway (a door cannot shut on it). */
+function occupied(state: GameState, config: GameConfig, s: Structure): boolean {
+  const { halfW, halfD } = footprint(config, s.type, s.turns);
+  const inside = (p: Vec2, r: number) =>
+    Math.abs(p.x - s.x) < halfW + r && Math.abs(p.z - s.z) < halfD + r;
+  for (const u of state.soldiers) {
+    if (!u.dead && u.vehicleId === null && inside(u.pos, config.player.radius)) return true;
+  }
+  for (const z of state.zombies) {
+    if (z.state !== 'death' && inside(z.pos, z.radius)) return true;
+  }
+  for (const v of state.vehicles) {
+    if (inside(v.pos, config.vehicles[v.type]!.radius)) return true;
+  }
+  return false;
+}
+
+const deny = (
+  state: GameState,
+  s: Structure,
+  reason: 'locked' | 'powered' | 'blocked',
+  key?: string,
+): false => {
+  state.events.push({
+    type: 'doorDenied',
+    structureId: s.id,
+    reason,
+    ...(key ? { key } : {}),
+  });
+  return false;
+};
+
+/**
+ * Uses a door or a switch. A switch flips (the powered doors of its link follow); a powered door
+ * does nothing on its own; a locked door opens for a soldier (`by`) carrying its key, for good; an
+ * open door will not shut on someone standing in it. A refusal raises `doorDenied`.
+ */
+export function toggleDoor(state: GameState, config: GameConfig, id: number, by?: number): boolean {
   const s = getStructure(state, id);
-  if (!s || !s.built || !structureDef(config, s).door) return false;
+  if (!s || !s.built) return false;
+  const def = structureDef(config, s);
+  if (def.switch) {
+    s.open = !s.open;
+    return true;
+  }
+  if (!def.door) return false;
+  const rules = doorRulesOf(def);
+  if (rules.powered) return deny(state, s, 'powered');
+  if (!s.open && s.lock !== null) {
+    const holder = by === undefined ? undefined : state.soldiers.find((u) => u.id === by);
+    if (!holder?.backpack.some((st) => st.item === s.lock)) {
+      return deny(state, s, 'locked', s.lock);
+    }
+    s.lock = null;
+  }
+  if (s.open && occupied(state, config, s)) return deny(state, s, 'blocked');
   s.open = !s.open;
+  s.idle = rules.closeDelay;
   syncStructures(state, config);
   return true;
+}
+
+/** How far ahead (metres) a walking soldier looks for a closed door, and the margin around the door. */
+const DOOR_LOOKAHEAD = 1;
+const DOOR_MARGIN = 0.7;
+
+/** Opens the closed door a soldier walking along `dir` (a unit vector) is about to enter. */
+export function openDoorAhead(state: GameState, config: GameConfig, from: Vec2, dir: Vec2): void {
+  const px = from.x + dir.x * DOOR_LOOKAHEAD;
+  const pz = from.z + dir.z * DOOR_LOOKAHEAD;
+  for (const s of state.structures) {
+    const def = structureDef(config, s);
+    if (!s.built || s.open || !usableDoor(def, s) || doorRulesOf(def).auto) continue;
+    const { halfW, halfD } = footprint(config, s.type, s.turns);
+    if (Math.abs(px - s.x) <= halfW + DOOR_MARGIN && Math.abs(pz - s.z) <= halfD + DOOR_MARGIN) {
+      toggleDoor(state, config, s.id);
+      return;
+    }
+  }
 }
 
 /** The closest door within reach of a point, open or closed. */
@@ -247,7 +382,8 @@ export function doorInReach(
   let best: Structure | undefined;
   let bestD = reach;
   for (const s of state.structures) {
-    if (!s.built || !structureDef(config, s).door) continue;
+    const def = structureDef(config, s);
+    if (!s.built || !(def.door || def.switch)) continue;
     const d = edgeDistance(config, s, from);
     if (d <= bestD) {
       best = s;
@@ -267,6 +403,7 @@ export function hurtStructure(
   if (!s.built) return;
   s.health -= amount;
   if (s.health > 0) return;
+  ejectCrew(state, config, s);
   state.structures = state.structures.filter((o) => o !== s);
   state.events.push({ type: 'structureDestroyed', structureId: s.id, pos: { x: s.x, z: s.z } });
   syncStructures(state, config);
@@ -290,7 +427,7 @@ export function isWorking(state: GameState, config: GameConfig, s: Soldier): boo
 
 /** A soldier that can lend a hand: on its feet, not driving, not a drone. */
 const canWork = (s: Soldier): boolean =>
-  !s.dead && !s.downed && s.kind === 'soldier' && s.vehicleId === null;
+  !s.dead && !s.downed && s.kind === 'soldier' && !inShelter(s);
 
 /** The enemy closest to a point, or Infinity when there is none. */
 export function nearestEnemyDistance(state: GameState, from: Vec2): number {
@@ -333,45 +470,184 @@ function buildWork(state: GameState, config: GameConfig, dt: number): void {
   }
 }
 
+/**
+ * The enemy a gun at `at` should shoot: the closest one in range that it can see (bosses first when
+ * `bossFirst`), or null. `ignoresCover` skips the sight check (a tower looks down on cover).
+ */
+export function pickTarget(
+  state: GameState,
+  config: GameConfig,
+  at: Vec2,
+  range: number,
+  bossFirst: boolean,
+  ignoresCover = false,
+): Zombie | null {
+  let best: { z: Zombie; d: number; boss: boolean } | null = null;
+  for (const z of state.zombies) {
+    if (z.state === 'death') continue;
+    const d = Math.hypot(z.pos.x - at.x, z.pos.z - at.z);
+    if (d > range) continue;
+    const boss = bossFirst && z.boss;
+    if (best && (best.boss && !boss ? true : boss === best.boss && d >= best.d)) continue;
+    const dir = { x: (z.pos.x - at.x) / (d || 1), z: (z.pos.z - at.z) / (d || 1) };
+    if (!ignoresCover && isBlocked(at, dir, d - z.radius, config)) continue;
+    best = { z, d, boss };
+  }
+  return best ? best.z : null;
+}
+
+/**
+ * One round from a structure's gun at `target`: spends a round, raises the shot event and hurts
+ * the enemy (the kill goes to `killer`, a crew member, when there is one). False when it is dry.
+ */
+export function fireStructure(
+  state: GameState,
+  config: GameConfig,
+  st: Structure,
+  target: Zombie,
+  damage: number,
+  fireRate: number,
+  killer?: Soldier,
+): boolean {
+  const def = structureDef(config, st);
+  if (def.ammo && st.ammo <= 0) return false;
+  st.facing = Math.atan2(target.pos.x - st.x, target.pos.z - st.z);
+  if (st.cooldown > 0) return false;
+  st.cooldown += 1 / fireRate;
+  if (def.ammo) {
+    st.ammo--;
+    if (st.ammo === 0) state.events.push({ type: 'notice', text: `${def.name} is out of ammo` });
+  }
+  state.events.push({
+    type: 'structureShot',
+    structureId: st.id,
+    from: { x: st.x, z: st.z },
+    to: { x: target.pos.x, z: target.pos.z },
+    hitZombieId: target.id,
+  });
+  damageZombie(state, config, target, damage, killer, 'body', damage);
+  return true;
+}
+
 function fireTurrets(state: GameState, config: GameConfig, dt: number): void {
   for (const st of state.structures) {
     const def = structureDef(config, st);
-    if (!st.built || !def.turret) continue;
     st.cooldown = Math.max(0, st.cooldown - dt);
+    if (!st.built || !def.turret) continue;
     const scale = levelScale(def, st.level);
-    const range = def.turret.range * scale.range;
-    let best: { id: number; d: number; boss: boolean } | null = null;
-    for (const z of state.zombies) {
-      if (z.state === 'death') continue;
-      const d = Math.hypot(z.pos.x - st.x, z.pos.z - st.z);
-      if (d > range) continue;
-      const boss = def.turret.bossFirst && z.boss;
-      if (best && (best.boss && !boss ? true : boss === best.boss && d >= best.d)) continue;
-      const dir = { x: (z.pos.x - st.x) / (d || 1), z: (z.pos.z - st.z) / (d || 1) };
-      if (isBlocked({ x: st.x, z: st.z }, dir, d - z.radius, config)) continue;
-      best = { id: z.id, d, boss };
-    }
-    const target = best ? state.zombies.find((z) => z.id === best!.id) : undefined;
+    const target = pickTarget(
+      state,
+      config,
+      st,
+      def.turret.range * scale.range,
+      def.turret.bossFirst,
+    );
     if (!target) continue;
-    st.facing = Math.atan2(target.pos.x - st.x, target.pos.z - st.z);
-    if (st.cooldown > 0) continue;
-    st.cooldown += 1 / def.turret.fireRate;
-    const damage = def.turret.damage * scale.damage;
-    state.events.push({
-      type: 'structureShot',
-      structureId: st.id,
-      from: { x: st.x, z: st.z },
-      to: { x: target.pos.x, z: target.pos.z },
-      hitZombieId: target.id,
-    });
-    damageZombie(state, config, target, damage, undefined, 'body', damage);
+    fireStructure(state, config, st, target, def.turret.damage * scale.damage, def.turret.fireRate);
   }
+}
+
+/** Gold to refill a turret or a mounted gun from the build panel, or null when it is full or has no magazine. */
+export function ammoRefillCost(config: GameConfig, s: Structure): number | null {
+  const cap = structureDef(config, s).ammo?.capacity;
+  if (!s.built || cap === undefined || s.ammo >= cap) return null;
+  return Math.ceil((cap - s.ammo) * config.structures.ammoCost);
+}
+
+export function refillWithGold(state: GameState, config: GameConfig, id: number): boolean {
+  const s = getStructure(state, id);
+  const cost = s ? ammoRefillCost(config, s) : null;
+  if (!s || cost === null || state.gold < cost) return false;
+  state.gold -= cost;
+  s.ammo = structureDef(config, s).ammo!.capacity;
+  return true;
+}
+
+/** A soldier feeds the structure rounds from its backpack stacks of the right ammo, as many as fit. */
+export function resupply(
+  state: GameState,
+  config: GameConfig,
+  id: number,
+  soldierId: number,
+): number {
+  const s = getStructure(state, id);
+  const unit = state.soldiers.find((u) => u.id === soldierId);
+  const ammo = s ? structureDef(config, s).ammo : undefined;
+  if (!s || !unit || !ammo || !s.built) return 0;
+  let given = 0;
+  for (let i = unit.backpack.length - 1; i >= 0 && s.ammo < ammo.capacity; i--) {
+    const stack = unit.backpack[i]!;
+    if (stack.item !== ammo.item) continue;
+    const put = Math.min(stack.count, ammo.capacity - s.ammo);
+    stack.count -= put;
+    s.ammo += put;
+    given += put;
+    if (stack.count === 0) unit.backpack.splice(i, 1);
+  }
+  state.events.push({
+    type: 'notice',
+    text:
+      given > 0
+        ? `Fed ${given} rounds to the ${structureDef(config, s).name.toLowerCase()}`
+        : `No ${config.items[ammo.item]?.name ?? 'ammo'} to feed it with`,
+  });
+  return given;
+}
+
+/** Someone who would walk through an auto door: a soldier on its feet, or a vehicle with a driver. */
+function someoneNear(state: GameState, config: GameConfig, s: Structure, range: number): boolean {
+  for (const u of state.soldiers) {
+    if (u.dead || u.downed || u.kind === 'drone' || inShelter(u)) continue;
+    if (edgeDistance(config, s, u.pos) <= range) return true;
+  }
+  for (const v of state.vehicles) {
+    if (v.seats[0] !== null && edgeDistance(config, s, v.pos) <= range) return true;
+  }
+  return false;
+}
+
+/**
+ * Doors: powered ones follow the switches of their link, auto ones open for anyone near and shut
+ * a while after the last one leaves, and every door swings towards its open or shut state. The
+ * obstacle list is rebuilt only when a door starts or stops blocking.
+ */
+function updateDoors(state: GameState, config: GameConfig, dt: number): void {
+  let changed = false;
+  for (const s of state.structures) {
+    const def = structureDef(config, s);
+    if (!s.built || !def.door) continue;
+    const rules = doorRulesOf(def);
+    const was = blocks(config, s);
+    if (rules.powered) {
+      const on = state.structures.some(
+        (w) => w.built && w.link === s.link && structureDef(config, w).switch && w.open,
+      );
+      if (on !== s.open && (on || !occupied(state, config, s))) s.open = on;
+    } else if (rules.auto && s.lock === null) {
+      if (someoneNear(state, config, s, rules.autoRange)) {
+        s.idle = rules.closeDelay;
+        s.open = true;
+      } else if (s.open) {
+        s.idle -= dt;
+        if (s.idle <= 0 && !occupied(state, config, s)) s.open = false;
+      }
+    }
+    const target = s.open ? 1 : 0;
+    const step = dt / rules.openTime;
+    s.openness =
+      target > s.openness
+        ? Math.min(target, s.openness + step)
+        : Math.max(target, s.openness - step);
+    if (blocks(config, s) !== was) changed = true;
+  }
+  if (changed) syncStructures(state, config);
 }
 
 /** One step of build mode: blueprints get worked on, turrets shoot. */
 export function updateStructures(state: GameState, config: GameConfig, dt: number): void {
   if (state.structures.length === 0) return;
   buildWork(state, config, dt);
+  updateDoors(state, config, dt);
   fireTurrets(state, config, dt);
 }
 
@@ -390,7 +666,7 @@ export function blockingStructure(
   const dz = towards.z - from.z;
   const len = Math.hypot(dx, dz) || 1;
   for (const s of state.structures) {
-    if (!s.built || s.open) continue;
+    if (!s.built || !blocks(config, s)) continue;
     const d = edgeDistance(config, s, from) - radius;
     if (d > reach || d >= bestD) continue;
     // Only if the way on leads into it: the waypoint lies on the structure's side of the zombie.

@@ -72,7 +72,11 @@ Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watch
 - [x] Phase 0, the flow-field pathfinding, is built on `feat/flow-field` ([worklog](docs/worklog/2026-10-19-flow-field.md)); look at it in the browser (zombies go around long walls and into the squad's reach).
 - [x] Structures, blueprints, builders, doors, turrets, upgrades, repair, the **N** menu, Map 2 ([worklog](docs/worklog/2026-10-19-build-mode.md)).
 - [ ] 🔴 Look at it in the browser: open Map 2, press **N**, place a wall / door / turret, watch the soldiers build, open the door with **E**, let a wave hit the base. Tune `structures` in `game.json`.
-- [ ] 🟡 Next: manned machine-gun nest and watchtower (reuse vehicle seats), structures in the editor, soldiers pathing around structures, models and sounds, ammo for turrets.
+- [x] Manned machine-gun nest, watchtower and ammo for turrets ([worklog](docs/worklog/2026-10-20-posts-and-turret-ammo.md)); soldier pathing around structures is on `feat/soldier-structure-pathing`.
+- [ ] 🔴 Look at them in the browser: Map 2 has a nest and a tower; **E** / **V** to climb in, the mouse aims the nest, turrets run dry and **Resupply**. Tune `post` and `ammo` of the structure types.
+- [x] Structures, objects and loose items in the map editor ([worklog](docs/worklog/2026-10-20-editor-structures.md)).
+- [ ] 🔴 Try the editor: Assets tab > Structures / Objects / Loose items, place a door, lock it and set its link, Play.
+- [ ] 🟡 Next: models and sounds for structures, the AI manning posts and feeding turrets.
 
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
@@ -98,7 +102,9 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [x] Lift and throw objects (**E**, click), carry a body (**E**), fire that spreads, explosive and fuel barrels, Map 5 ([worklog](docs/worklog/2026-10-19-interaction-and-training.md)).
 - [x] Action key **E** (Half-Life style) and RTS hover labels (Pick / Drag / Open / Close / Enter), click or E sends the closest selected soldier; select-all moved to Ctrl+A. Monster corpses are not draggable yet (they vanish after dying); loose items on the ground do not exist yet (only crates).
 - [ ] 🔴 Look at Map 5 in the browser: controls are in [docs/CONTROLS.md](docs/CONTROLS.md) (E lift / put down, click throw, shoot a barrel). Tune `objects` and `hazards.fire` in `game.json`.
-- [ ] 🟡 Next: objects that block movement, AI that carries the wounded, models and sounds, objects in the editor.
+- [x] Objects block movement ([worklog](docs/worklog/2026-10-20-objects-block-movement.md)).
+- [x] Corpses you can drag, loose items on the ground (Drop / Take) and the AI that drags the wounded ([worklog](docs/worklog/2026-10-20-corpses-and-loose-items.md)). Look at them in the browser: corpse count and look, the Drop button, the AI pulling a downed ally.
+- [ ] 🟡 Next: models and sounds, objects and loose items in the editor.
 
 ### 2k — 🔴 Celestial Event III (Map 6, demo for another game on this engine; scene built 2026-10-20, branch `feat/celestial-event-3`)
 
@@ -123,7 +129,10 @@ Plans: [PLAN-test-maps.md](docs/PLAN-test-maps.md) (weapons range, hide and seek
 
 - [x] Maps 2 to 4 built: Build mode test, Weapons range, Hide and seek (a giant Stalker that hunts by sight, loses track and searches; crouching hides you better).
 - [ ] 🟡 Look at maps 3 and 4 in the browser (targets, the Stalker's size, how it searches, crouch stealth).
-- [ ] 🟡 Next by the user's order: soldier pathing (W0) and the door system v2 (W1), then celestial event 4, the cover AI map and interiors.
+- [x] W0 soldier pathing built on `feat/soldier-structure-pathing` ([worklog](docs/worklog/2026-10-20-w0-soldier-pathing.md)); look at it in the browser (Map 2: build a wall, order a soldier across, add a door).
+- [x] Door system v2 and large gates built ([worklog](docs/worklog/2026-10-20-doors-v2.md)), Map 7 "Door gallery".
+- [ ] 🔴 Look at Map 7 in the browser: each door kind, the keycard, the switch and the blast door, the glass door's sight, auto doors with the squad. Tune `doorRules` in `game.json`.
+- [ ] 🟡 Next: airlock pair (W3), then celestial event 4, the cover AI map and interiors.
 - [ ] ⚪ Answer the questions of section 9 of PLAN-world-and-engine.md and the open questions of PLAN-test-maps.md section 3.
 
 ### 2h — ⚪ Phase B: WebGPU engine, VAT crowd, ragdoll pool, mocap (noted 2026-10-19, nothing decided or built)
