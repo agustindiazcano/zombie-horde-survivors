@@ -1492,7 +1492,7 @@ export type Obstacle = {
   /** The way the prop faces (radians, 0 is +Z): a house's door, the lean of a lamp. */
   facing?: number;
   /** Set when a built structure makes this box; its path cost (cells) replaces a hard block for enemies. */
-  structure?: { id: number; breakCost: number };
+  structure?: { id: number; breakCost: number; door?: boolean };
 };
 /** The playfield the sim runs on, derived from the map (see `arenaOf`). */
 export type Arena = {
@@ -1500,6 +1500,8 @@ export type Arena = {
   obstacles: Obstacle[];
   /** The map's own obstacles; `obstacles` is this plus the built structures (see `syncStructures`). */
   base?: Obstacle[];
+  /** The footprints of every built door, open or closed: soldiers path through them (see `syncStructures`). */
+  doors?: { x: number; z: number; halfW: number; halfD: number }[];
   terrain: MapData['terrain'];
   surfaces: MapData['surfaces'];
 };

@@ -34,6 +34,8 @@ Also on that branch (later the same day): liftable and throwable objects, carryi
 
 Merged since: PR #53 (`feat/build-mode`) is in `main` (`0e14a2e`). Now on branch `feat/celestial-event-3` (not pushed, no PR, last commit `d2e311c`): the plan [PLAN-celestial-event-3.md](docs/PLAN-celestial-event-3.md) and Map 6 "Celestial Event III", a scripted ~5 minute scene: a night suburb, the sky show, blackout, metal scouts, a big abductor with cold light and a parting ray (110-180 s, the crowd stays calm), a second ship with a ring of survivors round the landing point (184-197 s), three grey aliens that freeze one man and vaporise a helper and four more from the ring (198-217 s), and only then the panic and the 8 hunter spheres (217 s+) ([worklog](docs/worklog/2026-10-20-celestial-event-3-e0-e2.md), fifth part). Script times live in `scripts/gen-map6.py` and in `game.json` (`skyShow`, `orbs`, `greys`, `animals`): change both together. The plan now also holds the Nodes lore (Nodes 1-10, the player is Node 10, remote-projection intro) and the cosmic horror layer (open hypotheses that are never confirmed), plus the Node 10 mechanics (psychic signature, 5 s premonition, living geometry) for E6, which need interiors. Placeholders only (existing models, procedural spheres); no new asset was downloaded. The user has not seen it in a browser yet.
 
+W0 (soldier pathing round structures, doors opened on the way) is built on `feat/soldier-structure-pathing` ([worklog](docs/worklog/2026-10-20-w0-soldier-pathing.md)), waiting for the user's look and OK. The SUV colour texture fix is on `fix/suv-colormap`.
+
 ## Open items (details in PENDING.md)
 
 - 🔴 The user has to look at the live game and report what looks or feels wrong (PENDING §0).

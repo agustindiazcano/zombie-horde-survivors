@@ -1,4 +1,4 @@
-import type { GameConfig, Obstacle } from './config';
+import type { Arena, GameConfig, Obstacle } from './config';
 import { isBlocked } from './weapon';
 import type { GameState, Soldier, Structure } from './types';
 import { localPlayer } from './players';
@@ -60,10 +60,13 @@ export function syncStructures(state: GameState, config: GameConfig): void {
   const arena = config.arena;
   arena.base ??= arena.obstacles;
   const boxes: Obstacle[] = [];
+  const doors: NonNullable<Arena['doors']> = [];
   for (const s of state.structures) {
-    if (!s.built || s.open) continue;
+    if (!s.built) continue;
     const def = structureDef(config, s);
     const { halfW, halfD } = footprint(config, s.type, s.turns);
+    if (def.door) doors.push({ x: s.x, z: s.z, halfW, halfD });
+    if (s.open) continue;
     boxes.push({
       x: s.x,
       z: s.z,
@@ -71,10 +74,15 @@ export function syncStructures(state: GameState, config: GameConfig): void {
       halfD,
       height: def.height,
       passShots: def.passShots,
-      structure: { id: s.id, breakCost: def.breakCost * config.structures.pathCostScale },
+      structure: {
+        id: s.id,
+        breakCost: def.breakCost * config.structures.pathCostScale,
+        door: def.door ? true : undefined,
+      },
     });
   }
   arena.obstacles = [...arena.base, ...boxes];
+  arena.doors = doors;
 }
 
 function makeStructure(
@@ -235,6 +243,24 @@ export function toggleDoor(state: GameState, config: GameConfig, id: number): bo
   s.open = !s.open;
   syncStructures(state, config);
   return true;
+}
+
+/** How far ahead (metres) a walking soldier looks for a closed door, and the margin around the door. */
+const DOOR_LOOKAHEAD = 1;
+const DOOR_MARGIN = 0.7;
+
+/** Opens the closed door a soldier walking along `dir` (a unit vector) is about to enter. */
+export function openDoorAhead(state: GameState, config: GameConfig, from: Vec2, dir: Vec2): void {
+  const px = from.x + dir.x * DOOR_LOOKAHEAD;
+  const pz = from.z + dir.z * DOOR_LOOKAHEAD;
+  for (const s of state.structures) {
+    if (!s.built || s.open || !structureDef(config, s).door) continue;
+    const { halfW, halfD } = footprint(config, s.type, s.turns);
+    if (Math.abs(px - s.x) <= halfW + DOOR_MARGIN && Math.abs(pz - s.z) <= halfD + DOOR_MARGIN) {
+      toggleDoor(state, config, s.id);
+      return;
+    }
+  }
 }
 
 /** The closest door within reach of a point, open or closed. */

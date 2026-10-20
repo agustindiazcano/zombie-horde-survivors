@@ -1,4 +1,5 @@
-import { edgeDistance, getStructure, isWorking, mustFight } from './structures';
+import { edgeDistance, getStructure, isWorking, mustFight, openDoorAhead } from './structures';
+import { ageWalk, walkTarget } from './flowfield';
 import { ARRIVE_SHARE, findInteractable, performInteract } from './interact';
 import { throwCarried } from './objects';
 import { bonus } from './training';
@@ -267,6 +268,7 @@ export function updateSoldiers(
 ): void {
   const controlledId = localPlayer(state).controlledId;
   const leader = getSoldier(state, controlledId);
+  ageWalk(state, dt);
   for (const s of state.soldiers) {
     // How far it moved last step decides how long it has stood still.
     s.stillTime =
@@ -302,7 +304,9 @@ export function updateSoldiers(
       s.downed || (state.stance === 'sprint' && (s.winded || isDrone(s))) ? 'normal' : state.stance;
     if (s.vehicleId !== null) updateSeated(state, config, s, input, controlledId);
     else if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
-    else updateAi(state, config, s, leader, stance, dt);
+    else {
+      updateAi(state, config, s, leader, stance, dt);
+    }
     updateStamina(config, s, stance, dt);
     updateJump(config, s, dt);
   }
@@ -515,14 +519,19 @@ function updateAi(
 
   let moveAngle: number | null = null;
   if (dest) {
-    const dx = dest.x - s.pos.x;
-    const dz = dest.z - s.pos.z;
+    // On foot, walk round walls and structures along the shared path grid (a drone flies over).
+    const via = isDrone(s) ? dest : walkTarget(state, config, s.id, s.pos, dest);
+    const dx = via.x - s.pos.x;
+    const dz = via.z - s.pos.z;
     const d = Math.hypot(dx, dz);
-    const step = Math.min(speed * dt, d);
-    s.pos.x += (dx / d) * step;
-    s.pos.z += (dz / d) * step;
-    resolveUnit(s, config);
-    moveAngle = Math.atan2(dx, dz);
+    if (d > 1e-6) {
+      const step = Math.min(speed * dt, d);
+      if (!isDrone(s)) openDoorAhead(state, config, s.pos, { x: dx / d, z: dz / d });
+      s.pos.x += (dx / d) * step;
+      s.pos.z += (dz / d) * step;
+      resolveUnit(s, config);
+      moveAngle = Math.atan2(dx, dz);
+    }
   }
 
   // An enemy right at the unit's feet gets a blow (and a shove) instead of a shot.

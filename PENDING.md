@@ -123,7 +123,8 @@ Plans: [PLAN-test-maps.md](docs/PLAN-test-maps.md) (weapons range, hide and seek
 
 - [x] Maps 2 to 4 built: Build mode test, Weapons range, Hide and seek (a giant Stalker that hunts by sight, loses track and searches; crouching hides you better).
 - [ ] 🟡 Look at maps 3 and 4 in the browser (targets, the Stalker's size, how it searches, crouch stealth).
-- [ ] 🟡 Next by the user's order: soldier pathing (W0) and the door system v2 (W1), then celestial event 4, the cover AI map and interiors.
+- [x] W0 soldier pathing built on `feat/soldier-structure-pathing` ([worklog](docs/worklog/2026-10-20-w0-soldier-pathing.md)); look at it in the browser (Map 2: build a wall, order a soldier across, add a door).
+- [ ] 🟡 Next by the user's order: the door system v2 (W1), then celestial event 4, the cover AI map and interiors.
 - [ ] ⚪ Answer the questions of section 9 of PLAN-world-and-engine.md and the open questions of PLAN-test-maps.md section 3.
 
 ### 2h — ⚪ Phase B: WebGPU engine, VAT crowd, ragdoll pool, mocap (noted 2026-10-19, nothing decided or built)
