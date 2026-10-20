@@ -28219,57 +28219,66 @@
         "type": "hunter_sphere",
         "x": 51.0,
         "z": 4.0,
-        "at": 162.0,
+        "at": 178.0,
         "y": 25
       },
       {
         "type": "hunter_sphere",
         "x": 37.8,
         "z": 35.8,
-        "at": 162.6,
+        "at": 178.6,
         "y": 25
       },
       {
         "type": "hunter_sphere",
         "x": 6.0,
         "z": 49.0,
-        "at": 163.2,
+        "at": 179.2,
         "y": 25
       },
       {
         "type": "hunter_sphere",
         "x": -25.8,
         "z": 35.8,
-        "at": 163.8,
+        "at": 179.8,
         "y": 25
       },
       {
         "type": "hunter_sphere",
         "x": -39.0,
         "z": 4.0,
-        "at": 164.4,
+        "at": 180.4,
         "y": 25
       },
       {
         "type": "hunter_sphere",
         "x": -25.8,
         "z": -27.8,
-        "at": 165.0,
+        "at": 181.0,
         "y": 25
       },
       {
         "type": "hunter_sphere",
         "x": 6.0,
         "z": -41.0,
-        "at": 165.6,
+        "at": 181.6,
         "y": 25
       },
       {
         "type": "hunter_sphere",
         "x": 37.8,
         "z": -27.8,
-        "at": 166.2,
+        "at": 182.2,
         "y": 25
+      },
+      {
+        "type": "carrier_sphere",
+        "x": -80,
+        "z": 50,
+        "at": 228,
+        "y": 90,
+        "hx": 6,
+        "hz": 4
       }
     ],
     "subtitles": [
@@ -28384,6 +28393,16 @@
         "text": "That thing is HUGE!"
       },
       {
+        "at": 110,
+        "duration": 3,
+        "text": "Everybody, step back..."
+      },
+      {
+        "at": 172,
+        "duration": 3.5,
+        "text": "The light! It's moving! RUN!"
+      },
+      {
         "at": 116,
         "duration": 4.5,
         "text": "Oh my god, it's taking him!"
@@ -28424,44 +28443,114 @@
         "text": "They're not going to get me!"
       },
       {
-        "at": 162,
+        "at": 176,
         "duration": 2.5,
         "text": "RUN!!!"
       },
       {
-        "at": 164.5,
+        "at": 178.5,
         "duration": 2.5,
         "text": "Who's got a gun?!"
       },
       {
-        "at": 167,
+        "at": 181,
         "duration": 3,
         "text": "Help! Somebody help us!"
       },
       {
-        "at": 177,
+        "at": 191,
         "duration": 3,
         "text": "They're killing everyone!"
       },
       {
-        "at": 173,
+        "at": 187,
         "duration": 3,
         "text": "RUN!!"
       },
       {
-        "at": 170,
+        "at": 184,
         "duration": 3,
         "text": "Aaaaah!"
       },
       {
-        "at": 181,
+        "at": 195,
         "duration": 4,
         "text": "Please, no, no, no!"
       },
       {
-        "at": 186,
+        "at": 200,
         "duration": 4,
         "text": "Somebody do something!"
+      },
+      {
+        "at": 224,
+        "duration": 4,
+        "text": "Another one... another one is coming!"
+      },
+      {
+        "at": 229,
+        "duration": 4,
+        "text": "It's lighting up everything!"
+      },
+      {
+        "at": 234,
+        "duration": 4,
+        "text": "Something is coming down in the light..."
+      },
+      {
+        "at": 239,
+        "duration": 4.5,
+        "text": "Those are... aliens. Real aliens."
+      },
+      {
+        "at": 245,
+        "duration": 4,
+        "text": "Don't go near them..."
+      },
+      {
+        "at": 250,
+        "duration": 4,
+        "text": "Hello? Can you understand me?"
+      },
+      {
+        "at": 257,
+        "duration": 3,
+        "text": "Why isn't he moving?! What did you do?!"
+      },
+      {
+        "at": 261,
+        "duration": 3,
+        "text": "Let him go! Let him go!"
+      },
+      {
+        "at": 265,
+        "duration": 2.5,
+        "text": "NO!"
+      },
+      {
+        "at": 267.5,
+        "duration": 3,
+        "text": "RUN! RUN!"
+      },
+      {
+        "at": 271,
+        "duration": 3,
+        "text": "They're killing us!"
+      },
+      {
+        "at": 275,
+        "duration": 3,
+        "text": "Run! Don't look back!"
+      },
+      {
+        "at": 280,
+        "duration": 3.5,
+        "text": "Help! Somebody help!"
+      },
+      {
+        "at": 285,
+        "duration": 4,
+        "text": "Please... please..."
       }
     ]
   },

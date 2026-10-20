@@ -995,6 +995,8 @@ export const GameConfigSchema = z
           /** Civilians run from orbs: the speed of the panic run and how far (metres) an orb scares them. */
           panicSpeed: positive.optional(),
           fearRadius: positive.optional(),
+          /** Not a stroller: a scripted actor (the grey aliens) that other code moves. */
+          scripted: z.boolean().optional(),
         })
         .strict(),
     ),
@@ -1043,6 +1045,28 @@ export const GameConfigSchema = z
         gatherRadius: positive,
       })
       .strict(),
+    /** The grey aliens' scene under the second ship (times in seconds, speeds in m/s). */
+    greys: z
+      .object({
+        /** How many come down, from what height (m), how fast, and how far (m) from the ship's point they land. */
+        count: z.number().int().positive(),
+        descendHeight: positive,
+        descendSpeed: positive,
+        landRadius: positive,
+        /** Seconds after the ship arrives before the first grey starts down, and before someone walks up. */
+        descendDelay: nonNegative,
+        approachDelay: nonNegative,
+        /** Distance (m) at which a grey fires, and how fast one walks after a target. */
+        rayRange: positive,
+        walkSpeed: positive,
+        /** Seconds between two shots of the same grey, and the time (s) a vaporising ray takes. */
+        fireInterval: positive,
+        vaporTime: positive,
+        /** The survivors within `reach` metres of the ship walk to within `gatherRadius` of it. */
+        reach: positive,
+        gatherRadius: positive,
+      })
+      .strict(),
     /**
      * Celestial orbs by id. A `metal` sphere picks a civilian, appears beside its head without a
      * sound, charges and vaporises it, then picks the next one.
@@ -1068,11 +1092,29 @@ export const GameConfigSchema = z
           liftHeight: positive.optional(),
           leaveSpeed: positive.optional(),
           /** Abductors: people taken before it just hangs there, the seconds between two, and how long (s) from arriving it stays. */
-          victims: z.number().int().positive().optional(),
+          victims: z.number().int().nonnegative().optional(),
           gap: nonNegative.optional(),
           stayTime: positive.optional(),
           /** Hunters: seconds the ray burns a person before they turn to ash. */
           vaporTime: positive.optional(),
+          /** Hunters: seconds from waking up that they keep hunting before they leave. */
+          huntTime: positive.optional(),
+          /** Abductors: the dim light on arriving and the strong flood later (colours, candela), and the sweep's length (m) and time (s) before leaving. */
+          dimColor: z
+            .string()
+            .regex(/^#[0-9a-fA-F]{6}$/)
+            .optional(),
+          floodColor: z
+            .string()
+            .regex(/^#[0-9a-fA-F]{6}$/)
+            .optional(),
+          dimIntensity: positive.optional(),
+          floodIntensity: positive.optional(),
+          sweepLength: positive.optional(),
+          sweepTime: positive.optional(),
+          /** Seconds after the first person is taken before the strong flood comes on, and how wide (m) the lit circle is. */
+          floodDelay: nonNegative.optional(),
+          floodRadius: positive.optional(),
           /** Seconds from waking up (and after each kill) to appearing beside the next target. */
           appearDelay: nonNegative,
           /** Distance (metres) from the target's head where it appears and stays. */

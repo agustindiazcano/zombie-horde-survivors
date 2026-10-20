@@ -958,6 +958,8 @@ export class GameRenderer {
         }
       } else if (e.type === 'vaporised') {
         this.orbViews.vaporise(e.pos);
+      } else if (e.type === 'greyRay') {
+        this.orbViews.greyRay(e.from, e.to, e.kind);
       } else if (e.type === 'explosion') {
         this.grenades.explode(e.pos, e.radius);
         this.shake = Math.min(this.shake + SHOT_SHAKE * 4, MAX_SHAKE);

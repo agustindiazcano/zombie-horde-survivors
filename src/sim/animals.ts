@@ -8,6 +8,8 @@ import type { Vec2 } from './vec';
 const ARRIVE_DISTANCE = 0.3;
 /** How much faster a neighbour walks while going to the crowd of the sky show. */
 const GATHER_HURRY = 2.5;
+/** Speed (m/s) at which a crowd steps backwards from a beam. */
+const RETREAT_SPEED = 0.9;
 
 export function createAnimal(id: number, type: string, pos: Vec2, facing = 0): Animal {
   return {
@@ -24,6 +26,11 @@ export function createAnimal(id: number, type: string, pos: Vec2, facing = 0): A
     gathered: false,
     lift: 0,
     burn: 0,
+    burnSpeed: 0,
+    retreat: null,
+    retreatLeft: 0,
+    rush: null,
+    rushSpeed: 0,
   };
 }
 
@@ -38,8 +45,42 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
     a.prev.x = a.pos.x;
     a.prev.z = a.pos.z;
 
+    // A scripted actor (a grey alien) is moved by its own scene.
+    if (def.scripted) continue;
+
     // Held in an abductor's beam: it does not move.
     if (a.lift > 0 || a.burn > 0) continue;
+
+    // Stepping backwards away from a beam, still facing it.
+    if (a.retreatLeft > 0 && a.retreat && a.panic <= 0) {
+      const dx = a.pos.x - a.retreat.x;
+      const dz = a.pos.z - a.retreat.z;
+      const d = Math.hypot(dx, dz) || 1;
+      const step = RETREAT_SPEED * dt;
+      a.facing = Math.atan2(-dx, -dz);
+      a.dest = null;
+      a.pos.x += (dx / d) * step;
+      a.pos.z += (dz / d) * step;
+      a.retreatLeft -= step;
+      resolveStatic(a.pos, def.radius, config.arena);
+      continue;
+    }
+
+    // Running to someone's side.
+    if (a.rush) {
+      const dx = a.rush.x - a.pos.x;
+      const dz = a.rush.z - a.pos.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.6) a.rush = null;
+      else {
+        const step = Math.min(d, (a.rushSpeed || (def.panicSpeed ?? def.speed)) * dt);
+        a.facing = Math.atan2(dx, dz);
+        a.pos.x += (dx / d) * step;
+        a.pos.z += (dz / d) * step;
+        resolveStatic(a.pos, def.radius, config.arena);
+      }
+      continue;
+    }
 
     // Hunter spheres close by keep everyone running.
     if (def.fearRadius) {

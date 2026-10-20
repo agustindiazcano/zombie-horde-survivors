@@ -3,6 +3,7 @@ import { spawnerEnemy, type GameConfig } from './config';
 import { firstPlayerOf, localPlayer } from './players';
 import { createAnimal, updateAnimals } from './animals';
 import { createOrbs, updateOrbs } from './orbs';
+import { updateGreys } from './greys';
 import { createSky, updateSky } from './sky';
 import { updateDrag } from './drag';
 import { updateGrenades } from './grenades';
@@ -39,6 +40,7 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     animals: [],
     orbs: [],
     skyLights: [],
+    greyScene: null,
     nextOrbId: 1,
     civilians: 0,
     casualties: 0,
@@ -139,6 +141,7 @@ export function step(
   updateAnimals(state, config, dt);
   updateOrbs(state, config, dt);
   updateSky(state, config, dt);
+  updateGreys(state, config, dt);
   updatePickups(state, config, dt);
   if (!state.sandbox && !config.noWaves) updateWaves(state, config, dt);
   updateZombies(state, config, dt);

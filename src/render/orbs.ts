@@ -16,8 +16,12 @@ const BURN_LIGHTS = 4;
 const BURN_LIGHT_INTENSITY = 260;
 const FLASH_LIGHT_INTENSITY = 600;
 /** The big sphere's cold light on the crowd below. */
-const FLOOD_INTENSITY = 1500;
-const FLOOD_COLOR = 0x9fb4cc;
+const SWEEP_LIGHT = 700;
+/** Grey rays: how long (s) each lasts, and how many lights they share. */
+const RAY_LIFE = 0.55;
+const MAX_RAYS = 8;
+const RAY_LIGHTS = 4;
+const RAY_LIGHT_INTENSITY = 520;
 const SPARK_COLOR = 0xbfe9ff;
 
 interface OrbView {
@@ -29,6 +33,13 @@ interface OrbView {
   flood: THREE.SpotLight | null;
   cone: THREE.Mesh | null;
   pool: THREE.Mesh | null;
+}
+
+interface RayShot {
+  mesh: THREE.Mesh;
+  material: THREE.MeshBasicMaterial;
+  light: THREE.PointLight | null;
+  life: number;
 }
 
 /**
@@ -71,6 +82,11 @@ export class OrbViews {
   private readonly flashLight = new THREE.PointLight(SPARK_COLOR, 0, 30, 2);
   private flashLightLife = 0;
   private readonly envMap: THREE.Texture;
+  private readonly shots: RayShot[] = [];
+  private nextShot = 0;
+  private readonly sweepLight = new THREE.PointLight(0xdff0ff, 0, 30, 2);
+  private readonly tmpA = new THREE.Color();
+  private readonly tmpB = new THREE.Color();
 
   constructor(
     private readonly groundAt: (x: number, z: number) => number,
@@ -130,7 +146,49 @@ export class OrbViews {
       this.group.add(light);
       this.burnLights.push(light);
     }
-    this.group.add(this.flashLight);
+    this.group.add(this.flashLight, this.sweepLight);
+
+    // Rays the grey aliens fire: a thick bright line each, some with a light at the target end.
+    const shotGeometry = new THREE.CylinderGeometry(0.09, 0.09, 1, 8, 1, true);
+    for (let i = 0; i < MAX_RAYS; i++) {
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(shotGeometry, material);
+      mesh.visible = false;
+      this.group.add(mesh);
+      let light: THREE.PointLight | null = null;
+      if (i < RAY_LIGHTS) {
+        light = new THREE.PointLight(0xffffff, 0, 16, 2);
+        this.group.add(light);
+      }
+      this.shots.push({ mesh, material, light, life: 0 });
+    }
+  }
+
+  /** A grey fires: a bright ray from its hand to the person, lasting a moment, and it lights the place it ends. */
+  greyRay(from: Vec2, to: Vec2, kind: 'paralyse' | 'vaporise'): void {
+    const shot = this.shots[this.nextShot]!;
+    this.nextShot = (this.nextShot + 1) % MAX_RAYS;
+    const fy = this.groundAt(from.x, from.z) + 1.25;
+    const ty = this.groundAt(to.x, to.z) + 1.15;
+    const length = Math.max(Math.hypot(to.x - from.x, ty - fy, to.z - from.z), 0.01);
+    shot.mesh.position.set((from.x + to.x) / 2, (fy + ty) / 2, (from.z + to.z) / 2);
+    shot.mesh.scale.set(kind === 'paralyse' ? 1.6 : 2.4, length, kind === 'paralyse' ? 1.6 : 2.4);
+    this.rayDir.set(to.x - from.x, ty - fy, to.z - from.z).normalize();
+    shot.mesh.quaternion.setFromUnitVectors(UP, this.rayDir);
+    // Paralysis is a sickly yellow-green, a vaporising ray a hard blue-white.
+    const color = kind === 'paralyse' ? 0xd8ff5a : 0xa8d8ff;
+    shot.material.color.setHex(color);
+    shot.mesh.visible = true;
+    shot.life = kind === 'paralyse' ? RAY_LIFE * 2 : RAY_LIFE;
+    if (shot.light) {
+      shot.light.color.setHex(color);
+      shot.light.position.set(to.x, ty, to.z);
+    }
   }
 
   /** A person is vaporised at `pos`: a big flash, a ring on the ground and a cloud of ash. */
@@ -166,6 +224,7 @@ export class OrbViews {
 
   update(state: GameState, config: GameConfig, alpha: number, dt: number, time: number): void {
     const live = new Set<number>();
+    let sweeping = false;
     for (const orb of state.orbs) {
       const def = config.orbs[orb.type];
       if (!def) continue;
@@ -194,7 +253,7 @@ export class OrbViews {
       const lifting =
         def.kind === 'abductor' && (orb.phase === 'beam' || orb.phase === 'lift') && aim !== null;
       view.ray.visible = hunting;
-      view.beam.visible = lifting;
+      view.beam.visible = lifting || (orb.phase === 'sweep' && aim !== null);
       if (aim && (hunting || lifting)) {
         const mesh = hunting ? view.ray : view.beam;
         const tx = aim.x;
@@ -207,21 +266,51 @@ export class OrbViews {
         mesh.quaternion.setFromUnitVectors(UP, this.rayDir);
       }
 
-      // The big sphere floods the crowd below with cold grey-blue light.
+      // The big sphere lights the crowd below: a dim light of its own from the moment it arrives,
+      // then the strong flood, bluer and brighter.
       if (view.flood && view.cone && view.pool) {
         const glow = orb.glow;
-        view.flood.intensity = FLOOD_INTENSITY * glow * (0.95 + Math.sin(time * 5 + orb.id) * 0.05);
-        view.cone.visible = glow > 0.01;
-        view.pool.visible = glow > 0.01;
-        (view.cone.material as THREE.MeshBasicMaterial).opacity = 0.1 * glow;
-        (view.pool.material as THREE.MeshBasicMaterial).opacity = 0.35 * glow;
+        const lamp = orb.lamp;
+        const dimI = def.dimIntensity ?? 260;
+        const floodI = def.floodIntensity ?? 1900;
+        const flicker = 0.97 + Math.sin(time * 5 + orb.id) * 0.03;
+        view.flood.intensity = (dimI * lamp + (floodI - dimI) * glow) * flicker;
+        this.tmpA.set(def.dimColor ?? '#aebbcc');
+        this.tmpB.set(def.floodColor ?? '#5f93ff');
+        view.flood.color.copy(this.tmpA).lerp(this.tmpB, glow);
+        const shown = lamp > 0.01;
+        view.cone.visible = shown;
+        view.pool.visible = shown;
+        const coneMat = view.cone.material as THREE.MeshBasicMaterial;
+        const poolMat = view.pool.material as THREE.MeshBasicMaterial;
+        coneMat.color.copy(view.flood.color);
+        poolMat.color.copy(view.flood.color);
+        coneMat.opacity = 0.02 * lamp + 0.1 * glow;
+        poolMat.opacity = 0.06 * lamp + 0.34 * glow;
         // The cone and the pool hang straight under the sphere down to the ground.
         const drop = Math.max(y - ground, 1);
-        view.cone.scale.set(1, drop, 1);
+        const radius = def.floodRadius ?? 14;
+        view.cone.scale.set(radius / 14, drop, radius / 14);
         view.cone.position.set(0, -drop / 2, 0);
+        view.pool.scale.set(radius / 14, radius / 14, 1);
         view.pool.position.set(0, -drop + 0.12, 0);
         view.flood.target.position.set(0, -drop, 0);
         view.flood.target.updateMatrixWorld();
+      }
+
+      // The parting ray: a thick bright line from the sphere to a point sliding over the ground.
+      if (orb.phase === 'sweep' && aim) {
+        const mesh = view.beam;
+        mesh.visible = true;
+        const ty = this.groundAt(aim.x, aim.z);
+        const length = Math.max(Math.hypot(aim.x - x, ty - y, aim.z - z), 0.01);
+        mesh.position.set((aim.x - x) / 2, (ty - y) / 2, (aim.z - z) / 2);
+        mesh.scale.set(0.55, length, 0.55);
+        this.rayDir.set(aim.x - x, ty - y, aim.z - z).normalize();
+        mesh.quaternion.setFromUnitVectors(UP, this.rayDir);
+        this.sweepLight.position.set(aim.x, ty + 1.5, aim.z);
+        this.sweepLight.intensity = SWEEP_LIGHT;
+        sweeping = true;
       }
     }
     for (const [id, view] of this.views) {
@@ -230,7 +319,20 @@ export class OrbViews {
       this.views.delete(id);
     }
 
+    if (!sweeping) this.sweepLight.intensity = 0;
     this.updateBurning(state, alpha, time);
+    for (const shot of this.shots) {
+      if (shot.life <= 0) continue;
+      shot.life -= dt;
+      if (shot.life <= 0) {
+        shot.mesh.visible = false;
+        if (shot.light) shot.light.intensity = 0;
+        continue;
+      }
+      const k = Math.min(shot.life / RAY_LIFE, 1);
+      shot.material.opacity = k;
+      if (shot.light) shot.light.intensity = RAY_LIGHT_INTENSITY * k;
+    }
 
     for (const f of this.flashes) {
       if (f.life <= 0) continue;
@@ -383,13 +485,13 @@ export class OrbViews {
     let cone: THREE.Mesh | null = null;
     let pool: THREE.Mesh | null = null;
     if (big) {
-      flood = new THREE.SpotLight(FLOOD_COLOR, 0, 70, 0.72, 0.65, 2);
+      flood = new THREE.SpotLight(0x9fb4cc, 0, 70, 0.72, 0.65, 2);
       group.add(flood);
       group.add(flood.target);
       cone = new THREE.Mesh(
         new THREE.ConeGeometry(14, 1, 40, 1, true),
         new THREE.MeshBasicMaterial({
-          color: FLOOD_COLOR,
+          color: 0x9fb4cc,
           transparent: true,
           opacity: 0,
           blending: THREE.AdditiveBlending,
@@ -403,7 +505,7 @@ export class OrbViews {
       pool = new THREE.Mesh(
         new THREE.CircleGeometry(14, 48),
         new THREE.MeshBasicMaterial({
-          color: FLOOD_COLOR,
+          color: 0x9fb4cc,
           transparent: true,
           opacity: 0,
           blending: THREE.AdditiveBlending,

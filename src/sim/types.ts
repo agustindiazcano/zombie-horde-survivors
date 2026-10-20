@@ -436,6 +436,7 @@ export type SimEvent =
   | { type: 'grenadeThrown'; throwerId: number }
   | { type: 'explosion'; pos: Vec2; radius: number }
   | { type: 'vaporiseStart'; pos: Vec2 }
+  | { type: 'greyRay'; id: number; from: Vec2; to: Vec2; kind: 'paralyse' | 'vaporise' }
   | { type: 'vaporised'; pos: Vec2 }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
@@ -474,8 +475,32 @@ export interface Animal {
   gathered: boolean;
   /** Metres it has been lifted off the ground by an abductor. */
   lift: number;
-  /** 0 to 1: how far a hunter's ray has burned it (it stands rigid, glowing). */
+  /** 0 to 1: how far a ray has burned it (it stands rigid, glowing). */
   burn: number;
+  /** Per second: when above 0 the burn advances by itself and ends in a vaporising. */
+  burnSpeed: number;
+  /** Walking backwards away from this point (a crowd stepping back from a beam), for this many more metres. */
+  retreat: Vec2 | null;
+  retreatLeft: number;
+  /** Running toward this point (someone going to help), then standing. */
+  rush: Vec2 | null;
+  /** Speed (m/s) of the walk to `rush`; 0 means the panic run. */
+  rushSpeed: number;
+}
+
+/** The scripted scene of the grey aliens: where it is and who is in it. */
+export interface GreyScene {
+  stage: 'descend' | 'approach' | 'paralysed' | 'rush' | 'cruel' | 'hunt';
+  /** Seconds since the stage began. */
+  time: number;
+  /** The ship's work point. */
+  at: Vec2;
+  /** The person who walked up and the one who ran to help (animal ids), or null. */
+  walker: number | null;
+  helper: number | null;
+  /** Next time each grey may fire (seconds into the stage). */
+  nextShot: number[];
+  rayId: number;
 }
 
 /** A point in 3D (metres): the sky show flies in height too. */
@@ -525,6 +550,7 @@ export interface Orb {
     | 'lift'
     | 'gap'
     | 'hold'
+    | 'sweep'
     | 'burn'
     | 'leave'
     | 'gone';
@@ -535,6 +561,10 @@ export interface Orb {
   lowAt: number | null;
   hover: Vec2 | null;
   /** Abductors: when they arrived, how many people they have taken, and how bright their light is (0 to 1). */
+  /** Dim own light (0 to 1), on from arriving; `glow` is the strong flood that comes later. */
+  lamp: number;
+  /** A ray sweeping over the ground from one point to another (the big sphere's parting shot). */
+  sweep: { from: Vec2; to: Vec2; t: number; duration: number } | null;
   arrivedAt: number | null;
   victims: number;
   glow: number;
@@ -577,6 +607,8 @@ export interface GameState {
   nextOrbId: number;
   /** The sky show's lights (empty unless the map runs it). */
   skyLights: SkyLight[];
+  /** The grey aliens' scene: its stage and clock (null until the second ship arrives). */
+  greyScene: GreyScene | null;
   /** Civilians at the start of the run, and how many were vaporised. */
   civilians: number;
   casualties: number;

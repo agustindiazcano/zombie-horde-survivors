@@ -31,6 +31,8 @@ export function createOrbs(state: GameState, config: GameConfig): void {
       lowAt: o.lowAt ?? null,
       hover: o.hx !== undefined && o.hz !== undefined ? { x: o.hx, z: o.hz } : null,
       waypoint: null,
+      lamp: 0,
+      sweep: null,
       arrivedAt: null,
       victims: 0,
       glow: 0,
@@ -75,6 +77,7 @@ function scare(state: GameState, config: GameConfig, at: Vec2, radius: number): 
  * Soldiers are not targets yet (the hide-and-seek step adds them).
  */
 export function updateOrbs(state: GameState, config: GameConfig, dt: number): void {
+  advanceBurns(state, dt);
   for (const orb of state.orbs) {
     const def = config.orbs[orb.type];
     if (!def) continue;
@@ -100,6 +103,21 @@ function updateHunter(
   def: OrbDef,
   dt: number,
 ): void {
+  if (orb.phase === 'leave') {
+    // The hunt is over: straight up and gone.
+    orb.y += 45 * dt;
+    if (orb.y > 300) orb.phase = 'gone';
+    return;
+  }
+  if (
+    def.huntTime &&
+    state.time > orb.wake + def.huntTime &&
+    (orb.phase === 'cool' || orb.phase === 'seek')
+  ) {
+    orb.phase = 'leave';
+    orb.aim = null;
+    return;
+  }
   if (orb.phase === 'cool' || orb.phase === 'seek') {
     orb.timer -= dt;
     if (orb.timer > 0) return;
@@ -236,25 +254,54 @@ function updateAbductor(
   dt: number,
 ): void {
   const work = orb.hover ?? { x: orb.pos.x, z: orb.pos.z };
-  const glowStep = dt / 2;
   if (orb.phase === 'arrive') {
     if (!flyTo(orb, { x: work.x, y: def.height, z: work.z }, def.chaseSpeed, dt)) return;
     orb.arrivedAt = state.time;
     startNextVictim(state, config, orb, def, work);
     return;
   }
+  const here = state.time - (orb.arrivedAt ?? state.time);
   if (orb.phase !== 'leave') {
-    // The big sphere lights the whole spot while it is there.
-    orb.glow = Math.min(1, orb.glow + glowStep);
-    if (state.time >= (orb.arrivedAt ?? 0) + (def.stayTime ?? 60) && orb.phase === 'hold') {
-      orb.phase = 'leave';
-    }
+    // Its own dim light comes on at once; the strong flood a little later.
+    orb.lamp = Math.min(1, orb.lamp + dt / 1.5);
+    if (here >= (def.floodDelay ?? 0)) orb.glow = Math.min(1, orb.glow + dt / 2.5);
   }
+
   if (orb.phase === 'gap' || orb.phase === 'hold') {
     orb.aim = null;
     if (orb.phase === 'gap') {
       orb.timer -= dt;
       if (orb.timer <= 0) startNextVictim(state, config, orb, def, work);
+    } else if (here >= (def.stayTime ?? 60)) {
+      if (def.sweepLength) startSweep(state, orb, def, work);
+      else orb.phase = 'leave';
+    }
+    return;
+  }
+  if (orb.phase === 'sweep' && orb.sweep) {
+    const sw = orb.sweep;
+    sw.t += dt;
+    const k = Math.min(sw.t / sw.duration, 1);
+    const tip = {
+      x: sw.from.x + (sw.to.x - sw.from.x) * k,
+      z: sw.from.z + (sw.to.z - sw.from.z) * k,
+    };
+    orb.aim = tip;
+    // Everyone under the moving ray goes up in a few moments.
+    for (const a of state.animals) {
+      if (!isCivilian(config, a) || a.lift > 0 || a.burnSpeed > 0) continue;
+      if (Math.hypot(a.pos.x - tip.x, a.pos.z - tip.z) > SWEEP_WIDTH) continue;
+      a.burn = Math.max(a.burn, 0.02);
+      a.burnSpeed = 1 / SWEEP_BURN;
+      a.panic = 0;
+      state.events.push({ type: 'vaporiseStart', pos: { x: a.pos.x, z: a.pos.z } });
+    }
+    if (k >= 1) {
+      orb.sweep = null;
+      orb.aim = null;
+      orb.phase = 'leave';
+      // The rest of the crowd breaks and runs.
+      scare(state, config, work, 200);
     }
     return;
   }
@@ -291,6 +338,7 @@ function updateAbductor(
   if (orb.phase === 'leave') {
     // The light fades and the sphere goes straight up and away, fast.
     orb.glow = Math.max(0, orb.glow - dt);
+    orb.lamp = Math.max(0, orb.lamp - dt);
     orb.aim = null;
     orb.y += (def.leaveSpeed ?? 90) * dt;
     orb.pos.x += (def.leaveSpeed ?? 90) * 0.4 * dt;
@@ -298,7 +346,49 @@ function updateAbductor(
   }
 }
 
-/** Picks the person nearest the work point and starts the beam on them (the rest stand frozen). */
+/** Half-width (m) of the parting ray, and the seconds a person it touches takes to turn to ash. */
+const SWEEP_WIDTH = 1.7;
+const SWEEP_BURN = 0.8;
+
+/** The ray goes from one side of the crowd to the other, along a random line through the work point. */
+function startSweep(state: GameState, orb: Orb, def: OrbDef, work: Vec2): void {
+  const angle = nextFloat(state.rng) * Math.PI;
+  const half = (def.sweepLength ?? 30) / 2;
+  const dx = Math.cos(angle) * half;
+  const dz = Math.sin(angle) * half;
+  orb.sweep = {
+    from: { x: work.x - dx, z: work.z - dz },
+    to: { x: work.x + dx, z: work.z + dz },
+    t: 0,
+    duration: def.sweepTime ?? 3,
+  };
+  orb.phase = 'sweep';
+}
+
+/** People a ray has begun to burn turn to ash once the burn completes. */
+function advanceBurns(state: GameState, dt: number): void {
+  for (let i = state.animals.length - 1; i >= 0; i--) {
+    const a = state.animals[i]!;
+    if (a.burnSpeed <= 0) continue;
+    a.burn += a.burnSpeed * dt;
+    if (a.burn < 1) continue;
+    state.animals.splice(i, 1);
+    state.casualties++;
+    state.events.push({ type: 'vaporised', pos: { x: a.pos.x, z: a.pos.z } });
+  }
+}
+
+/** The whole crowd steps back, facing the thing, a few metres each. */
+function retreatCrowd(state: GameState, config: GameConfig, from: Vec2): void {
+  for (const a of state.animals) {
+    if (!isCivilian(config, a) || a.lift > 0 || a.burn > 0) continue;
+    a.retreat = { x: from.x, z: from.z };
+    a.retreatLeft = 3 + nextFloat(state.rng) * 5;
+    a.dest = null;
+  }
+}
+
+/** Picks the person nearest the work point and starts the beam on them (the rest step back). */
 function startNextVictim(
   state: GameState,
   config: GameConfig,
@@ -306,11 +396,17 @@ function startNextVictim(
   def: OrbDef,
   work: Vec2,
 ): void {
+  if ((def.victims ?? 1) === 0) {
+    orb.phase = 'hold';
+    return;
+  }
   const target = nearestCivilian(state, config, work);
   if (!target) {
     orb.phase = 'hold';
     return;
   }
+  // The first beam makes everyone step backwards.
+  if (orb.victims === 0) retreatCrowd(state, config, work);
   orb.targetId = target.id;
   orb.aim = { x: target.pos.x, z: target.pos.z };
   orb.phase = 'beam';
