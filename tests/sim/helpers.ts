@@ -19,7 +19,10 @@ import {
 /** Config sections to override; `weapon` overrides the rifle, the test squad's weapon. */
 type Patch = {
   [
-    K in Exclude<keyof GameConfig, 'items' | 'briefing' | 'build' | 'startGold' | 'startStructures'>
+    K in Exclude<
+      keyof GameConfig,
+      'items' | 'briefing' | 'build' | 'noWaves' | 'startGold' | 'startStructures'
+    >
   ]?: Partial<GameConfig[K]>;
 } & {
   weapon?: Partial<WeaponItem>;

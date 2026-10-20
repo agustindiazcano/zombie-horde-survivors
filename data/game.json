@@ -353,6 +353,29 @@
         "maxHeight": 2.2
       },
       "limbs": true
+    },
+    "marine_stalker": {
+      "name": "Stalker",
+      "speedScale": 1.5,
+      "healthScale": 30,
+      "damageScale": 4,
+      "radiusScale": 2.2,
+      "weight": 1,
+      "minWave": 99,
+      "rewardScale": 10,
+      "height": 4,
+      "limbs": false,
+      "wander": {
+        "roamRadius": 18,
+        "speedScale": 0.35,
+        "pauseMin": 2,
+        "pauseMax": 6,
+        "senseRadius": 4,
+        "sightRadius": 26,
+        "sightArc": 0.9,
+        "shoutRadius": 0,
+        "loseTrack": 10
+      }
     }
   },
   "stance": {
@@ -404,7 +427,8 @@
   "wander": {
     "noiseAttracts": false,
     "noiseMetres": 4,
-    "wakeDelay": 25
+    "wakeDelay": 25,
+    "crouchStealth": 0.5
   },
   "perks": {
     "choices": 3,

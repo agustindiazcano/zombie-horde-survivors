@@ -258,6 +258,9 @@ export interface Zombie {
   roamTimer: number;
   /** Seconds a wanderer has waited after its wave finished spawning; it wakes up after a while. */
   restless: number;
+  /** A hunter's memory: where it last saw the squad (null if never) and seconds since it last did. */
+  lastSeen: Vec2 | null;
+  unseen: number;
   deathTimer: number;
   /** Which limbs are still on, and the damage taken by each so far (it comes off past a threshold). */
   parts: Parts;

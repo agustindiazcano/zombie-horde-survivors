@@ -152,6 +152,8 @@ const mapLogic = z
     briefing: z.string().max(600).optional(),
     /** Build mode: the squad can raise structures (key N); the gold the run starts with. */
     build: z.boolean().optional(),
+    /** No waves spawn: only the units the map places (test maps, hide and seek). */
+    noWaves: z.boolean().optional(),
     startGold: nonNegative.optional(),
     /** Structures standing from the start (already built), by `structures.types` id. */
     structures: z
@@ -661,6 +663,8 @@ const enemyType = z
         sightArc: positive,
         /** The ones this close to an alerted wanderer wake with it. */
         shoutRadius: nonNegative,
+        /** A hunter: after this many seconds without seeing anyone it goes to the last place it saw them, then gives up and roams again. */
+        loseTrack: positive.optional(),
       })
       .strict()
       .optional(),
@@ -1062,6 +1066,8 @@ export const GameConfigSchema = z
         noiseMetres: positive,
         /** Seconds after a wave has finished spawning before its sleeping wanderers wake up anyway. */
         wakeDelay: positive,
+        /** Crouching shrinks the sense and sight radii of wanderers and hunters to this share (stealth). */
+        crouchStealth: unit01,
       })
       .strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
@@ -1178,6 +1184,7 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   fires: Vec2[];
   /** Build mode is on (the build menu opens) and the gold the run starts with. */
   build: boolean;
+  noWaves: boolean;
   startGold: number;
   /** Structures that stand from the start. */
   startStructures: NonNullable<MapLogic['structures']>;
@@ -1223,6 +1230,7 @@ type MapRules = Pick<
   | 'briefing'
   | 'fires'
   | 'build'
+  | 'noWaves'
   | 'startGold'
   | 'startStructures'
 >;
@@ -1270,6 +1278,7 @@ export function mapRules(
     briefing: logic.mode === 'story' ? logic.briefing : undefined,
     fires: logic.fires ?? [],
     build: logic.build ?? false,
+    noWaves: logic.noWaves ?? false,
     startGold: logic.startGold ?? 0,
     startStructures: logic.structures ?? [],
   };

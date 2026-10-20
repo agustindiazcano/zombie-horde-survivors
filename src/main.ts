@@ -54,6 +54,7 @@ import { PausePanel } from './pausePanel';
 import { DEFAULT_SETTINGS, PRESETS, loadSettings, saveSettings, type Settings } from './settings';
 import { SettingsPanel } from './settingsPanel';
 import { Radar } from './radar';
+import { BuildUi } from './buildUi';
 import { PerkPicker, Shop } from './upgradesUi';
 
 /** Mobile: enemies within this distance (world units) are shot at automatically. */
@@ -191,7 +192,7 @@ async function main(): Promise<void> {
     perks.isOpen ||
     shop.isOpen ||
     settingsPanel.isOpen;
-  const rts = new RtsController(
+  const rts: RtsController = new RtsController(
     renderer.domElement,
     renderer,
     config,
@@ -200,7 +201,20 @@ async function main(): Promise<void> {
       localPlayer(state).controlledId === null &&
       state.status === 'playing' &&
       !paused &&
-      !modalOpen(),
+      !modalOpen() &&
+      !build.isArmed,
+  );
+  const build: BuildUi = new BuildUi(
+    document.body,
+    renderer.domElement,
+    config,
+    () => state,
+    () => {
+      const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
+      if (unit && renderer.viewMode !== 'top') return renderer.lookAimPoint(unit.pos);
+      return input.read(renderer.screenToGround).aim;
+    },
+    () => [...rts.selected],
   );
   const hud = new Hud(document.body, config, () => resetGame());
   const damageNumbers = new DamageNumbers(document.body, (x, z, y) =>
@@ -224,6 +238,7 @@ async function main(): Promise<void> {
       controlSoldier(state, null);
     }
     hud.reset();
+    build.close();
     rts.set([]);
     ui.close();
     shop.close();
@@ -422,7 +437,10 @@ async function main(): Promise<void> {
       return;
     }
     if (perks.onKey(e.code)) return;
-    if (e.code === 'KeyM') sfx.toggleMute();
+    if (e.code === 'KeyN' && playable() && !modalOpen() && !e.repeat) build.toggle();
+    else if (e.code === 'KeyR' && build.isArmed) build.rotate();
+    else if (e.code === 'KeyM') sfx.toggleMute();
+    else if (e.code === 'Escape' && build.cancel()) return;
     else if (e.code === 'Escape' && rts.grenadeAiming) rts.cancelGrenadeAim();
     else if (e.code === 'Escape' && ui.isOpen) ui.close();
     else if (e.code === 'Escape' && shop.isOpen) shop.close();
@@ -471,6 +489,7 @@ async function main(): Promise<void> {
       if (ui.isOpen) ui.close();
       else if (playable() && !shop.isOpen && crate && unitId !== null)
         ui.openCrate(unitId, crate.id);
+      else if (playable() && !modalOpen() && unitId !== null && !e.repeat) build.useDoor();
     } else if (
       e.code === 'KeyT' &&
       playable() &&
@@ -507,7 +526,7 @@ async function main(): Promise<void> {
     directInput.aim =
       renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
     // Clicks edit the map in the editor, so the driven unit does not fire there.
-    directInput.firing = raw.firing && !editor.isEditing;
+    directInput.firing = raw.firing && !editor.isEditing && !build.isArmed;
     directInput.aimLine = renderer.sightLine() ?? undefined;
     // Aiming down the sights: the right button, only in third and first person.
     const presses = input.takeAimPresses();
@@ -590,7 +609,10 @@ async function main(): Promise<void> {
       } else renderer.setAimZoom(1);
       rts.prune();
       if (localPlayer(state).controlledId !== null || paused || modalOpen()) rts.cancelGrenadeAim();
+      if (paused || state.status !== 'playing') build.close();
       renderer.setGrenadePreview(rts.grenadePreview());
+      build.update();
+      renderer.setBuildGhost(build.ghost());
       renderer.render(state, alpha, frameDt);
       damageNumbers.update(paused ? 0 : frameDt);
       fps.tick(frameDt);

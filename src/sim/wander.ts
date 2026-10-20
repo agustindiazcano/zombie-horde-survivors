@@ -44,10 +44,18 @@ export function hearShot(state: GameState, config: GameConfig, at: Vec2, noise: 
   }
 }
 
-function noticed(config: GameConfig, z: Zombie, rule: WanderRule, s: Soldier): boolean {
+export function noticed(
+  state: GameState,
+  config: GameConfig,
+  z: Zombie,
+  rule: WanderRule,
+  s: Soldier,
+): boolean {
   const d = Math.hypot(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
-  if (d <= rule.senseRadius) return true;
-  if (d > rule.sightRadius) return false;
+  // A crouching squad is harder to notice.
+  const stealth = state.stance === 'crouch' ? config.wander.crouchStealth : 1;
+  if (d <= rule.senseRadius * stealth) return true;
+  if (d > rule.sightRadius * stealth) return false;
   // Inside the cone in front of it, with nothing in the way.
   const toward = Math.atan2(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
   let off = Math.abs(toward - z.facing) % (2 * Math.PI);
@@ -69,7 +77,7 @@ export function wanderStep(
 ): boolean {
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue;
-    if (noticed(config, z, rule, s)) {
+    if (noticed(state, config, z, rule, s)) {
       alertZombie(state, config, z);
       return false;
     }
@@ -109,4 +117,49 @@ export function wanderStep(
   z.pos.z += (dz / d) * step;
   resolveStatic(z.pos, z.radius, config.arena);
   return true;
+}
+
+/**
+ * A hunter's eyes: while it sees (or senses) a soldier it chases as usual (returns null). Out of
+ * sight it returns the last place it saw the squad to walk to; after `loseTrack` seconds it gives
+ * up, goes back to roaming from where it stands and returns 'lost'.
+ */
+export function huntTarget(
+  state: GameState,
+  config: GameConfig,
+  z: Zombie,
+  rule: WanderRule,
+  dt: number,
+): Vec2 | 'lost' | 'wait' | null {
+  let seen: Soldier | null = null;
+  let seenD = Infinity;
+  for (const s of state.soldiers) {
+    if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue;
+    const d = Math.hypot(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
+    if (d < seenD && noticed(state, config, z, rule, s)) {
+      seen = s;
+      seenD = d;
+    }
+  }
+  if (seen) {
+    z.unseen = 0;
+    z.lastSeen = { x: seen.pos.x, z: seen.pos.z };
+    return null;
+  }
+  z.unseen += dt;
+  const reached = z.lastSeen && Math.hypot(z.lastSeen.x - z.pos.x, z.lastSeen.z - z.pos.z) < 1;
+  if (z.unseen < (rule.loseTrack ?? 0)) {
+    if (z.lastSeen && !reached) return z.lastSeen;
+    // At the last place it saw them (or never saw anyone): it stands and looks around.
+    z.state = 'walk';
+    return 'wait';
+  }
+  // Gave up: roam again from here.
+  z.mode = 'wander';
+  z.home = { x: z.pos.x, z: z.pos.z };
+  z.roam = null;
+  z.roamTimer = rule.pauseMin;
+  z.lastSeen = null;
+  z.unseen = 0;
+  return 'lost';
 }

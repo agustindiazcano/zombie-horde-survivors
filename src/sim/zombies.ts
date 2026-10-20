@@ -10,7 +10,7 @@ import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
 import { blockingStructure, hurtStructure, structureDef } from './structures';
-import { wanderStep } from './wander';
+import { huntTarget, wanderStep } from './wander';
 import { gunOf, weaponDef } from './stats';
 import type { BodyZone, GameState, HitKind, Soldier, Vehicle, Zombie } from './types';
 import { hurtVehicle, isOccupied } from './vehicles';
@@ -86,6 +86,8 @@ export function spawnZombie(
     roam: null,
     roamTimer: variant?.wander ? variant.wander.pauseMax * nextFloat(state.rng) : 0,
     restless: 0,
+    lastSeen: null,
+    unseen: 0,
     parts: { armL: true, armR: true, legs: !variant?.legless },
     wounds: { armL: 0, armR: 0, legs: 0 },
   };
@@ -205,9 +207,14 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       continue;
     }
 
-    const found = nearestTarget(state, config, z.pos);
+    // A hunter only follows what it can see; out of sight it heads for the last place it saw them.
+    const lead = enemy?.wander?.loseTrack ? huntTarget(state, config, z, enemy.wander, dt) : null;
+    if (lead === 'lost' || lead === 'wait') continue;
+    const found = lead ? { target: lead } : nearestTarget(state, config, z.pos);
     if (!found) continue; // everyone is dead; the game is about to end
-    const { target, soldier, vehicle } = found;
+    const { target } = found;
+    const soldier = 'soldier' in found ? found.soldier : undefined;
+    const vehicle = 'vehicle' in found ? found.vehicle : undefined;
     // Vehicles are big: the zombie stops (and bites) at the hull, not at the middle.
     const reach = z.attackRange + (vehicle ? config.vehicles[vehicle.type]!.radius : 0);
     const dx = target.x - z.pos.x;

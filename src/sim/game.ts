@@ -121,7 +121,7 @@ export function step(
   updateStructures(state, config, dt);
   updateAnimals(state, config, dt);
   updatePickups(state, config, dt);
-  if (!state.sandbox) updateWaves(state, config, dt);
+  if (!state.sandbox && !config.noWaves) updateWaves(state, config, dt);
   updateZombies(state, config, dt);
   if (!state.sandbox) updateObjectives(state, config);
 

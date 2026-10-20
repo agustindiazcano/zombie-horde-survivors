@@ -41,7 +41,7 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
   }
 
   const obstacleMat = new THREE.MeshStandardMaterial({ color: 0x8a6d4b });
-  for (const o of arena.obstacles) {
+  for (const o of arena.base ?? arena.obstacles) {
     if (o.water) continue;
     const box = new THREE.Mesh(
       new THREE.BoxGeometry(o.halfW * 2, OBSTACLE_HEIGHT, o.halfD * 2),

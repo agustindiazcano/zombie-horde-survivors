@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "map-2",
+    "name": "Map 2 - Build mode test",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-19",
+    "updated": "2026-10-19",
+    "size": {
+      "width": 80,
+      "depth": 80
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "surfaces": [],
+  "props": [
+    {
+      "asset": "block",
+      "x": -14,
+      "z": 10,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 1.5
+      }
+    },
+    {
+      "asset": "block",
+      "x": 14,
+      "z": 12,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 1
+      }
+    }
+  ],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
+  "units": [],
+  "logic": {
+    "mode": "waves",
+    "build": true,
+    "startGold": 600,
+    "waves": {
+      "baseCount": 5,
+      "countPerWave": 3,
+      "intermission": 25
+    },
+    "structures": [
+      {
+        "type": "wall",
+        "x": -5,
+        "z": -8,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "door",
+        "x": -2,
+        "z": -8,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "wall",
+        "x": 1,
+        "z": -8,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "sandbags",
+        "x": 5,
+        "z": -8,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "turret",
+        "x": 3,
+        "z": -6,
+        "turns": 0,
+        "level": 1
+      }
+    ]
+  }
+}
