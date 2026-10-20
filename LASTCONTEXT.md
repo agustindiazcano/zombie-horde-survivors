@@ -32,6 +32,8 @@ Only what is still open: read this first in every session. When an item here is 
 
 Also on that branch (later the same day): liftable and throwable objects, carrying bodies, spreading fire and barrels (Map 5, the interaction lab), soldier training with classes (the squad screen's Training box) and the title-screen carousel. [Worklog](docs/worklog/2026-10-19-interaction-and-training.md). Decisions the user gave: the carousel as recommended; a soldier's level gives points for stamina, strength, dexterity, weapon expertise and special bonuses, with a class (engineer, medic, demolitions...) chosen per soldier.
 
+**Celestial Event III (Map 6) is PAUSED (2026-10-20).** It lives only in the local branch `feat/celestial-event-3` (last commit `e1a316c`, 13 commits on top of `main` `0e14a2e`), not pushed, no PR. Do not touch, delete or merge it. New work branches from `main`. Switching branches changes what the dev server shows.
+
 ## Open items (details in PENDING.md)
 
 - 🔴 The user has to look at the live game and report what looks or feels wrong (PENDING §0).
