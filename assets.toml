@@ -102,6 +102,13 @@ license = "CC0-1.0"
 path = "public/models/vehicle-suv.glb"
 
 [[asset]]
+name = "SUV colour palette texture (Car Kit)"
+author = "Kenney"
+source = "https://kenney.nl/assets/car-kit"
+license = "CC0-1.0"
+path = "public/models/Textures/colormap.png"
+
+[[asset]]
 name = "Dog (Animal Pack Vol.2)"
 author = "Quaternius"
 source = "https://opengameart.org/content/animated-animales-low-poly"
