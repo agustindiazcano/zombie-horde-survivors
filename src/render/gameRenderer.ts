@@ -21,6 +21,7 @@ import { SkyLightViews } from './skyLights';
 import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
+import { GroundItemViews } from './groundItems';
 import { PickupMeshes } from './pickups';
 import { createJeep } from './vehicles';
 import { GrenadeEffects, type GrenadePreview } from './grenades';
@@ -145,6 +146,8 @@ const AIM_ZOOM_RATE = 12;
 const MIN_THIRD_ZOOM = 0.5;
 const MAX_THIRD_ZOOM = 2.2;
 
+/** A corpse dead this long (deathTimer past this, seconds) stops animating. */
+const CORPSE_SETTLED = -2;
 /** Seconds a damaged enemy stays lit up. */
 const FLASH_TIME = 0.14;
 /** Seconds a soldier plays the strike clip after a melee blow. */
@@ -207,6 +210,7 @@ export class GameRenderer {
   private readonly healthBars = new HealthBars();
   private structureViews!: StructureViews;
   private objectViews!: ObjectViews;
+  private groundItemViews!: GroundItemViews;
   private fireViews!: FireViews;
   private readonly gore = new Gore();
   private readonly orbViews: OrbViews;
@@ -262,6 +266,7 @@ export class GameRenderer {
     this.halfSize = config.arena.halfSize;
     this.droneHeight = config.drone.height;
     this.objectViews = new ObjectViews(config, (x, z) => this.groundAt(x, z));
+    this.groundItemViews = new GroundItemViews(config, (x, z) => this.groundAt(x, z));
     this.orbViews = new OrbViews((x, z) => this.groundAt(x, z), this.renderer);
     this.streetLights = new StreetLights(this.scene);
     this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
@@ -278,6 +283,7 @@ export class GameRenderer {
       this.healthBars.group,
       this.structureViews.group,
       this.objectViews.group,
+      this.groundItemViews.group,
       this.fireViews.group,
       this.gore.group,
       this.orbViews.group,
@@ -468,6 +474,7 @@ export class GameRenderer {
     this.syncVehicles(state, alpha);
     this.structureViews.update(state, this.camera);
     this.objectViews.update(state);
+    this.groundItemViews.update(state);
     this.fireViews.update(state, this.clock);
     // The editor previews the map's fires with static markers; in play the fires come from the state.
     if (this.fireMarkers) this.fireMarkers.visible = state.sandbox;
@@ -1097,7 +1104,8 @@ export class GameRenderer {
       entry.view.setState(
         z.mode === 'wander' && z.state === 'walk' ? (z.roam ? 'roam' : 'idle') : z.state,
       );
-      entry.view.update(dt);
+      // A body that finished falling long ago holds its pose; skip the skeleton work.
+      if (z.state !== 'death' || z.deathTimer > CORPSE_SETTLED) entry.view.update(dt);
       const every = this.factories.spurts?.[entry.type];
       if (every !== undefined && this.goreEnabled && z.state !== 'death') {
         entry.spurtIn = (entry.spurtIn ?? every * Math.random()) - dt;

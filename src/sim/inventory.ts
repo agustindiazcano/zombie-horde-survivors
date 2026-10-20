@@ -1,7 +1,17 @@
 import type { GameConfig, ItemDef } from './config';
 import { nextFloat } from './rng';
 import { maxHealthOf } from './stats';
-import type { Crate, Equipment, GameState, Hand, Soldier, Stack, WeaponState } from './types';
+import { resolveStatic } from './collision';
+import type {
+  Crate,
+  Equipment,
+  GameState,
+  GroundItem,
+  Hand,
+  Soldier,
+  Stack,
+  WeaponState,
+} from './types';
 import type { Vec2 } from './vec';
 
 /** Crate entry that is worn as armor instead of carried. */
@@ -357,4 +367,74 @@ export function maybeDropCrate(state: GameState, config: GameConfig, pos: Vec2):
   state.crates.push(crate);
   while (state.crates.length > drops.maxCrates) state.crates.shift();
   state.events.push({ type: 'crateDropped', crateId: crate.id, pos: { ...crate.pos } });
+}
+
+/** How far in front of a soldier a dropped item lands, and its footprint for the wall check. */
+const DROP_AHEAD = 0.9;
+const ITEM_RADIUS = 0.2;
+
+/** Takes the whole stack out of a slot (hands and vest included) and lays it on the ground in front of the unit. */
+export function dropToGround(
+  state: GameState,
+  config: GameConfig,
+  soldierId: number,
+  slot: SlotRef,
+): boolean {
+  const s = unit(state, soldierId);
+  if (!s || s.dead || s.vehicleId !== null) return false;
+  const stack = cellAt(s, slot);
+  if (!stack) return false;
+  putCell(s, slot, null);
+  const pos = {
+    x: s.pos.x + Math.sin(s.facing) * DROP_AHEAD,
+    z: s.pos.z + Math.cos(s.facing) * DROP_AHEAD,
+  };
+  resolveStatic(pos, ITEM_RADIUS, config.arena);
+  const loose: GroundItem = {
+    id: state.nextGroundItemId++,
+    pos,
+    item: stack.item,
+    count: stack.count,
+  };
+  if (stack.state) loose.state = stack.state;
+  state.groundItems.push(loose);
+  while (state.groundItems.length > config.drops.maxLoose) state.groundItems.shift();
+  state.events.push({ type: 'itemDropped', itemId: loose.id, pos: { ...pos } });
+  return true;
+}
+
+/**
+ * Takes a loose item into the backpack (a plate is worn). A stack that does not fit entirely
+ * leaves the rest on the ground; false if nothing could be taken.
+ */
+export function pickUpItem(
+  state: GameState,
+  config: GameConfig,
+  soldierId: number,
+  itemId: number,
+): boolean {
+  const s = unit(state, soldierId);
+  const loose = state.groundItems.find((g) => g.id === itemId);
+  if (!s || !loose || s.dead || s.vehicleId !== null) return false;
+  if (Math.hypot(loose.pos.x - s.pos.x, loose.pos.z - s.pos.z) > config.drops.pickupRange) {
+    return false;
+  }
+  const def = itemDef(config, loose.item);
+  let taken = 0;
+  if (def.type === 'ammo') {
+    // Whole packs of rounds go in where there is room.
+    if (addRounds(config, s, loose.item, loose.count)) taken = loose.count;
+  } else if (def.type === 'plate') {
+    while (taken < loose.count && s.kind !== 'drone' && s.armor < config.player.maxArmor) {
+      s.armor = Math.min(config.player.maxArmor, s.armor + config.player.armorPlate);
+      taken++;
+    }
+  } else {
+    while (taken < loose.count && addToBackpack(config, s, loose.item, loose.state)) taken++;
+  }
+  if (taken === 0) return false;
+  loose.count -= taken;
+  if (loose.count <= 0) state.groundItems = state.groundItems.filter((g) => g !== loose);
+  state.events.push({ type: 'itemTaken', soldierId: s.id, itemId });
+  return true;
 }

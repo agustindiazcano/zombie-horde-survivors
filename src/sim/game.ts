@@ -58,6 +58,8 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     nextZombieId: 1,
     crates: [],
     nextCrateId: 1,
+    groundItems: [],
+    nextGroundItemId: 1,
     pickups: [],
     nextPickupId: 1,
     gold: config.startGold,

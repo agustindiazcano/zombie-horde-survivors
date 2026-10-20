@@ -173,6 +173,7 @@ export function liftOrDrop(
   // Nobody else may hold the same body, and it stops being dragged.
   for (const s of state.soldiers) if (s.dragging === pick.carry.id) s.dragging = null;
   me.dragging = null;
+  me.dragCorpse = null;
   me.carrying = { ...pick.carry, speed: loadSpeed(config, me, pick.carry.weight) };
   if (pick.carry.kind === 'object') {
     getObject(state, pick.carry.id)!.heldBy = me.id;

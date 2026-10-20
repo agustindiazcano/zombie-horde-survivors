@@ -15,6 +15,7 @@
     "maxItems": 2,
     "pickupRange": 2.2,
     "maxCrates": 12,
+    "maxLoose": 40,
     "table": [
       {
         "weight": 2,
@@ -118,6 +119,8 @@
     "attackRange": 1,
     "attackCooldown": 1,
     "deathDuration": 1.5,
+    "corpseLife": 45,
+    "maxCorpses": 24,
     "gold": 5,
     "xp": 10
   },
@@ -131,7 +134,9 @@
   "drag": {
     "range": 1.8,
     "ropeLength": 1.1,
-    "speedScale": 0.5
+    "speedScale": 0.5,
+    "dangerRadius": 9,
+    "aiSearch": 16
   },
   "animals": {
     "dog": {
