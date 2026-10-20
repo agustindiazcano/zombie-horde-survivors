@@ -100,14 +100,16 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [ ] 🔴 Look at Map 5 in the browser: controls are in [docs/CONTROLS.md](docs/CONTROLS.md) (E lift / put down, click throw, shoot a barrel). Tune `objects` and `hazards.fire` in `game.json`.
 - [ ] 🟡 Next: objects that block movement, AI that carries the wounded, models and sounds, objects in the editor.
 
-### 2k — 🟡 Celestial Event III (Map 6, demo for another game on this engine; planned 2026-10-20, nothing built)
+### 2k — 🔴 Celestial Event III (Map 6, demo for another game on this engine; scene built 2026-10-20, branch `feat/celestial-event-3`)
 
 Full plan and story: [docs/PLAN-celestial-event-3.md](docs/PLAN-celestial-event-3.md). A cinematic intro seen through a UMBRA drone (blackout, light orbs, metal spheres that vaporise people, a mother sphere that abducts, greys with a paralysing staff), then hide and seek. Placeholders first (existing models, procedural orbs, box houses); Kenney City Kit and a grey alien only after the licence check.
 
 - [ ] 🟡 Answer section 7 of the plan (who the player is after the intro, codename vs. level IV, civilians, UMBRA as a second threat, asset downloads).
 - [x] E0 Map 6 shell, E1 civilians, E2 metal sphere built ([worklog](docs/worklog/2026-10-20-celestial-event-3-e0-e2.md)).
 - [ ] 🔴 Look at Map 6 in the browser (Start > Single Player > Waves > Map 6): night light, civilians, the sphere, ray, flash and ash.
-- [ ] 🟡 Next: E3 event script, E4 cinematic camera, E5 mother sphere and greys, E6 playable hide and seek.
+- [x] The whole scene is built as one timed script (stars, blue lights, blackout, scouts, abductions, parting ray, hunters, second ship, greys); see the worklog.
+- [ ] 🔴 The user looks at it in the browser (lighting, metal look, FPS with 116 people) and says what to tune.
+- [ ] 🟡 Next: the cinematic drone camera and the HUD readout (E4), the player as a target and hide and seek (E6), real models for greys and civilians (E7, needs the user's OK for downloads).
 
 ### 2i — 🟡 Test maps, doors, interiors, urban maps, engine (planned 2026-10-19)
 
