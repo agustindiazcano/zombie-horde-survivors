@@ -9,6 +9,23 @@ Only what is still open: read this first in every session. When an item here is 
 - **Nothing has been seen in a browser by Claude.** Lighting, boss eyes, radar, menus, the squad screen, drag and drop and the settings presets are all untested visually, and the balance comes from headless simulations of a passive squad. Expect the user to report visual and feel problems; tune with the constants named in the code (see PENDING §0–1).
 - Last verified on `main`: lint, format check, typecheck, the 48 tests, build and the asset check all pass.
 
+## Branches of 2026-10-20 (none pushed, no PR, all from `main` at `3a6c454`)
+
+`main` has PRs #54 to #56 (Celestial Event III, mobile look pad). The rest is local:
+
+| Branch                           | What                                                               | Based on                               |
+| -------------------------------- | ------------------------------------------------------------------ | -------------------------------------- |
+| `fix/suv-colormap`               | The jeep's colour texture (Kenney, CC0)                            | `main`                                 |
+| `feat/ai-grenades`               | AI soldiers throw grenades at groups of 4+                         | `main`                                 |
+| `feat/soldier-structure-pathing` | W0: soldiers path round structures and open doors                  | `main`                                 |
+| `feat/objects-block-movement`    | Objects on the ground block movement                               | `main`                                 |
+| `feat/corpses-and-loose-items`   | Draggable corpses, loose items (Drop / Take), AI drags the wounded | `feat/objects-block-movement`          |
+| `feat/doors-v2`                  | Door system v2, large gates, Map 7 "Door gallery"                  | W0 branch + corpses branch merged      |
+| `feat/posts-and-ammo`            | Machine-gun nest, watchtower, turret ammo                          | `feat/doors-v2`                        |
+| `feat/editor-structures`         | Structures, objects and loose items in the map editor              | `feat/posts-and-ammo` (the active one) |
+
+The last branch contains everything except `fix/suv-colormap` and `feat/ai-grenades`. Merge them in any order; the stacked ones must go in the order of the table (or open one PR from `feat/editor-structures`). Possible small docs conflicts in PENDING.md / LASTCONTEXT.md. Worklogs of 2026-10-20: `w0-soldier-pathing`, `ai-grenades`, `objects-block-movement`, `corpses-and-loose-items`, `doors-v2`, `posts-and-turret-ammo`, `editor-structures`. Nothing was seen in a browser.
+
 ## Decisions the user has made (do not re-litigate)
 
 - **No new tests / no TDD** for the prototype; keep the 48 sim tests passing.

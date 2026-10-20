@@ -95,28 +95,28 @@ When you take control with **Y**, only the units that were selected follow you. 
 
 Opened from the main menu. It starts paused; **▶ Play** tests the map and **■ Stop** returns to the editor.
 
-| Key / mouse                      | Action                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------- |
-| W / A / S / D                    | Pan the camera                                                                              |
-| Mouse wheel                      | Zoom                                                                                        |
-| Right-drag on empty ground       | Rotate and tilt the camera                                                                  |
-| Left click (tool armed)          | Place the armed unit or asset (arm it by clicking its entry in the Units / Assets tab)      |
-| Right click / **Esc**            | Drop the armed tool                                                                         |
-| Left click on an item            | Select it; **Shift**-click adds or removes it from the selection                            |
-| Left-drag on an item             | Move the selection (props snap to 0.5 m)                                                    |
-| Left-drag on empty ground        | Box select (Shift adds)                                                                     |
-| Right-drag from an item          | Move that item                                                                              |
-| **R** (tap)                      | Rotate the selection a step                                                                 |
-| **R** held + right-drag          | Turn the selection to face the pointer                                                      |
-| Delete / Backspace               | Delete the selection                                                                        |
-| Ctrl+C / Ctrl+V                  | Copy / paste the selection (+2 m each paste)                                                |
-| Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y  | Undo / redo                                                                                 |
-| I / O                            | With one unit selected: its inventory / its stats window                                    |
-| Y                                | Take control of a soldier in the editor's sandbox, and back                                 |
-| Terrain tab: left-drag           | Raise / lower / flatten / smooth or paint with the brush (size and strength sliders)        |
-| Terrain tab: roads and floors    | Each click adds a point; right click or **Esc** ends the road                               |
-| Game logic tab: spawn point tool | Click adds a point (spawn point, fire, mission goal); right click or **Esc** drops the tool |
-| Top bar                          | ← Menu, ▶ Play / ■ Stop, New, Open, Save, Export, Import, Undo, Redo                        |
+| Key / mouse                      | Action                                                                                                                                                                                                         |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| W / A / S / D                    | Pan the camera                                                                                                                                                                                                 |
+| Mouse wheel                      | Zoom                                                                                                                                                                                                           |
+| Right-drag on empty ground       | Rotate and tilt the camera                                                                                                                                                                                     |
+| Left click (tool armed)          | Place the armed unit or asset (arm it by clicking its entry in the Units / Assets tab); the Assets tab also lists Structures (built from the start), Objects and Loose items                                   |
+| Right click / **Esc**            | Drop the armed tool                                                                                                                                                                                            |
+| Left click on an item            | Select it (a structure, object or loose item too; with one door or switch selected the panel shows its link, starts-open and the key it is locked with); **Shift**-click adds or removes it from the selection |
+| Left-drag on an item             | Move the selection (props snap to 0.5 m)                                                                                                                                                                       |
+| Left-drag on empty ground        | Box select (Shift adds)                                                                                                                                                                                        |
+| Right-drag from an item          | Move that item                                                                                                                                                                                                 |
+| **R** (tap)                      | Rotate the selection a step                                                                                                                                                                                    |
+| **R** held + right-drag          | Turn the selection to face the pointer                                                                                                                                                                         |
+| Delete / Backspace               | Delete the selection                                                                                                                                                                                           |
+| Ctrl+C / Ctrl+V                  | Copy / paste the selection (+2 m each paste)                                                                                                                                                                   |
+| Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y  | Undo / redo                                                                                                                                                                                                    |
+| I / O                            | With one unit selected: its inventory / its stats window                                                                                                                                                       |
+| Y                                | Take control of a soldier in the editor's sandbox, and back                                                                                                                                                    |
+| Terrain tab: left-drag           | Raise / lower / flatten / smooth or paint with the brush (size and strength sliders)                                                                                                                           |
+| Terrain tab: roads and floors    | Each click adds a point; right click or **Esc** ends the road                                                                                                                                                  |
+| Game logic tab: spawn point tool | Click adds a point (spawn point, fire, mission goal); right click or **Esc** drops the tool                                                                                                                    |
+| Top bar                          | ← Menu, ▶ Play / ■ Stop, New, Open, Save, Export, Import, Undo, Redo                                                                                                                                           |
 
 ## Mobile (landscape)
 

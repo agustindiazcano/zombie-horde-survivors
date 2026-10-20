@@ -2,6 +2,7 @@ import './editor.css';
 import { z } from 'zod';
 import catalogData from '../data/catalog.json';
 import gameData from '../data/game.json';
+import itemsData from '../data/items.json';
 import { blankMap, exportMap, importMapFile, listMaps, pickMapFile, saveMap } from './maps';
 import { objectiveLabel } from './hud';
 import { isDialogOpen, openInventory, openStats } from './unitDialogs';
@@ -43,6 +44,8 @@ interface Group {
   name: string;
   items?: Item[];
   groups?: Group[];
+  /** What its items place; groups without it inherit the tab's kind. */
+  kind?: Tool['kind'];
 }
 
 const ItemSchema = z
@@ -65,6 +68,56 @@ const catalog = z
   .object({ units: z.array(GroupSchema), assets: z.array(GroupSchema) })
   .strict()
   .parse(catalogData);
+
+/** Lists of the map's rules that hold things with a place (structures, objects, loose items). */
+const LOGIC_LISTS = ['structures', 'objects', 'items'] as const;
+type LogicList = (typeof LOGIC_LISTS)[number];
+/** One entry of those lists; only the fields each list uses are set. */
+interface LogicEntry {
+  x: number;
+  z: number;
+  type?: string;
+  item?: string;
+  turns?: number;
+  level?: number;
+  open?: boolean;
+  lock?: string;
+  link?: number;
+  count?: number;
+}
+type StructureSheet = {
+  name: string;
+  halfW: number;
+  halfD: number;
+  door?: boolean;
+  switch?: boolean;
+};
+const structureSheet = (type: string | undefined): StructureSheet | undefined =>
+  (gameData.structures.types as Record<string, StructureSheet>)[type ?? ''];
+
+/** The placeable things that live in the map's rules, listed after the catalog's assets. */
+const logicGroups: Group[] = [
+  {
+    id: 'structures',
+    name: 'Structures (built from the start)',
+    kind: 'structure',
+    items: Object.entries(gameData.structures.types).map(([id, d]) => ({ id, name: d.name })),
+  },
+  {
+    id: 'objects',
+    name: 'Objects',
+    kind: 'object',
+    items: Object.entries(gameData.objects.types).map(([id, d]) => ({ id, name: d.name })),
+  },
+  {
+    id: 'looseItems',
+    name: 'Loose items',
+    kind: 'item',
+    items: Object.entries(itemsData.items)
+      .filter(([, d]) => !('innate' in d && d.innate))
+      .map(([id, d]) => ({ id, name: d.name })),
+  },
+];
 
 type TabId = 'units' | 'assets' | 'terrain' | 'logic' | 'sky' | 'players';
 
@@ -102,7 +155,7 @@ const strengthLabel = (v: number): string =>
 
 /** What the next click on the map places; `owner` is the kind of player that owns a unit. */
 interface Tool {
-  kind: 'unit' | 'prop';
+  kind: 'unit' | 'prop' | 'structure' | 'object' | 'item';
   id: string;
   name: string;
   owner: 'human' | 'ai';
@@ -115,12 +168,14 @@ const MAX_MAP_SIZE = 200;
 const PASTE_OFFSET = 2;
 
 interface Selection {
-  list: 'units' | 'props';
+  list: 'units' | 'props' | LogicList;
   index: number;
 }
 
 /** A click this close (metres) to a unit picks it. */
 const PICK_RADIUS = 1;
+/** A click this close (metres) to a loose item or an object picks it. */
+const LOOSE_PICK = 0.8;
 const PROP_SNAP = 0.5;
 const UNIT_TURN = Math.PI / 4;
 const PROP_TURN = Math.PI / 2;
@@ -163,6 +218,8 @@ export class Editor {
   private readonly side = el('aside', 'editor__panel', this.root);
   private readonly body = el('div', 'editor__body', this.side);
   private readonly info = el('div', 'editor__info', this.side);
+  /** Properties of the one structure selected (lock, link, starts open). */
+  private readonly propsBox = el('div', 'editor__props', this.side);
   private readonly playButton: HTMLButtonElement;
   private readonly undoButton: HTMLButtonElement;
   private readonly redoButton: HTMLButtonElement;
@@ -173,7 +230,11 @@ export class Editor {
   private tool: Tool | null = null;
   private selection: Selection[] = [];
   /** What Ctrl+C remembered. */
-  private clipboard: { units: MapData['units']; props: MapData['props'] } | null = null;
+  private clipboard: {
+    units: MapData['units'];
+    props: MapData['props'];
+    logic: Partial<Record<LogicList, LogicEntry[]>>;
+  } | null = null;
   private drag: {
     mode: 'move' | 'face' | 'box';
     button: number;
@@ -322,7 +383,10 @@ export class Editor {
   }
 
   private apply(map: MapData): void {
-    const unitsKept = map.units === this.current.units && map.players === this.current.players;
+    const unitsKept =
+      map.units === this.current.units &&
+      map.players === this.current.players &&
+      LOGIC_LISTS.every((list) => map.logic[list] === this.current.logic[list]);
     this.current = map;
     this.actions.onMapChange(map, unitsKept);
     this.syncSelection();
@@ -348,10 +412,38 @@ export class Editor {
       const u = this.current.units[sel.index];
       return u ? { at: u, radius: PICK_RADIUS, label: this.nameOf(u.type) } : null;
     }
+    if (sel.list !== 'props') {
+      const entry = this.logicList(this.current, sel.list)[sel.index];
+      if (!entry) return null;
+      const sheet = structureSheet(entry.type);
+      const radius =
+        sel.list === 'structures' && sheet ? Math.max(sheet.halfW, sheet.halfD) * 1.5 : 1;
+      return { at: entry, radius, label: this.logicName(sel.list, entry) };
+    }
     const p = this.current.props[sel.index];
     if (!p) return null;
     const half = p.collider ? Math.max(p.collider.halfW, p.collider.halfD) : BLOCK_HALF;
     return { at: p, radius: half * 1.5, label: this.nameOf(p.asset) };
+  }
+
+  /** The entries of one of the map's placeable lists (none when the map has not got the list yet). */
+  private logicList(m: MapData, list: LogicList): LogicEntry[] {
+    return (m.logic[list] ?? []) as LogicEntry[];
+  }
+
+  /** `m` with one of those lists replaced. */
+  private withLogicList(m: MapData, list: LogicList, entries: LogicEntry[]): MapData {
+    return { ...m, logic: { ...m.logic, [list]: entries } as MapLogic };
+  }
+
+  private logicName(list: LogicList, e: LogicEntry): string {
+    if (list === 'structures') return structureSheet(e.type)?.name ?? e.type ?? 'Structure';
+    if (list === 'objects') {
+      const types = gameData.objects.types as Record<string, { name: string }>;
+      return types[e.type ?? '']?.name ?? e.type ?? 'Object';
+    }
+    const items = itemsData.items as Record<string, { name: string }>;
+    return items[e.item ?? '']?.name ?? e.item ?? 'Item';
   }
 
   /** The selected items that still exist (an undo can remove some). */
@@ -402,6 +494,66 @@ export class Editor {
             : 'Click an item to select it, or drag a box around several (Shift adds).';
     this.undoButton.disabled = this.past.length === 0;
     this.redoButton.disabled = this.future.length === 0;
+    this.renderProps();
+  }
+
+  /** Lock, link and starting state of the one structure selected (doors and switches). */
+  private renderProps(): void {
+    this.propsBox.replaceChildren();
+    const only = this.selection.length === 1 ? this.selection[0]! : null;
+    if (!this.isEditing || !only || only.list !== 'structures') return;
+    const index = only.index;
+    const entry = this.logicList(this.current, 'structures')[index];
+    const sheet = structureSheet(entry?.type);
+    if (!entry || !sheet || !(sheet.door || sheet.switch)) return;
+    const change = (patch: Partial<LogicEntry>) =>
+      this.edit(
+        this.withLogicList(
+          this.current,
+          'structures',
+          this.logicList(this.current, 'structures').map((e, i) =>
+            i === index ? { ...e, ...patch } : e,
+          ),
+        ),
+      );
+    el('div', 'editor__label', this.propsBox, sheet.name);
+    const link = el('label', 'editor__row', this.propsBox, 'Link (switch group)');
+    const linkInput = el('input', 'editor__number', link);
+    linkInput.type = 'number';
+    linkInput.min = '0';
+    linkInput.value = String(entry.link ?? 0);
+    linkInput.addEventListener('change', () => {
+      const v = Math.round(Number(linkInput.value));
+      change({ link: Number.isFinite(v) && v >= 0 ? v : 0 });
+    });
+    const open = el(
+      'label',
+      'editor__row',
+      this.propsBox,
+      sheet.switch ? 'Starts on' : 'Starts open',
+    );
+    const openBox = el('input', '', open);
+    openBox.type = 'checkbox';
+    openBox.checked = entry.open === true;
+    openBox.addEventListener('change', () => change({ open: openBox.checked }));
+    if (!sheet.door) return;
+    const lock = el('label', 'editor__row', this.propsBox, 'Locked with');
+    const select = el('select', 'editor__select', lock);
+    el('option', '', select, 'Nothing').value = '';
+    for (const [id, def] of Object.entries(itemsData.items)) {
+      if (def.type === 'key') el('option', '', select, def.name).value = id;
+    }
+    select.value = entry.lock ?? '';
+    select.addEventListener('change', () => {
+      const next = this.logicList(this.current, 'structures').map((e, i) => {
+        if (i !== index) return e;
+        const copy = { ...e };
+        if (select.value) copy.lock = select.value;
+        else delete copy.lock;
+        return copy;
+      });
+      this.edit(this.withLogicList(this.current, 'structures', next));
+    });
   }
 
   private ownerId(kind: 'human' | 'ai'): string | undefined {
@@ -432,6 +584,29 @@ export class Editor {
       }
     });
     if (best) return best;
+    // Loose items and objects are small: the nearest within a short reach.
+    let nearest: Selection | null = null;
+    let nearestDist = LOOSE_PICK;
+    for (const list of ['items', 'objects'] as const) {
+      this.logicList(this.current, list).forEach((e, index) => {
+        const d = Math.hypot(e.x - at.x, e.z - at.z);
+        if (d < nearestDist) {
+          nearestDist = d;
+          nearest = { list, index };
+        }
+      });
+    }
+    if (nearest) return nearest;
+    const built = this.logicList(this.current, 'structures').findIndex((st) => {
+      const sheet = structureSheet(st.type);
+      if (!sheet) return false;
+      const turned = (st.turns ?? 0) % 2 !== 0;
+      return (
+        Math.abs(at.x - st.x) <= (turned ? sheet.halfD : sheet.halfW) &&
+        Math.abs(at.z - st.z) <= (turned ? sheet.halfW : sheet.halfD)
+      );
+    });
+    if (built >= 0) return { list: 'structures', index: built };
     const hit = this.current.props.findIndex((p) => {
       const half = p.collider ?? { halfW: BLOCK_HALF, halfD: BLOCK_HALF };
       const turned = Math.round(p.rotation / PROP_TURN) % 2 !== 0;
@@ -585,11 +760,20 @@ export class Editor {
     const propSnap = (v: number) => Math.round(v / PROP_SNAP) * PROP_SNAP;
     const units = this.chosen('units');
     const props = this.chosen('props');
-    return {
+    let next: MapData = {
       ...base,
       units: base.units.map((u, i) => (units.has(i) ? { ...u, ...place(u, (v) => v) } : u)),
       props: base.props.map((p, i) => (props.has(i) ? { ...p, ...place(p, propSnap) } : p)),
     };
+    for (const list of LOGIC_LISTS) {
+      const chosen = this.chosen(list);
+      if (chosen.size === 0) continue;
+      const moved = this.logicList(base, list).map((e, i) =>
+        chosen.has(i) ? { ...e, ...place(e, propSnap) } : e,
+      );
+      next = this.withLogicList(next, list, moved);
+    }
+    return next;
   }
 
   private chosen(list: Selection['list']): Set<number> {
@@ -601,8 +785,15 @@ export class Editor {
     const units = this.chosen('units');
     const props = this.chosen('props');
     const toward = (p: Vec2) => Math.atan2(at.x - p.x, at.z - p.z);
+    const built = this.chosen('structures');
+    const structures = this.logicList(base, 'structures').map((st, i) =>
+      built.has(i) && Math.hypot(at.x - st.x, at.z - st.z) > FACE_MIN_DISTANCE
+        ? { ...st, turns: (((Math.round(toward(st) / PROP_TURN) % 4) + 4) % 4) as number }
+        : st,
+    );
+    const turned = built.size > 0 ? this.withLogicList(base, 'structures', structures) : base;
     return {
-      ...base,
+      ...turned,
       units: base.units.map((u, i) =>
         units.has(i) && Math.hypot(at.x - u.x, at.z - u.z) > FACE_MIN_DISTANCE
           ? { ...u, rotation: toward(u) }
@@ -656,6 +847,11 @@ export class Editor {
     const found: Selection[] = [];
     this.current.units.forEach((u, index) => inside(u) && found.push({ list: 'units', index }));
     this.current.props.forEach((p, index) => inside(p) && found.push({ list: 'props', index }));
+    for (const list of LOGIC_LISTS) {
+      this.logicList(this.current, list).forEach(
+        (e, index) => inside(e) && found.push({ list, index }),
+      );
+    }
     const keep = drag.additive ? this.selection : [];
     this.selection = [
       ...keep,
@@ -690,6 +886,22 @@ export class Editor {
       this.edit({ ...m, props: [...m.props, prop] });
       return;
     }
+    if (tool.kind === 'structure' || tool.kind === 'object' || tool.kind === 'item') {
+      const list: LogicList =
+        tool.kind === 'structure' ? 'structures' : tool.kind === 'object' ? 'objects' : 'items';
+      const x = Math.round(at.x / PROP_SNAP) * PROP_SNAP;
+      const z = Math.round(at.z / PROP_SNAP) * PROP_SNAP;
+      const entry: LogicEntry =
+        list === 'structures'
+          ? { type: tool.id, x, z, turns: 0, level: 1 }
+          : list === 'objects'
+            ? { type: tool.id, x, z }
+            : { item: tool.id, x, z, count: 1 };
+      const entries = this.logicList(m, list);
+      this.selection = [{ list, index: entries.length }];
+      this.edit(this.withLogicList(m, list, [...entries, entry]));
+      return;
+    }
     const owner = this.ownerId(tool.owner);
     if (!owner) {
       alert(`This map has no ${tool.owner} player to own the unit.`);
@@ -708,13 +920,25 @@ export class Editor {
     const m = this.current;
     const units = new Set(this.selection.filter((s) => s.list === 'units').map((s) => s.index));
     const props = new Set(this.selection.filter((s) => s.list === 'props').map((s) => s.index));
-    this.edit({
+    const built = this.chosen('structures');
+    const turned: MapData = {
       ...m,
       units: m.units.map((u, i) =>
         units.has(i) ? { ...u, rotation: (u.rotation ?? 0) + UNIT_TURN } : u,
       ),
       props: m.props.map((p, i) => (props.has(i) ? { ...p, rotation: p.rotation + PROP_TURN } : p)),
-    });
+    };
+    this.edit(
+      built.size === 0
+        ? turned
+        : this.withLogicList(
+            turned,
+            'structures',
+            this.logicList(m, 'structures').map((st, i) =>
+              built.has(i) ? { ...st, turns: ((st.turns ?? 0) + 1) % 4 } : st,
+            ),
+          ),
+    );
   }
 
   /** Ctrl+C: remembers the selected units and props. */
@@ -728,7 +952,14 @@ export class Editor {
       const p = s.list === 'props' ? m.props[s.index] : undefined;
       return p ? [p] : [];
     });
-    if (units.length + props.length > 0) this.clipboard = { units, props };
+    const logic: Partial<Record<LogicList, LogicEntry[]>> = {};
+    for (const list of LOGIC_LISTS) {
+      const chosen = this.chosen(list);
+      const copies = this.logicList(m, list).filter((_, i) => chosen.has(i));
+      if (copies.length > 0) logic[list] = copies;
+    }
+    const logicCount = Object.values(logic).reduce((n, l) => n + l.length, 0);
+    if (units.length + props.length + logicCount > 0) this.clipboard = { units, props, logic };
   }
 
   /** Ctrl+V: adds copies next to the remembered ones and selects them; pasting again keeps stepping away. */
@@ -740,12 +971,23 @@ export class Editor {
     const near = (v: number) => Math.max(-half, Math.min(half, v + PASTE_OFFSET));
     const units = clip.units.map((u) => ({ ...u, x: near(u.x), z: near(u.z) }));
     const props = clip.props.map((p) => ({ ...p, x: near(p.x), z: near(p.z) }));
-    this.clipboard = { units, props };
-    this.selection = [
+    const logic: Partial<Record<LogicList, LogicEntry[]>> = {};
+    let next: MapData = { ...m, units: [...m.units, ...units], props: [...m.props, ...props] };
+    const selection: Selection[] = [
       ...units.map((_, i) => ({ list: 'units' as const, index: m.units.length + i })),
       ...props.map((_, i) => ({ list: 'props' as const, index: m.props.length + i })),
     ];
-    this.edit({ ...m, units: [...m.units, ...units], props: [...m.props, ...props] });
+    for (const list of LOGIC_LISTS) {
+      const copies = (clip.logic[list] ?? []).map((e) => ({ ...e, x: near(e.x), z: near(e.z) }));
+      if (copies.length === 0) continue;
+      logic[list] = copies;
+      const have = this.logicList(m, list);
+      next = this.withLogicList(next, list, [...have, ...copies]);
+      selection.push(...copies.map((_, i) => ({ list, index: have.length + i })));
+    }
+    this.clipboard = { units, props, logic };
+    this.selection = selection;
+    this.edit(next);
   }
 
   private deleteSelected(): void {
@@ -753,12 +995,23 @@ export class Editor {
     const m = this.current;
     const units = new Set(this.selection.filter((s) => s.list === 'units').map((s) => s.index));
     const props = new Set(this.selection.filter((s) => s.list === 'props').map((s) => s.index));
-    this.selection = [];
-    this.edit({
+    let next: MapData = {
       ...m,
       units: m.units.filter((_, i) => !units.has(i)),
       props: m.props.filter((_, i) => !props.has(i)),
-    });
+    };
+    for (const list of LOGIC_LISTS) {
+      const gone = this.chosen(list);
+      if (gone.size > 0) {
+        next = this.withLogicList(
+          next,
+          list,
+          this.logicList(m, list).filter((_, i) => !gone.has(i)),
+        );
+      }
+    }
+    this.selection = [];
+    this.edit(next);
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
@@ -1001,7 +1254,11 @@ export class Editor {
     if (tab === 'units')
       this.groups(catalog.units, 'Click a unit, then click the map to place it.', 'unit');
     else if (tab === 'assets')
-      this.groups(catalog.assets, 'Click an asset, then click the map.', 'prop');
+      this.groups(
+        [...catalog.assets, ...logicGroups],
+        "Click an asset, then click the map. Structures, objects and loose items are part of the map's rules.",
+        'prop',
+      );
     else if (tab === 'terrain') this.terrain();
     else if (tab === 'logic') this.logic();
     else if (tab === 'sky') this.environmentTab();
@@ -1015,8 +1272,9 @@ export class Editor {
   /** The catalog lists; picking an entry arms it as the tool for the next map clicks. */
   private groups(groups: Group[], hint: string, kind: Tool['kind']): void {
     this.note(hint);
-    const build = (list: Group[], parent: HTMLElement, humans: boolean) => {
+    const build = (list: Group[], parent: HTMLElement, humans: boolean, inherited = kind) => {
       for (const group of list) {
+        const groupKind = group.kind ?? inherited;
         const details = el('details', 'editor__group', parent);
         el('summary', 'editor__summary', details, group.name);
         const inner = el('div', 'editor__items', details);
@@ -1028,14 +1286,21 @@ export class Editor {
             button.title = SOON;
           }
           button.addEventListener('click', () => {
-            const same = this.tool?.id === item.id;
+            const same = this.tool?.id === item.id && this.tool.kind === groupKind;
             this.setTool(
-              same ? null : { kind, id: item.id, name: item.name, owner: isHuman ? 'human' : 'ai' },
+              same
+                ? null
+                : {
+                    kind: groupKind,
+                    id: item.id,
+                    name: item.name,
+                    owner: isHuman ? 'human' : 'ai',
+                  },
               button,
             );
           });
         }
-        if (group.groups) build(group.groups, inner, isHuman);
+        if (group.groups) build(group.groups, inner, isHuman, groupKind);
         if (!group.items?.length && !group.groups) el('span', 'editor__empty', inner, 'Empty');
       }
     };

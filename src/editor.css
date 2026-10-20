@@ -299,3 +299,20 @@ body.editing .radar {
   border: 1px solid #4a5366;
   background: none;
 }
+
+.editor__props {
+  padding: 0 10px 10px;
+  font-size: 13px;
+}
+
+.editor__props:empty {
+  display: none;
+}
+
+.editor__label {
+  margin-bottom: 6px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}

@@ -74,7 +74,9 @@ Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watch
 - [ ] 🔴 Look at it in the browser: open Map 2, press **N**, place a wall / door / turret, watch the soldiers build, open the door with **E**, let a wave hit the base. Tune `structures` in `game.json`.
 - [x] Manned machine-gun nest, watchtower and ammo for turrets ([worklog](docs/worklog/2026-10-20-posts-and-turret-ammo.md)); soldier pathing around structures is on `feat/soldier-structure-pathing`.
 - [ ] 🔴 Look at them in the browser: Map 2 has a nest and a tower; **E** / **V** to climb in, the mouse aims the nest, turrets run dry and **Resupply**. Tune `post` and `ammo` of the structure types.
-- [ ] 🟡 Next: structures in the editor, models and sounds, the AI manning posts.
+- [x] Structures, objects and loose items in the map editor ([worklog](docs/worklog/2026-10-20-editor-structures.md)).
+- [ ] 🔴 Try the editor: Assets tab > Structures / Objects / Loose items, place a door, lock it and set its link, Play.
+- [ ] 🟡 Next: models and sounds for structures, the AI manning posts and feeding turrets.
 
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
