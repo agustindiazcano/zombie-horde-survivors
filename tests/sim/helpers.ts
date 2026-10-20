@@ -69,6 +69,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     animals: { ...base.animals },
     orbs: { ...base.orbs },
     skyShow: { ...base.skyShow },
+    greys: { ...base.greys },
     drag: { ...base.drag },
     grenades: { ...base.grenades },
     ammo: { ...base.ammo },
