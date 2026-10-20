@@ -108,8 +108,14 @@ Full plan and story: [docs/PLAN-celestial-event-3.md](docs/PLAN-celestial-event-
 - [x] E0 Map 6 shell, E1 civilians, E2 metal sphere built ([worklog](docs/worklog/2026-10-20-celestial-event-3-e0-e2.md)).
 - [ ] 🔴 Look at Map 6 in the browser (Start > Single Player > Waves > Map 6): night light, civilians, the sphere, ray, flash and ash.
 - [x] The whole scene is built as one timed script (stars, blue lights, blackout, scouts, abductions, parting ray, hunters, second ship, greys); see the worklog.
-- [ ] 🔴 The user looks at it in the browser (lighting, metal look, FPS with 116 people) and says what to tune.
-- [ ] 🟡 Next: the cinematic drone camera and the HUD readout (E4), the player as a target and hide and seek (E6), real models for greys and civilians (E7, needs the user's OK for downloads).
+- [x] Scene reordered (fifth part of the worklog): calm crowd during the abductions, ring round the greys, panic and hunters only after the greys start killing.
+- [ ] 🔴 The user looks at it in the browser and says what to tune: ring and greys, subtitles vs. events (1-3 s drift in the greys part), blackout, dim vs. blue light, parting ray, sphere look, FPS with F3 (116 people), walking backwards with the normal walk clip.
+- [x] Plan extended with the Nodes lore and the cosmic horror layer (docs only).
+- [ ] 🟡 Change the intro to the remote-projection script (no drone: it ends when a grey looks at the camera and the player wakes in bed at the real blackout) and design the first level inside the house (or close Map 6 first: open question for the user).
+- [ ] 🟡 Cinematic camera and cold HUD (E4), the player as a target and hide and seek (E6, Node 10 powers need interiors E8).
+- [ ] 🟡 Real models for greys and civilians (E7). Ask before downloading: Kenney City Kit Suburban (CC0), the low-poly alien from OpenGameArt (CC-BY 4.0), Quaternius Ultimate Modular (QAL v1.0: read the licence first).
+- [ ] 🟡 PR of `feat/celestial-event-3` only when the user asks (everything is local; offer push and PR).
+- [ ] 🟢 WebGPU B0 measurement: waiting for the user's answers (incremental or new repo; keep a WebGL fallback). Recommendation: incremental plus fallback.
 
 ### 2i — 🟡 Test maps, doors, interiors, urban maps, engine (planned 2026-10-19)
 
