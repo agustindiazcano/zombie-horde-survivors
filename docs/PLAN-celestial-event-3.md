@@ -12,9 +12,26 @@ That the United States leads the disclosure is no accident: the information touc
 
 "Celestial Event III" is the **codename of the game/demo**; in the fiction the event is classified Level IV. (Ask the user if the codename and the level should match.)
 
+### Lore addition: the Nodes (the user's concept, added 2026-10-20)
+
+The planet was **terraformed** and humanity was **genetically modified** long ago. Every human carries a latent "node" rating from **1 to 10**: how much of an engineered, dormant capacity (telepathy, telekinesis, premonition) can wake up. Low nodes (1 to 3) are genetic noise, expendable; high nodes are the successful product of the modification.
+
+This turns Level IV Celestial Events from random attacks into **maintenance and harvest operations**:
+
+| Actor                      | What it does under this lore                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| Metal spheres              | Vaporise low nodes (1 to 3): noise to clean up                                                    |
+| Big ships (mother spheres) | Abduct selectively the high nodes that managed to awaken their latent abilities                   |
+| Greys                      | The makers of the modification; they look for their successful product, the high nodes            |
+| UMBRA                      | Predicts where the next Level IV event will land by mining the internet (see below); not a friend |
+
+**The protagonist is a Node 10.** Greys and UMBRA both want them, so the player is the main target of both factions.
+
+**UMBRA psychic OSINT.** UMBRA scans millions of daily posts on forums and social networks for keywords and descriptions of "living geometry" and shared nightmares. When a thousand people in different places dream the same shape or the same disaster, its model predicts where the next Level IV event falls. UMBRA wants the protagonist in a lab, as a human early-warning antenna, or dead if their mind is judged to be what attracts the kilometre-long ships.
+
 ### Opening scene (cinematic, no player input)
 
-The player watches through a **drone** (a UMBRA drone with electromagnetic shielding, which is why it still flies during the blackout). A night in a US suburb, outdoor lights on, neighbours looking at the stars.
+The player watches what looks like a **drone** floating over a US suburb. In the fiction this is **remote projection**: the Node 10 protagonist is asleep, projecting their consciousness, or having an exact premonition of what will happen in their own neighbourhood minutes before it happens. This also explains the camera during the blackout without a physical drone (the shielded UMBRA drone is dropped as an explanation). A night in a US suburb, outdoor lights on, neighbours looking at the stars.
 
 | Beat | What happens                                                                                                                         | Sound / HUD                                                                                 |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
@@ -26,7 +43,21 @@ The player watches through a **drone** (a UMBRA drone with electromagnetic shiel
 | 6    | A **bigger sphere** abducts people with a beam of light and leaves                                                                   | HUD: `CLASSIFICATION: ESCALATING TO LEVEL IV`                                               |
 | 7    | Another metal sphere lands; **grey** aliens step down. A man attacks one with a stick; a grey extends a **staff** and paralyses him  | The scene ends here for now                                                                 |
 
-After the intro the idea is **hide and seek**. Who the player becomes afterwards is open (section 7).
+**Transition to gameplay.** The scene ends when a grey on the ground, or the big sphere, suddenly turns and "looks" straight at the player's invisible camera: they also operate on the telepathic plane and detect that a Node 10 is watching. The psychic impact wakes the protagonist in bed. At that moment the power in their real house cuts out and blue and green lights start showing through the window. They already know what is coming because they just "dreamed" it, and the **hide and seek** starts.
+
+This replaces the earlier open question of who the player controls (section 7, question 1): the player is the Node 10 neighbour, inside their own house.
+
+### Mechanics for a Node 10 (stealth plus powers with a cost)
+
+Powers must be dangerous to use, or the player feels like a superhero and the terror is lost.
+
+| Mechanic                         | How it works                                                                                                                                                                                                                                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Psychic signature (the risk)     | Metal spheres and the blue / green orbs do not hunt body heat but **anomalous neural activity**. Using telekinesis (move an object, make noise in another room to distract a grey) creates a "spike"; using it a lot pulls the seeker orbs straight to the player                                            |
+| Short-term premonition (stealth) | Instead of a radar, the player closes their eyes and concentrates to see translucent "echoes" (silhouettes) of where a grey will walk in the next 5 seconds, to plan a hiding spot without leaning out                                                                                                       |
+| Living geometry and telepathy    | When a grey is near, the screen edges distort with fractal geometric patterns. The mind involuntarily translates their transmissions: the player hears their "orders" or sees flashes of what the grey sees. Useful to know if they are about to be found, but it floods the screen if the grey is too close |
+
+These come after E6 and need interiors (E8). The first playable level is inside the player's house.
 
 ### Threat roles for the playable part (from the user's story)
 
@@ -35,7 +66,7 @@ After the intro the idea is **hide and seek**. Who the player becomes afterwards
 | Light orbs (blue / green) | Seekers      | Drift, pass through walls and windows looking for signs of life; they **mark** whoever they see. Staying still / crouching / cover reduces being seen |
 | Metal spheres             | Executioners | When a light orb marks a target a sphere appears beside it with no warning and vaporises it. Silent until the kill                                    |
 | Greys                     | Slow hunters | Walk through houses searching for people to take alive; the staff paralyses. They reuse the hunter AI (sight, lose track, search)                     |
-| UMBRA (optional)          | Second fear  | Not necessarily the good side: it may want to "clean" scanned survivors                                                                               |
+| UMBRA                     | Second fear  | Not the good side: it hunts the Node 10 to put them in a lab, use them as an early-warning antenna, or eliminate them (see the Nodes lore above)      |
 
 ## 2. What the engine already has
 
@@ -85,17 +116,17 @@ Sources checked on 2026-10-20 (web search; licences not downloaded or confirmed 
 
 ## 5. Implementation plan
 
-| #   | Priority | Step                                                                                                                                           | Done when                                                                          | Depends on                                 |
-| --- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------ |
-| E0  | 🔴       | **Map 6 shell**: `data/maps/map-6.json` (suburb of box houses, street, lamps), `lighting` rule (night, moon, lamps), menu entry, `noWaves`     | The map loads from the menu and looks like a night street                          | none                                       |
-| E1  | 🔴       | **Civilians** from `animals.ts`: idle / watch / panic / freeze; placed in the map; HUD counter                                                 | A dozen neighbours stand about and run from a test threat                          | E0                                         |
-| E2  | 🔴       | **Metal sphere** (`orbs.ts`): appears beside a target, charges, vaporises (flash + ash); silent movement; casualty counter                     | A sphere kills civilians one by one and chases the runners                         | E1                                         |
-| E3  | 🟡       | **Event script** (`events.ts`) + blackout, flicker, light orbs in formations, moving stars (`sky.ts`)                                          | Beats 1 to 5 of the intro run from a JSON timeline                                 | E2                                         |
-| E4  | 🟡       | **Cinematic drone camera** (scripted path, letterbox) + clinical HUD text + procedural sound                                                   | The intro plays hands-free from the main menu entry                                | E3                                         |
-| E5  | 🟡       | **Mother sphere** abducts a group and leaves; **landing sphere** and **greys** with the staff (`paralysed`); the man with the stick            | Beats 6 and 7: the intro is complete                                               | E4                                         |
-| E6  | 🟢       | **Playable hide and seek**: the player controls one civilian or UMBRA agent (section 7); light orbs mark, spheres execute, greys search houses | Surviving to an extraction point or a timer wins; being marked and vaporised loses | E5 + user answers                          |
-| E7  | 🟢       | Swap placeholders: Kenney houses, a grey alien and civilians (after the licence check and the user's OK); `npm run credits`                    | Same game, better look                                                             | licences                                   |
-| E8  | ⚪       | Interiors, hiding places (wardrobes, basements), UMBRA "cleaners" as a second threat, sound pass                                               | Hiding inside buildings                                                            | interiors plan in PLAN-world-and-engine.md |
+| #   | Priority | Step                                                                                                                                                          | Done when                                                                          | Depends on                                 |
+| --- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------ |
+| E0  | 🔴       | **Map 6 shell**: `data/maps/map-6.json` (suburb of box houses, street, lamps), `lighting` rule (night, moon, lamps), menu entry, `noWaves`                    | The map loads from the menu and looks like a night street                          | none                                       |
+| E1  | 🔴       | **Civilians** from `animals.ts`: idle / watch / panic / freeze; placed in the map; HUD counter                                                                | A dozen neighbours stand about and run from a test threat                          | E0                                         |
+| E2  | 🔴       | **Metal sphere** (`orbs.ts`): appears beside a target, charges, vaporises (flash + ash); silent movement; casualty counter                                    | A sphere kills civilians one by one and chases the runners                         | E1                                         |
+| E3  | 🟡       | **Event script** (`events.ts`) + blackout, flicker, light orbs in formations, moving stars (`sky.ts`)                                                         | Beats 1 to 5 of the intro run from a JSON timeline                                 | E2                                         |
+| E4  | 🟡       | **Cinematic drone camera** (scripted path, letterbox) + clinical HUD text + procedural sound                                                                  | The intro plays hands-free from the main menu entry                                | E3                                         |
+| E5  | 🟡       | **Mother sphere** abducts a group and leaves; **landing sphere** and **greys** with the staff (`paralysed`); the man with the stick                           | Beats 6 and 7: the intro is complete                                               | E4                                         |
+| E6  | 🟢       | **Playable hide and seek**: the player is the Node 10 neighbour in their house (Nodes lore, mechanics); light orbs mark, spheres execute, greys search houses | Surviving to an extraction point or a timer wins; being marked and vaporised loses | E5 + user answers                          |
+| E7  | 🟢       | Swap placeholders: Kenney houses, a grey alien and civilians (after the licence check and the user's OK); `npm run credits`                                   | Same game, better look                                                             | licences                                   |
+| E8  | ⚪       | Interiors, hiding places (wardrobes, basements), UMBRA "cleaners" as a second threat, sound pass                                                              | Hiding inside buildings                                                            | interiors plan in PLAN-world-and-engine.md |
 
 Each step is its own small commit; before every commit: lint, format:check, typecheck, tests (read the result), build, check:assets. Update `docs/CONTROLS.md` if a key changes, and `LASTCONTEXT.md` / `PENDING.md`; finished work goes to `docs/worklog/`.
 
@@ -111,11 +142,12 @@ Each step is its own small commit; before every commit: lint, format:check, type
 
 ## 7. Questions for the user
 
-| #   | Question                                                                                                                                       | Recommendation                                                      |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| 1   | After the intro, who does the player control? **A** a survivor in a house (the drone is destroyed) or **B** a UMBRA operator entering the zone | **A**: pure hide and seek, no weapons or squad needed               |
-| 2   | Is the codename "Celestial Event III" while the in-game level is IV, or should both be the same number?                                        | Keep III as the project name, IV as the in-game classification      |
-| 3   | Do civilians fight back or lose the run when many die?                                                                                         | They only flee; the casualty count is a score, not a lose condition |
-| 4   | Is UMBRA a second faction to fear (cleans scanned survivors)?                                                                                  | Later (E8)                                                          |
-| 5   | OK to download Kenney City Kit (CC0) and the OpenGameArt alien (CC-BY 4.0, credit needed) for E7?                                              | Yes, after I read each licence file                                 |
-| 6   | Should it stay as Map 6 or become its own menu entry from the start?                                                                           | Map 6 first                                                         |
+| #   | Question                                                                                                                 | Recommendation                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| 1   | After the intro, who does the player control? **Decided (2026-10-20):** the Node 10 neighbour, waking in their own house | Done: see the Nodes lore and the transition to gameplay                  |
+| 2   | Is the codename "Celestial Event III" while the in-game level is IV, or should both be the same number?                  | Keep III as the project name, IV as the in-game classification           |
+| 3   | Do civilians fight back or lose the run when many die?                                                                   | They only flee; the casualty count is a score, not a lose condition      |
+| 4   | Is UMBRA a second faction to fear? **Decided:** yes, it hunts the Node 10                                                | Gameplay presence later (E8)                                             |
+| 7   | Should the first playable level inside the house be designed now (rooms, hiding spots, power costs and thresholds)?      | Yes, the user said yes; needs interiors (E8) first or a simple box house |
+| 5   | OK to download Kenney City Kit (CC0) and the OpenGameArt alien (CC-BY 4.0, credit needed) for E7?                        | Yes, after I read each licence file                                      |
+| 6   | Should it stay as Map 6 or become its own menu entry from the start?                                                     | Map 6 first                                                              |
