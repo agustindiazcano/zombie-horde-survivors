@@ -96,6 +96,56 @@ export function throwGrenade(
   return true;
 }
 
+/** When (sim time) each AI soldier last threw, so it waits `aiCooldown` between throws. */
+const lastAiThrow = new WeakMap<Soldier, number>();
+
+/**
+ * An AI soldier lobs a grenade at the best group of enemies within reach: at least `aiMinEnemies`
+ * of them inside the blast (a boss counts as several), and the point far enough from the thrower
+ * and every ally that the blast would not hurt them. Returns true if it threw.
+ */
+export function aiThrowGrenade(state: GameState, config: GameConfig, me: Soldier): boolean {
+  const g = config.grenades;
+  if (me.fireCooldown > 0) return false;
+  const last = lastAiThrow.get(me);
+  if (last !== undefined && state.time - last < g.aiCooldown) return false;
+  const stack = canThrow(me) ? grenadeStack(config, me) : undefined;
+  if (!stack) return false;
+  const def = grenadeDef(config, stack.item);
+  const radius = def.blastRadius * (1 + bonus(config, me, 'blastRadius'));
+  const reach = def.throwRange * (1 + bonus(config, me, 'throw'));
+  const safe = radius * g.aiSafeFactor;
+
+  let best: Vec2 | null = null;
+  let bestScore = g.aiMinEnemies - 1e-6;
+  for (const z of state.zombies) {
+    if (z.state === 'death') continue;
+    const d = Math.hypot(z.pos.x - me.pos.x, z.pos.z - me.pos.z);
+    if (d > reach || d < safe) continue;
+    let score = 0;
+    for (const o of state.zombies) {
+      if (o.state === 'death') continue;
+      if (Math.hypot(o.pos.x - z.pos.x, o.pos.z - z.pos.z) <= radius * g.aiClusterShare) {
+        score += o.boss ? g.aiBossWeight : 1;
+      }
+    }
+    if (score <= bestScore) continue;
+    const allyNear = state.soldiers.some(
+      (a) =>
+        !a.dead &&
+        a.kind !== 'drone' &&
+        a.vehicleId === null &&
+        Math.hypot(a.pos.x - z.pos.x, a.pos.z - z.pos.z) < safe,
+    );
+    if (allyNear) continue;
+    best = z.pos;
+    bestScore = score;
+  }
+  if (!best || !throwGrenade(state, config, me.id, best)) return false;
+  lastAiThrow.set(me, state.time);
+  return true;
+}
+
 /** Damage at distance `d` from the centre: full in the middle, less towards the edge. */
 const blastAt = (def: GrenadeItem, d: number, radius: number, scale: number): number =>
   def.blastDamage * scale * (1 - def.falloff * Math.min(d / radius, 1));

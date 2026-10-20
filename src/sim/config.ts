@@ -898,6 +898,15 @@ export const GameConfigSchema = z
         cooldown: nonNegative,
         /** Share of the blast damage that hurts allies, including the thrower (0 = none). */
         friendlyFire: z.number().min(0).max(1),
+        /** AI soldiers throw when at least this many enemies stand together (a boss counts as `aiBossWeight`). */
+        aiMinEnemies: positive,
+        aiBossWeight: positive,
+        /** Seconds an AI soldier waits after a throw before it may throw again. */
+        aiCooldown: nonNegative,
+        /** The target must be this many times the blast radius away from the thrower and every ally. */
+        aiSafeFactor: positive,
+        /** Enemies within this share of the blast radius of the target count as hit. */
+        aiClusterShare: positive,
       })
       .strict(),
     /** How well units hit: the weapon's `spread` is its worst case, these scale it down or up. */

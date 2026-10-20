@@ -1,5 +1,6 @@
 import { edgeDistance, getStructure, isWorking, mustFight } from './structures';
 import { ARRIVE_SHARE, findInteractable, performInteract } from './interact';
+import { aiThrowGrenade } from './grenades';
 import { throwCarried } from './objects';
 import { bonus } from './training';
 import { resolveStatic, supportHeight, topOf } from './collision';
@@ -531,6 +532,9 @@ function updateAi(
     s.facing = Math.atan2(close.pos.x - s.pos.x, close.pos.z - s.pos.z);
     if (meleeStrike(state, config, s)) return;
   }
+
+  // A group of enemies far enough away gets a grenade before the rifle.
+  if (!isDrone(s) && !s.downed && aiThrowGrenade(state, config, s)) return;
 
   const target = findTarget(state, config, s);
   maintainAmmo(state, config, s, target !== null);
