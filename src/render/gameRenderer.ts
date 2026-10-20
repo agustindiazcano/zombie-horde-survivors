@@ -262,7 +262,7 @@ export class GameRenderer {
     this.halfSize = config.arena.halfSize;
     this.droneHeight = config.drone.height;
     this.objectViews = new ObjectViews(config, (x, z) => this.groundAt(x, z));
-    this.orbViews = new OrbViews((x, z) => this.groundAt(x, z));
+    this.orbViews = new OrbViews((x, z) => this.groundAt(x, z), this.renderer);
     this.streetLights = new StreetLights(this.scene);
     this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
     this.fireViews = new FireViews(config, (x, z) => this.groundAt(x, z));
@@ -762,6 +762,8 @@ export class GameRenderer {
       const watching =
         this.config.skyShowOn && a.panic <= 0 && state.time < this.config.skyShow.calmUntil;
       view.object.rotation.x = watching ? -WATCH_LEAN : 0;
+      // Burned by a ray: the body crumbles away in the last moments.
+      view.object.scale.setScalar(a.burn > 0.82 ? Math.max(0, 1 - (a.burn - 0.82) / 0.18) : 1);
       view.setState(a.panic > 0 ? 'run' : a.dest ? 'walk' : 'idle');
       view.update(dt);
     }

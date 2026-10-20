@@ -6,6 +6,8 @@ import type { Vec2 } from './vec';
 
 /** An animal this close (metres) to its walk target has arrived. */
 const ARRIVE_DISTANCE = 0.3;
+/** How much faster a neighbour walks while going to the crowd of the sky show. */
+const GATHER_HURRY = 2.5;
 
 export function createAnimal(id: number, type: string, pos: Vec2, facing = 0): Animal {
   return {
@@ -21,6 +23,7 @@ export function createAnimal(id: number, type: string, pos: Vec2, facing = 0): A
     fear: null,
     gathered: false,
     lift: 0,
+    burn: 0,
   };
 }
 
@@ -36,7 +39,7 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
     a.prev.z = a.pos.z;
 
     // Held in an abductor's beam: it does not move.
-    if (a.lift > 0) continue;
+    if (a.lift > 0 || a.burn > 0) continue;
 
     // Hunter spheres close by keep everyone running.
     if (def.fearRadius) {
@@ -98,9 +101,34 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
       continue;
     }
     a.facing = Math.atan2(dx, dz);
-    const step = Math.min(d, def.speed * dt);
+    // Walking over to the crowd, they hurry.
+    const step = Math.min(d, def.speed * (a.gathered ? GATHER_HURRY : 1) * dt);
     a.pos.x += (dx / d) * step;
     a.pos.z += (dz / d) * step;
     resolveStatic(a.pos, def.radius, config.arena);
+  }
+  if (config.skyShowOn) separateCrowd(state, config);
+}
+
+/** Neighbours standing close push each other apart a little, so a crowd does not overlap itself. */
+const PERSONAL_SPACE = 0.75;
+export function separateCrowd(state: GameState, config: GameConfig): void {
+  const crowd = state.animals.filter((a) => config.animals[a.type]?.fearRadius && a.lift <= 0);
+  for (let i = 0; i < crowd.length; i++) {
+    const a = crowd[i]!;
+    for (let j = i + 1; j < crowd.length; j++) {
+      const b = crowd[j]!;
+      const dx = b.pos.x - a.pos.x;
+      const dz = b.pos.z - a.pos.z;
+      const d = Math.hypot(dx, dz);
+      if (d >= PERSONAL_SPACE) continue;
+      const push = (PERSONAL_SPACE - d) * 0.25;
+      const nx = d > 1e-4 ? dx / d : 1;
+      const nz = d > 1e-4 ? dz / d : 0;
+      a.pos.x -= nx * push;
+      a.pos.z -= nz * push;
+      b.pos.x += nx * push;
+      b.pos.z += nz * push;
+    }
   }
 }

@@ -77,10 +77,14 @@ export class Sfx {
         this.tone('square', 500, 380, 0.05, 0.25 * v);
         this.tone('square', 700, 900, 0.06, 0.25 * v, 0.4);
       } else if (e.type === 'grenadeThrown') this.tone('sine', 260, 520, 0.1, 0.2);
-      else if (e.type === 'vaporised') {
+      else if (e.type === 'vaporiseStart') {
+        // A rising electric whine while the ray holds the person.
+        this.tone('sine', 300, 1800, 2.4, 0.18);
+        this.tone('triangle', 150, 900, 2.4, 0.12);
+      } else if (e.type === 'vaporised') {
         // A dry ionising crack: the spheres themselves make no sound.
-        this.tone('square', 3200, 300, 0.12, 0.3);
-        this.tone('sawtooth', 120, 40, 0.25, 0.2);
+        this.tone('square', 3200, 300, 0.2, 0.35);
+        this.tone('sawtooth', 120, 35, 0.5, 0.3);
       } else if (e.type === 'explosion') {
         this.tone('sawtooth', 160, 30, 0.7, 0.6);
         this.tone('square', 90, 25, 0.5, 0.4);

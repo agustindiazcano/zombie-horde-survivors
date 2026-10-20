@@ -27345,325 +27345,815 @@
     },
     {
       "type": "civilian_f",
-      "x": 10.21,
-      "z": -1.96,
+      "x": 10.57,
+      "z": -2.3,
       "owner": "p1",
       "rotation": 3.37
     },
     {
       "type": "civilian_m2",
-      "x": 8.9,
-      "z": 3.34,
+      "x": 9.11,
+      "z": 3.36,
       "owner": "p1",
       "rotation": 1.91
     },
     {
       "type": "civilian_f2",
-      "x": 3.64,
-      "z": -6.48,
+      "x": 3.55,
+      "z": -7.18,
       "owner": "p1",
       "rotation": 5.54
     },
     {
       "type": "civilian_m",
-      "x": 6.99,
-      "z": 12.67,
+      "x": 7.14,
+      "z": 13.39,
       "owner": "p1",
       "rotation": 3.74
     },
     {
       "type": "civilian_f",
-      "x": 14.76,
-      "z": 9.2,
+      "x": 15.5,
+      "z": 9.67,
       "owner": "p1",
       "rotation": 2.24
     },
     {
       "type": "civilian_m2",
-      "x": -0.73,
-      "z": 10.0,
+      "x": -1.14,
+      "z": 10.51,
       "owner": "p1",
       "rotation": 0.55
     },
     {
       "type": "civilian_f2",
-      "x": -1.24,
-      "z": -2.78,
+      "x": -1.68,
+      "z": -3.19,
       "owner": "p1",
       "rotation": 1.69
     },
     {
       "type": "civilian_m",
-      "x": -3.85,
-      "z": 3.98,
+      "x": -3.82,
+      "z": -7.42,
       "owner": "p1",
-      "rotation": 5.26
+      "rotation": 3.03
     },
     {
       "type": "civilian_f",
-      "x": 9.87,
-      "z": 2.08,
+      "x": 10.17,
+      "z": 2.02,
       "owner": "p1",
       "rotation": 2.68
     },
     {
       "type": "civilian_m2",
-      "x": -3.9,
-      "z": 12.37,
+      "x": -4.58,
+      "z": 13.09,
       "owner": "p1",
       "rotation": 3.42
     },
     {
       "type": "civilian_f2",
-      "x": 3.45,
-      "z": 11.84,
+      "x": 3.34,
+      "z": 12.48,
       "owner": "p1",
       "rotation": 2.0
     },
     {
       "type": "civilian_m",
-      "x": 1.2,
-      "z": -3.28,
+      "x": 0.93,
+      "z": -3.71,
       "owner": "p1",
       "rotation": 0.49
     },
     {
       "type": "civilian_f",
-      "x": 9.99,
-      "z": 7.23,
+      "x": 10.33,
+      "z": 7.51,
       "owner": "p1",
       "rotation": 3.35
     },
     {
       "type": "civilian_m2",
-      "x": 2.83,
-      "z": 8.56,
+      "x": 2.69,
+      "z": 8.92,
       "owner": "p1",
       "rotation": 3.73
     },
     {
       "type": "civilian_f2",
-      "x": 10.86,
-      "z": -4.79,
+      "x": 11.29,
+      "z": -5.36,
       "owner": "p1",
       "rotation": 4.65
     },
     {
       "type": "civilian_m",
-      "x": 3.52,
-      "z": 10.05,
+      "x": 3.42,
+      "z": 10.53,
       "owner": "p1",
       "rotation": 4.57
     },
     {
       "type": "civilian_f",
-      "x": 41.3,
-      "z": -25.77,
+      "x": 7.13,
+      "z": 3.2,
       "owner": "p1",
       "rotation": 3.24
     },
     {
       "type": "civilian_m2",
-      "x": 43.23,
-      "z": -41.58,
+      "x": 7.0,
+      "z": -6.3,
       "owner": "p1",
-      "rotation": 0.67
+      "rotation": 5.43
     },
     {
       "type": "civilian_f2",
-      "x": 32.96,
-      "z": -33.15,
+      "x": 5.87,
+      "z": -0.07,
       "owner": "p1",
-      "rotation": 3.07
+      "rotation": 0.75
     },
     {
       "type": "civilian_m",
-      "x": -47.33,
-      "z": -26.09,
+      "x": 9.48,
+      "z": 5.1,
       "owner": "p1",
-      "rotation": 2.03
+      "rotation": 1.1
     },
     {
       "type": "civilian_f",
-      "x": 12.55,
-      "z": -28.5,
+      "x": 1.87,
+      "z": -5.6,
       "owner": "p1",
-      "rotation": 4.21
+      "rotation": 3.06
     },
     {
       "type": "civilian_m2",
-      "x": -39.99,
-      "z": -32.94,
+      "x": 0.94,
+      "z": 11.24,
       "owner": "p1",
-      "rotation": 3.75
+      "rotation": 1.21
     },
     {
       "type": "civilian_f2",
-      "x": -31.14,
-      "z": 36.32,
+      "x": 3.43,
+      "z": 0.17,
+      "owner": "p1",
+      "rotation": 1.4
+    },
+    {
+      "type": "civilian_m",
+      "x": 1.78,
+      "z": 0.78,
+      "owner": "p1",
+      "rotation": 5.73
+    },
+    {
+      "type": "civilian_f",
+      "x": 4.47,
+      "z": -3.56,
       "owner": "p1",
       "rotation": 2.49
     },
     {
-      "type": "civilian_m",
-      "x": 2.04,
-      "z": -45.27,
+      "type": "civilian_m2",
+      "x": -0.08,
+      "z": 8.84,
       "owner": "p1",
-      "rotation": 2.29
+      "rotation": 1.59
+    },
+    {
+      "type": "civilian_f2",
+      "x": 10.23,
+      "z": -0.34,
+      "owner": "p1",
+      "rotation": 2.27
+    },
+    {
+      "type": "civilian_m",
+      "x": 0.5,
+      "z": 0.18,
+      "owner": "p1",
+      "rotation": 3.7
     },
     {
       "type": "civilian_f",
-      "x": 3.86,
-      "z": -27.22,
+      "x": -3.86,
+      "z": -1.57,
+      "owner": "p1",
+      "rotation": 2.94
+    },
+    {
+      "type": "civilian_m2",
+      "x": 11.82,
+      "z": -3.01,
+      "owner": "p1",
+      "rotation": 3.02
+    },
+    {
+      "type": "civilian_f2",
+      "x": 11.63,
+      "z": -9.0,
+      "owner": "p1",
+      "rotation": 3.24
+    },
+    {
+      "type": "civilian_m",
+      "x": 1.42,
+      "z": 7.85,
+      "owner": "p1",
+      "rotation": 5.72
+    },
+    {
+      "type": "civilian_f",
+      "x": 4.0,
+      "z": 14.22,
       "owner": "p1",
       "rotation": 2.27
     },
     {
       "type": "civilian_m2",
-      "x": 17.8,
-      "z": -14.92,
+      "x": 13.7,
+      "z": -0.12,
       "owner": "p1",
-      "rotation": 3.7
+      "rotation": 2.63
     },
     {
       "type": "civilian_f2",
-      "x": -0.58,
-      "z": -41.43,
+      "x": 10.49,
+      "z": 13.78,
       "owner": "p1",
-      "rotation": 3.62
+      "rotation": 2.22
     },
     {
       "type": "civilian_m",
-      "x": 15.21,
-      "z": 1.6,
+      "x": -1.98,
+      "z": 0.13,
       "owner": "p1",
-      "rotation": 6.28
+      "rotation": 5.87
     },
     {
       "type": "civilian_f",
-      "x": -53.18,
-      "z": 35.02,
+      "x": -1.23,
+      "z": -36.55,
       "owner": "p1",
-      "rotation": 4.01
+      "rotation": 0.31
     },
     {
       "type": "civilian_m2",
-      "x": 11.25,
-      "z": 36.71,
+      "x": -38.32,
+      "z": 61.33,
       "owner": "p1",
-      "rotation": 5.72
+      "rotation": 2.32
     },
     {
       "type": "civilian_f2",
-      "x": -4.12,
-      "z": -44.22,
+      "x": -12.99,
+      "z": 39.56,
       "owner": "p1",
-      "rotation": 2.18
+      "rotation": 3.53
     },
     {
       "type": "civilian_m",
-      "x": 16.49,
-      "z": 7.78,
+      "x": 6.14,
+      "z": -37.98,
       "owner": "p1",
-      "rotation": 4.91
+      "rotation": 5.77
     },
     {
       "type": "civilian_f",
-      "x": -17.6,
-      "z": 41.08,
-      "owner": "p1",
-      "rotation": 1.1
-    },
-    {
-      "type": "civilian_m2",
-      "x": 43.08,
-      "z": -13.91,
-      "owner": "p1",
-      "rotation": 0.04
-    },
-    {
-      "type": "civilian_f2",
-      "x": -49.39,
-      "z": -51.91,
-      "owner": "p1",
-      "rotation": 3.04
-    },
-    {
-      "type": "civilian_m",
-      "x": 46.24,
-      "z": 6.63,
-      "owner": "p1",
-      "rotation": 0.69
-    },
-    {
-      "type": "civilian_f",
-      "x": -40.04,
-      "z": -28.46,
-      "owner": "p1",
-      "rotation": 2.24
-    },
-    {
-      "type": "civilian_m2",
-      "x": -12.79,
-      "z": -19.88,
-      "owner": "p1",
-      "rotation": 1.76
-    },
-    {
-      "type": "civilian_f2",
-      "x": -36.3,
-      "z": 29.44,
-      "owner": "p1",
-      "rotation": 1.26
-    },
-    {
-      "type": "civilian_m",
-      "x": 53.95,
-      "z": -0.7,
-      "owner": "p1",
-      "rotation": 4.01
-    },
-    {
-      "type": "civilian_f",
-      "x": -46.25,
-      "z": 39.71,
+      "x": 22.88,
+      "z": 15.51,
       "owner": "p1",
       "rotation": 0.51
     },
     {
       "type": "civilian_m2",
-      "x": 22.67,
-      "z": 20.46,
+      "x": 17.45,
+      "z": 21.28,
       "owner": "p1",
-      "rotation": 3.03
+      "rotation": 4.2
     },
     {
       "type": "civilian_f2",
-      "x": -16.78,
-      "z": 15.32,
+      "x": -7.12,
+      "z": 31.56,
       "owner": "p1",
       "rotation": 2.05
     },
     {
       "type": "civilian_m",
-      "x": 2.83,
-      "z": -21.39,
+      "x": 3.85,
+      "z": -26.28,
       "owner": "p1",
       "rotation": 0.66
     },
     {
       "type": "civilian_f",
-      "x": 2.51,
-      "z": -23.66,
+      "x": 2.8,
+      "z": -30.5,
       "owner": "p1",
       "rotation": 3.73
     },
     {
       "type": "civilian_m2",
-      "x": 10.23,
-      "z": 9.91,
+      "x": 13.93,
+      "z": 12.28,
       "owner": "p1",
       "rotation": 5.46
+    },
+    {
+      "type": "civilian_f2",
+      "x": 51.83,
+      "z": 46.88,
+      "owner": "p1",
+      "rotation": 1.25
+    },
+    {
+      "type": "civilian_m",
+      "x": 23.48,
+      "z": -22.27,
+      "owner": "p1",
+      "rotation": 0.21
+    },
+    {
+      "type": "civilian_f",
+      "x": -7.09,
+      "z": -32.52,
+      "owner": "p1",
+      "rotation": 4.75
+    },
+    {
+      "type": "civilian_m2",
+      "x": 18.03,
+      "z": -27.83,
+      "owner": "p1",
+      "rotation": 2.25
+    },
+    {
+      "type": "civilian_f2",
+      "x": -17.16,
+      "z": -30.55,
+      "owner": "p1",
+      "rotation": 3.83
+    },
+    {
+      "type": "civilian_m",
+      "x": 2.22,
+      "z": 16.14,
+      "owner": "p1",
+      "rotation": 3.36
+    },
+    {
+      "type": "civilian_f",
+      "x": -3.39,
+      "z": -56.52,
+      "owner": "p1",
+      "rotation": 6.08
+    },
+    {
+      "type": "civilian_m2",
+      "x": 38.32,
+      "z": -54.16,
+      "owner": "p1",
+      "rotation": 0.86
+    },
+    {
+      "type": "civilian_f2",
+      "x": -27.54,
+      "z": 59.06,
+      "owner": "p1",
+      "rotation": 4.03
+    },
+    {
+      "type": "civilian_m",
+      "x": 4.02,
+      "z": 56.87,
+      "owner": "p1",
+      "rotation": 1.52
+    },
+    {
+      "type": "civilian_f",
+      "x": 24.39,
+      "z": -31.98,
+      "owner": "p1",
+      "rotation": 0.17
+    },
+    {
+      "type": "civilian_m2",
+      "x": -15.57,
+      "z": -14.4,
+      "owner": "p1",
+      "rotation": 4.74
+    },
+    {
+      "type": "civilian_f2",
+      "x": -13.59,
+      "z": 6.11,
+      "owner": "p1",
+      "rotation": 4.12
+    },
+    {
+      "type": "civilian_m",
+      "x": 40.15,
+      "z": 12.56,
+      "owner": "p1",
+      "rotation": 1.06
+    },
+    {
+      "type": "civilian_f",
+      "x": -41.9,
+      "z": -9.75,
+      "owner": "p1",
+      "rotation": 1.01
+    },
+    {
+      "type": "civilian_m2",
+      "x": -48.72,
+      "z": 37.68,
+      "owner": "p1",
+      "rotation": 5.12
+    },
+    {
+      "type": "civilian_f2",
+      "x": -61.96,
+      "z": -12.44,
+      "owner": "p1",
+      "rotation": 1.5
+    },
+    {
+      "type": "civilian_m",
+      "x": 50.03,
+      "z": 7.97,
+      "owner": "p1",
+      "rotation": 5.47
+    },
+    {
+      "type": "civilian_f",
+      "x": -55.59,
+      "z": 56.42,
+      "owner": "p1",
+      "rotation": 0.67
+    },
+    {
+      "type": "civilian_m2",
+      "x": -4.14,
+      "z": -25.57,
+      "owner": "p1",
+      "rotation": 0.63
+    },
+    {
+      "type": "civilian_f2",
+      "x": -50.98,
+      "z": 56.07,
+      "owner": "p1",
+      "rotation": 4.59
+    },
+    {
+      "type": "civilian_m",
+      "x": 29.35,
+      "z": -67.93,
+      "owner": "p1",
+      "rotation": 0.22
+    },
+    {
+      "type": "civilian_f",
+      "x": -63.69,
+      "z": 40.63,
+      "owner": "p1",
+      "rotation": 4.83
+    },
+    {
+      "type": "civilian_m2",
+      "x": 14.63,
+      "z": -35.72,
+      "owner": "p1",
+      "rotation": 4.14
+    },
+    {
+      "type": "civilian_f2",
+      "x": 13.51,
+      "z": 67.52,
+      "owner": "p1",
+      "rotation": 1.49
+    },
+    {
+      "type": "civilian_m",
+      "x": 48.85,
+      "z": 12.42,
+      "owner": "p1",
+      "rotation": 4.66
+    },
+    {
+      "type": "civilian_f",
+      "x": -59.53,
+      "z": -26.85,
+      "owner": "p1",
+      "rotation": 3.38
+    },
+    {
+      "type": "civilian_m2",
+      "x": -51.67,
+      "z": -33.35,
+      "owner": "p1",
+      "rotation": 6.14
+    },
+    {
+      "type": "civilian_f2",
+      "x": -14.64,
+      "z": -18.01,
+      "owner": "p1",
+      "rotation": 5.48
+    },
+    {
+      "type": "civilian_m",
+      "x": -37.3,
+      "z": -33.71,
+      "owner": "p1",
+      "rotation": 5.33
+    },
+    {
+      "type": "civilian_f",
+      "x": 52.43,
+      "z": 30.77,
+      "owner": "p1",
+      "rotation": 0.99
+    },
+    {
+      "type": "civilian_m2",
+      "x": -58.31,
+      "z": 0.91,
+      "owner": "p1",
+      "rotation": 1.21
+    },
+    {
+      "type": "civilian_f2",
+      "x": 65.55,
+      "z": -35.52,
+      "owner": "p1",
+      "rotation": 1.4
+    },
+    {
+      "type": "civilian_m",
+      "x": -53.75,
+      "z": -40.83,
+      "owner": "p1",
+      "rotation": 2.04
+    },
+    {
+      "type": "civilian_f",
+      "x": 39.24,
+      "z": -52.47,
+      "owner": "p1",
+      "rotation": 4.14
+    },
+    {
+      "type": "civilian_m2",
+      "x": 51.07,
+      "z": 50.1,
+      "owner": "p1",
+      "rotation": 3.85
+    },
+    {
+      "type": "civilian_f2",
+      "x": -6.87,
+      "z": -60.87,
+      "owner": "p1",
+      "rotation": 4.03
+    },
+    {
+      "type": "civilian_m",
+      "x": 32.26,
+      "z": 54.9,
+      "owner": "p1",
+      "rotation": 6.03
+    },
+    {
+      "type": "civilian_f",
+      "x": 62.04,
+      "z": -62.84,
+      "owner": "p1",
+      "rotation": 0.01
+    },
+    {
+      "type": "civilian_m2",
+      "x": -26.84,
+      "z": -44.28,
+      "owner": "p1",
+      "rotation": 4.54
+    },
+    {
+      "type": "civilian_f2",
+      "x": -37.4,
+      "z": -22.16,
+      "owner": "p1",
+      "rotation": 5.1
+    },
+    {
+      "type": "civilian_m",
+      "x": -9.66,
+      "z": -0.58,
+      "owner": "p1",
+      "rotation": 1.52
+    },
+    {
+      "type": "civilian_f",
+      "x": -9.27,
+      "z": -28.42,
+      "owner": "p1",
+      "rotation": 4.28
+    },
+    {
+      "type": "civilian_m2",
+      "x": 42.52,
+      "z": -21.38,
+      "owner": "p1",
+      "rotation": 4.62
+    },
+    {
+      "type": "civilian_f2",
+      "x": -35.05,
+      "z": -31.81,
+      "owner": "p1",
+      "rotation": 0.99
+    },
+    {
+      "type": "civilian_m",
+      "x": -54.17,
+      "z": 56.68,
+      "owner": "p1",
+      "rotation": 0.73
+    },
+    {
+      "type": "civilian_f",
+      "x": 8.43,
+      "z": 11.07,
+      "owner": "p1",
+      "rotation": 0.93
+    },
+    {
+      "type": "civilian_m2",
+      "x": -36.72,
+      "z": -30.1,
+      "owner": "p1",
+      "rotation": 4.42
+    },
+    {
+      "type": "civilian_f2",
+      "x": -4.39,
+      "z": 40.59,
+      "owner": "p1",
+      "rotation": 0.98
+    },
+    {
+      "type": "civilian_m",
+      "x": -39.74,
+      "z": 64.46,
+      "owner": "p1",
+      "rotation": 0.08
+    },
+    {
+      "type": "civilian_f",
+      "x": 40.83,
+      "z": 21.87,
+      "owner": "p1",
+      "rotation": 0.2
+    },
+    {
+      "type": "civilian_m2",
+      "x": 33.89,
+      "z": -47.65,
+      "owner": "p1",
+      "rotation": 1.97
+    },
+    {
+      "type": "civilian_f2",
+      "x": 14.12,
+      "z": -5.84,
+      "owner": "p1",
+      "rotation": 0.11
+    },
+    {
+      "type": "civilian_m",
+      "x": -52.68,
+      "z": -45.72,
+      "owner": "p1",
+      "rotation": 1.36
+    },
+    {
+      "type": "civilian_f",
+      "x": 8.86,
+      "z": -6.91,
+      "owner": "p1",
+      "rotation": 2.25
+    },
+    {
+      "type": "civilian_m2",
+      "x": 43.61,
+      "z": 8.29,
+      "owner": "p1",
+      "rotation": 4.41
+    },
+    {
+      "type": "civilian_f2",
+      "x": 36.89,
+      "z": 26.05,
+      "owner": "p1",
+      "rotation": 5.69
+    },
+    {
+      "type": "civilian_m",
+      "x": 53.8,
+      "z": 31.83,
+      "owner": "p1",
+      "rotation": 1.34
+    },
+    {
+      "type": "civilian_f",
+      "x": -51.74,
+      "z": 8.98,
+      "owner": "p1",
+      "rotation": 0.75
+    },
+    {
+      "type": "civilian_m2",
+      "x": -48.04,
+      "z": 45.44,
+      "owner": "p1",
+      "rotation": 3.37
+    },
+    {
+      "type": "civilian_f2",
+      "x": -24.17,
+      "z": -5.83,
+      "owner": "p1",
+      "rotation": 5.77
+    },
+    {
+      "type": "civilian_m",
+      "x": -49.12,
+      "z": 36.2,
+      "owner": "p1",
+      "rotation": 3.98
+    },
+    {
+      "type": "civilian_f",
+      "x": -11.33,
+      "z": 47.67,
+      "owner": "p1",
+      "rotation": 2.34
+    },
+    {
+      "type": "civilian_m2",
+      "x": 2.22,
+      "z": 62.88,
+      "owner": "p1",
+      "rotation": 1.73
+    },
+    {
+      "type": "civilian_f2",
+      "x": -11.69,
+      "z": 31.51,
+      "owner": "p1",
+      "rotation": 6.08
+    },
+    {
+      "type": "civilian_m",
+      "x": -62.76,
+      "z": 42.42,
+      "owner": "p1",
+      "rotation": 3.01
+    },
+    {
+      "type": "civilian_f",
+      "x": 57.04,
+      "z": 43.94,
+      "owner": "p1",
+      "rotation": 2.66
+    },
+    {
+      "type": "civilian_m2",
+      "x": -14.47,
+      "z": -7.0,
+      "owner": "p1",
+      "rotation": 0.17
+    },
+    {
+      "type": "civilian_f2",
+      "x": -39.39,
+      "z": 7.55,
+      "owner": "p1",
+      "rotation": 0.88
+    },
+    {
+      "type": "civilian_m",
+      "x": 1.5,
+      "z": 57.56,
+      "owner": "p1",
+      "rotation": 6.17
     }
   ],
   "logic": {
@@ -27718,10 +28208,10 @@
       },
       {
         "type": "abductor_sphere",
-        "x": 70,
+        "x": 80,
         "z": -60,
-        "at": 112,
-        "y": 70,
+        "at": 110,
+        "y": 90,
         "hx": 6,
         "hz": 4
       },
@@ -27729,35 +28219,56 @@
         "type": "hunter_sphere",
         "x": 51.0,
         "z": 4.0,
-        "at": 127.0,
+        "at": 162.0,
         "y": 25
       },
       {
         "type": "hunter_sphere",
-        "x": 19.9,
-        "z": 46.8,
-        "at": 127.6,
+        "x": 37.8,
+        "z": 35.8,
+        "at": 162.6,
         "y": 25
       },
       {
         "type": "hunter_sphere",
-        "x": -30.4,
-        "z": 30.5,
-        "at": 128.2,
+        "x": 6.0,
+        "z": 49.0,
+        "at": 163.2,
         "y": 25
       },
       {
         "type": "hunter_sphere",
-        "x": -30.4,
-        "z": -22.5,
-        "at": 128.8,
+        "x": -25.8,
+        "z": 35.8,
+        "at": 163.8,
         "y": 25
       },
       {
         "type": "hunter_sphere",
-        "x": 19.9,
-        "z": -38.8,
-        "at": 129.4,
+        "x": -39.0,
+        "z": 4.0,
+        "at": 164.4,
+        "y": 25
+      },
+      {
+        "type": "hunter_sphere",
+        "x": -25.8,
+        "z": -27.8,
+        "at": 165.0,
+        "y": 25
+      },
+      {
+        "type": "hunter_sphere",
+        "x": 6.0,
+        "z": -41.0,
+        "at": 165.6,
+        "y": 25
+      },
+      {
+        "type": "hunter_sphere",
+        "x": 37.8,
+        "z": -27.8,
+        "at": 166.2,
         "y": 25
       }
     ],
@@ -27868,49 +28379,89 @@
         "text": "Don't get too close..."
       },
       {
-        "at": 114,
-        "duration": 4,
+        "at": 113,
+        "duration": 3,
+        "text": "That thing is HUGE!"
+      },
+      {
+        "at": 116,
+        "duration": 4.5,
         "text": "Oh my god, it's taking him!"
       },
       {
-        "at": 119,
-        "duration": 4,
+        "at": 121,
+        "duration": 4.5,
         "text": "Let him go!"
       },
       {
-        "at": 124,
-        "duration": 4,
-        "text": "AAAAH!"
+        "at": 126,
+        "duration": 4.5,
+        "text": "This can't be happening..."
       },
       {
-        "at": 129,
-        "duration": 3,
+        "at": 131,
+        "duration": 4.5,
+        "text": "It's taking another one!"
+      },
+      {
+        "at": 136,
+        "duration": 4.5,
+        "text": "Let them go! Please!"
+      },
+      {
+        "at": 141,
+        "duration": 4.5,
+        "text": "I can't move... I can't move!"
+      },
+      {
+        "at": 146,
+        "duration": 4.5,
+        "text": "No way... no way..."
+      },
+      {
+        "at": 151,
+        "duration": 3.5,
+        "text": "They're not going to get me!"
+      },
+      {
+        "at": 162,
+        "duration": 2.5,
         "text": "RUN!!!"
       },
       {
-        "at": 132,
-        "duration": 3,
+        "at": 164.5,
+        "duration": 2.5,
         "text": "Who's got a gun?!"
       },
       {
-        "at": 135,
+        "at": 167,
         "duration": 3,
         "text": "Help! Somebody help us!"
       },
       {
-        "at": 138,
+        "at": 177,
         "duration": 3,
         "text": "They're killing everyone!"
       },
       {
-        "at": 141,
+        "at": 173,
         "duration": 3,
         "text": "RUN!!"
       },
       {
-        "at": 145,
+        "at": 170,
+        "duration": 3,
+        "text": "Aaaaah!"
+      },
+      {
+        "at": 181,
         "duration": 4,
-        "text": "No, no, no, please!"
+        "text": "Please, no, no, no!"
+      },
+      {
+        "at": 186,
+        "duration": 4,
+        "text": "Somebody do something!"
       }
     ]
   },

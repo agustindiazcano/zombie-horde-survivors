@@ -17,7 +17,8 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
   const { heights, water } = arena.terrain;
 
   group.add(buildGround(arena));
-  if (!heights) {
+  // A painted map has its own ground: no guide grid over it.
+  if (!heights && !arena.terrain.paint) {
     const grid = new THREE.GridHelper(size, size / 2, 0x56656f, 0x46545d);
     grid.position.y = 0.01;
     group.add(grid);

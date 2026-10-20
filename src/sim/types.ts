@@ -435,6 +435,7 @@ export type SimEvent =
   | { type: 'reloadStarted'; soldierId: number }
   | { type: 'grenadeThrown'; throwerId: number }
   | { type: 'explosion'; pos: Vec2; radius: number }
+  | { type: 'vaporiseStart'; pos: Vec2 }
   | { type: 'vaporised'; pos: Vec2 }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
@@ -473,6 +474,8 @@ export interface Animal {
   gathered: boolean;
   /** Metres it has been lifted off the ground by an abductor. */
   lift: number;
+  /** 0 to 1: how far a hunter's ray has burned it (it stands rigid, glowing). */
+  burn: number;
 }
 
 /** A point in 3D (metres): the sky show flies in height too. */
@@ -520,6 +523,9 @@ export interface Orb {
     | 'arrive'
     | 'beam'
     | 'lift'
+    | 'gap'
+    | 'hold'
+    | 'burn'
     | 'leave'
     | 'gone';
   /** Height (m) above the ground, and the one of the step before. */
@@ -528,6 +534,10 @@ export interface Orb {
   /** Scouts: when they come down; where they hang or where an abductor works. */
   lowAt: number | null;
   hover: Vec2 | null;
+  /** Abductors: when they arrived, how many people they have taken, and how bright their light is (0 to 1). */
+  arrivedAt: number | null;
+  victims: number;
+  glow: number;
   /** Where its current dash is heading. */
   waypoint: { x: number; y: number; z: number } | null;
   /** Seconds left in the current phase. */

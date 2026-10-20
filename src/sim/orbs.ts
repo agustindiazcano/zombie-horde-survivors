@@ -31,6 +31,9 @@ export function createOrbs(state: GameState, config: GameConfig): void {
       lowAt: o.lowAt ?? null,
       hover: o.hx !== undefined && o.hz !== undefined ? { x: o.hx, z: o.hz } : null,
       waypoint: null,
+      arrivedAt: null,
+      victims: 0,
+      glow: 0,
     });
   }
 }
@@ -40,7 +43,7 @@ function nearestCivilian(state: GameState, config: GameConfig, from: Vec2): Anim
   let best: Animal | null = null;
   let bestD = Infinity;
   for (const a of state.animals) {
-    if (!isCivilian(config, a) || a.lift > 0) continue;
+    if (!isCivilian(config, a) || a.lift > 0 || a.burn > 0) continue;
     const d = Math.hypot(a.pos.x - from.x, a.pos.z - from.z);
     if (d < bestD) {
       bestD = d;
@@ -54,7 +57,7 @@ function nearestCivilian(state: GameState, config: GameConfig, from: Vec2): Anim
 function scare(state: GameState, config: GameConfig, at: Vec2, radius: number): void {
   for (const a of state.animals) {
     const def = config.animals[a.type];
-    if (!def?.fearRadius || a.lift > 0) continue;
+    if (!def?.fearRadius || a.lift > 0 || a.burn > 0) continue;
     if (Math.hypot(a.pos.x - at.x, a.pos.z - at.z) > Math.max(radius, def.fearRadius)) continue;
     a.panic = 12;
     a.fear = { x: at.x, z: at.z };
@@ -121,7 +124,7 @@ function updateHunter(
     return;
   }
 
-  // Charging: keep up with the target, then fire.
+  // Charging: keep up with the target, then the ray holds it while it burns, then it is ash.
   const target = state.animals.find((a) => a.id === orb.targetId);
   if (!target) {
     orb.phase = 'cool';
@@ -133,11 +136,21 @@ function updateHunter(
   follow(orb, target.pos, def.appearDistance, def.chaseSpeed * dt);
   orb.aim = { x: target.pos.x, z: target.pos.z };
   orb.timer -= dt;
+  if (orb.phase === 'charge') {
+    if (orb.timer > 0) return;
+    // The ray lands: the person stands rigid and glows for a few seconds.
+    orb.phase = 'burn';
+    orb.timer = def.vaporTime ?? 2.5;
+    state.events.push({ type: 'vaporiseStart', pos: { x: target.pos.x, z: target.pos.z } });
+    scare(state, config, target.pos, def.panicRadius);
+    target.panic = 0;
+    return;
+  }
+  target.burn = Math.min(1, 1 - orb.timer / (def.vaporTime ?? 2.5));
   if (orb.timer > 0) return;
   state.animals.splice(state.animals.indexOf(target), 1);
   state.casualties++;
   state.events.push({ type: 'vaporised', pos: { x: target.pos.x, z: target.pos.z } });
-  scare(state, config, target.pos, def.panicRadius);
   orb.phase = 'cool';
   orb.timer = def.cooldown;
   orb.targetId = null;
@@ -223,24 +236,33 @@ function updateAbductor(
   dt: number,
 ): void {
   const work = orb.hover ?? { x: orb.pos.x, z: orb.pos.z };
+  const glowStep = dt / 2;
   if (orb.phase === 'arrive') {
     if (!flyTo(orb, { x: work.x, y: def.height, z: work.z }, def.chaseSpeed, dt)) return;
-    const target = nearestCivilian(state, config, work);
-    if (!target) {
+    orb.arrivedAt = state.time;
+    startNextVictim(state, config, orb, def, work);
+    return;
+  }
+  if (orb.phase !== 'leave') {
+    // The big sphere lights the whole spot while it is there.
+    orb.glow = Math.min(1, orb.glow + glowStep);
+    if (state.time >= (orb.arrivedAt ?? 0) + (def.stayTime ?? 60) && orb.phase === 'hold') {
       orb.phase = 'leave';
-      return;
     }
-    orb.targetId = target.id;
-    orb.aim = { x: target.pos.x, z: target.pos.z };
-    orb.phase = 'beam';
-    orb.timer = def.beamTime ?? 2;
-    scare(state, config, target.pos, def.panicRadius);
+  }
+  if (orb.phase === 'gap' || orb.phase === 'hold') {
+    orb.aim = null;
+    if (orb.phase === 'gap') {
+      orb.timer -= dt;
+      if (orb.timer <= 0) startNextVictim(state, config, orb, def, work);
+    }
     return;
   }
   const target = state.animals.find((a) => a.id === orb.targetId);
   if (orb.phase === 'beam' || orb.phase === 'lift') {
     if (!target) {
-      orb.phase = 'leave';
+      orb.phase = 'gap';
+      orb.timer = def.gap ?? 1.5;
       orb.aim = null;
       return;
     }
@@ -258,18 +280,41 @@ function updateAbductor(
     if (target.lift >= (def.liftHeight ?? 7)) {
       state.animals.splice(state.animals.indexOf(target), 1);
       state.casualties++;
-      orb.phase = 'leave';
+      orb.victims++;
       orb.targetId = null;
       orb.aim = null;
+      orb.phase = orb.victims >= (def.victims ?? 1) ? 'hold' : 'gap';
+      orb.timer = def.gap ?? 1.5;
     }
     return;
   }
   if (orb.phase === 'leave') {
-    // Straight up and away, fast.
+    // The light fades and the sphere goes straight up and away, fast.
+    orb.glow = Math.max(0, orb.glow - dt);
+    orb.aim = null;
     orb.y += (def.leaveSpeed ?? 90) * dt;
     orb.pos.x += (def.leaveSpeed ?? 90) * 0.4 * dt;
     if (orb.y > 500) orb.phase = 'gone';
   }
+}
+
+/** Picks the person nearest the work point and starts the beam on them (the rest stand frozen). */
+function startNextVictim(
+  state: GameState,
+  config: GameConfig,
+  orb: Orb,
+  def: OrbDef,
+  work: Vec2,
+): void {
+  const target = nearestCivilian(state, config, work);
+  if (!target) {
+    orb.phase = 'hold';
+    return;
+  }
+  orb.targetId = target.id;
+  orb.aim = { x: target.pos.x, z: target.pos.z };
+  orb.phase = 'beam';
+  orb.timer = def.beamTime ?? 2;
 }
 
 /** Appears at `distance` from `to`, on the side it already was (a short jump, not a flight). */

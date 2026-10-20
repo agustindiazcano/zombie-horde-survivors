@@ -1067,6 +1067,12 @@ export const GameConfigSchema = z
           liftSpeed: positive.optional(),
           liftHeight: positive.optional(),
           leaveSpeed: positive.optional(),
+          /** Abductors: people taken before it just hangs there, the seconds between two, and how long (s) from arriving it stays. */
+          victims: z.number().int().positive().optional(),
+          gap: nonNegative.optional(),
+          stayTime: positive.optional(),
+          /** Hunters: seconds the ray burns a person before they turn to ash. */
+          vaporTime: positive.optional(),
           /** Seconds from waking up (and after each kill) to appearing beside the next target. */
           appearDelay: nonNegative,
           /** Distance (metres) from the target's head where it appears and stays. */
