@@ -1,7 +1,7 @@
 import type { GameConfig, ItemDef } from './config';
 import { nextFloat } from './rng';
 import { maxHealthOf } from './stats';
-import type { Crate, Equipment, GameState, Soldier, Stack } from './types';
+import type { Crate, Equipment, GameState, Hand, Soldier, Stack, WeaponState } from './types';
 import type { Vec2 } from './vec';
 
 /** Crate entry that is worn as armor instead of carried. */
@@ -17,22 +17,53 @@ export interface Slot {
 }
 
 const isEquipSlot = (slot: SlotRef): slot is keyof Equipment => typeof slot === 'string';
+const isHand = (slot: keyof Equipment): slot is Hand => slot !== 'chest';
 
 export const itemDef = (config: GameConfig, id: string): ItemDef => config.items[id]!;
 
 export const backpackFull = (config: GameConfig, s: Soldier): boolean =>
   s.backpack.length >= config.inventory.backpackSlots;
 
-/** Puts one item in the first stack with room, or a free slot. False if the backpack is full. */
-export function addToBackpack(config: GameConfig, s: Soldier, item: string): boolean {
+/** Puts rounds of an ammo item into its stacks, topping up before opening a slot. False if they do not all fit. */
+function addRounds(config: GameConfig, s: Soldier, item: string, rounds: number): boolean {
   const size = itemDef(config, item).stack;
-  const open = s.backpack.find((st) => st.item === item && st.count < size);
+  const stacks = s.backpack.filter((st) => st.item === item);
+  const free = config.inventory.backpackSlots - s.backpack.length;
+  const room = stacks.reduce((n, st) => n + size - st.count, 0) + free * size;
+  if (room < rounds) return false;
+  let left = rounds;
+  for (const st of stacks) {
+    const put = Math.min(size - st.count, left);
+    st.count += put;
+    left -= put;
+  }
+  while (left > 0) {
+    const put = Math.min(size, left);
+    s.backpack.push({ item, count: put });
+    left -= put;
+  }
+  return true;
+}
+
+/**
+ * Puts one item (a pack of rounds, for ammo) in the first stack with room, or a free slot.
+ * A weapon keeps its `state`. False if the backpack is full.
+ */
+export function addToBackpack(
+  config: GameConfig,
+  s: Soldier,
+  item: string,
+  state?: WeaponState,
+): boolean {
+  const def = itemDef(config, item);
+  if (def.type === 'ammo') return addRounds(config, s, item, def.pack);
+  const open = s.backpack.find((st) => st.item === item && st.count < def.stack);
   if (open) {
     open.count++;
     return true;
   }
   if (backpackFull(config, s)) return false;
-  s.backpack.push({ item, count: 1 });
+  s.backpack.push(state ? { item, count: 1, state } : { item, count: 1 });
   return true;
 }
 
@@ -73,15 +104,24 @@ function reachableCrate(
 export function cellAt(s: Soldier, slot: SlotRef): Stack | null {
   if (isEquipSlot(slot)) {
     const item = s.equipment[slot];
-    return item === null ? null : { item, count: 1 };
+    if (item === null) return null;
+    const state = isHand(slot) ? s.weaponStates[slot] : undefined;
+    return state ? { item, count: 1, state } : { item, count: 1 };
   }
   return s.backpack[slot] ?? null;
 }
 
+function setHandState(s: Soldier, hand: Hand, state: Stack['state']): void {
+  if (state) s.weaponStates[hand] = state;
+  else delete s.weaponStates[hand];
+}
+
 /** Writes a slot. Emptying a backpack slot closes the gap; an index past the end appends. */
 function putCell(s: Soldier, slot: SlotRef, stack: Stack | null): void {
-  if (isEquipSlot(slot)) s.equipment[slot] = stack?.item ?? null;
-  else if (stack === null) s.backpack.splice(slot, 1);
+  if (isEquipSlot(slot)) {
+    s.equipment[slot] = stack?.item ?? null;
+    if (isHand(slot)) setHandState(s, slot, stack?.state);
+  } else if (stack === null) s.backpack.splice(slot, 1);
   else if (slot < s.backpack.length) s.backpack[slot] = stack;
   else s.backpack.push(stack);
 }
@@ -113,11 +153,13 @@ function consistent(config: GameConfig, s: Soldier): boolean {
 
 const snapshot = (s: Soldier) => ({
   equipment: { ...s.equipment },
+  weaponStates: { ...s.weaponStates },
   backpack: s.backpack.map((st) => ({ ...st })),
 });
 
 function restore(s: Soldier, saved: ReturnType<typeof snapshot>): void {
   s.equipment = saved.equipment;
+  s.weaponStates = saved.weaponStates;
   s.backpack = saved.backpack;
 }
 
@@ -175,7 +217,9 @@ export function unequipSlot(
   const s = unit(state, soldierId);
   const item = s?.equipment[slot];
   if (!s || s.dead || item === null || item === undefined) return false;
-  if (!addToBackpack(config, s, item)) return false;
+  const held = isHand(slot) ? s.weaponStates[slot] : undefined;
+  if (!addToBackpack(config, s, item, held)) return false;
+  if (isHand(slot)) delete s.weaponStates[slot];
   s.equipment[slot] = null;
   return true;
 }
@@ -199,16 +243,22 @@ export function equipFromBackpack(
 
   const saved = snapshot(s);
   const old = s.equipment[slot];
+  const oldState = slot === 'rightHand' ? s.weaponStates.rightHand : undefined;
   if (old === null) s.backpack.splice(index, 1);
-  else s.backpack[index] = { item: old, count: 1 };
+  else
+    s.backpack[index] = oldState
+      ? { item: old, count: 1, state: oldState }
+      : { item: old, count: 1 };
   s.equipment[slot] = stack.item;
+  if (slot === 'rightHand') setHandState(s, 'rightHand', stack.state);
   const offHand = s.equipment.leftHand;
   if (def.type === 'weapon' && def.hands === 2 && offHand !== null) {
-    if (!addToBackpack(config, s, offHand)) {
+    if (!addToBackpack(config, s, offHand, s.weaponStates.leftHand)) {
       restore(s, saved);
       return false;
     }
     s.equipment.leftHand = null;
+    delete s.weaponStates.leftHand;
   }
   if (consistent(config, s)) return true;
   restore(s, saved);
@@ -250,10 +300,11 @@ export function takeFromCrate(
     // Armor is worn straight away instead of taking a backpack slot.
     if (s.kind === 'drone' || s.armor >= config.player.maxArmor) return false;
     s.armor = Math.min(config.player.maxArmor, s.armor + config.player.armorPlate);
-  } else if (!addToBackpack(config, s, item)) {
+  } else if (!addToBackpack(config, s, item, crate.states?.[index])) {
     return false;
   }
   crate.items.splice(index, 1);
+  crate.states?.splice(index, 1);
   if (crate.items.length === 0) state.crates = state.crates.filter((c) => c !== crate);
   return true;
 }
@@ -272,7 +323,14 @@ export function stashInCrate(
   const stack = s.backpack[index];
   if (!crate || !stack) return false;
   s.backpack.splice(index, 1);
-  for (let i = 0; i < stack.count; i++) crate.items.push(stack.item);
+  // Ammo counts rounds, so a stack goes back as whole packs (rounded up).
+  const def = itemDef(config, stack.item);
+  const entries = def.type === 'ammo' ? Math.ceil(stack.count / def.pack) : stack.count;
+  for (let i = 0; i < entries; i++) crate.items.push(stack.item);
+  if (stack.state) {
+    crate.states ??= [];
+    crate.states[crate.items.length - 1] = stack.state;
+  }
   return true;
 }
 

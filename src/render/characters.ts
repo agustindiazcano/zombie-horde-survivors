@@ -12,6 +12,21 @@ export interface CharacterView {
   update(dt: number): void;
   /** Hit flash: 0 = normal, 1 = fully lit up. Optional; views without it just don't flash. */
   setFlash?(amount: number): void;
+  /** Puts the item (an id of data/items.json) in the character's hand, or empties it with null. Optional. */
+  hold?(item: string | null): void;
+  /** Raises the arms onto the held gun, 0 (the clip's pose) to 1 (aimed). Optional. */
+  aim?(amount: number): void;
+  /**
+   * Takes a part off ('head', 'armL', 'armR' or 'legs'): it stops being drawn, with a bloody
+   * stump when `stump` is set. With `loose` it also returns a copy of the part posed as it was,
+   * centred on `at`, for the renderer to throw. Optional; null when there was nothing to take.
+   */
+  removePart?(
+    part: 'head' | 'armL' | 'armR' | 'legs',
+    options: { loose: boolean; stump: boolean },
+  ): { at: THREE.Vector3; loose: THREE.Object3D | null } | null;
+  /** Puts every part back (a pooled view is reused by another enemy). */
+  restoreParts?(): void;
 }
 
 export type CharacterFactory = () => CharacterView;
@@ -106,7 +121,7 @@ export const createPlaceholderSoldier: CharacterFactory = () =>
         const k = Math.min(stateTime / 0.4, 1);
         root.rotation.x = -k * (Math.PI / 2);
         root.position.y = k * RADIUS;
-      } else if (state === 'run') {
+      } else if (state === 'run' || state === 'walk') {
         body.position.y = BODY_Y + Math.abs(Math.sin(t * 12)) * 0.08;
         root.rotation.x = 0.15;
       } else {

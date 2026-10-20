@@ -69,14 +69,40 @@ Full plan: [docs/PLAN-multiplayer.md](docs/PLAN-multiplayer.md). Co-op for 2 to 
 Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watchtower, turret, wire fence, wooden barricade, solid wall, sandbags, doors) with upgrades; soldiers build from the RTS view (more soldiers, faster) and the player quick-builds sandbags and a turret in direct control; a manned machine-gun nest and an automatic "smart turret"; tested on a new Map 2, "Build mode test". Phase 0 is a flow-field pathfinding so zombies can reach and break structures.
 
 - [x] Decisions taken (2026-10-19): the recommendations of section 13 of the plan were accepted.
-- [ ] ⚪ Build order: flow-field pathfinding (phase 0), then structures in the sim.
+- [x] Phase 0, the flow-field pathfinding, is built on `feat/flow-field` ([worklog](docs/worklog/2026-10-19-flow-field.md)); look at it in the browser (zombies go around long walls and into the squad's reach).
+- [ ] ⚪ Build order: structures in the sim next (they need break-cost in the field).
 
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
-Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. The first phase turns weapons into instances with their own state.
+Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. W1 to W6 are built on `feat/weapon-instances` (worklogs 2026-10-19 `weapons-w1`, `w2`, `w3`, `w4`, `w5`, `w6`, `weapons-in-hand`).
 
 - [x] Decisions taken (2026-10-19): the recommendations of section 14 of the plan were accepted; aim is hold-right-click in third / first person only.
+- [ ] 🟡 Look at W1 and W2 in the browser: the pistol fires once per click, R reloads, the HUD shows rounds, AI soldiers reload, rifle and machine gun need ammo from the shop or crates (balance is a guess). W3 (accuracy, recoil, hold-to-aim, dynamic crosshair, new base spreads) is built too: check how aiming and recoil feel and whether the AI now misses too much. Also look at W5: **F** strikes, enemies are shoved and stagger, the AI hits close enemies. Also look at W4: aim at a head in third / first person (orange number, glow, ping), crits (yellow), the small head chance in top-down. Also look at W6: the **⚙** on a weapon in the squad screen opens the workbench (fit, swap and remove accessories, the Bare / Now / With table); accessories come from crates and the shop. Next: M0 of the marine plan.
 - [ ] ⚪ Still open, and the only blocker: ask the user before the visual part of weapons (bones, where the meshes come from), as already agreed.
+
+### 2g — ⚪ Marine zombie variants and dismemberment (planned 2026-10-19, nothing built)
+
+Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zombies-and-dismemberment.md). Enemies become variants of the Meshy marine (brown, bloody, burgundy, bleeder, crawler, runner, wanderer), mini bosses too; heads and limbs come off, shot-off legs make a crawler, some zombies climb. **First measure**: the marine has 61k triangles, so a light copy comes before any replacement. Open questions are in section 11 of the plan.
+
+- [ ] 🟡 Look at the first two steps, built early: the violet **acrobat marine** (runs, hops up and sideways, cartwheels) and the **marine brute** (bigger, burgundy) ([worklog](docs/worklog/2026-10-19-acrobat-and-marine-brute.md)), and the new **weapon poses** (two-handed aim in third person, the first-person gun with aim down the sights; [worklog](docs/worklog/2026-10-19-weapons-poses.md)). Tune `WEAPON_POSES`, `armPose.ts` and `viewModel.ts` constants.
+- [x] Decisions of section 11 taken (2026-10-19, recommendations accepted; a head hit only does extra damage, and a killing head hit bursts or flies off by weapon strength).
+- [x] Phase M0 built: the light marine (4,900 triangles, 1.8 MB) is used by the horde ([worklog](docs/worklog/2026-10-19-marine-m0.md)).
+- [ ] 🟡 Measure with F3 and Chrome's profiler in a heavy wave and compare the light marine's look with a soldier.
+- [x] M1 built (variants, procedural blood, bleeder) and M1b built (wanderers that sleep, sense, see and shout; climbers over boxes): [worklog](docs/worklog/2026-10-19-marine-m1b.md). Look at the pale **wanderer** and the orange **climber**.
+- [x] M2 built: a killing head hit bursts or knocks off the head by weapon strength ([worklog](docs/worklog/2026-10-19-marine-m2.md)). Look at it in the browser (stump size, flying head, neck spray, `dismember.headBurstDamage`); - [x] M3 built: body zones, arms and legs come off, grenades tear limbs, legless enemies drag themselves ([worklog](docs/worklog/2026-10-19-marine-m3.md)). Look at it in the browser (stump sizes, throw, the pitched-forward crawl, `dismember.*` numbers); next is M4 (real crawl, `marine_crawler`).
+
+### 2h — ⚪ Phase B: WebGPU engine, VAT crowd, ragdoll pool, mocap (noted 2026-10-19, nothing decided or built)
+
+Full note: [docs/PLAN-webgpu-engine.md](docs/PLAN-webgpu-engine.md). The user's brief for a 1,000+ unit engine (three.js `WebGPURenderer` + TSL, `SharedArrayBuffer`, Rapier worker, VAT animation, ragdoll ring pool, flow fields, Tauri + Steam, Blender asset pipeline). It conflicts with several decisions already taken (no new tests, CC0 / CC-BY assets only, no backend, Steam is outward-facing); section 5 of the note lists them.
+
+- [ ] ⚪ Answer the four questions of section 6 of the note (rewrite or migrate, Steam yes / no, WebGL fallback, Meshy license for a paid release).
+- [x] Audit of `src/` against the plan and the detailed plan B0 to B11 are written (sections 9 and 10 of the note, 2026-10-19).
+- [ ] 🔴 B0: build the heavy scenario (300 / 600 / 1000 marines), profile it on the user's machine and a low-end laptop, and choose the order of B1 to B5 from the numbers. This also unblocks the performance item in 2d.
+- [ ] 🟡 B1 render snapshot boundary, B2 WebGPU renderer swap, B3 tiered instanced VAT crowd (soldiers and dismembered units stay skinned).
+- [ ] 🟢 B4 unit spatial hash and boids, B5 sim in a worker (transferable buffers by default; `SharedArrayBuffer` only where COOP/COEP exist), B6 Rapier props and vehicles, B7 ragdoll pool.
+- [ ] ⚪ B8 GPU VFX and environment, B9 wave director, B10 asset pipeline and KTX2, B11 Tauri and Steam (ask the user before every outward-facing step).
+- [ ] ⚪ Prototype `InstancedMesh` + VAT for one enemy type on a branch and compare with the pooled `SkinnedMesh` views.
+- [ ] ⚪ Mocap experiment: a standalone page with MediaPipe + Kalidokit driving the marine, record and download a clip (section 7 of the note); check the marine's bone names first.
 
 ### 3 — 🟡 Going public (GitHub Pages is live)
 
@@ -97,7 +123,6 @@ Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). S
 ### 5 — 🟢 Code health
 
 - [ ] 🟢 `InventoryUi.openInventory` (the old single-unit window) is unused since `I` opens the squad screen; remove it or keep it for crates only.
-- [ ] 🟢 Zombie steering is a corner heuristic: it fixed a stuck case on long obstacles (corner re-selection) but other layouts may still trap enemies; consider a stuck detector or a simple navmesh.
 - [ ] 🟢 The radar ignores obstacles and the squad screen does not refresh while the game runs (it only opens while paused); fine today, revisit if either changes.
 - [ ] 🟢 Old merged branches (about 30) remain on the remote and locally; delete them once the user agrees.
 - [ ] 🟢 Docs: the README is the player reference; docs/CONTROLS.md lists every key, so update it whenever a key changes.

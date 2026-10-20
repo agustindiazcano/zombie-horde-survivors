@@ -23,6 +23,8 @@ export class AnimationController {
         action.setLoop(THREE.LoopOnce, 1);
         action.clampWhenFinished = true;
       }
+      if (spec.clipSpeed && (state === 'walk' || state === 'run'))
+        action.timeScale = spec.clipSpeed;
       this.actions.set(state, action);
     }
   }
@@ -30,7 +32,13 @@ export class AnimationController {
   setState(next: string): void {
     if (next === this.state) return;
     this.state = next;
-    const action = this.actions.get(next);
+    // A model without a walk clip runs instead.
+    const action =
+      this.actions.get(next) ??
+      (next === 'idle' ? this.actions.get('roam') : undefined) ??
+      (next === 'walk' || next === 'roam' || next === 'idle'
+        ? (this.actions.get('walk') ?? this.actions.get('run'))
+        : undefined);
     if (!action) return;
     action.reset().play();
     this.current?.crossFadeTo(action, FADE_SECONDS, false);

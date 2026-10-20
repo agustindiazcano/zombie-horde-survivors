@@ -8,22 +8,27 @@ The single reference for every key and mouse action in the game, the menus and t
 
 You control one soldier; the rest of the squad follows and shoots on its own.
 
-| Key / mouse       | Action                                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
-| W / A / S / D     | Move (relative to where the camera looks)                                                                           |
-| Mouse             | Aim (see _Views_ below)                                                                                             |
-| Left click (hold) | Fire                                                                                                                |
-| Ctrl (or **C**)   | The whole squad crouches: tighter spread, +10% damage, half speed                                                   |
-| Shift             | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                |
-| Space             | Jump (only the soldier you control); walking into a box, it vaults up onto it (30 stamina)                          |
-| Q                 | Throw a grenade at the aim point (the cursor in top-down, the crosshair in third / first person)                    |
-| G                 | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go        |
-| E                 | Next to a crate (a yellow **E** floats above it): open it                                                           |
-| V                 | Next to a vehicle (a **V** floats above it): climb in; inside, step out (the driver leaving takes the crew out too) |
-| T                 | Change view: normal → third person → first person → normal                                                          |
-| Y                 | Go back to RTS mode                                                                                                 |
-| Mouse wheel       | Zoom (normal and third-person views)                                                                                |
-| Right-drag        | Rotate and tilt the camera (normal view only)                                                                       |
+| Key / mouse                     | Action                                                                                                                                                                                                                                          |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| W / A / S / D                   | Move (relative to where the camera looks)                                                                                                                                                                                                       |
+| Mouse                           | Aim (see _Views_ below)                                                                                                                                                                                                                         |
+| Left click                      | Fire: hold for automatic guns (rifle, machine gun); one shot per click for semi-automatic ones (the pistol)                                                                                                                                     |
+| R                               | Reload the gun in hand from the ammo in the backpack (takes the gun's reload time; no fire meanwhile; the pistol always has spare magazines)                                                                                                    |
+| F                               | Melee: strike the nearest enemy in front (knife if held, else the gun's butt, else fists), shove it back and stagger it; shares the cooldown with firing and interrupts a reload. AI soldiers do it by themselves when an enemy gets very close |
+| Right mouse button (hold)       | Aim down the sights, in third and first person only: best accuracy and less recoil, walking pace only, a narrower view; sprinting, being hit, going down or changing view (T) cancels it. Settings (O) can switch it to click on / click off    |
+| Ctrl (or **C**)                 | The whole squad crouches: tighter spread, +10% damage, half speed                                                                                                                                                                               |
+| Z                               | Hold to walk: the whole squad walks at a slower pace with the walk animation (crouch and sprint win over it)                                                                                                                                    |
+| Shift                           | The whole squad sprints (1.6x speed) while it has stamina; each unit tires on its own, then recovers                                                                                                                                            |
+| Space                           | Jump (only the soldier you control); walking into a box, it vaults up onto it (30 stamina)                                                                                                                                                      |
+| Q                               | Throw a grenade at the aim point (the cursor in top-down, the crosshair in third / first person)                                                                                                                                                |
+| (no key) Head and critical hits | In third / first person put the crosshair on an enemy's head for extra damage; in top-down a head hit is a small chance. Critical hits are random everywhere. Orange number = head, yellow = critical; the crosshair glows and a ping sounds    |
+| G                               | Grab a downed or dead ally next to you and drag it (half speed, one-handed guns only); press again to let go                                                                                                                                    |
+| E                               | Next to a crate (a yellow **E** floats above it): open it                                                                                                                                                                                       |
+| V                               | Next to a vehicle (a **V** floats above it): climb in; inside, step out (the driver leaving takes the crew out too)                                                                                                                             |
+| T                               | Change view: normal → third person → first person → normal                                                                                                                                                                                      |
+| Y                               | Go back to RTS mode                                                                                                                                                                                                                             |
+| Mouse wheel                     | Zoom (normal and third-person views)                                                                                                                                                                                                            |
+| Right-drag                      | Rotate and tilt the camera (normal view only)                                                                                                                                                                                                   |
 
 Ctrl+W closes the browser tab and the browser won't let a page block it, so **C** is provided as an alternative way to crouch.
 
@@ -60,26 +65,28 @@ When you take control with **Y**, only the units that were selected follow you. 
 
 ## Anywhere in a run
 
-| Key         | Action                                                                        |
-| ----------- | ----------------------------------------------------------------------------- |
-| P / Esc / I | Pause / resume and show the squad screen (bonuses, stats, units, inventories) |
-| B           | Open / close the shop (only between waves)                                    |
-| O           | Settings (graphics, lighting, FPS counter, volume)                            |
-| L           | Dark mode: dim lights and a flashlight per soldier                            |
-| F3          | Show / hide the FPS counter                                                   |
-| M           | Mute / unmute                                                                 |
-| 1 / 2 / 3   | Pick a perk while the level-up menu is open (the game is frozen until you do) |
-| R           | Restart (on the game over screen)                                             |
-| Esc         | Closes the open window first (shop, squad screen, settings), then pauses      |
+| Key                                 | Action                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| P / Esc / I                         | Pause / resume and show the squad screen (bonuses, stats, units, inventories) |
+| Pause screen, **Exit to main menu** | Button at the top-left panel: leaves the run and returns to the main menu     |
+| B                                   | Open / close the shop (only between waves)                                    |
+| O                                   | Settings (graphics, lighting, FPS counter, volume)                            |
+| L                                   | Dark mode: dim lights and a flashlight per soldier                            |
+| F3                                  | Show / hide the FPS counter                                                   |
+| M                                   | Mute / unmute                                                                 |
+| 1 / 2 / 3                           | Pick a perk while the level-up menu is open (the game is frozen until you do) |
+| R                                   | Restart (on the game over screen)                                             |
+| Esc                                 | Closes the open window first (shop, squad screen, settings), then pauses      |
 
 ## Windows and menus
 
-| Where                    | Action                                                                                                |
-| ------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Main menu                | Click the buttons (Enter / Space on the focused one); **Esc** steps back one screen; **O** settings   |
-| Squad screen (pause)     | Click a unit for its 3D view and inventory (up to four windows); drag weapons and items between slots |
-| Crate window (E)         | Take items from the crate or stash your own in it                                                     |
-| Unit dialogs, any window | **Esc** or a click outside closes it                                                                  |
+| Where                    | Action                                                                                                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Main menu                | Click the buttons (Enter / Space on the focused one); **Esc** steps back one screen; **O** settings                                                                                |
+| Squad screen (pause)     | Click a unit for its 3D view and inventory (up to four windows); drag weapons and items between slots; the **⚙** on a weapon opens its workbench                                   |
+| Weapon workbench (⚙)     | Click an accessory in the backpack to fit it (it takes that place of the weapon, swapping what was there); click a fitted one to take it off. **Esc** or a click outside closes it |
+| Crate window (E)         | Take items from the crate or stash your own in it                                                                                                                                  |
+| Unit dialogs, any window | **Esc** or a click outside closes it                                                                                                                                               |
 
 ## Map editor
 

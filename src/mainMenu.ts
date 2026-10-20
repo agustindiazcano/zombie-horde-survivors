@@ -58,7 +58,7 @@ export class MainMenu {
       this.stage = el('div', 'menu__stage', this.root);
       this.model = new MenuModel(this.stage, preview);
     }
-    el('div', 'menu__footer', this.root, '© 2026 Agustin Diaz-Cano');
+    el('div', 'menu__footer', this.root, '© 2026 Agustin Diaz-Cano / Wylan Studios');
     this.go('title');
   }
 
@@ -122,7 +122,7 @@ export class MainMenu {
 
     el('h2', 'menu__heading', panel, TITLES[screen]);
     if (screen === 'credits') {
-      el('p', 'menu__tagline', panel, '© 2026 Agustin Diaz-Cano');
+      el('p', 'menu__tagline', panel, '© 2026 Agustin Diaz-Cano / Wylan Studios');
       const roll = el('ul', 'menu__credits', panel);
       for (const a of credits) {
         const item = el('li', '', roll);

@@ -362,7 +362,7 @@ export const DAMAGE_TYPES = [
 ] as const;
 export type DamageType = (typeof DAMAGE_TYPES)[number];
 
-/** Places on a weapon where an accessory can be fitted (mocked: nothing fits them yet). */
+/** Places on a weapon where an accessory can be fitted. */
 export const ACCESSORY_SLOTS = [
   'optic',
   'barrel',
@@ -371,7 +371,32 @@ export const ACCESSORY_SLOTS = [
   'stock',
   'underbarrel',
 ] as const;
+export const FIRE_MODES = ['auto', 'semi'] as const;
+export type FireMode = (typeof FIRE_MODES)[number];
+
 export type AccessorySlot = (typeof ACCESSORY_SLOTS)[number];
+
+/** What a fitted accessory changes; the effects of all fitted ones add up. Left out means no change. */
+const accessoryMods = z
+  .object({
+    damage: z.number().optional(),
+    range: z.number().optional(),
+    /** Random aim error. */
+    spread: z.number().optional(),
+    /** Extra change to the aim error while aiming down the sights. */
+    aimSpread: z.number().optional(),
+    /** Recoil kick per shot. */
+    recoil: z.number().optional(),
+    /** Radius a shot can be heard from. */
+    noise: z.number().optional(),
+    reloadTime: z.number().optional(),
+    /** Extra rounds in the magazine. */
+    magazine: z.number().int().optional(),
+    /** Extra zoom while aiming (0.3 narrows the view by a further 30%). */
+    zoom: z.number().optional(),
+  })
+  .strict();
+export type AccessoryMods = z.infer<typeof accessoryMods>;
 
 const itemBase = {
   name: z.string().min(1),
@@ -403,17 +428,45 @@ const itemDef = z.discriminatedUnion('type', [
       range: positive,
       /** Random aim error, in radians (each side). */
       spread: nonNegative,
-      mocked: z
+      /** `auto` fires while the button is held; `semi` once per click. */
+      fireMode: z.enum(FIRE_MODES),
+      /** Rounds in a full magazine (none for fists and the drone gun, which never run dry). */
+      magazine: z.number().int().positive().optional(),
+      /** How a shot kicks the aim; leave it out for a gun with no recoil. */
+      recoil: z
         .object({
-          magazine: z.number().int().positive().optional(),
-          reloadTime: nonNegative.optional(),
-          noise: nonNegative,
-          weight: nonNegative,
-          accessorySlots: z.array(z.enum(ACCESSORY_SLOTS)),
+          /** Radians added to the aim error by each shot. */
+          kick: nonNegative,
+          /** Most the accumulated kick can reach (radians). */
+          maxKick: positive,
+          /** Radians per second the kick fades. */
+          recovery: positive,
+          /** 0 to 1: how much of the kick drifts to one side instead of spreading both ways. */
+          sideBias: z.number().min(0).max(1),
+          /** Camera shake added by each shot (world units, local player only). */
+          cameraKick: nonNegative,
         })
-        .strict(),
+        .strict()
+        .optional(),
+      /** Overrides of the `hits` defaults for this weapon. */
+      headMultiplier: positive.optional(),
+      critChance: z.number().min(0).max(1).optional(),
+      critMultiplier: positive.optional(),
+      /** Item id of the ammo it loads from the backpack (an `ammo` item). */
+      ammo: z.string().optional(),
+      /** Reloads from nothing: the spare magazines never run out (the pistol, at first). */
+      infiniteSpare: z.boolean().optional(),
+      /** Seconds a reload takes. */
+      reloadTime: nonNegative.optional(),
+      /** Radius in metres a shot can be heard from (no rule uses it yet). */
+      noise: nonNegative,
+      /** Which places an accessory can be fitted to. */
+      accessorySlots: z.array(z.enum(ACCESSORY_SLOTS)),
+      mocked: z.object({ weight: nonNegative }).strict(),
     })
     .strict(),
+  /** Ammo: a stack counts rounds; one crate or shop unit gives `pack` rounds. */
+  z.object({ ...itemBase, type: z.literal('ammo'), pack: z.number().int().positive() }).strict(),
   z
     .object({
       ...itemBase,
@@ -465,9 +518,9 @@ const itemDef = z.discriminatedUnion('type', [
       ...itemBase,
       type: z.literal('accessory'),
       slot: z.enum(ACCESSORY_SLOTS),
-      mocked: z
-        .object({ modifiers: z.record(z.string(), z.number()), weight: nonNegative })
-        .strict(),
+      /** Each number is a fraction added to the weapon's own value (-0.1 = 10% less), except `magazine` (rounds). */
+      modifiers: accessoryMods,
+      mocked: z.object({ weight: nonNegative }).strict(),
     })
     .strict(),
 ]);
@@ -492,6 +545,12 @@ export const ItemsSchema = z
     for (const [id, item] of Object.entries(data.items)) {
       if (item.type === 'weapon' && item.stack !== 1) {
         ctx.addIssue({ code: 'custom', message: `weapon "${id}" cannot stack` });
+      }
+      if (item.type === 'weapon' && item.ammo && data.items[item.ammo]?.type !== 'ammo') {
+        ctx.addIssue({ code: 'custom', message: `weapon "${id}" needs "${item.ammo}" to be ammo` });
+      }
+      if (item.type === 'weapon' && item.magazine && !item.ammo && !item.infiniteSpare) {
+        ctx.addIssue({ code: 'custom', message: `weapon "${id}" has a magazine but no ammo` });
       }
     }
   });
@@ -545,6 +604,50 @@ const enemyType = z
     rewardScale: positive,
     /** First wave this type can appear in. */
     minWave: z.number().int().positive(),
+    /** Standing height in metres at size 1 (default `hits.bodyHeight`); the head is its top. */
+    height: positive.optional(),
+    /** False for an enemy with no head to hit (a worm). */
+    headshots: z.boolean().optional(),
+    /** Arms and legs can be shot off (the humanoid marine variants). */
+    limbs: z.boolean().optional(),
+    /** Born without legs: it crawls from the start (keeps its own speed scale). */
+    legless: z.boolean().optional(),
+    /** An acrobat: while it runs at the squad it hops up and sideways every so often. */
+    acrobat: z
+      .object({
+        /** It only hops while its target is closer than this (metres). */
+        range: positive,
+        /** Seconds between hops (varied by up to 30% either way). */
+        interval: positive,
+        /** Seconds a hop lasts, and how fast it moves sideways and how high it jumps. */
+        duration: positive,
+        sideSpeed: nonNegative,
+        height: nonNegative,
+      })
+      .strict()
+      .optional(),
+    /** A wanderer: roams near where it spawned until it notices the squad, then chases for good. */
+    wander: z
+      .object({
+        /** How far from its home it roams (metres) and its walking speed as a fraction of `speedScale`. */
+        roamRadius: positive,
+        speedScale: positive,
+        /** Seconds it stands between two roam walks. */
+        pauseMin: nonNegative,
+        pauseMax: nonNegative,
+        /** A soldier this close wakes it, seen or not. */
+        senseRadius: positive,
+        /** A soldier this close, in front of it and with a clear line, wakes it. */
+        sightRadius: positive,
+        /** Half-angle (radians) of the cone it sees in. */
+        sightArc: positive,
+        /** The ones this close to an alerted wanderer wake with it. */
+        shoutRadius: nonNegative,
+      })
+      .strict()
+      .optional(),
+    /** A climber walks over obstacles up to this high (water and cliffs still stop it). */
+    climber: z.object({ maxHeight: positive }).strict().optional(),
   })
   .strict();
 
@@ -635,6 +738,76 @@ export const GameConfigSchema = z
         friendlyFire: z.number().min(0).max(1),
       })
       .strict(),
+    /** How well units hit: the weapon's `spread` is its worst case, these scale it down or up. */
+    accuracy: z
+      .object({
+        /** Extra spread per unit of speed (1 = walking speed): spread x (1 + this x speed). */
+        movementSpread: nonNegative,
+        /** Weapon-class skill level at which the best accuracy is reached, and its spread scale. */
+        skillMaxLevel: z.number().int().min(2),
+        skillBestScale: positive,
+        /** Standing still this many seconds earns the scale below (top-down and AI patience). */
+        standStillTime: nonNegative,
+        standStillScale: positive,
+        /** While aiming down the sights: spread, recoil and walking speed scales, and the view zoom. */
+        aimSpreadScale: positive,
+        aimRecoilScale: positive,
+        aimSpeedScale: positive,
+        aimZoom: z.number().min(0.3).max(1),
+        /** Crouching also tames recoil. */
+        crouchRecoilScale: positive,
+        /** Smallest random aim error (radians) of a gun that has any spread. */
+        minError: nonNegative,
+      })
+      .strict(),
+    /** Headshots and critical hits; the higher of the two multipliers applies, never both. */
+    hits: z
+      .object({
+        /** Enemy height in metres at size 1, and the top fraction of it that counts as the head. */
+        bodyHeight: positive,
+        headFraction: z.number().min(0.05).max(0.5),
+        headMultiplier: positive,
+        /** A mini boss takes at most this head multiplier. */
+        bossHeadMultiplier: positive,
+        /** Chance of a head hit when the view gives no hit height (top-down, the AI). */
+        headChance: z.number().min(0).max(1),
+        /** Scale while aiming, bonus per weapon-skill level above 1, and loss per radian of aim error. */
+        headChanceAim: positive,
+        headChanceSkill: nonNegative,
+        headErrorPenalty: nonNegative,
+        critChance: z.number().min(0).max(1),
+        critMultiplier: positive,
+        /** Extra crit chance per weapon-skill level above 1. */
+        critSkillBonus: nonNegative,
+      })
+      .strict(),
+    /** Ammo and reloading (the magazine, reload time and calibre are on each weapon). */
+    ammo: z
+      .object({
+        /** Seconds before the next trigger pull after an empty click. */
+        dryFireDelay: positive,
+      })
+      .strict(),
+    /** Melee strikes (F): a short blow in front of the unit that shoves the enemy back. */
+    melee: z
+      .object({
+        /** Seconds before the unit can strike or fire again; shared with shooting. */
+        cooldown: positive,
+        /** Half-angle (radians) of the cone in front of the unit that a blow reaches. */
+        arc: z.number().min(0.1).max(Math.PI),
+        /** Damage and reach (metres from the enemy's edge) of hitting with a gun in hand. */
+        bashDamage: nonNegative,
+        bashRange: positive,
+        /** How far (metres) a blow shoves an ordinary enemy; heavier ones move less. */
+        push: nonNegative,
+        /** Seconds the enemy loses (no moving, no biting) after being hit. */
+        stagger: nonNegative,
+        /** Share of the push a mini boss still feels. */
+        bossPushScale: z.number().min(0).max(1),
+        /** An AI soldier strikes an enemy this close (metres from its edge) instead of shooting. */
+        aiRange: positive,
+      })
+      .strict(),
     /** Dragging a downed or dead ally by the shoulders. */
     drag: z
       .object({
@@ -674,6 +847,8 @@ export const GameConfigSchema = z
         crouchSpreadScale: nonNegative,
         crouchDamageScale: positive,
         sprintSpeedScale: positive,
+        /** Walking (the walk key): slower than a run, with the walk animation. */
+        walkSpeedScale: positive,
         /** Sprinting drains stamina per second; it refills when not sprinting. */
         staminaMax: positive,
         staminaDrain: positive,
@@ -757,6 +932,48 @@ export const GameConfigSchema = z
       })
       .strict(),
     gore: z.object({ explodeChance: z.number().min(0).max(1) }).strict(),
+    dismember: z
+      .object({
+        /** A killing head hit bursts the head when the weapon's base damage is at least this; weaker weapons knock it off. */
+        headBurstDamage: positive,
+        /** A hit on the torso band takes an arm instead with this chance; with no hit height (top-down, the AI, blows) a hit lands on the legs with `legChance`, else on an arm / the torso as above. */
+        armChance: z.number().min(0).max(1),
+        legChance: z.number().min(0).max(1),
+        /** With a hit height: below this fraction of the enemy's height the shot lands on the legs. */
+        legBand: z.number().min(0.1).max(0.8),
+        /** Hits on legs (or an arm) add up; at this fraction of the enemy's max health it comes off. */
+        legFraction: positive,
+        armFraction: positive,
+        /** A mini boss needs this many times more damage to lose a limb. */
+        bossResist: z.number().min(1),
+        /** A killing hit on a limb takes it off with this chance, whatever the total. */
+        killSeverChance: z.number().min(0).max(1),
+        /** Each limb of an enemy caught in a blast comes off with this chance (less at the edge). */
+        blastSeverChance: z.number().min(0).max(1),
+        /** Bite damage left with one arm and with none. */
+        oneArmDamage: z.number().min(0).max(1),
+        noArmDamage: z.number().min(0).max(1),
+        /** Without legs: the share of its speed it keeps, and its height as a fraction of standing. */
+        crawlSpeed: z.number().min(0).max(1),
+        crawlHeight: z.number().min(0.1).max(1),
+        /** A killing hit of at least this damage on a legged enemy cuts it in two with `cutChance`. */
+        cutDamage: positive,
+        cutChance: z.number().min(0).max(1),
+        /** A mini boss only loses its legs (and crawls) below this share of its health. */
+        bossCrawlHealth: z.number().min(0).max(1),
+        /** A mini boss that loses an arm runs this much faster instead of biting weaker. */
+        bossEnrage: z.number().min(1),
+      })
+      .strict(),
+    wander: z
+      .object({
+        /** Shots wake wanderers within `noiseMetres` per point of the weapon's noise (off until balanced). */
+        noiseAttracts: z.boolean(),
+        noiseMetres: positive,
+        /** Seconds after a wave has finished spawning before its sleeping wanderers wake up anyway. */
+        wakeDelay: positive,
+      })
+      .strict(),
     inventory: z.object({ backpackSlots: z.number().int().positive() }).strict(),
     drops: z
       .object({

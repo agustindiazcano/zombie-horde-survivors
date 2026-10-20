@@ -2,7 +2,11 @@ import { resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
 import { getVehicle, toggleVehicle } from './vehicles';
-import { isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
+import { gunOf, isDrone, maxHealthOf, speedOf, weaponOf } from './stats';
+import { fadeRecoil } from './accuracy';
+import { maintainAmmo, updateReload } from './ammo';
+import { enemyInMeleeReach, meleeStrike } from './melee';
+import { triggerPulled } from './weaponState';
 import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from './config';
 import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
@@ -18,6 +22,8 @@ const CLIMB_CLEAR = 0.25;
 /** Cosine of the widest angle (to the box) at which walking still counts as walking into it. */
 const CLIMB_FACING = 0.5;
 const SLOT_TOLERANCE = 0.6;
+/** Moving less than this per step (metres) counts as standing still. */
+const STILL_DISTANCE = 0.002;
 const CATCH_UP_SPEED = 1.2;
 const FORMATION_SPACING = 1.4;
 
@@ -38,7 +44,11 @@ export function applyLoadout(config: GameConfig, s: Soldier, l: Loadout): Soldie
     s.health = l.maxHealth;
   }
   if (l.attributes) s.attributes = { ...s.attributes, ...l.attributes };
-  if (l.equipment) s.equipment = { ...s.equipment, ...l.equipment };
+  if (l.equipment) {
+    s.equipment = { ...s.equipment, ...l.equipment };
+    s.weaponStates = {};
+    s.reload = null;
+  }
   if (l.backpack) {
     s.backpack = l.backpack
       .filter((st) => st.item in config.items)
@@ -73,6 +83,14 @@ function newUnit(
     baseHealth: config.player.maxHealth,
     dead: false,
     fireCooldown: 0,
+    triggerHeld: false,
+    triggerQueued: false,
+    reload: null,
+    recoil: 0,
+    aiming: false,
+    aimLine: null,
+    aimBroken: false,
+    stillTime: 0,
     y: 0,
     prevY: 0,
     vy: 0,
@@ -82,6 +100,7 @@ function newUnit(
       leftHand: null,
       chest: null,
     },
+    weaponStates: {},
     backpack: [],
     xp: 0,
     kills: 0,
@@ -199,6 +218,7 @@ export function hurtSoldier(
   zombieId: number,
 ): void {
   if (soldier.dead) return;
+  soldier.aimBroken = true;
   state.events.push({ type: 'soldierHurt', soldierId: soldier.id, damage: amount, zombieId });
   if (soldier.downed) {
     soldier.bleedOut -= amount * config.downed.damageBleed;
@@ -227,6 +247,9 @@ export function updateSoldiers(
   const controlledId = localPlayer(state).controlledId;
   const leader = getSoldier(state, controlledId);
   for (const s of state.soldiers) {
+    // How far it moved last step decides how long it has stood still.
+    s.stillTime =
+      Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) < STILL_DISTANCE ? s.stillTime + dt : 0;
     s.prev.x = s.pos.x;
     s.prev.z = s.pos.z;
     s.prevY = s.y;
@@ -243,6 +266,12 @@ export function updateSoldiers(
     }
     // May dip up to one step below zero so the leftover time carries into the next shot.
     s.fireCooldown = Math.max(-dt, s.fireCooldown - dt);
+    updateReload(config, s, dt);
+    fadeRecoil(config, s, dt);
+    if (s.id !== controlledId) {
+      s.aiming = false;
+      s.aimLine = null;
+    }
     if (state.mods.regen > 0 && !isDrone(s) && !s.downed) {
       const max = maxHealthOf(state, config, s);
       s.health = Math.min(max, s.health + state.mods.regen * dt);
@@ -325,6 +354,8 @@ function updateSeated(
   input: Input,
   controlledId: number | null,
 ): void {
+  s.aiming = false;
+  s.aimLine = null;
   const v = state.vehicles.find((u) => u.id === s.vehicleId);
   if (!v) {
     s.vehicleId = null;
@@ -336,10 +367,13 @@ function updateSeated(
     const dx = input.aim.x - s.pos.x;
     const dz = input.aim.z - s.pos.z;
     if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
-    if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
+    if (triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)) {
+      fireWeapon(state, config, s);
+    }
     return;
   }
   const target = findTarget(state, config, s);
+  maintainAmmo(state, config, s, target !== null);
   if (!target) return;
   s.facing = Math.atan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
   if (s.fireCooldown <= 0) fireWeapon(state, config, s, config.squad.aiFireRateScale);
@@ -354,6 +388,11 @@ function updateControlled(
   dt: number,
 ): void {
   const { move, aim } = input;
+  // Aiming down the sights needs the button, a walking pace and an unhurt, upright soldier.
+  if (!input.aiming) s.aimBroken = false;
+  s.aiming =
+    input.aiming === true && !s.aimBroken && !s.downed && !isDrone(s) && stance !== 'sprint';
+  s.aimLine = input.aimLine ?? null;
   // Normalize only above unit length so analog input keeps its magnitude.
   const l = Math.hypot(move.x, move.z);
   const k = l > 1 ? 1 / l : 1;
@@ -372,7 +411,11 @@ function updateControlled(
     s.vy = climbSpeed(config, s, move) ?? config.stance.jumpSpeed;
   }
 
-  if (input.firing && s.fireCooldown <= 0) fireWeapon(state, config, s);
+  if (triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)) {
+    fireWeapon(state, config, s);
+  }
+  // Touch play has no reload button: the gun reloads itself.
+  if (input.autoTrigger) maintainAmmo(state, config, s, input.firing);
 }
 
 function updateAi(
@@ -437,7 +480,15 @@ function updateAi(
     moveAngle = Math.atan2(dx, dz);
   }
 
+  // An enemy right at the unit's feet gets a blow (and a shove) instead of a shot.
+  const close = isDrone(s) ? null : enemyInMeleeReach(state, config, s);
+  if (close) {
+    s.facing = Math.atan2(close.pos.x - s.pos.x, close.pos.z - s.pos.z);
+    if (meleeStrike(state, config, s)) return;
+  }
+
   const target = findTarget(state, config, s);
+  maintainAmmo(state, config, s, target !== null);
   if (target) {
     s.facing = Math.atan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
     if (s.fireCooldown <= 0) {

@@ -49,7 +49,51 @@
         "weight": 1.5
       },
       {
+        "item": "knife",
+        "weight": 1.5
+      },
+      {
         "item": "defibrillator",
+        "weight": 0.6
+      },
+      {
+        "item": "ammo_556",
+        "weight": 2.5
+      },
+      {
+        "item": "ammo_belt",
+        "weight": 1
+      },
+      {
+        "item": "red_dot",
+        "weight": 0.8
+      },
+      {
+        "item": "scope",
+        "weight": 0.5
+      },
+      {
+        "item": "suppressor",
+        "weight": 0.6
+      },
+      {
+        "item": "compensator",
+        "weight": 0.6
+      },
+      {
+        "item": "extended_mag",
+        "weight": 0.7
+      },
+      {
+        "item": "quick_mag",
+        "weight": 0.7
+      },
+      {
+        "item": "foregrip",
+        "weight": 0.8
+      },
+      {
+        "item": "laser",
         "weight": 0.6
       }
     ]
@@ -108,7 +152,10 @@
     }
   },
   "hazards": {
-    "fire": { "dps": 20, "radius": 2.5 }
+    "fire": {
+      "dps": 20,
+      "radius": 2.5
+    }
   },
   "vehicles": {
     "jeep": {
@@ -126,9 +173,21 @@
     }
   },
   "difficulty": {
-    "easy": { "health": 0.7, "speed": 0.9, "count": 0.7 },
-    "normal": { "health": 1, "speed": 1, "count": 1 },
-    "hard": { "health": 1.4, "speed": 1.1, "count": 1.4 }
+    "easy": {
+      "health": 0.7,
+      "speed": 0.9,
+      "count": 0.7
+    },
+    "normal": {
+      "health": 1,
+      "speed": 1,
+      "count": 1
+    },
+    "hard": {
+      "health": 1.4,
+      "speed": 1.1,
+      "count": 1.4
+    }
   },
   "waves": {
     "baseCount": 8,
@@ -150,47 +209,71 @@
       "radiusScale": 1.0,
       "weight": 6,
       "minWave": 1,
-      "rewardScale": 1.2
+      "rewardScale": 1.2,
+      "limbs": true
     },
     "skeleton": {
-      "name": "Skeleton",
+      "name": "Rotten marine",
       "speedScale": 0.6,
       "healthScale": 0.6,
       "damageScale": 0.8,
       "radiusScale": 1.0,
       "weight": 3,
       "minWave": 1,
-      "rewardScale": 0.8
+      "rewardScale": 0.8,
+      "limbs": true
     },
     "alien": {
-      "name": "Alien",
+      "name": "Gory marine",
       "speedScale": 1.5,
       "healthScale": 0.7,
       "damageScale": 0.9,
       "radiusScale": 0.9,
       "weight": 3,
       "minWave": 2,
-      "rewardScale": 1.2
+      "rewardScale": 1.2,
+      "limbs": true
     },
     "hound": {
-      "name": "Hound",
-      "speedScale": 2.0,
+      "name": "Crawler marine",
+      "speedScale": 1.4,
       "healthScale": 0.5,
       "damageScale": 0.7,
       "radiusScale": 1.0,
       "weight": 3,
       "minWave": 2,
-      "rewardScale": 1.0
+      "rewardScale": 1.0,
+      "limbs": true,
+      "legless": true
+    },
+    "marine_acrobat": {
+      "name": "Acrobat marine",
+      "speedScale": 1.9,
+      "healthScale": 0.7,
+      "damageScale": 0.8,
+      "radiusScale": 1.0,
+      "weight": 4,
+      "minWave": 1,
+      "rewardScale": 1.5,
+      "acrobat": {
+        "range": 12,
+        "interval": 1.1,
+        "duration": 0.55,
+        "sideSpeed": 5,
+        "height": 1.3
+      },
+      "limbs": true
     },
     "brute": {
-      "name": "Brute",
+      "name": "Burgundy marine",
       "speedScale": 0.7,
       "healthScale": 3.5,
       "damageScale": 2.5,
       "radiusScale": 1.5,
       "weight": 1,
       "minWave": 3,
-      "rewardScale": 4
+      "rewardScale": 4,
+      "limbs": true
     },
     "worm": {
       "name": "Giant worm",
@@ -200,7 +283,76 @@
       "radiusScale": 1.7,
       "weight": 1,
       "minWave": 4,
-      "rewardScale": 6
+      "rewardScale": 6,
+      "headshots": false
+    },
+    "marine_runner": {
+      "name": "Runner marine",
+      "speedScale": 1.8,
+      "healthScale": 0.6,
+      "damageScale": 0.8,
+      "radiusScale": 1.0,
+      "weight": 3,
+      "minWave": 2,
+      "rewardScale": 1.3,
+      "limbs": true
+    },
+    "marine_fast": {
+      "name": "Fast infected marine",
+      "speedScale": 1.4,
+      "healthScale": 0.9,
+      "damageScale": 1.0,
+      "radiusScale": 1.0,
+      "weight": 4,
+      "minWave": 2,
+      "rewardScale": 1.2,
+      "limbs": true
+    },
+    "marine_bleeder": {
+      "name": "Bleeder marine",
+      "speedScale": 0.9,
+      "healthScale": 2.5,
+      "damageScale": 1.0,
+      "radiusScale": 1.0,
+      "weight": 2,
+      "minWave": 4,
+      "rewardScale": 2.0,
+      "limbs": true
+    },
+    "marine_wanderer": {
+      "name": "Wanderer marine",
+      "speedScale": 1.7,
+      "healthScale": 1.0,
+      "damageScale": 1.0,
+      "radiusScale": 1.0,
+      "weight": 3,
+      "minWave": 2,
+      "rewardScale": 1.4,
+      "wander": {
+        "roamRadius": 8,
+        "speedScale": 0.3,
+        "pauseMin": 1,
+        "pauseMax": 4,
+        "senseRadius": 5,
+        "sightRadius": 16,
+        "sightArc": 1.1,
+        "shoutRadius": 10
+      },
+      "limbs": true
+    },
+    "marine_climber": {
+      "name": "Climber marine",
+      "speedScale": 1.2,
+      "healthScale": 0.9,
+      "damageScale": 1.0,
+      "radiusScale": 1.0,
+      "weight": 3,
+      "minWave": 3,
+      "rewardScale": 1.5,
+      "climber": {
+        "maxHeight": 2.2
+      },
+      "limbs": true
     }
   },
   "stance": {
@@ -208,6 +360,7 @@
     "crouchSpreadScale": 0.4,
     "crouchDamageScale": 1.1,
     "sprintSpeedScale": 1.6,
+    "walkSpeedScale": 0.55,
     "staminaMax": 100,
     "staminaDrain": 22,
     "staminaRegen": 14,
@@ -228,6 +381,30 @@
   },
   "gore": {
     "explodeChance": 0.5
+  },
+  "dismember": {
+    "headBurstDamage": 25,
+    "armChance": 0.15,
+    "legChance": 0.2,
+    "legBand": 0.45,
+    "legFraction": 0.25,
+    "armFraction": 0.2,
+    "bossResist": 3,
+    "killSeverChance": 0.5,
+    "blastSeverChance": 0.35,
+    "oneArmDamage": 0.6,
+    "noArmDamage": 0.35,
+    "crawlSpeed": 0.35,
+    "crawlHeight": 0.45,
+    "cutDamage": 60,
+    "cutChance": 0.5,
+    "bossCrawlHealth": 0.2,
+    "bossEnrage": 1.3
+  },
+  "wander": {
+    "noiseAttracts": false,
+    "noiseMetres": 4,
+    "wakeDelay": 25
   },
   "perks": {
     "choices": 3,
@@ -339,6 +516,46 @@
         "cost": 50
       },
       {
+        "id": "red_dot",
+        "name": "Red dot sight",
+        "description": "Adds a red dot sight to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "red_dot",
+        "cost": 40
+      },
+      {
+        "id": "scope",
+        "name": "Scope",
+        "description": "Adds a scope to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "scope",
+        "cost": 70
+      },
+      {
+        "id": "suppressor",
+        "name": "Suppressor",
+        "description": "Adds a suppressor to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "suppressor",
+        "cost": 60
+      },
+      {
+        "id": "extended_mag",
+        "name": "Extended magazine",
+        "description": "Adds an extended magazine to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "extended_mag",
+        "cost": 60
+      },
+      {
+        "id": "foregrip",
+        "name": "Foregrip",
+        "description": "Adds a foregrip to the selected unit's backpack; fit it at the workbench",
+        "kind": "item",
+        "target": "foregrip",
+        "cost": 45
+      },
+      {
         "id": "up_damage",
         "name": "Ammo upgrade",
         "description": "One free Firepower stack",
@@ -397,12 +614,28 @@
         "target": "defibrillator",
         "cost": 90,
         "costGrowth": 1.3
+      },
+      {
+        "id": "ammo_556",
+        "name": "Rifle ammo",
+        "description": "30 rifle rounds into the selected unit's backpack",
+        "kind": "item",
+        "target": "ammo_556",
+        "cost": 15
+      },
+      {
+        "id": "ammo_belt",
+        "name": "Machine gun belt",
+        "description": "100 machine gun rounds into the selected unit's backpack",
+        "kind": "item",
+        "target": "ammo_belt",
+        "cost": 40
       }
     ]
   },
   "boss": {
     "everyWaves": 3,
-    "types": ["zombie", "skeleton", "alien", "brute", "hound"],
+    "types": ["zombie", "skeleton", "alien", "brute", "marine_bleeder"],
     "health": [50, 70, 100, 200, 500],
     "damage": [2, 3, 4, 6, 8],
     "growth": 1.6,
@@ -421,5 +654,44 @@
     "reviveTime": 3,
     "defibHealth": 0.5,
     "targetDistanceScale": 3
+  },
+  "ammo": {
+    "dryFireDelay": 0.4
+  },
+  "melee": {
+    "cooldown": 0.6,
+    "arc": 0.9,
+    "bashDamage": 12,
+    "bashRange": 1.5,
+    "push": 1.4,
+    "stagger": 0.5,
+    "bossPushScale": 0.15,
+    "aiRange": 1.1
+  },
+  "accuracy": {
+    "movementSpread": 1.2,
+    "skillMaxLevel": 10,
+    "skillBestScale": 0.4,
+    "standStillTime": 0.5,
+    "standStillScale": 0.8,
+    "aimSpreadScale": 0.3,
+    "aimRecoilScale": 0.5,
+    "aimSpeedScale": 0.5,
+    "aimZoom": 0.75,
+    "crouchRecoilScale": 0.7,
+    "minError": 0.004
+  },
+  "hits": {
+    "bodyHeight": 1.8,
+    "headFraction": 0.2,
+    "headMultiplier": 2,
+    "bossHeadMultiplier": 1.5,
+    "headChance": 0.06,
+    "headChanceAim": 2,
+    "headChanceSkill": 0.1,
+    "headErrorPenalty": 20,
+    "critChance": 0.05,
+    "critMultiplier": 1.5,
+    "critSkillBonus": 0.005
   }
 }

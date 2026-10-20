@@ -13,10 +13,30 @@
       "damage": 6,
       "range": 1.2,
       "spread": 0,
+      "fireMode": "auto",
+      "noise": 1,
+      "accessorySlots": [],
       "mocked": {
-        "noise": 1,
-        "weight": 0,
-        "accessorySlots": []
+        "weight": 0
+      }
+    },
+    "knife": {
+      "type": "weapon",
+      "name": "Combat knife",
+      "icon": "🔪",
+      "stack": 1,
+      "class": "melee",
+      "hands": 1,
+      "damageType": "physical",
+      "fireRate": 2,
+      "damage": 35,
+      "range": 1.4,
+      "spread": 0,
+      "fireMode": "auto",
+      "noise": 0,
+      "accessorySlots": [],
+      "mocked": {
+        "weight": 0.5
       }
     },
     "pistol": {
@@ -30,13 +50,22 @@
       "fireRate": 4,
       "damage": 20,
       "range": 25,
-      "spread": 0.02,
+      "spread": 0.04,
+      "fireMode": "semi",
+      "magazine": 12,
+      "reloadTime": 1.2,
+      "noise": 6,
+      "accessorySlots": ["optic", "barrel", "magazine"],
       "mocked": {
-        "magazine": 12,
-        "reloadTime": 1.2,
-        "noise": 6,
-        "weight": 1,
-        "accessorySlots": ["optic", "barrel", "magazine"]
+        "weight": 1
+      },
+      "infiniteSpare": true,
+      "recoil": {
+        "kick": 0.03,
+        "maxKick": 0.06,
+        "recovery": 0.1,
+        "sideBias": 0.2,
+        "cameraKick": 0.02
       }
     },
     "rifle": {
@@ -50,13 +79,22 @@
       "fireRate": 8,
       "damage": 25,
       "range": 40,
-      "spread": 0,
+      "spread": 0.03,
+      "fireMode": "auto",
+      "magazine": 30,
+      "reloadTime": 2.2,
+      "noise": 9,
+      "accessorySlots": ["optic", "barrel", "magazine", "grip", "underbarrel"],
       "mocked": {
-        "magazine": 30,
-        "reloadTime": 2.2,
-        "noise": 9,
-        "weight": 3.5,
-        "accessorySlots": ["optic", "barrel", "magazine", "grip", "underbarrel"]
+        "weight": 3.5
+      },
+      "ammo": "ammo_556",
+      "recoil": {
+        "kick": 0.02,
+        "maxKick": 0.1,
+        "recovery": 0.1,
+        "sideBias": 0.3,
+        "cameraKick": 0.03
       }
     },
     "heavy_mg": {
@@ -70,13 +108,22 @@
       "fireRate": 14,
       "damage": 18,
       "range": 35,
-      "spread": 0.07,
+      "spread": 0.08,
+      "fireMode": "auto",
+      "magazine": 100,
+      "reloadTime": 5,
+      "noise": 10,
+      "accessorySlots": ["optic", "barrel", "grip"],
       "mocked": {
-        "magazine": 100,
-        "reloadTime": 5,
-        "noise": 10,
-        "weight": 9,
-        "accessorySlots": ["optic", "barrel", "grip"]
+        "weight": 9
+      },
+      "ammo": "ammo_belt",
+      "recoil": {
+        "kick": 0.03,
+        "maxKick": 0.2,
+        "recovery": 0.12,
+        "sideBias": 0.5,
+        "cameraKick": 0.05
       }
     },
     "drone_cannon": {
@@ -92,10 +139,11 @@
       "damage": 45,
       "range": 30,
       "spread": 0,
+      "fireMode": "auto",
+      "noise": 4,
+      "accessorySlots": [],
       "mocked": {
-        "noise": 4,
-        "weight": 2,
-        "accessorySlots": []
+        "weight": 2
       }
     },
     "armor_plate": {
@@ -171,17 +219,32 @@
       "channelTime": 4,
       "reviveWindow": 30
     },
+    "red_dot": {
+      "type": "accessory",
+      "name": "Red dot sight",
+      "icon": "🔴",
+      "stack": 1,
+      "slot": "optic",
+      "modifiers": {
+        "aimSpread": -0.25,
+        "zoom": 0.1
+      },
+      "mocked": {
+        "weight": 0.2
+      }
+    },
     "scope": {
       "type": "accessory",
       "name": "Scope",
       "icon": "🔭",
       "stack": 1,
       "slot": "optic",
+      "modifiers": {
+        "aimSpread": -0.4,
+        "range": 0.15,
+        "zoom": 0.35
+      },
       "mocked": {
-        "modifiers": {
-          "accuracy": 0.05,
-          "range": 0.05
-        },
         "weight": 0.4
       }
     },
@@ -191,12 +254,54 @@
       "icon": "🔇",
       "stack": 1,
       "slot": "barrel",
+      "modifiers": {
+        "noise": -0.6,
+        "damage": -0.1,
+        "recoil": -0.1
+      },
       "mocked": {
-        "modifiers": {
-          "noise": -0.6,
-          "damage": -0.1
-        },
         "weight": 0.6
+      }
+    },
+    "compensator": {
+      "type": "accessory",
+      "name": "Compensator",
+      "icon": "🧯",
+      "stack": 1,
+      "slot": "barrel",
+      "modifiers": {
+        "recoil": -0.25,
+        "noise": 0.1
+      },
+      "mocked": {
+        "weight": 0.3
+      }
+    },
+    "extended_mag": {
+      "type": "accessory",
+      "name": "Extended magazine",
+      "icon": "📦",
+      "stack": 1,
+      "slot": "magazine",
+      "modifiers": {
+        "magazine": 10,
+        "reloadTime": 0.15
+      },
+      "mocked": {
+        "weight": 0.3
+      }
+    },
+    "quick_mag": {
+      "type": "accessory",
+      "name": "Quick-release magazine",
+      "icon": "⏱️",
+      "stack": 1,
+      "slot": "magazine",
+      "modifiers": {
+        "reloadTime": -0.3
+      },
+      "mocked": {
+        "weight": 0.2
       }
     },
     "foregrip": {
@@ -205,12 +310,40 @@
       "icon": "🪝",
       "stack": 1,
       "slot": "grip",
+      "modifiers": {
+        "recoil": -0.2,
+        "spread": -0.1
+      },
       "mocked": {
-        "modifiers": {
-          "recoil": -0.15
-        },
         "weight": 0.3
       }
+    },
+    "laser": {
+      "type": "accessory",
+      "name": "Laser sight",
+      "icon": "🔺",
+      "stack": 1,
+      "slot": "underbarrel",
+      "modifiers": {
+        "spread": -0.2
+      },
+      "mocked": {
+        "weight": 0.1
+      }
+    },
+    "ammo_556": {
+      "type": "ammo",
+      "name": "5.56 rounds",
+      "icon": "🟨",
+      "stack": 120,
+      "pack": 30
+    },
+    "ammo_belt": {
+      "type": "ammo",
+      "name": "Machine gun belt",
+      "icon": "🟧",
+      "stack": 300,
+      "pack": 100
     }
   }
 }

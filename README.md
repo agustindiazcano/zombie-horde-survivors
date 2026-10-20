@@ -2,7 +2,21 @@
 
 A browser-based 3D squad shooter: command a small squad of soldiers and a drone against waves of zombies, skeletons, aliens, hounds, brutes and giant worms. Play it **hands-on** (direct control of one soldier, in top-down, third-person or first-person view) or **from above** (RTS mode: select units and give orders).
 
-Built with Three.js + Vite + TypeScript. No backend: it runs in the browser.
+## Tech stack
+
+| Layer               | Technology                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------- |
+| Language and build  | TypeScript 6, Vite 8                                                                      |
+| 3D rendering        | Three.js 0.186 (WebGL today; a WebGPU + TSL migration is planned)                         |
+| Simulation          | pure TypeScript in `src/sim` (no Three.js, no DOM), fixed 60 Hz step, seeded RNG          |
+| Data and validation | JSON in `data/`, validated with a strict zod schema                                       |
+| Models              | GLB (glTF binary) with skeletal animation clips, Quaternius, KayKit, Kenney and Meshy AI  |
+| Audio               | procedural sound effects (Web Audio)                                                      |
+| Saved data          | the browser's localStorage (best score, settings, your own maps); no backend, no accounts |
+| Tests and checks    | Vitest (48 sim tests), ESLint, Prettier, `tsc`, an asset-license check                    |
+| Hosting             | GitHub Pages, redeployed on every push to `main`                                          |
+
+Where the engine is heading (WebGPU, instanced animated crowds of 1,000+ units, a physics worker, ragdolls, Tauri + Steam): [docs/PLAN-webgpu-engine.md](docs/PLAN-webgpu-engine.md). Nothing of that is built yet.
 
 **Play online:** https://agustindiazcano.github.io/zombie-horde-survivors/ (desktop browser, keyboard and mouse).
 
@@ -26,7 +40,7 @@ Survive wave after wave. Enemies drop gold, XP and sometimes weapon crates. The 
 
 ## Controls
 
-Every key and mouse action (direct control, views, RTS mode, menus, the map editor and the mobile layout) is listed in [docs/CONTROLS.md](docs/CONTROLS.md). The basics: **W A S D** move, the mouse aims, left click fires, **Q** throws a grenade, **T** changes view, **Y** switches between direct control and RTS mode, **I** opens the squad screen, **B** the shop and **Esc** pauses.
+Every key and mouse action (direct control, views, RTS mode, menus, the map editor and the mobile layout) is listed in [docs/CONTROLS.md](docs/CONTROLS.md). The basics: **W A S D** move, the mouse aims, left click fires (the pistol is semi-automatic: one shot per click), **R** reloads, **F** strikes in melee, hold the **right mouse button** in third / first person to aim (and put the crosshair on a head for extra damage), **Q** throws a grenade, **T** changes view, **Y** switches between direct control and RTS mode, **I** opens the squad screen, **B** the shop and **Esc** pauses.
 
 ## Radar
 
@@ -47,6 +61,8 @@ Every unit has two hands, a vest slot and a 10-slot backpack. Some enemies drop 
 A soldier who reaches zero health does not die at once: it goes **down** (lies on the floor, "DOWN" in the health line, greyed icon) and bleeds out in **30 seconds**. From the floor it can crawl slowly and shoot a **one-handed** weapon (a pistol) with poor aim; a rifle or machine gun will not fire. Enemies prefer soldiers on their feet, but every hit on a downed one shortens its time.
 
 An ally on their feet who carries a **medkit** and stays within reach for 3 seconds uses it automatically and stands the soldier back up with the kit's health (small 25, medium 50, large 100); soldiers on `follow` walk over to help. Without a medkit the soldier dies when the timer ends. A soldier who died less than 30 seconds ago can be brought back by an ally with a **defibrillator** (4 seconds next to the body, one use, half health). The game is over when nobody is left on their feet. Medkits and the defibrillator come from crates and the shop; a medkit can also be used from the squad screen to heal yourself.
+
+**Accessories:** scopes, sights, suppressors, compensators, magazines, a foregrip and a laser come from crates and the shop. In the squad screen (pause) the **⚙** on a weapon opens its workbench: each accessory takes one of the weapon's places (optic, barrel, magazine, grip, underbarrel), changes its damage, range, spread, recoil, reload, magazine or zoom, and the table shows the weapon bare, as it is and with the accessory under the pointer.
 
 ## Loot, levels and gore
 
@@ -85,11 +101,14 @@ Variants are multipliers on the base zombie in `data/game.json` (`enemies`); eac
 | Enemy             | From wave | Traits                       |
 | ----------------- | --------- | ---------------------------- |
 | Zombie            | 1         | Baseline                     |
-| Skeleton          | 1         | Slow, fragile                |
-| Alien             | 2         | Fast, fragile                |
+| Rotten marine     | 1         | Brown, slow, fragile         |
+| Gory marine       | 2         | Blood-soaked, fast, fragile  |
 | Hound (four legs) | 2         | Very fast, low health        |
-| Brute (monster)   | 3         | Slow, huge health and damage |
+| Burgundy marine   | 3         | Slow, huge health and damage |
 | Giant worm        | 4         | Very slow, very tanky, wide  |
+| Bleeder marine    | 4         | Spurts blood, 2.5x health    |
+
+The infected marine, the acrobat (violet, hops), the runner (pale, fast) and the fast infected marine (green, quick steps) are variants of the same marine model too. The pale wanderer sleeps and strolls until you come close or it sees you, and wakes its neighbours; the orange climber walks over boxes.
 
 Zombie speed and health also grow with each wave.
 
@@ -127,6 +146,7 @@ Every third-party asset is listed in `assets.toml` (name, author, source, licens
 - **Worm (enemy)** by Quaternius — [CC0-1.0](https://poly.pizza/m/KiNAaBa4cK)
 - **Spaceship (used as the drone)** by Quaternius — [CC0-1.0](https://poly.pizza/m/DbGajMHrvp)
 - **Digital Camo Soldier (marine soldier and infected marine enemy)** by Meshy AI — [CC-BY-4.0](https://www.meshy.ai)
+- **Digital Camo Soldier, light copy for the horde (4,900 triangles, 512 px textures; adapted from the model above)** by Meshy AI — [CC-BY-4.0](https://www.meshy.ai)
 - **SUV (Car Kit)** by Kenney — [CC0-1.0](https://kenney.nl/assets/car-kit)
 - **Dog (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
 - **Cat (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)

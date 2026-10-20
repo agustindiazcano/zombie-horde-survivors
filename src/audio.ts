@@ -39,10 +39,21 @@ export class Sfx {
   /** Plays sounds for the events produced by a simulation step. */
   onStep(state: GameState): void {
     if (!this.ctx || this.ctx.state !== 'running') return;
+    let growled = false;
+    let torn = false;
     for (const e of state.events) {
-      if (e.type === 'shot') this.shot(e.shooterId === localPlayer(state).controlledId ? 1 : 0.35);
-      else if (e.type === 'zombieKilled') {
-        if (e.exploded) this.splat();
+      if (e.type === 'zombieAlerted') {
+        if (!growled) this.tone('sawtooth', 150, 80, 0.4, 0.12);
+        growled = true;
+      } else if (e.type === 'shot') {
+        const mine = e.shooterId === localPlayer(state).controlledId;
+        this.shot(mine ? 1 : 0.35);
+        if (e.hit) this.hitMark(e.hit.kind, mine ? 1 : 0.4);
+      } else if (e.type === 'dismember') {
+        if (!torn) this.splat();
+        torn = true;
+      } else if (e.type === 'zombieKilled') {
+        if (e.exploded || e.head === 'burst') this.splat();
         else this.kill();
       } else if (e.type === 'pickupCollected') {
         if (e.kind === 'gold') this.tone('sine', 1300, 1900, 0.07, 0.25);
@@ -54,7 +65,18 @@ export class Sfx {
       } else if (e.type === 'crateDropped') this.tone('sine', 500, 900, 0.14, 0.3);
       else if (e.type === 'soldierHurt')
         this.hurt(e.soldierId === localPlayer(state).controlledId ? 1 : 0.4);
-      else if (e.type === 'grenadeThrown') this.tone('sine', 260, 520, 0.1, 0.2);
+      else if (e.type === 'dryFire') {
+        if (e.shooterId === localPlayer(state).controlledId)
+          this.tone('square', 1800, 1500, 0.03, 0.2);
+      } else if (e.type === 'melee') {
+        const v = e.attackerId === localPlayer(state).controlledId ? 1 : 0.4;
+        this.tone('sawtooth', e.hitZombieId !== null ? 140 : 300, 60, 0.1, 0.3 * v);
+        if (e.hit) this.hitMark(e.hit.kind, v);
+      } else if (e.type === 'reloadStarted') {
+        const v = e.soldierId === localPlayer(state).controlledId ? 1 : 0.3;
+        this.tone('square', 500, 380, 0.05, 0.25 * v);
+        this.tone('square', 700, 900, 0.06, 0.25 * v, 0.4);
+      } else if (e.type === 'grenadeThrown') this.tone('sine', 260, 520, 0.1, 0.2);
       else if (e.type === 'explosion') {
         this.tone('sawtooth', 160, 30, 0.7, 0.6);
         this.tone('square', 90, 25, 0.5, 0.4);
@@ -91,6 +113,12 @@ export class Sfx {
   private splat(): void {
     this.noiseBurst(0.3, 'lowpass', 500, 0.9);
     this.tone('sine', 120, 35, 0.3, 0.7);
+  }
+
+  /** A short ping on top of a hit that was a head hit (sharp, high) or a critical hit (bright). */
+  private hitMark(kind: 'head' | 'crit' | 'body', volume: number): void {
+    if (kind === 'head') this.tone('square', 1500, 900, 0.07, 0.22 * volume);
+    else if (kind === 'crit') this.tone('triangle', 1000, 1500, 0.09, 0.25 * volume);
   }
 
   private kill(): void {

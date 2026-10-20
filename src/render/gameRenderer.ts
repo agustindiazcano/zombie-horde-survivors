@@ -1,23 +1,28 @@
 import * as THREE from 'three';
 import {
+  FIXED_DT,
   getSoldier,
   heightAt,
   localPlayer,
+  type AimLine,
   type GameConfig,
   type Environment,
   type GameState,
+  type SimEvent,
   type Vec2,
 } from '../sim';
 import { buildArena } from './arena';
 import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
 import { Gore } from './gore';
+import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
 import { PickupMeshes } from './pickups';
 import { createJeep } from './vehicles';
 import { GrenadeEffects, type GrenadePreview } from './grenades';
 import { SelectionMarkers } from './markers';
+import { ViewModel } from './viewModel';
 
 /** Default camera: above and behind the focus point (towards +z), at zoom 1. */
 const BASE_DISTANCE = Math.hypot(13, 9);
@@ -32,11 +37,21 @@ const MIN_CAMERA_HEIGHT = 0.8;
 const USER_ZOOM_RATE = 10;
 /** Per-frame movement below this (world units) counts as standing still. */
 const MOVING_EPSILON = 1e-4;
+/** A soldier walks below this share of the full running speed, and runs again above the higher one. */
+const WALK_BELOW = 0.65;
+const RUN_ABOVE = 0.8;
+
+/** True for a follower while the soldier the player controls is aiming down the sights. */
+function followerWalk(state: GameState, id: number): boolean {
+  const lead = state.soldiers.find((u) => u.id === localPlayer(state).controlledId);
+  return lead !== undefined && lead.id !== id && lead.aiming;
+}
 
 interface Factories {
   soldiers: CharacterFactory[];
   enemies: Record<string, CharacterFactory>;
   barHeights: Record<string, number>;
+  spurts?: Record<string, number>;
   drone: CharacterFactory;
   animals: Record<string, CharacterFactory>;
 }
@@ -47,7 +62,25 @@ interface ZombieEntry {
   type: string;
   view: CharacterView;
   seenFrame: number;
+  /** Seconds until the next blood spurt of a bleeder. */
+  spurtIn?: number;
+  /** Seconds left of the jet from a neck that lost its head. */
+  neckSpurt?: number;
 }
+
+/** A legless enemy's forward pitch (radians), and how far back its body is shifted (metres). */
+const CRAWL_PITCH = 1.25;
+const CRAWL_BACK = 0.5;
+/** The crawl's drag: pulls per second (radians/s), side roll and nose dip (radians). */
+const CRAWL_RATE = 7;
+const CRAWL_ROLL = 0.12;
+const CRAWL_DIP = 0.1;
+/** Heights at which thrown limbs rest on the ground. */
+const LIMB_REST = 0.2;
+const LEG_REST = 0.35;
+
+/** Seconds a headless body keeps spraying from the neck. */
+const NECK_SPURT_TIME = 1.2;
 
 /** Camera shake amplitude (world units) added per event, its cap, and decay per second. */
 const SHOT_SHAKE = 0.03;
@@ -100,11 +133,18 @@ const FLASHLIGHT_REACH = 8;
 const FOV_TOP = 50;
 const FOV_THIRD = 60;
 const FOV_FIRST = 78;
+/** How fast the view eases in and out of aiming (1/s). */
+const AIM_ZOOM_RATE = 12;
 const MIN_THIRD_ZOOM = 0.5;
 const MAX_THIRD_ZOOM = 2.2;
 
 /** Seconds a damaged enemy stays lit up. */
 const FLASH_TIME = 0.14;
+/** Seconds a soldier plays the strike clip after a melee blow. */
+const STRIKE_TIME = 0.5;
+/** A soldier keeps the gun at the shoulder this long after a shot, and raises it at this rate (1/s). */
+const GUN_RAISED_TIME = 0.8;
+const GUN_RAISE_RATE = 12;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -143,6 +183,15 @@ export class GameRenderer {
   private lookPitch = 0;
   /** Drawn heading per soldier, easing towards the simulated facing. */
   private readonly visYaw = new Map<number, number>();
+  /** Seconds left of the strike pose, by soldier id. */
+  private readonly strikeLeft = new Map<number, number>();
+  /** Soldiers currently shown walking instead of running (with a margin so the clip does not flicker). */
+  private readonly walking = new Set<number>();
+  /** Seconds each soldier keeps its gun raised after firing, and how raised it is now (0 to 1). */
+  private readonly shotLeft = new Map<number, number>();
+  private readonly gunRaise = new Map<number, number>();
+  /** The gun seen in first person. */
+  private readonly viewModel = new ViewModel();
   private thirdZoom = 1;
   private savedTop = { yaw: 0, pitch: DEFAULT_PITCH };
   private focusInitialized = false;
@@ -150,6 +199,7 @@ export class GameRenderer {
   private readonly stanceVisual = new Map<number, { crouch: number; lean: number }>();
   private readonly healthBars = new HealthBars();
   private readonly gore = new Gore();
+  private readonly looseParts = new LooseParts();
   private readonly pickups = new PickupMeshes();
   /** Remaining hit-flash time per enemy id. */
   private readonly flash = new Map<number, number>();
@@ -171,6 +221,9 @@ export class GameRenderer {
   private readonly pools = new Map<string, CharacterView[]>();
   private frame = 0;
   private shake = 0;
+  /** Field-of-view multiplier while aiming (1 = none) and the one it is easing towards. */
+  private aimZoom = 1;
+  private aimZoomTarget = 1;
   private readonly effects = new ShotEffects();
   private readonly raycaster = new THREE.Raycaster();
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -201,6 +254,7 @@ export class GameRenderer {
       this.grenades.group,
       this.healthBars.group,
       this.gore.group,
+      this.looseParts.group,
       this.pickups.group,
     );
 
@@ -369,6 +423,7 @@ export class GameRenderer {
 
     // Camera first: the health bars face it.
     this.updateCamera(state, alpha, dt);
+    this.updateFov(dt);
     this.syncSoldiers(state, alpha, dt);
     this.syncZombies(state, alpha, dt);
     this.syncVehicles(state, alpha);
@@ -379,6 +434,7 @@ export class GameRenderer {
     this.markers.update(state, this.selection, alpha, dt);
     this.pickups.update(state, this.config, dt);
     this.gore.update(dt);
+    this.looseParts.update(dt, (x, z) => this.groundAt(x, z));
     this.environment.update(this.camera.position, this.clock);
     for (const fire of this.fireMarkers?.children ?? []) {
       for (const flame of fire.children) {
@@ -387,6 +443,7 @@ export class GameRenderer {
       }
     }
     this.renderer.render(this.scene, this.camera);
+    if (this.viewMode === 'first') this.viewModel.render(this.renderer);
   }
 
   /** Moves the RTS camera, keeping the focus inside the arena. */
@@ -432,6 +489,23 @@ export class GameRenderer {
     this.camera.updateProjectionMatrix();
   }
 
+  /** Narrows the view while aiming down the sights (1 = normal); it eases in and out. */
+  setAimZoom(factor: number): void {
+    this.aimZoomTarget = factor;
+  }
+
+  private updateFov(dt: number): void {
+    const target = this.viewMode === 'top' ? 1 : this.aimZoomTarget;
+    this.aimZoom += (target - this.aimZoom) * Math.min(1, AIM_ZOOM_RATE * dt);
+    const base =
+      this.viewMode === 'first' ? FOV_FIRST : this.viewMode === 'third' ? FOV_THIRD : FOV_TOP;
+    const fov = base * this.aimZoom;
+    if (Math.abs(this.camera.fov - fov) > 0.01) {
+      this.camera.fov = fov;
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
   /** First/third person mouse look, applied immediately: dx turns right, dy looks down (px). */
   look(dx: number, dy: number): void {
     if (this.viewMode === 'top') return;
@@ -440,6 +514,16 @@ export class GameRenderer {
       Math.max(this.lookPitch - dy * LOOK_SENSITIVITY, -MAX_LOOK_PITCH),
       MAX_LOOK_PITCH,
     );
+  }
+
+  /** The camera's line of sight in a person view (null in top-down): where a shot lands in height. */
+  sightLine(): AimLine | null {
+    if (this.viewMode === 'top') return null;
+    const dir = this.camera.getWorldDirection(new THREE.Vector3());
+    const flat = Math.hypot(dir.x, dir.z);
+    if (flat < 1e-6) return null;
+    const p = this.camera.position;
+    return { x: p.x, z: p.z, height: p.y, slope: dir.y / flat };
   }
 
   /** The point 20 units from `from` straight ahead along the view direction. */
@@ -691,8 +775,44 @@ export class GameRenderer {
       }
       this.visYaw.set(s.id, heading);
       view.object.rotation.y = heading;
-      view.setState(s.dead || s.downed ? 'death' : moving ? 'run' : 'idle');
+      const striking = (this.strikeLeft.get(s.id) ?? 0) - dt;
+      this.strikeLeft.set(s.id, Math.max(striking, 0));
+      // Crouching, aiming or slowing down to stop plays the walk clip; full speed plays the run.
+      const pace =
+        Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) / FIXED_DT / this.config.player.speed;
+      if (pace < WALK_BELOW) this.walking.add(s.id);
+      else if (pace > RUN_ABOVE) this.walking.delete(s.id);
+      // While the player aims, the followers walk too, even when they hurry to catch up.
+      const gait = (this.walking.has(s.id) || followerWalk(state, s.id)) && !drone ? 'walk' : 'run';
+      view.setState(
+        s.dead || s.downed ? 'death' : striking > 0 ? 'attack' : moving ? gait : 'idle',
+      );
+      const held =
+        s.dead || s.downed || drone ? null : (s.equipment.rightHand ?? s.equipment.leftHand);
+      view.hold?.(held);
+      // Arms come up to the gun while it fires or aims, and drop back to the clip afterwards.
+      const raised = Math.max(this.shotLeft.get(s.id) ?? 0, s.aiming ? 1 : 0);
+      this.shotLeft.set(s.id, Math.max((this.shotLeft.get(s.id) ?? 0) - dt, 0));
+      const wantRaise = held !== null && striking <= 0 && raised > 0 ? 1 : 0;
+      const raise = lerp(
+        this.gunRaise.get(s.id) ?? 0,
+        wantRaise,
+        1 - Math.exp(-GUN_RAISE_RATE * dt),
+      );
+      this.gunRaise.set(s.id, raise);
+      view.aim?.(raise);
       view.update(dt);
+      if (s.id === localPlayer(state).controlledId) {
+        const speed = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) / FIXED_DT;
+        this.viewModel.update(
+          dt,
+          this.viewMode === 'first' && s.vehicleId === null,
+          held,
+          s.aiming,
+          s.reload !== null,
+          Math.min(speed / this.config.player.speed, 1.5),
+        );
+      }
       this.updateFlashlight(s.id, view.object, heading, !s.dead);
       // In first person you look out of the controlled unit's head, so hide its model.
       view.object.visible =
@@ -722,13 +842,31 @@ export class GameRenderer {
     for (const e of state.events) {
       if (e.type === 'shot') {
         this.effects.spawnShot(e.from, e.to, e.facing, e.height, e.hitZombieId !== null);
+        this.shotLeft.set(e.shooterId, GUN_RAISED_TIME);
         if (e.shooterId === localPlayer(state).controlledId) {
-          this.shake = Math.min(this.shake + SHOT_SHAKE, MAX_SHAKE);
+          this.viewModel.kick(0.8 + e.cameraKick * 4);
+          this.shake = Math.min(this.shake + SHOT_SHAKE + e.cameraKick, MAX_SHAKE);
         }
-        if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
+        if (e.hitZombieId !== null) {
+          this.flash.set(e.hitZombieId, FLASH_TIME);
+          // Blood flies on past the enemy, more for a head hit or a crit.
+          if (this.goreEnabled) {
+            this.gore.hitSpray(e.to.x, e.height, e.to.z, e.facing, e.hit?.kind === 'body' ? 1 : 2);
+          }
+        }
+      } else if (e.type === 'zombieKilled' && e.head) {
+        this.loseHead(state, e);
       } else if (e.type === 'zombieKilled' && e.exploded && this.goreEnabled) {
         const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
         this.gore.burst(e.pos.x, e.pos.z, Math.min(Math.max(size, 0.8), 1.8));
+      } else if (e.type === 'dismember') {
+        this.loseLimb(e);
+      } else if (e.type === 'melee') {
+        this.strikeLeft.set(e.attackerId, STRIKE_TIME);
+        if (e.hitZombieId !== null) this.flash.set(e.hitZombieId, FLASH_TIME);
+        if (e.attackerId === localPlayer(state).controlledId) {
+          this.shake = Math.min(this.shake + SHOT_SHAKE * 2, MAX_SHAKE);
+        }
       } else if (e.type === 'explosion') {
         this.grenades.explode(e.pos, e.radius);
         this.shake = Math.min(this.shake + SHOT_SHAKE * 4, MAX_SHAKE);
@@ -769,6 +907,55 @@ export class GameRenderer {
     return { x: origin.x + direction.x * far, z: origin.z + direction.z * far };
   };
 
+  /** A killing head hit: the head bursts or flies off, and the neck sprays for a moment. */
+  private loseHead(state: GameState, e: Extract<SimEvent, { type: 'zombieKilled' }>): void {
+    const entry = this.zombies.get(e.id);
+    if (!entry?.view.removePart) return;
+    const gore = this.goreEnabled;
+    const cut = entry.view.removePart('head', { loose: gore && e.head === 'fly', stump: gore });
+    if (!cut || !gore) return;
+    const size = this.config.enemies[e.enemy]?.radiusScale ?? 1;
+    entry.neckSpurt = NECK_SPURT_TIME;
+    if (cut.loose) {
+      // Away from the shooter, upwards, with some spread.
+      const killer = state.soldiers.find((s) => s.id === e.killerId);
+      const angle = killer
+        ? Math.atan2(e.pos.x - killer.pos.x, e.pos.z - killer.pos.z)
+        : Math.random() * Math.PI * 2;
+      const away = angle + (Math.random() - 0.5) * 0.8;
+      const speed = 3 + Math.random() * 3;
+      this.looseParts.throw(
+        cut.loose,
+        new THREE.Vector3(Math.sin(away) * speed, 4 + Math.random() * 3, Math.cos(away) * speed),
+        0.12,
+      );
+    } else {
+      this.gore.headBurst(cut.at.x, cut.at.y, cut.at.z, Math.min(Math.max(size, 0.8), 1.8));
+    }
+  }
+
+  /** A limb shot off a living enemy: the stump shows and the limb flies the way it was hit. */
+  private loseLimb(e: Extract<SimEvent, { type: 'dismember' }>): void {
+    const entry = this.zombies.get(e.zombieId);
+    const cut = entry?.view.removePart?.(e.part, {
+      loose: this.goreEnabled,
+      stump: this.goreEnabled,
+    });
+    if (!cut || !this.goreEnabled) return;
+    this.gore.spurt(cut.at.x, cut.at.y, cut.at.z, e.dir, 1);
+    if (!cut.loose) return;
+    const speed = 2 + Math.random() * 3;
+    this.looseParts.throw(
+      cut.loose,
+      new THREE.Vector3(
+        Math.sin(e.dir) * speed,
+        2.5 + Math.random() * 2.5,
+        Math.cos(e.dir) * speed,
+      ),
+      e.part === 'legs' ? LEG_REST : LIMB_REST,
+    );
+  }
+
   private syncZombies(state: GameState, alpha: number, dt: number): void {
     for (const z of state.zombies) {
       let entry = this.zombies.get(z.id);
@@ -783,18 +970,59 @@ export class GameRenderer {
         view.setFlash?.(0);
         this.scene.add(view.object);
         entry = { poolKey, type, view, seenFrame: this.frame };
+        // Born without legs: the hips end in stumps from the first frame.
+        if (!z.parts.legs) view.removePart?.('legs', { loose: false, stump: this.goreEnabled });
         this.zombies.set(z.id, entry);
       }
       entry.seenFrame = this.frame;
       const { object } = entry.view;
       const zx = lerp(z.prev.x, z.pos.x, alpha);
       const zz = lerp(z.prev.z, z.pos.z, alpha);
-      object.position.set(zx, this.groundAt(zx, zz), zz);
+      object.position.set(zx, this.groundAt(zx, zz) + z.y, zz);
       object.rotation.y = z.facing;
+      const acrobat = this.config.enemies[entry.type]?.acrobat;
+      if (acrobat) {
+        // A hop turns the body once over: a cartwheel to the side, a somersault when straight up.
+        const t = z.hopLeft > 0 ? 1 - z.hopLeft / acrobat.duration : 0;
+        object.rotation.order = 'YXZ';
+        object.rotation.x = z.hopSide === 0 ? -2 * Math.PI * t : 0;
+        object.rotation.z = -z.hopSide * 2 * Math.PI * t;
+      }
       object.scale.setScalar(z.size);
+      if (!z.parts.legs && z.state !== 'death') {
+        // No legs: it drags itself along on the ground, the torso pitched forward over its hips.
+        object.rotation.order = 'YXZ';
+        // Each pull of an arm drags the body: it rolls side to side and the nose dips.
+        const pull = Math.sin(this.clock * CRAWL_RATE + z.id * 1.7);
+        object.rotation.x = CRAWL_PITCH + pull * pull * CRAWL_DIP;
+        object.rotation.z = pull * CRAWL_ROLL;
+        object.position.x -= Math.sin(z.facing) * CRAWL_BACK * z.size;
+        object.position.z -= Math.cos(z.facing) * CRAWL_BACK * z.size;
+      }
       object.visible = !z.exploded;
-      entry.view.setState(z.state);
+      // A sleeping wanderer strolls (roam) or stands (idle); every other state plays as it is.
+      entry.view.setState(
+        z.mode === 'wander' && z.state === 'walk' ? (z.roam ? 'roam' : 'idle') : z.state,
+      );
       entry.view.update(dt);
+      const every = this.factories.spurts?.[entry.type];
+      if (every !== undefined && this.goreEnabled && z.state !== 'death') {
+        entry.spurtIn = (entry.spurtIn ?? every * Math.random()) - dt;
+        if (entry.spurtIn <= 0) {
+          entry.spurtIn = every * (0.6 + Math.random() * 0.8);
+          this.gore.spurt(zx, 1.3 * z.size, zz, z.facing, z.size);
+        }
+      }
+
+      if (entry.neckSpurt !== undefined && entry.neckSpurt > 0) {
+        // The neck sinks with the body as it falls.
+        const left = entry.neckSpurt - dt;
+        entry.neckSpurt = left;
+        if (Math.floor(left * 8) !== Math.floor((left + dt) * 8)) {
+          const height = (1.5 - 1.1 * (1 - left / NECK_SPURT_TIME)) * z.size;
+          this.gore.spurt(zx, this.groundAt(zx, zz) + height, zz, z.facing, z.size);
+        }
+      }
 
       const flashLeft = this.flash.get(z.id) ?? 0;
       entry.view.setFlash?.(flashLeft > 0 ? flashLeft / FLASH_TIME : 0);
@@ -819,6 +1047,9 @@ export class GameRenderer {
     for (const [id, entry] of this.zombies) {
       if (entry.seenFrame === this.frame) continue;
       this.scene.remove(entry.view.object);
+      entry.view.restoreParts?.();
+      entry.view.object.rotation.set(0, 0, 0);
+      entry.neckSpurt = undefined;
       const pool = this.pools.get(entry.poolKey) ?? [];
       pool.push(entry.view);
       this.pools.set(entry.poolKey, pool);
@@ -857,6 +1088,34 @@ export class GameRenderer {
       eye.position.set(side * 0.1 * k, headHeight * 0.87, 0.22 * k);
       root.add(eye);
     }
+    this.addPlates(root);
+  }
+
+  /** Armour plates on the chest and shoulders of a rigged marine (nothing on other models). */
+  private addPlates(root: THREE.Object3D): void {
+    root.updateMatrixWorld(true);
+    const metal = new THREE.MeshStandardMaterial({
+      color: 0x2b2f33,
+      metalness: 0.7,
+      roughness: 0.45,
+    });
+    const scale = new THREE.Vector3();
+    const plates: [RegExp, [number, number, number], [number, number, number]][] = [
+      [/^(mixamorig:?)?Spine2$/, [0.34, 0.3, 0.12], [0, 0.04, 0.1]],
+      [/^(mixamorig:?)?LeftShoulder$/, [0.16, 0.1, 0.18], [0.1, 0.03, 0]],
+      [/^(mixamorig:?)?RightShoulder$/, [0.16, 0.1, 0.18], [-0.1, 0.03, 0]],
+    ];
+    root.traverse((o) => {
+      const plate = plates.find(([name]) => name.test(o.name));
+      if (!plate) return;
+      // The rig is in centimetres: undo the bone's world scale to size the plate in metres.
+      o.getWorldScale(scale);
+      const k = scale.x > 1e-6 ? 1 / scale.x : 1;
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...plate[1]), metal);
+      mesh.scale.setScalar(k);
+      mesh.position.set(...plate[2]).multiplyScalar(k);
+      o.add(mesh);
+    });
   }
 
   /** Applies the graphics options: shadows, shadow resolution, render resolution and gore. */
@@ -951,5 +1210,6 @@ export class GameRenderer {
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.viewModel.resize(w / h);
   };
 }

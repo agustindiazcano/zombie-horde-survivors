@@ -23,6 +23,7 @@ export {
   ARMOR_PLATE,
   addToBackpack,
   backpackFull,
+  cellAt,
   equipFromBackpack,
   getCrate,
   itemDef,
@@ -34,12 +35,18 @@ export {
   useItem,
 } from './inventory';
 export { gunOf, skillLevel, weaponDef, type WeaponDef } from './stats';
+export { aimErrorOf, aimZoomOf } from './accuracy';
+export { fitAccessory, removeAccessory, reportOf, type WeaponReport } from './accessories';
+export { modsOf } from './accessoryMods';
+export { ammoLabel, gunState, magazineOf, reserveOf, startReload } from './ammo';
+export { handState, newWeaponState } from './weaponState';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';
 export type { Slot, SlotRef } from './inventory';
 export { levelInfo, type LevelInfo } from './loot';
 export { waveSize } from './waves';
 export { toggleDrag } from './drag';
 export { grenadeAim, grenadeCount, throwGrenade } from './grenades';
+export { meleeStrike } from './melee';
 export { updateHazards } from './hazards';
 export { getVehicle, toggleVehicle, vehicleInReach } from './vehicles';
 export { objectiveProgress } from './objectives';

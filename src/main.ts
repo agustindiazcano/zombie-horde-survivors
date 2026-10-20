@@ -6,6 +6,7 @@ import units from '../data/units.json';
 import { Sfx } from './audio';
 import { Editor } from './editor';
 import { FpsCounter } from './fps';
+import { DamageNumbers } from './damageNumbers';
 import { Hud } from './hud';
 import { MainMenu } from './mainMenu';
 import { isMobile, MobileControls } from './mobile';
@@ -28,6 +29,10 @@ import {
   nearestCrate,
   getSoldier,
   getVehicle,
+  aimErrorOf,
+  aimZoomOf,
+  startReload,
+  meleeStrike,
   throwGrenade,
   toggleDrag,
   toggleVehicle,
@@ -60,7 +65,7 @@ const PAN_SPEED = 22;
 const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Z: walk · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: open crate · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -124,7 +129,12 @@ async function main(): Promise<void> {
   const ui = new InventoryUi(document.body, config, () => state);
   const cratePrompt = new CratePrompt();
   const vehiclePrompt = new CratePrompt('V');
-  const pausePanel = new PausePanel(document.body, config, openSettings);
+  const pausePanel = new PausePanel(document.body, config, openSettings, () => {
+    ui.close();
+    shop.close();
+    setPaused(false);
+    menu.show();
+  });
   const radar = new Radar(document.body);
   // The pause screen lists the squad: each unit's 3D view comes from the same models as in play.
   const unitsScreen = new UnitsScreen(
@@ -193,6 +203,9 @@ async function main(): Promise<void> {
       !modalOpen(),
   );
   const hud = new Hud(document.body, config, () => resetGame());
+  const damageNumbers = new DamageNumbers(document.body, (x, z, y) =>
+    renderer.projectToScreen(x, z, y),
+  );
   const squad = new SquadPanel(document.body, config, (id, additive) => {
     // Clicking an icon while playing hands direct control to that unit; in RTS mode it selects.
     if (mobile || localPlayer(state).controlledId !== null) setLeader(id);
@@ -444,6 +457,14 @@ async function main(): Promise<void> {
       if (playable() && !modalOpen() && controlled !== null && !e.repeat) {
         throwGrenade(state, config, controlled, readInput().aim);
       }
+    } else if (e.code === 'KeyF') {
+      // Direct control: strike the nearest enemy in front (RTS keeps F for "follow").
+      const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
+      if (playable() && !modalOpen() && unit && !e.repeat) meleeStrike(state, config, unit);
+    } else if (e.code === 'KeyR') {
+      // Direct control: reload the gun in hand from the backpack's ammo.
+      const unit = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
+      if (playable() && !modalOpen() && unit && !e.repeat) startReload(state, config, unit);
     } else if (e.code === 'KeyE') {
       const crate = crateInReach();
       const unitId = localPlayer(state).controlledId;
@@ -475,6 +496,7 @@ async function main(): Promise<void> {
   });
   const noInput = blank();
   const directInput = blank();
+  let aimToggled = false;
 
   /** Keyboard/mouse input with movement rotated to follow the camera's orbit. */
   const readInput = (): Input => {
@@ -486,6 +508,15 @@ async function main(): Promise<void> {
       renderer.viewMode !== 'top' && unit ? renderer.lookAimPoint(unit.pos) : raw.aim;
     // Clicks edit the map in the editor, so the driven unit does not fire there.
     directInput.firing = raw.firing && !editor.isEditing;
+    directInput.aimLine = renderer.sightLine() ?? undefined;
+    // Aiming down the sights: the right button, only in third and first person.
+    const presses = input.takeAimPresses();
+    if (renderer.viewMode === 'top' || unit?.aimBroken || !settings.aimToggle) aimToggled = false;
+    else if (presses % 2 === 1) aimToggled = !aimToggled;
+    directInput.aiming =
+      renderer.viewMode !== 'top' &&
+      !editor.isEditing &&
+      (settings.aimToggle ? aimToggled : input.aimButton);
     if (mobile && unit) {
       // No cursor: aim at the nearest enemy and keep firing; otherwise face the way we walk.
       let best: { x: number; z: number } | null = null;
@@ -509,8 +540,10 @@ async function main(): Promise<void> {
         };
       directInput.firing = best !== null;
     }
+    directInput.autoTrigger = mobile;
     directInput.crouch = raw.crouch;
     directInput.sprint = raw.sprint;
+    directInput.walk = raw.walk;
     directInput.jump = raw.jump;
     return directInput;
   };
@@ -526,6 +559,7 @@ async function main(): Promise<void> {
       step(state, config, direct ? readInput() : noInput, dt);
       renderer.onStep(state);
       hud.onStep(state);
+      damageNumbers.onStep(state);
       sfx.onStep(state);
       if (state.events.some((e) => e.type === 'soldierHurt')) mobileUi?.vibrate(35);
     },
@@ -548,11 +582,17 @@ async function main(): Promise<void> {
       pausePanel.update(paused, state);
       unitsScreen.update(paused);
       radar.update(state, paused || modalOpen() ? 0 : frameDt);
-      hud.setCrosshair(renderer.viewMode !== 'top' && localPlayer(state).controlledId !== null);
+      const shooter = state.soldiers.find((s) => s.id === localPlayer(state).controlledId);
+      hud.setCrosshair(renderer.viewMode !== 'top' && shooter !== undefined);
+      if (shooter) {
+        hud.setCrosshairError(aimErrorOf(state, config, shooter) ?? 0);
+        renderer.setAimZoom(shooter.aiming ? aimZoomOf(config, shooter) : 1);
+      } else renderer.setAimZoom(1);
       rts.prune();
       if (localPlayer(state).controlledId !== null || paused || modalOpen()) rts.cancelGrenadeAim();
       renderer.setGrenadePreview(rts.grenadePreview());
       renderer.render(state, alpha, frameDt);
+      damageNumbers.update(paused ? 0 : frameDt);
       fps.tick(frameDt);
 
       const crate = !modalOpen() && playable() ? crateInReach() : undefined;

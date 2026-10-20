@@ -244,11 +244,12 @@
 }
 
 .hud__crosshair {
+  --cross: 22px;
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 22px;
-  height: 22px;
+  width: var(--cross);
+  height: var(--cross);
   display: none;
   transform: translate(-50%, -50%);
 }
@@ -266,17 +267,17 @@
 }
 
 .hud__crosshair::before {
-  top: 10px;
+  top: calc(50% - 1px);
   left: 0;
-  width: 22px;
+  width: 100%;
   height: 2px;
 }
 
 .hud__crosshair::after {
-  left: 10px;
+  left: calc(50% - 1px);
   top: 0;
   width: 2px;
-  height: 22px;
+  height: 100%;
 }
 
 .squad__fill--xp {
@@ -348,4 +349,43 @@
 
 .hud__briefing small {
   opacity: 0.7;
+}
+
+/* Crosshair feedback when the controlled soldier's shot lands: white body, orange head, yellow crit. */
+.hud__crosshair--hit-body {
+  filter: drop-shadow(0 0 3px #ffffff);
+}
+
+.hud__crosshair--hit-head {
+  filter: drop-shadow(0 0 4px #ff5a1f) drop-shadow(0 0 2px #ff5a1f);
+}
+
+.hud__crosshair--hit-crit {
+  filter: drop-shadow(0 0 4px #ffd400) drop-shadow(0 0 2px #ffd400);
+}
+
+/* Damage numbers floating over the enemies (see src/damageNumbers.ts). */
+.dmgnum {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  font-weight: 700;
+  font-size: 15px;
+  color: #ffffff;
+  text-shadow:
+    0 0 3px #000000,
+    0 1px 2px #000000;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.dmgnum--head {
+  color: #ff7a2f;
+  font-size: 22px;
+}
+
+.dmgnum--crit {
+  color: #ffd400;
+  font-size: 19px;
 }

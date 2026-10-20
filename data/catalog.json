@@ -41,11 +41,11 @@
         },
         {
           "id": "skeleton",
-          "name": "Skeleton"
+          "name": "Rotten marine"
         },
         {
           "id": "alien",
-          "name": "Alien"
+          "name": "Gory marine"
         },
         {
           "id": "hound",
@@ -53,7 +53,7 @@
         },
         {
           "id": "brute",
-          "name": "Brute"
+          "name": "Burgundy marine"
         },
         {
           "id": "worm",
@@ -62,6 +62,30 @@
         {
           "id": "marine_zombie",
           "name": "Infected marine"
+        },
+        {
+          "id": "marine_acrobat",
+          "name": "Acrobat marine"
+        },
+        {
+          "id": "marine_runner",
+          "name": "Runner marine"
+        },
+        {
+          "id": "marine_fast",
+          "name": "Fast infected marine"
+        },
+        {
+          "id": "marine_bleeder",
+          "name": "Bleeder marine"
+        },
+        {
+          "id": "marine_wanderer",
+          "name": "Wanderer marine"
+        },
+        {
+          "id": "marine_climber",
+          "name": "Climber marine"
         }
       ]
     },
@@ -75,11 +99,11 @@
         },
         {
           "id": "spawner:skeleton",
-          "name": "Spawner: Skeleton"
+          "name": "Spawner: Rotten marine"
         },
         {
           "id": "spawner:alien",
-          "name": "Spawner: Alien"
+          "name": "Spawner: Gory marine"
         },
         {
           "id": "spawner:hound",
@@ -87,7 +111,7 @@
         },
         {
           "id": "spawner:brute",
-          "name": "Spawner: Brute"
+          "name": "Spawner: Burgundy marine"
         },
         {
           "id": "spawner:worm",
@@ -96,6 +120,30 @@
         {
           "id": "spawner:marine_zombie",
           "name": "Spawner: Infected marine"
+        },
+        {
+          "id": "spawner:marine_acrobat",
+          "name": "Spawner: Acrobat marine"
+        },
+        {
+          "id": "spawner:marine_runner",
+          "name": "Spawner: Runner marine"
+        },
+        {
+          "id": "spawner:marine_fast",
+          "name": "Spawner: Fast infected marine"
+        },
+        {
+          "id": "spawner:marine_bleeder",
+          "name": "Spawner: Bleeder marine"
+        },
+        {
+          "id": "spawner:marine_wanderer",
+          "name": "Spawner: Wanderer marine"
+        },
+        {
+          "id": "spawner:marine_climber",
+          "name": "Spawner: Climber marine"
         }
       ]
     },

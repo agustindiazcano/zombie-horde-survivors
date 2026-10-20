@@ -34,6 +34,8 @@ export function testConfig(patch: Patch = {}): GameConfig {
     progress: { ...base.progress },
     downed: { ...base.downed },
     gore: { ...base.gore, explodeChance: 0 },
+    dismember: { ...base.dismember },
+    wander: { ...base.wander },
     inventory: { ...base.inventory },
     boss: { ...base.boss, types: ['zombie'] },
     perks: { ...base.perks },
@@ -46,6 +48,11 @@ export function testConfig(patch: Patch = {}): GameConfig {
     animals: { ...base.animals },
     drag: { ...base.drag },
     grenades: { ...base.grenades },
+    ammo: { ...base.ammo },
+    melee: { ...base.melee },
+    accuracy: { ...base.accuracy },
+    // No random head or critical hits: the tests expect exact damage.
+    hits: { ...base.hits, headChance: 0, critChance: 0, critSkillBonus: 0 },
     difficulty: { ...base.difficulty },
     waves: { ...base.waves, intermission: 1e9 },
   };
@@ -54,7 +61,8 @@ export function testConfig(patch: Patch = {}): GameConfig {
     merged[key] = { ...merged[key], ...value };
   }
   const catalog = structuredClone(items);
-  Object.assign(catalog.items.rifle, weapon);
+  // The tests aim by geometry: a rifle with no spread or recoil, unless a test patches it.
+  Object.assign(catalog.items.rifle, { spread: 0, recoil: undefined }, weapon);
   const { arena, ...settings } = merged;
   return {
     ...parseConfig(settings, parseMap(map1), units, catalog),

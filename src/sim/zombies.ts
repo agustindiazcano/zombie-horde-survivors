@@ -1,13 +1,17 @@
-import { rayAabb, resolveStatic } from './collision';
-import type { GameConfig, Loadout, Obstacle } from './config';
-import { CELL, PointGrid, obstaclesNear } from './grid';
+import { resolveStatic, supportHeight } from './collision';
+import { STEP_UP } from './constants';
+import type { GameConfig, Loadout } from './config';
+import { ageFlow, steerTarget } from './flowfield';
+import { CELL, PointGrid } from './grid';
 import { maybeDropCrate } from './inventory';
 import { dropLoot, rewardOf } from './loot';
+import { hasLimbs, severLimb, woundLimb } from './dismember';
 import { firstPlayerOf } from './players';
 import { nextFloat } from './rng';
 import { hurtSoldier } from './soldiers';
+import { wanderStep } from './wander';
 import { gunOf, weaponDef } from './stats';
-import type { GameState, Soldier, Vehicle, Zombie } from './types';
+import type { BodyZone, GameState, HitKind, Soldier, Vehicle, Zombie } from './types';
 import { hurtVehicle, isOccupied } from './vehicles';
 import type { Vec2 } from './vec';
 
@@ -69,8 +73,20 @@ export function spawnZombie(
     attackRange: config.zombie.attackRange * k.radiusScale * b.size,
     state: 'walk',
     attackTimer: 0,
+    stagger: 0,
     deathTimer: 0,
     loot: [],
+    y: 0,
+    hopLeft: 0,
+    hopSide: 0,
+    hopTimer: variant?.acrobat ? variant.acrobat.interval * (0.5 + nextFloat(state.rng)) : 0,
+    mode: variant?.wander && !boss ? 'wander' : 'chase',
+    home: { ...pos },
+    roam: null,
+    roamTimer: variant?.wander ? variant.wander.pauseMax * nextFloat(state.rng) : 0,
+    restless: 0,
+    parts: { armL: true, armR: true, legs: !variant?.legless },
+    wounds: { armL: 0, armR: 0, legs: 0 },
   };
   if (loadout) {
     if (loadout.name) zombie.name = loadout.name;
@@ -99,9 +115,17 @@ export function damageZombie(
   amount: number,
   /** The soldier that fired the shot; it gets the kill and the experience. */
   killer?: Soldier,
+  /** What kind of hit it was, reported with the kill. */
+  hit: HitKind = 'body',
+  /** Base damage of the weapon that struck: a strong one bursts a head, a weak one knocks it off. */
+  force = 0,
+  /** Where it landed: an arm or a leg adds up towards taking that limb off. */
+  zone: BodyZone = 'torso',
+  side: 0 | 1 = 0,
 ): void {
   if (zombie.state === 'death') return;
   zombie.health -= amount;
+  woundLimb(state, config, zombie, zone, side, amount, zombie.health <= 0, killer);
   if (zombie.health > 0) return;
   zombie.health = 0;
   zombie.state = 'death';
@@ -110,6 +134,20 @@ export function damageZombie(
   zombie.exploded = exploded;
   // A burst enemy has no death animation to wait for.
   zombie.deathTimer = exploded ? EXPLODED_LINGER : config.zombie.deathDuration;
+  // A heavy killing blow on a legged marine cuts it in two: the legs stay behind.
+  if (
+    !exploded &&
+    zone !== 'head' &&
+    zombie.parts.legs &&
+    hasLimbs(config, zombie) &&
+    amount >= config.dismember.cutDamage &&
+    nextFloat(state.rng) < config.dismember.cutChance
+  ) {
+    const away = killer
+      ? Math.atan2(zombie.pos.x - killer.pos.x, zombie.pos.z - killer.pos.z)
+      : zombie.facing + Math.PI;
+    severLimb(state, config, zombie, 'legs', away);
+  }
   state.kills++;
   if (zombie.boss) state.bossKills++;
   if (killer) {
@@ -125,7 +163,14 @@ export function damageZombie(
     enemy: zombie.type,
     pos: { x: zombie.pos.x, z: zombie.pos.z },
     exploded,
+    head:
+      hit === 'head' && !exploded
+        ? force >= config.dismember.headBurstDamage
+          ? 'burst'
+          : 'fly'
+        : null,
     killerId: killer?.id ?? null,
+    hit,
   });
   dropLoot(state, config, zombie);
   if (zombie.loot.length > 0) {
@@ -138,6 +183,7 @@ export function damageZombie(
 
 export function updateZombies(state: GameState, config: GameConfig, dt: number): void {
   const zc = config.zombie;
+  ageFlow(state, dt);
   for (const z of state.zombies) {
     z.prev.x = z.pos.x;
     z.prev.z = z.pos.z;
@@ -148,6 +194,15 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     }
 
     if (state.sandbox) continue; // the editor's preview: enemies stand still
+    if (z.stagger > 0) {
+      z.stagger -= dt;
+      continue;
+    }
+
+    const enemy = config.enemies[z.type];
+    if (z.mode === 'wander' && enemy?.wander && wanderStep(state, config, z, enemy.wander, dt)) {
+      continue;
+    }
 
     const found = nearestTarget(state, config, z.pos);
     if (!found) continue; // everyone is dead; the game is about to end
@@ -161,16 +216,28 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
 
     if (d > reach) {
       z.state = 'walk';
-      const waypoint = steerTarget(z.pos, target, d, z.radius, config);
+      // Without legs it can no longer climb.
+      const climb = z.parts.legs ? (enemy?.climber?.maxHeight ?? 0) : 0;
+      const waypoint = steerTarget(state, config, z.pos, target, climb);
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
       const td = Math.hypot(tx, tz) || 1;
       z.pos.x += (tx / td) * z.speed * dt;
       z.pos.z += (tz / td) * z.speed * dt;
-      resolveStatic(z.pos, z.radius, config.arena);
+      const acrobat = config.enemies[z.type]?.acrobat;
+      if (acrobat) hop(state, z, acrobat, dx / d, dz / d, d, reach, dt);
+      const feet = climbFeet(climb);
+      resolveStatic(z.pos, z.radius, config.arena, feet);
+      // A climber rises onto the box under it and drops off the far side.
+      if (climb > 0) {
+        const top = supportHeight(config.arena, z.pos, feet);
+        z.y += (top - z.y) * Math.min(1, dt * CLIMB_EASE);
+      }
       continue;
     }
 
+    if (!enemy?.climber || !z.parts.legs) z.y = 0;
+    z.hopLeft = 0;
     // Entering melee range starts a full cooldown, so the first hit is not instant.
     if (z.state !== 'attack') {
       z.state = 'attack';
@@ -193,6 +260,39 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     state.zombies[kept++] = z;
   }
   state.zombies.length = kept;
+}
+
+/**
+ * An acrobat's hops: every so often, while it runs at its target, it jumps up and either goes
+ * sideways (left or right of the line to the target) or straight up. (`ux`, `uz`) is the unit
+ * direction to the target; it never starts a hop right next to the target.
+ */
+function hop(
+  state: GameState,
+  z: Zombie,
+  ac: NonNullable<GameConfig['enemies'][string]['acrobat']>,
+  ux: number,
+  uz: number,
+  distance: number,
+  reach: number,
+  dt: number,
+): void {
+  if (z.hopLeft > 0) {
+    z.hopLeft = Math.max(0, z.hopLeft - dt);
+    const t = 1 - z.hopLeft / ac.duration;
+    z.y = ac.height * 4 * t * (1 - t);
+    // Perpendicular to the way to the target: +1 is to its right.
+    z.pos.x += uz * z.hopSide * ac.sideSpeed * dt;
+    z.pos.z -= ux * z.hopSide * ac.sideSpeed * dt;
+    return;
+  }
+  z.y = 0;
+  z.hopTimer -= dt;
+  if (z.hopTimer > 0 || distance > ac.range || distance < reach + 2) return;
+  z.hopLeft = ac.duration;
+  const roll = nextFloat(state.rng);
+  z.hopSide = roll < 1 / 3 ? -1 : roll < 2 / 3 ? 1 : 0;
+  z.hopTimer = ac.interval * (0.7 + 0.6 * nextFloat(state.rng));
 }
 
 /**
@@ -240,69 +340,19 @@ function separateZombies(state: GameState, config: GameConfig): void {
     });
   }
   for (const z of zombies) {
-    if (z.state !== 'death') resolveStatic(z.pos, z.radius, config.arena);
+    if (z.state === 'death') continue;
+    const climb = z.parts.legs ? (config.enemies[z.type]?.climber?.maxHeight ?? 0) : 0;
+    resolveStatic(z.pos, z.radius, config.arena, climbFeet(climb));
   }
 }
+
+/** How fast (per second) a climber's height follows the surface under it. */
+const CLIMB_EASE = 10;
+
+/** The feet height at which a climber of this reach is no longer stopped by its obstacles. */
+const climbFeet = (climbHeight: number): number => (climbHeight > 0 ? climbHeight - STEP_UP : 0);
 
 const zombiePoints = new PointGrid();
-const probe: Obstacle = { x: 0, z: 0, halfW: 0, halfD: 0 };
-
-const LOOKAHEAD = 3;
-const CORNER_MARGIN = 0.35;
-/** A zombie this close to a detour corner counts as having reached it. */
-const CORNER_REACHED = 0.8;
-const scratch: Vec2 = { x: 0, z: 0 };
-
-/**
- * Where a chasing zombie should head. Normally the player; if an obstacle blocks the
- * straight path within LOOKAHEAD, the corner of that obstacle giving the shortest detour.
- */
-function steerTarget(from: Vec2, to: Vec2, distance: number, r: number, config: GameConfig): Vec2 {
-  const dir = { x: (to.x - from.x) / distance, z: (to.z - from.z) / distance };
-  let blocker: (typeof config.arena.obstacles)[number] | null = null;
-  let nearest = Math.min(distance, LOOKAHEAD);
-  const reach = nearest + r;
-  const ahead = obstaclesNear(
-    config.arena,
-    Math.min(from.x, from.x + dir.x * reach) - r,
-    Math.min(from.z, from.z + dir.z * reach) - r,
-    Math.max(from.x, from.x + dir.x * reach) + r,
-    Math.max(from.z, from.z + dir.z * reach) + r,
-  );
-  for (const box of ahead) {
-    probe.x = box.x;
-    probe.z = box.z;
-    probe.halfW = box.halfW + r;
-    probe.halfD = box.halfD + r;
-    const t = rayAabb(from, dir, probe);
-    if (t !== null && t < nearest) {
-      nearest = t;
-      blocker = box;
-    }
-  }
-  if (!blocker) return to;
-
-  const hw = blocker.halfW + r + CORNER_MARGIN;
-  const hd = blocker.halfD + r + CORNER_MARGIN;
-  let best = Infinity;
-  for (const sx of [-1, 1]) {
-    for (const sz of [-1, 1]) {
-      const cx = blocker.x + sx * hw;
-      const cz = blocker.z + sz * hd;
-      // Already standing on this corner: aim for the next one along the wall instead of
-      // picking the same corner again and never getting past it.
-      if (Math.hypot(cx - from.x, cz - from.z) < CORNER_REACHED) continue;
-      const cost = Math.hypot(cx - from.x, cz - from.z) + Math.hypot(to.x - cx, to.z - cz);
-      if (cost < best) {
-        best = cost;
-        scratch.x = cx;
-        scratch.z = cz;
-      }
-    }
-  }
-  return scratch;
-}
-
 /**
  * The closest thing a zombie goes for: a soldier on foot (a downed one counts as farther away, so
  * standing soldiers come first) or a vehicle with someone in it. Soldiers inside a vehicle

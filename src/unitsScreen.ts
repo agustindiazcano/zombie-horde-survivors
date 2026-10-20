@@ -1,12 +1,15 @@
 import './unitsScreen.css';
 import { itemInfo } from './itemInfo';
 import { MenuModel } from './menuModel';
+import { openWorkbench } from './workbench';
 import type { CharacterFactory } from './render/characters';
 import {
+  cellAt,
   levelInfo,
   maxHealthOf,
   equipFromBackpack,
   itemDef,
+  modsOf,
   moveItem,
   skillLevel,
   unequipSlot,
@@ -22,7 +25,7 @@ import {
 /** How many unit windows can be open at once. */
 const MAX_OPEN = 4;
 
-/** Caption of the right hand when both hands are empty (fists do not fight yet). */
+/** Caption of the right hand when both hands are empty (they punch when an enemy is close). */
 const FISTS = '✊ Fists';
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -236,6 +239,15 @@ export class UnitsScreen {
     }
   }
 
+  /** ` · 12/12` for a weapon with a magazine (a weapon never loaded counts as full). */
+  private roundsText(unit: Soldier, slot: SlotRef, item: string): string {
+    const def = itemDef(this.config, item);
+    if (def.type !== 'weapon' || !def.magazine) return '';
+    const state = cellAt(unit, slot)?.state;
+    const size = def.magazine + modsOf(this.config, state).magazine;
+    return ` · ${state?.loaded ?? def.magazine}/${size}`;
+  }
+
   /**
    * One slot: draggable when it holds an item, and always a drop target. `caption` names an
    * empty slot; a backpack stack shows its `count`.
@@ -257,7 +269,7 @@ export class UnitsScreen {
       const info = itemInfo(this.config, item);
       el('div', 'us__slot-icon', cell, info.icon);
       el('div', 'us__slot-name', cell, count > 1 ? `${info.name} ×${count}` : info.name);
-      el('div', 'us__slot-stats', cell, info.stats);
+      el('div', 'us__slot-stats', cell, `${info.stats}${this.roundsText(unit, slot, item)}`);
       cell.title = info.title;
       const action = this.actionFor(unit, slot, item);
       if (action) {
@@ -265,6 +277,17 @@ export class UnitsScreen {
         toggle.addEventListener('click', (e) => {
           e.stopPropagation(); // not a tap-to-move pick
           if (action.run(this.getState())) for (const id of this.open.keys()) this.renderWindow(id);
+        });
+      }
+      const sheet = itemDef(this.config, item);
+      if (sheet.type === 'weapon' && sheet.accessorySlots.length > 0) {
+        const bench = el('button', 'us__equip us__bench', cell, '⚙');
+        bench.title = 'Workbench: fit accessories';
+        bench.addEventListener('click', (e) => {
+          e.stopPropagation(); // not a tap-to-move pick
+          openWorkbench(this.root, this.config, this.getState, unit.id, slot, () => {
+            for (const id of this.open.keys()) this.renderWindow(id);
+          });
         });
       }
       cell.draggable = true;

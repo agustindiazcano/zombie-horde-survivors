@@ -1,5 +1,6 @@
-import type { DamageType, GameConfig, WeaponClass, WeaponItem } from './config';
-import type { GameState, Mods, Soldier, Stance } from './types';
+import type { DamageType, FireMode, GameConfig, WeaponClass, WeaponItem } from './config';
+import { factor, modsOf, type FittedMods } from './accessoryMods';
+import type { GameState, Hand, Mods, Soldier, Stance } from './types';
 
 export interface WeaponDef {
   id: string;
@@ -11,6 +12,9 @@ export interface WeaponDef {
   damage: number;
   range: number;
   spread: number;
+  fireMode: FireMode;
+  /** How loud a shot is (a suppressor lowers it). */
+  noise: number;
 }
 
 export interface WeaponStats extends WeaponDef {
@@ -35,16 +39,30 @@ export function speedOf(
       ? config.stance.crouchSpeedScale
       : stance === 'sprint'
         ? config.stance.sprintSpeedScale
-        : 1;
+        : stance === 'walk'
+          ? config.stance.walkSpeedScale
+          : 1;
   const load = s.dragging === null ? 1 : config.drag.speedScale;
-  return config.player.speed * scale * load * mods.speed;
+  const aim = s.aiming ? config.accuracy.aimSpeedScale : 1;
+  return config.player.speed * scale * load * aim * mods.speed;
 }
 
 /** Looks up a weapon by item id. Anything that is not a weapon falls back to the rifle. */
 export function weaponDef(config: GameConfig, id: string): WeaponDef {
   const listed = config.items[id];
   const item = listed?.type === 'weapon' ? listed : (config.items['rifle'] as WeaponItem);
-  const { name, class: cls, hands, damageType, fireRate, damage, range, spread } = item;
+  const {
+    name,
+    class: cls,
+    hands,
+    damageType,
+    fireRate,
+    damage,
+    range,
+    spread,
+    fireMode,
+    noise,
+  } = item;
   return {
     id: listed === item ? id : 'rifle',
     name,
@@ -55,15 +73,30 @@ export function weaponDef(config: GameConfig, id: string): WeaponDef {
     damage,
     range,
     spread,
+    fireMode,
+    noise,
   };
 }
 
 /** The weapon a unit shoots with: the right hand, else the left; melee weapons do not shoot. */
 export function gunOf(config: GameConfig, s: Soldier): string | null {
-  for (const id of [s.equipment.rightHand, s.equipment.leftHand]) {
-    if (id !== null && weaponDef(config, id).class !== 'melee') return id;
+  const hand = gunHand(config, s);
+  return hand === null ? null : s.equipment[hand];
+}
+
+/** The hand that holds the gun the unit shoots with, or null. */
+export function gunHand(config: GameConfig, s: Soldier): Hand | null {
+  for (const hand of ['rightHand', 'leftHand'] as const) {
+    const id = s.equipment[hand];
+    if (id !== null && weaponDef(config, id).class !== 'melee') return hand;
   }
   return null;
+}
+
+/** What the accessories fitted to the unit's gun change (nothing when unarmed or bare). */
+export function gunMods(config: GameConfig, s: Soldier): FittedMods {
+  const hand = gunHand(config, s);
+  return modsOf(config, hand === null ? undefined : s.weaponStates[hand]);
 }
 
 /** Stats of a unit's equipped weapon (null when unarmed), plus how it shoots (height, cover). */
@@ -83,7 +116,11 @@ export function weaponOf(
   }
   // Both hands are on the body being dragged: only a one-handed gun can be used.
   if (s.dragging !== null && def.hands === 2) return null;
-  def.damage *= mods.damage;
+  const fitted = gunMods(config, s);
+  def.damage *= mods.damage * factor(fitted.damage);
+  def.range *= factor(fitted.range);
+  def.spread *= factor(fitted.spread);
+  def.noise *= factor(fitted.noise);
   def.fireRate *= mods.fireRate;
   if (isDrone(s)) return { ...def, height: config.drone.height, ignoresCover: true };
   if (stance === 'crouch') {

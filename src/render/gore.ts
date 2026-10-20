@@ -10,6 +10,11 @@ const SPLAT_FADE = 5;
 
 const DROPLETS = 30;
 const CHUNKS = 9;
+const SPURT_DROPLETS = 8;
+/** Droplets a bullet hit throws (doubled for a head hit or a crit). */
+const HIT_DROPLETS = 5;
+const HEAD_DROPLETS = 22;
+const HEAD_CHUNKS = 5;
 
 type Mode = 0 | 1 | 2; // inactive, flying, settled on the ground
 
@@ -92,6 +97,71 @@ export class Gore {
     splat.mesh.visible = true;
     splat.life = SPLAT_LIFE;
     splat.material.opacity = 0.85;
+  }
+
+  /** A head bursts at (x, y, z): a spray of droplets and a few chunks, no puddle. */
+  headBurst(x: number, y: number, z: number, scale = 1): void {
+    for (let i = 0; i < HEAD_DROPLETS + HEAD_CHUNKS; i++) {
+      const chunk = i >= HEAD_DROPLETS;
+      const k = this.next;
+      this.next = (this.next + 1) % MAX_PARTICLES;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = (chunk ? 1.5 + Math.random() * 2.5 : 2 + Math.random() * 5) * scale;
+      this.pos.set([x, y, z], k * 3);
+      this.vel.set(
+        [Math.cos(angle) * speed, 2 + Math.random() * 5, Math.sin(angle) * speed],
+        k * 3,
+      );
+      this.size[k] = (chunk ? 0.14 + Math.random() * 0.1 : 0.05 + Math.random() * 0.07) * scale;
+      this.mode[k] = 1;
+      this.life[k] = 0;
+      this.color.setHex(chunk ? 0x5a0a0a : 0xb01010).offsetHSL(0, 0, (Math.random() - 0.5) * 0.12);
+      this.mesh.setColorAt(k, this.color);
+    }
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
+  }
+
+  /** A short jet of blood from a wound at (x, y, z), leaning along `facing`; `scale` is the enemy's size. */
+  spurt(x: number, y: number, z: number, facing: number, scale = 1): void {
+    for (let i = 0; i < SPURT_DROPLETS; i++) {
+      const k = this.next;
+      this.next = (this.next + 1) % MAX_PARTICLES;
+      const angle = facing + (Math.random() - 0.5) * 1.6;
+      const speed = (1.5 + Math.random() * 2.5) * scale;
+      this.pos.set([x, y, z], k * 3);
+      this.vel.set(
+        [Math.sin(angle) * speed, 1.5 + Math.random() * 2.5, Math.cos(angle) * speed],
+        k * 3,
+      );
+      this.size[k] = (0.05 + Math.random() * 0.05) * scale;
+      this.mode[k] = 1;
+      this.life[k] = 0;
+      this.color.setHex(0xb01010).offsetHSL(0, 0, (Math.random() - 0.5) * 0.12);
+      this.mesh.setColorAt(k, this.color);
+    }
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
+  }
+
+  /** A bullet lands at (x, y, z): a small spray of droplets thrown on along `facing`. */
+  hitSpray(x: number, y: number, z: number, facing: number, amount = 1): void {
+    const count = Math.round(HIT_DROPLETS * amount);
+    for (let i = 0; i < count; i++) {
+      const k = this.next;
+      this.next = (this.next + 1) % MAX_PARTICLES;
+      const angle = facing + (Math.random() - 0.5) * 1.2;
+      const speed = 1.5 + Math.random() * 3.5;
+      this.pos.set([x, y, z], k * 3);
+      this.vel.set(
+        [Math.sin(angle) * speed, 0.5 + Math.random() * 2.5, Math.cos(angle) * speed],
+        k * 3,
+      );
+      this.size[k] = 0.04 + Math.random() * 0.05;
+      this.mode[k] = 1;
+      this.life[k] = 0;
+      this.color.setHex(0xb01010).offsetHSL(0, 0, (Math.random() - 0.5) * 0.12);
+      this.mesh.setColorAt(k, this.color);
+    }
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
   }
 
   update(dt: number): void {

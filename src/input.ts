@@ -15,6 +15,8 @@ export class InputController {
   private ndcX = 0;
   private ndcY = 0;
   private firing = false;
+  private aimHeld = false;
+  private aimPresses = 0;
   private lookX = 0;
   private lookY = 0;
   /** Virtual joystick on touch screens (-1..1 per axis, screen-relative like WASD). */
@@ -45,6 +47,7 @@ export class InputController {
     window.addEventListener('blur', () => {
       this.keys.clear();
       this.firing = false;
+      this.aimHeld = false;
     });
     window.addEventListener('mousemove', (e) => {
       // Some systems report a huge bogus delta now and then; a real flick never gets close.
@@ -55,9 +58,14 @@ export class InputController {
     });
     target.addEventListener('mousedown', (e) => {
       if (e.button === 0) this.firing = true;
+      if (e.button === 2) {
+        this.aimHeld = true;
+        this.aimPresses++;
+      }
     });
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.firing = false;
+      if (e.button === 2) this.aimHeld = false;
     });
     target.addEventListener('contextmenu', (e) => e.preventDefault());
     target.style.cursor = 'crosshair';
@@ -72,6 +80,18 @@ export class InputController {
   /** On-screen jump / sprint / crouch buttons (OR-ed with the keyboard). */
   setTouchAction(action: 'jump' | 'sprint' | 'crouch', on: boolean): void {
     this.touchHeld[action] = on;
+  }
+
+  /** Right-button presses since the last call (for click-to-toggle aiming). */
+  takeAimPresses(): number {
+    const n = this.aimPresses;
+    this.aimPresses = 0;
+    return n;
+  }
+
+  /** Whether the right button is down. */
+  get aimButton(): boolean {
+    return this.aimHeld;
   }
 
   /** Mouse movement (pixels) since the last call; drives first/third person look. */
@@ -100,6 +120,7 @@ export class InputController {
     // C is an alternative to Ctrl, since browsers reserve Ctrl+W and friends.
     this.current.crouch =
       k.has('ControlLeft') || k.has('ControlRight') || k.has('KeyC') || this.touchHeld.crouch;
+    this.current.walk = k.has('KeyZ');
     this.current.sprint = k.has('ShiftLeft') || k.has('ShiftRight') || this.touchHeld.sprint;
     this.current.jump = k.has('Space') || this.touchHeld.jump;
     return this.current;

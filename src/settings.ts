@@ -14,6 +14,8 @@ export interface Settings {
   /** Dim lighting with a flashlight per soldier. */
   darkMode: boolean;
   showFps: boolean;
+  /** Aim with one right click on, another off (instead of holding the button). */
+  aimToggle: boolean;
   /** Sound effects volume, 0 to 1. */
   volume: number;
 }
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ...PRESETS.high,
   darkMode: false,
   showFps: false,
+  aimToggle: false,
   volume: 0.7,
 };
 
@@ -78,6 +81,7 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     gore: bool(raw.gore, d.gore),
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),
+    aimToggle: bool(raw.aimToggle, d.aimToggle),
     volume: clamp(raw.volume, 0, 1, d.volume),
   };
   s.quality = qualityOf(s);

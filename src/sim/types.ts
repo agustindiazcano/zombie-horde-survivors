@@ -1,4 +1,4 @@
-import type { WeaponClass } from './config';
+import type { AccessorySlot, WeaponClass } from './config';
 import type { Rng } from './rng';
 import type { Vec2 } from './vec';
 
@@ -23,24 +23,60 @@ export type SoldierOrder =
   | { type: 'board'; vehicleId: number }
   | { type: 'hold' };
 
-export type Stance = 'normal' | 'crouch' | 'sprint';
+export type Stance = 'normal' | 'walk' | 'crouch' | 'sprint';
 
 export type UnitKind = 'soldier' | 'drone';
 
 /** `count` of one item (an item id) sharing a backpack slot, up to the item's `stack`. */
+export interface Reload {
+  hand: Hand;
+  /** The weapon being loaded; the reload is dropped if the hand holds anything else. */
+  state: WeaponState;
+  /** Seconds left. */
+  left: number;
+}
+
 export interface Stack {
   item: string;
   count: number;
+  /** Own state of a weapon in this slot (rounds loaded, fitted accessories); created when first needed. */
+  state?: WeaponState;
 }
+
+/** What one weapon carries besides its item id: it travels with the weapon between slots and units. */
+export interface WeaponState {
+  /** Rounds in the magazine (no rule spends them yet). */
+  loaded: number;
+  /** Accessory item ids by weapon slot (none can be fitted yet). */
+  accessories: Partial<Record<AccessorySlot, string>>;
+}
+
+/** The hands that can hold a weapon. */
+export type Hand = 'rightHand' | 'leftHand';
 
 /**
  * Hand and body slots; null is empty. A two-handed weapon sits in `rightHand` and leaves
- * `leftHand` empty. With both hands empty a unit has fists (not active yet: it does not fight).
+ * `leftHand` empty. With both hands empty a unit has fists.
  */
 export interface Equipment {
   rightHand: string | null;
   leftHand: string | null;
   chest: string | null;
+}
+
+/** Which multiplier a hit got: a head hit, a critical hit, or a plain body hit. */
+export type HitKind = 'head' | 'crit' | 'body';
+
+/**
+ * The line of sight the player is aiming along in third and first person: where the camera is
+ * (ground position and height) and the slope (rise per metre) of its view. A shot lands on this
+ * line, so the height of the line at the target says whether it hit the head.
+ */
+export interface AimLine {
+  x: number;
+  z: number;
+  height: number;
+  slope: number;
 }
 
 export interface Soldier {
@@ -58,6 +94,20 @@ export interface Soldier {
   health: number;
   dead: boolean;
   fireCooldown: number;
+  /** Whether the fire button was down last step, and a semi-automatic click waiting for the cooldown. */
+  triggerHeld: boolean;
+  triggerQueued: boolean;
+  /** The reload in progress, if any (the gun cannot fire meanwhile). */
+  reload: Reload | null;
+  /** Aim error left over from recent shots (radians); it fades with time. */
+  recoil: number;
+  /** Holding aim down the sights; a hit breaks it until the aim button is released. */
+  aiming: boolean;
+  aimBroken: boolean;
+  /** The line of sight of the controlled unit in a person view; null in top-down and for the AI. */
+  aimLine: AimLine | null;
+  /** Seconds without moving. */
+  stillTime: number;
   /** Height above the ground (jumping) and vertical speed. */
   y: number;
   prevY: number;
@@ -65,6 +115,8 @@ export interface Soldier {
   order: SoldierOrder;
   /** What the unit holds and wears (item ids from data/items.json). */
   equipment: Equipment;
+  /** State of the weapon in each hand; a missing entry means a fresh weapon (see `handState`). */
+  weaponStates: Partial<Record<Hand, WeaponState>>;
   /** Carried stacks, up to `inventory.backpackSlots` slots. */
   backpack: Stack[];
   /** This unit's own experience (grows when it kills) and enemies it has killed. */
@@ -166,14 +218,44 @@ export interface Zombie {
   attackRange: number;
   state: ZombieState;
   attackTimer: number;
+  /** Seconds left stunned by a melee blow: it neither moves nor bites. */
+  stagger: number;
+  /** Acrobats: height above the ground, seconds left in the hop, side (-1, 0 up, 1) and the wait for the next. */
+  y: number;
+  hopLeft: number;
+  hopSide: number;
+  hopTimer: number;
+  /** `wander`: roams near `home` until it notices the squad; `chase`: goes for the nearest target. */
+  mode: 'wander' | 'chase';
+  home: Vec2;
+  /** A wanderer's roam point (null while it stands) and the seconds left walking to it or standing. */
+  roam: Vec2 | null;
+  roamTimer: number;
+  /** Seconds a wanderer has waited after its wave finished spawning; it wakes up after a while. */
+  restless: number;
   deathTimer: number;
+  /** Which limbs are still on, and the damage taken by each so far (it comes off past a threshold). */
+  parts: Parts;
+  wounds: { armL: number; armR: number; legs: number };
 }
+
+/** The limbs a marine can lose; `true` means it is still attached. */
+export interface Parts {
+  armL: boolean;
+  armR: boolean;
+  legs: boolean;
+}
+export type Limb = keyof Parts;
+/** Where a hit landed. */
+export type BodyZone = 'head' | 'torso' | 'arm' | 'leg';
 
 /** A dropped container of items on the ground. */
 export interface Crate {
   id: number;
   pos: Vec2;
   items: string[];
+  /** State of a weapon in `items`, by the same index (a stashed weapon keeps its rounds). */
+  states?: (WeaponState | undefined)[];
 }
 
 /** A gold coin or XP orb lying on the ground. */
@@ -206,6 +288,10 @@ export type SimEvent =
       from: Vec2;
       to: Vec2;
       hitZombieId: number | null;
+      /** Camera shake this shot adds for the shooter (from the weapon's recoil). */
+      cameraKick: number;
+      /** What the bullet did to the enemy it hit, or null on a miss. */
+      hit: { kind: HitKind; damage: number } | null;
     }
   | {
       type: 'zombieKilled';
@@ -213,8 +299,22 @@ export type SimEvent =
       enemy: string;
       pos: Vec2;
       exploded: boolean;
+      /** What became of the head when a head hit killed: it burst or flew off; null if it stayed. */
+      head: 'burst' | 'fly' | null;
       /** The soldier that landed the killing shot. */
       killerId: number | null;
+      /** The kind of the killing hit. */
+      hit: HitKind;
+    }
+  | {
+      type: 'dismember';
+      zombieId: number;
+      enemy: string;
+      /** The limb that came off. */
+      part: Limb;
+      pos: Vec2;
+      /** Heading (radians, 0 = +z) the limb is thrown towards. */
+      dir: number;
     }
   | { type: 'pickupCollected'; kind: 'gold' | 'xp'; amount: number; pos: Vec2 }
   | { type: 'levelUp'; level: number }
@@ -224,10 +324,20 @@ export type SimEvent =
   | { type: 'soldierRevived'; soldierId: number; byId: number }
   | { type: 'soldierDied'; soldierId: number }
   | { type: 'vehicleDestroyed'; vehicleId: number; pos: Vec2 }
+  | { type: 'dryFire'; shooterId: number }
+  | {
+      type: 'melee';
+      attackerId: number;
+      weapon: string;
+      hitZombieId: number | null;
+      hit: { kind: HitKind; damage: number } | null;
+    }
+  | { type: 'reloadStarted'; soldierId: number }
   | { type: 'grenadeThrown'; throwerId: number }
   | { type: 'explosion'; pos: Vec2; radius: number }
   | { type: 'waveStarted'; wave: number }
   | { type: 'bossSpawned'; wave: number; enemy: string }
+  | { type: 'zombieAlerted'; id: number; pos: Vec2 }
   | { type: 'objectiveDone'; index: number }
   | { type: 'victory' }
   | { type: 'gameOver' };
@@ -309,9 +419,17 @@ export interface Input {
   /** World-space point on the ground the player is aiming at. */
   aim: Vec2;
   firing: boolean;
+  /** Touch play: the trigger is held by the auto-aim, so semi-automatic guns keep firing. */
+  autoTrigger?: boolean;
+  /** The aim button is held (third and first person only). */
+  aiming?: boolean;
+  /** The camera's line of sight (third and first person only), for the height of a hit. */
+  aimLine?: AimLine;
   /** Squad-wide stances: crouch takes priority over sprint. */
   crouch: boolean;
   sprint: boolean;
+  /** Walk instead of run (the whole squad); crouch and sprint take priority. */
+  walk?: boolean;
   /** Only the controlled soldier jumps. */
   jump: boolean;
 }

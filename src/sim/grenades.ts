@@ -1,5 +1,6 @@
 import { supportHeight, resolveStatic } from './collision';
 import type { GameConfig } from './config';
+import { blastLimbs } from './dismember';
 import { itemDef } from './inventory';
 import { hurtSoldier } from './soldiers';
 import type { GameState, Grenade, Soldier, Stack } from './types';
@@ -105,7 +106,10 @@ function explode(state: GameState, config: GameConfig, grenade: Grenade): void {
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
     const d = Math.hypot(z.pos.x - at.x, z.pos.z - at.z);
-    if (d <= def.blastRadius + z.radius) damageZombie(state, config, z, blastAt(def, d), thrower);
+    if (d <= def.blastRadius + z.radius) {
+      damageZombie(state, config, z, blastAt(def, d), thrower);
+      blastLimbs(state, config, z, at, d, def.blastRadius);
+    }
   }
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone' || s.vehicleId !== null) continue;

@@ -259,3 +259,119 @@
 .us__sheet > .us__label {
   flex-basis: 100%;
 }
+
+/* The weapon workbench: a window over the squad screen. */
+.wb {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  font-family: system-ui, sans-serif;
+  color: #fff;
+  z-index: 40;
+}
+
+.wb__box {
+  width: min(560px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #161a22;
+  border: 1px solid #ffd84a;
+  border-radius: 10px;
+}
+
+.wb__title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.wb__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wb__slot,
+.wb__pick {
+  min-width: 118px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: #1c212b;
+  border: 1px solid #3a4150;
+  border-radius: 6px;
+}
+
+.wb__slot--empty {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.wb__pick {
+  cursor: pointer;
+}
+
+.wb__pick:hover:not(:disabled) {
+  border-color: #ffd84a;
+}
+
+.wb__pick:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wb__where {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffd84a;
+}
+
+.wb__stats {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.wb__stats th,
+.wb__stats td {
+  padding: 3px 6px;
+  text-align: right;
+  border-bottom: 1px solid #2a2f3a;
+}
+
+.wb__stats th:first-child,
+.wb__stats td:first-child {
+  text-align: left;
+}
+
+.wb__better {
+  color: #7ddf7d;
+}
+
+.wb__worse {
+  color: #ff8a7a;
+}
+
+.wb__hint {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.us__bench {
+  margin-left: 4px;
+}

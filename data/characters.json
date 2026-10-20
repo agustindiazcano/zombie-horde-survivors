@@ -7,6 +7,8 @@
       "clips": {
         "idle": "Alert",
         "run": "Running",
+        "walk": "Walking",
+        "attack": "Attack",
         "death": "Dead"
       },
       "once": ["death"]
@@ -14,7 +16,8 @@
   ],
   "enemies": {
     "marine_zombie": {
-      "model": "models/soldier-marine.glb",
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
       "scale": 1.0,
       "yawOffset": 0,
       "clips": {
@@ -39,52 +42,64 @@
       "barHeight": 2.1
     },
     "skeleton": {
-      "model": "models/enemy-skeleton.glb",
-      "scale": 0.8,
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
       "yawOffset": 0,
       "clips": {
-        "walk": "Walking_D_Skeletons",
-        "attack": "1H_Melee_Attack_Chop",
-        "death": "Death_A"
+        "walk": "Walking",
+        "attack": "Attack",
+        "death": "Dead"
       },
       "once": ["death"],
-      "barHeight": 2.2
+      "tint": "#8a6a45",
+      "blood": 0.25,
+      "barHeight": 2.1
     },
     "alien": {
-      "model": "models/enemy-alien.glb",
-      "scale": 0.55,
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
       "yawOffset": 0,
       "clips": {
-        "walk": "AlienArmature|Alien_Run",
-        "attack": "AlienArmature|Alien_Punch",
-        "death": "AlienArmature|Alien_Death"
+        "walk": "Run_03",
+        "attack": "Triple_Combo_Attack",
+        "death": "Dead"
       },
       "once": ["death"],
+      "tint": "#e8a8a0",
+      "blood": 0.85,
       "barHeight": 2.1
     },
     "hound": {
-      "model": "models/enemy-hound.glb",
-      "scale": 0.45,
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
       "yawOffset": 0,
       "clips": {
-        "walk": "Gallop",
+        "walk": "Unsteady_Walk",
         "attack": "Attack",
-        "death": "Death"
+        "death": "Dead"
       },
       "once": ["death"],
-      "barHeight": 1.7
+      "tint": "#a8c898",
+      "blood": 0.85,
+      "barHeight": 1.1
     },
     "brute": {
-      "model": "models/enemy-brute.glb",
-      "scale": 0.8,
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.4,
       "yawOffset": 0,
       "clips": {
-        "walk": "CharacterArmature|Walk",
-        "attack": "CharacterArmature|Punch",
-        "death": "CharacterArmature|Death"
+        "walk": "Slow_Orc_Walk",
+        "attack": "Attack",
+        "death": "Dead"
       },
       "once": ["death"],
-      "barHeight": 3.0
+      "tint": "#c0605a",
+      "barHeight": 2.9,
+      "blood": 0.3
     },
     "worm": {
       "model": "models/enemy-worm.glb",
@@ -94,6 +109,96 @@
       "once": [],
       "procedural": "wiggle",
       "barHeight": 2.2
+    },
+    "marine_acrobat": {
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Run_03",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#9b6bd6",
+      "barHeight": 2.1
+    },
+    "marine_runner": {
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Run_03",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#c9cf8a",
+      "barHeight": 2.1
+    },
+    "marine_fast": {
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Unsteady_Walk",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "clipSpeed": 1.7,
+      "once": ["death"],
+      "tint": "#6fa860",
+      "barHeight": 2.1
+    },
+    "marine_bleeder": {
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Unsteady_Walk",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#6fa860",
+      "blood": 0.9,
+      "spurts": 1.2,
+      "barHeight": 2.1
+    },
+    "marine_wanderer": {
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Run_03",
+        "roam": "Casual_Walk",
+        "idle": "Alert",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#c4ccd0",
+      "blood": 0.35,
+      "barHeight": 2.1
+    },
+    "marine_climber": {
+      "model": "models/soldier-marine-light.glb",
+      "dismember": true,
+      "scale": 1.0,
+      "yawOffset": 0,
+      "clips": {
+        "walk": "Running",
+        "attack": "Attack",
+        "death": "Dead"
+      },
+      "once": ["death"],
+      "tint": "#d49a52",
+      "barHeight": 2.1
     }
   },
   "animals": {
