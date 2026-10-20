@@ -100,6 +100,10 @@ Full plan: [docs/PLAN-marine-zombies-and-dismemberment.md](docs/PLAN-marine-zomb
 - [ ] 🔴 Look at Map 5 in the browser: controls are in [docs/CONTROLS.md](docs/CONTROLS.md) (E lift / put down, click throw, shoot a barrel). Tune `objects` and `hazards.fire` in `game.json`.
 - [ ] 🟡 Next: objects that block movement, AI that carries the wounded, models and sounds, objects in the editor.
 
+### 2k — ⚪ Celestial Event III (Map 6): PAUSED (2026-10-20)
+
+- [ ] ⚪ Everything is in the local branch `feat/celestial-event-3` (last commit `e1a316c`, no push, no PR). Do not touch, delete or merge it until the user resumes it; its own PENDING section lives on that branch.
+
 ### 2i — 🟡 Test maps, doors, interiors, urban maps, engine (planned 2026-10-19)
 
 Plans: [PLAN-test-maps.md](docs/PLAN-test-maps.md) (weapons range, hide and seek, celestial event 4, human vs human with cover AI) and [PLAN-world-and-engine.md](docs/PLAN-world-and-engine.md) (door kinds incl. sci-fi and large gates, interiors, urban maps, the engine for several games).
