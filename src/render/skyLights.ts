@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { GameState } from '../sim';
+import type { GameConfig, GameState } from '../sim';
 
 /** Size (m) of a light's glow: far away it is a point, over the houses a big soft ball. */
 const GLOW_SIZE = 3;
@@ -9,6 +9,7 @@ const TWINKLE = 0.25;
 export class SkyLightViews {
   readonly group = new THREE.Group();
   private readonly sprites = new Map<number, THREE.Sprite>();
+  private readonly phones = new Map<number, THREE.Sprite>();
   private readonly texture: THREE.CanvasTexture;
 
   constructor() {
@@ -52,6 +53,46 @@ export class SkyLightViews {
     }
   }
 
+  /** A cold white glow in the hand of every third neighbour once the phones come out. */
+  updatePhones(state: GameState, config: GameConfig, alpha: number): void {
+    const out = config.skyShowOn && state.time >= config.skyShow.phonesAt;
+    const live = new Set<number>();
+    if (out) {
+      for (const a of state.animals) {
+        if (a.id % 3 !== 0) continue;
+        live.add(a.id);
+        let glow = this.phones.get(a.id);
+        if (!glow) {
+          glow = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+              map: this.texture,
+              color: 0xe8f2ff,
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+              fog: false,
+            }),
+          );
+          glow.scale.setScalar(0.7);
+          this.phones.set(a.id, glow);
+          this.group.add(glow);
+        }
+        // Held in front of the chest, a little forward of where they face.
+        glow.position.set(
+          a.prev.x + (a.pos.x - a.prev.x) * alpha + Math.sin(a.facing) * 0.35,
+          1.25 + a.lift,
+          a.prev.z + (a.pos.z - a.prev.z) * alpha + Math.cos(a.facing) * 0.35,
+        );
+      }
+    }
+    for (const [id, glow] of this.phones) {
+      if (live.has(id)) continue;
+      this.group.remove(glow);
+      glow.material.dispose();
+      this.phones.delete(id);
+    }
+  }
+
   /** Drops the sprites for a new run. */
   clear(): void {
     for (const sprite of this.sprites.values()) {
@@ -59,5 +100,10 @@ export class SkyLightViews {
       sprite.material.dispose();
     }
     this.sprites.clear();
+    for (const glow of this.phones.values()) {
+      this.group.remove(glow);
+      glow.material.dispose();
+    }
+    this.phones.clear();
   }
 }

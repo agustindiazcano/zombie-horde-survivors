@@ -469,6 +469,10 @@ export interface Animal {
   /** Seconds left of a panic run (civilians only), and the point it runs away from. */
   panic: number;
   fear: Vec2 | null;
+  /** Walking to the crowd of the sky show has been ordered. */
+  gathered: boolean;
+  /** Metres it has been lifted off the ground by an abductor. */
+  lift: number;
 }
 
 /** A point in 3D (metres): the sky show flies in height too. */
@@ -506,7 +510,26 @@ export interface Orb {
   prev: Vec2;
   /** Seconds into the run when it wakes up. */
   wake: number;
-  phase: 'dormant' | 'seek' | 'charge' | 'cool';
+  phase:
+    | 'dormant'
+    | 'seek'
+    | 'charge'
+    | 'cool'
+    | 'roam'
+    | 'low'
+    | 'arrive'
+    | 'beam'
+    | 'lift'
+    | 'leave'
+    | 'gone';
+  /** Height (m) above the ground, and the one of the step before. */
+  y: number;
+  prevY: number;
+  /** Scouts: when they come down; where they hang or where an abductor works. */
+  lowAt: number | null;
+  hover: Vec2 | null;
+  /** Where its current dash is heading. */
+  waypoint: { x: number; y: number; z: number } | null;
   /** Seconds left in the current phase. */
   timer: number;
   /** The animal id it is after, or null. */

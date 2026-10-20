@@ -175,7 +175,19 @@ const mapLogic = z
     orbs: z
       .array(
         z
-          .object({ type: z.string().min(1), x: z.number(), z: z.number(), at: nonNegative })
+          .object({
+            type: z.string().min(1),
+            x: z.number(),
+            z: z.number(),
+            at: nonNegative,
+            /** Height (m) it starts at; the default is the type's `height`. */
+            y: z.number().optional(),
+            /** Scouts: when they come down to hang low over `hx`, `hz`. */
+            lowAt: nonNegative.optional(),
+            /** Where a scout hangs low, and where an abductor works. */
+            hx: z.number().optional(),
+            hz: z.number().optional(),
+          })
           .strict(),
       )
       .optional(),
@@ -1017,6 +1029,18 @@ export const GameConfigSchema = z
         hoverMax: positive,
         /** Distance (m) between the three lights of a formation. */
         spread: positive,
+        /** The street lights and the windows flicker from `flickerAt` and go out at `blackoutAt`. */
+        flickerAt: nonNegative,
+        blackoutAt: nonNegative,
+        /** Strength of the moonlight left in the blackout (1 = as before). */
+        blackoutLight: positive,
+        /** From this time some neighbours light up their phones. */
+        phonesAt: nonNegative,
+        /** From `gatherAt` the neighbours walk to within `gatherRadius` of (`gatherX`, `gatherZ`). */
+        gatherAt: nonNegative,
+        gatherX: z.number(),
+        gatherZ: z.number(),
+        gatherRadius: positive,
       })
       .strict(),
     /**
@@ -1028,9 +1052,21 @@ export const GameConfigSchema = z
       z
         .object({
           name: z.string().min(1),
-          kind: z.enum(['metal']),
+          /**
+           * `metal` hunts civilians and vaporises them; `scout` flies fast around the sky and later
+           * hangs low over the crowd; `abductor` comes to the crowd and lifts one person away.
+           */
+          kind: z.enum(['metal', 'scout', 'abductor']),
           /** Hover height (metres). */
           height: positive,
+          /** Scouts: the radius (m) of the area they dash around, and the height (m) they hang at. */
+          roamRadius: positive.optional(),
+          lowHeight: positive.optional(),
+          /** Abductors: the beam time (s), how fast (m/s) and how high (m) the victim rises, and the leaving speed (m/s). */
+          beamTime: positive.optional(),
+          liftSpeed: positive.optional(),
+          liftHeight: positive.optional(),
+          leaveSpeed: positive.optional(),
           /** Seconds from waking up (and after each kill) to appearing beside the next target. */
           appearDelay: nonNegative,
           /** Distance (metres) from the target's head where it appears and stays. */

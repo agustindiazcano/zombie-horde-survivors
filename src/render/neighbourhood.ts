@@ -26,6 +26,25 @@ const windowMaterial = new THREE.MeshStandardMaterial({
   emissive: 0xffc46b,
   emissiveIntensity: 0.9,
 });
+/** The pool of light on the ground under a lamp, shared so a blackout can fade them all at once. */
+const poolMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffd9a0,
+  transparent: true,
+  opacity: 0.12,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+});
+const WINDOW_GLOW = 0.9;
+const HEAD_GLOW = 2.2;
+const POOL_GLOW = 0.12;
+
+/** Turns every lamp and lit window on (1) or off (0): a flicker is a few quick changes. */
+export function setStreetPower(power: number): void {
+  windowMaterial.emissiveIntensity = WINDOW_GLOW * power;
+  lampHeadMaterial.emissiveIntensity = HEAD_GLOW * power;
+  poolMaterial.opacity = POOL_GLOW * power;
+}
+
 const darkWindowMaterial = new THREE.MeshStandardMaterial({ color: 0x1b2229 });
 const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x4b3425 });
 const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x4a3626 });
@@ -156,16 +175,7 @@ export function buildLamp(o: Obstacle): THREE.Group {
   head.position.set(0, LAMP_HEIGHT - 0.05, toStreet * 1.05);
   group.add(head);
   // A soft pool on the ground under the head, so the light reads even where no real light reaches.
-  const pool = new THREE.Mesh(
-    new THREE.CircleGeometry(5, 24),
-    new THREE.MeshBasicMaterial({
-      color: 0xffd9a0,
-      transparent: true,
-      opacity: 0.12,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  );
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(5, 24), poolMaterial);
   pool.rotation.x = -Math.PI / 2;
   pool.position.set(0, 0.06, toStreet * 1.05);
   group.add(pool);
@@ -232,6 +242,7 @@ export class StreetLights {
   private lamps: { x: number; y: number; z: number }[] = [];
   private readonly lights: THREE.PointLight[] = [];
   private clock = 0;
+  private power = 1;
 
   constructor(scene: THREE.Scene) {
     for (let i = 0; i < POOL; i++) {
@@ -245,6 +256,13 @@ export class StreetLights {
   set(lamps: { x: number; y: number; z: number }[]): void {
     this.lamps = lamps;
     this.clock = 1;
+  }
+
+  /** 1 = lit, 0 = dark (a blackout). */
+  setPower(power: number): void {
+    if (power === this.power) return;
+    this.power = power;
+    this.clock = 1; // re-pick now
   }
 
   update(camera: THREE.Vector3, dt: number): void {
@@ -262,7 +280,7 @@ export class StreetLights {
       .slice(0, POOL);
     this.lights.forEach((light, i) => {
       const lamp = nearest[i];
-      light.intensity = lamp ? LAMP_INTENSITY : 0;
+      light.intensity = lamp ? LAMP_INTENSITY * this.power : 0;
       if (lamp) light.position.set(lamp.x, lamp.y + LAMP_LIGHT_HEIGHT, lamp.z);
     });
   }

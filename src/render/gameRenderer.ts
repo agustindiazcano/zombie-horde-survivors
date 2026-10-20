@@ -15,7 +15,7 @@ import { buildArena } from './arena';
 import type { CharacterFactory, CharacterView } from './characters';
 import { ShotEffects } from './effects';
 import { Gore } from './gore';
-import { StreetLights } from './neighbourhood';
+import { StreetLights, setStreetPower } from './neighbourhood';
 import { OrbViews } from './orbs';
 import { SkyLightViews } from './skyLights';
 import { LooseParts } from './looseParts';
@@ -475,6 +475,8 @@ export class GameRenderer {
     this.syncAnimals(state, alpha, dt);
     this.orbViews.update(state, this.config, alpha, dt, this.clock);
     this.skyLights.update(state, alpha, this.clock);
+    this.skyLights.updatePhones(state, this.config, alpha);
+    this.updateBlackout(state);
     this.streetLights.update(this.camera.position, dt);
     this.syncCrates(state, dt);
     this.effects.update(dt);
@@ -753,7 +755,7 @@ export class GameRenderer {
       }
       const x = lerp(a.prev.x, a.pos.x, alpha);
       const z = lerp(a.prev.z, a.pos.z, alpha);
-      view.object.position.set(x, this.groundAt(x, z), z);
+      view.object.position.set(x, this.groundAt(x, z) + a.lift, z);
       view.object.rotation.order = 'YXZ';
       view.object.rotation.y = a.facing;
       // Neighbours watching the sky lean back a little.
@@ -768,6 +770,29 @@ export class GameRenderer {
       this.scene.remove(view.object);
       this.animals.delete(id);
     }
+  }
+
+  /**
+   * The sky show's blackout: the street lights and windows flicker from `flickerAt`, then go out at
+   * `blackoutAt`, leaving only a little moonlight.
+   */
+  private updateBlackout(state: GameState): void {
+    let power = 1;
+    if (this.config.skyShowOn) {
+      const rules = this.config.skyShow;
+      const t = state.time;
+      if (t >= rules.blackoutAt) power = 0;
+      else if (t >= rules.flickerAt) {
+        // Quick uneven on-off steps, about twelve a second, getting worse.
+        const step = Math.floor(t * 12);
+        const wobble = Math.sin(step * 12.9898) * 43758.5453;
+        const onChance = 1 - ((t - rules.flickerAt) / (rules.blackoutAt - rules.flickerAt)) * 0.7;
+        power = wobble - Math.floor(wobble) < onChance ? 1 : 0;
+      }
+    }
+    setStreetPower(power);
+    this.streetLights.setPower(power);
+    this.environment.setDim(power === 0 ? this.config.skyShow.blackoutLight : 1);
   }
 
   /** Draws the vehicles of the state (a jeep for every type until more models exist). */
@@ -1249,7 +1274,8 @@ export class GameRenderer {
     lamp.group.position.set(unit.position.x, 0, unit.position.z);
     lamp.group.rotation.y = heading;
     // Dimming to zero (not hiding) keeps the light count, and so the shaders, unchanged.
-    lamp.light.intensity = on && this.environment.isNight ? FLASHLIGHT_INTENSITY : 0;
+    lamp.light.intensity =
+      on && this.environment.isNight && !this.config.skyShowOn ? FLASHLIGHT_INTENSITY : 0;
   }
 
   private addLights(halfSize: number): void {

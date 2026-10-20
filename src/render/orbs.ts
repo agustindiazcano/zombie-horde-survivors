@@ -14,7 +14,11 @@ const UP = new THREE.Vector3(0, 1, 0);
 interface OrbView {
   group: THREE.Group;
   ray: THREE.Mesh;
+  /** A wide column of light under an abductor. */
+  beam: THREE.Mesh;
 }
+
+const BEAM_RADIUS = 1.1;
 
 /**
  * The celestial orbs: a chrome sphere that hovers without a sound, a thin white ray while it
@@ -25,6 +29,14 @@ export class OrbViews {
   private readonly views = new Map<number, OrbView>();
   private readonly sphereGeometry = new THREE.SphereGeometry(1, 24, 16);
   private readonly rayGeometry = new THREE.CylinderGeometry(RAY_RADIUS, RAY_RADIUS, 1, 8, 1, true);
+  private readonly beamGeometry = new THREE.CylinderGeometry(
+    BEAM_RADIUS * 0.6,
+    BEAM_RADIUS,
+    1,
+    20,
+    1,
+    true,
+  );
   private readonly flashes: {
     mesh: THREE.Mesh;
     material: THREE.MeshBasicMaterial;
@@ -104,26 +116,33 @@ export class OrbViews {
         this.views.set(orb.id, view);
         this.group.add(view.group);
       }
-      const awake = orb.phase !== 'dormant';
+      const awake = orb.phase !== 'dormant' && orb.phase !== 'gone';
       view.group.visible = awake;
       if (!awake) continue;
       const x = orb.prev.x + (orb.pos.x - orb.prev.x) * alpha;
       const z = orb.prev.z + (orb.pos.z - orb.prev.z) * alpha;
-      const y = this.groundAt(x, z) + def.height + Math.sin(time * 2 + orb.id) * BOB;
+      const height = orb.prevY + (orb.y - orb.prevY) * alpha;
+      const y = this.groundAt(x, z) + height + Math.sin(time * 2 + orb.id) * BOB;
       view.group.position.set(x, y, z);
 
-      // The ray runs from the sphere to the head of whoever it is about to vaporise.
+      // The thin ray runs from a hunter to the head of whoever it is about to vaporise; an
+      // abductor's wide beam falls straight to the ground under its victim.
       const aim = orb.aim;
-      view.ray.visible = orb.phase === 'charge' && aim !== null;
-      if (aim) {
+      const hunting = def.kind === 'metal' && orb.phase === 'charge' && aim !== null;
+      const lifting =
+        def.kind === 'abductor' && (orb.phase === 'beam' || orb.phase === 'lift') && aim !== null;
+      view.ray.visible = hunting;
+      view.beam.visible = lifting;
+      if (aim && (hunting || lifting)) {
+        const mesh = hunting ? view.ray : view.beam;
         const tx = aim.x;
-        const ty = this.groundAt(aim.x, aim.z) + 1.5;
+        const ty = this.groundAt(aim.x, aim.z) + (hunting ? 1.5 : 0);
         const tz = aim.z;
         const length = Math.max(Math.hypot(tx - x, ty - y, tz - z), 0.01);
-        view.ray.position.set((tx - x) / 2, (ty - y) / 2, (tz - z) / 2);
-        view.ray.scale.set(1, length, 1);
+        mesh.position.set((tx - x) / 2, (ty - y) / 2, (tz - z) / 2);
+        mesh.scale.set(1, length, 1);
         this.rayDir.set(tx - x, ty - y, tz - z).normalize();
-        view.ray.quaternion.setFromUnitVectors(UP, this.rayDir);
+        mesh.quaternion.setFromUnitVectors(UP, this.rayDir);
       }
     }
     for (const [id, view] of this.views) {
@@ -172,10 +191,29 @@ export class OrbViews {
     const group = new THREE.Group();
     const sphere = new THREE.Mesh(
       this.sphereGeometry,
-      new THREE.MeshStandardMaterial({ color, metalness: 1, roughness: 0.12 }),
+      new THREE.MeshStandardMaterial({
+        color,
+        metalness: 1,
+        roughness: 0.12,
+        emissive: 0x7fa8d0,
+        emissiveIntensity: 0.25,
+      }),
     );
     sphere.scale.setScalar(radius);
     group.add(sphere);
+    const beam = new THREE.Mesh(
+      this.beamGeometry,
+      new THREE.MeshBasicMaterial({
+        color: 0xbfe0ff,
+        transparent: true,
+        opacity: 0.32,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    beam.visible = false;
+    group.add(beam);
     const ray = new THREE.Mesh(
       this.rayGeometry,
       new THREE.MeshBasicMaterial({
@@ -188,6 +226,6 @@ export class OrbViews {
     );
     ray.visible = false;
     group.add(ray);
-    return { group, ray };
+    return { group, ray, beam };
   }
 }

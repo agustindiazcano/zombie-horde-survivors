@@ -58,6 +58,7 @@ export class EnvironmentView {
   private env: Environment = defaultEnvironment();
   private dark = false;
   private night = false;
+  private dim = 1;
 
   private readonly dome: THREE.Mesh;
   private readonly domeTop = { value: c(0x3f7fd0) };
@@ -198,6 +199,13 @@ export class EnvironmentView {
     this.apply();
   }
 
+  /** Scales the sun and sky light (1 = as set): a blackout leaves only a little moonlight. */
+  setDim(dim: number): void {
+    if (dim === this.dim) return;
+    this.dim = dim;
+    this.apply();
+  }
+
   /** The dark mode (key L) forces night lighting whatever the time of day is. */
   setDark(dark: boolean): void {
     this.dark = dark;
@@ -259,7 +267,7 @@ export class EnvironmentView {
     const sunColor = mix(c(0x9db4ff), c(0xffffff), day).lerp(c(0xff9a55), twilight * 0.7);
     if (env.lightColor) sunColor.set(env.lightColor);
     this.sun.color.copy(sunColor);
-    this.sun.intensity = (NIGHT_SUN + (DAY_SUN - NIGHT_SUN) * day) * (1 - 0.35 * murk);
+    this.sun.intensity = (NIGHT_SUN + (DAY_SUN - NIGHT_SUN) * day) * (1 - 0.35 * murk) * this.dim;
     this.sun.position.set(12 + 24 * Math.cos(angle), 4 + 20 * Math.max(elevation, 0.2), 8);
     this.sunDir.set(Math.cos(angle), elevation, 0.25).normalize();
 
@@ -267,7 +275,8 @@ export class EnvironmentView {
     if (env.lightColor) hemiSky.lerp(c(parseInt(env.lightColor.slice(1), 16)), 0.4);
     this.hemi.color.copy(hemiSky);
     this.hemi.groundColor.copy(mix(c(0x1a1d24), c(0x30343a), day));
-    this.hemi.intensity = (NIGHT_AMBIENT + (DAY_AMBIENT - NIGHT_AMBIENT) * day) * (1 - 0.2 * murk);
+    this.hemi.intensity =
+      (NIGHT_AMBIENT + (DAY_AMBIENT - NIGHT_AMBIENT) * day) * (1 - 0.2 * murk) * this.dim;
 
     // Sky colours.
     const grey = mix(c(0x6e747c), c(0x1c2026), 1 - day);

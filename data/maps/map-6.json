@@ -27675,6 +27675,92 @@
     "skyShow": true,
     "startView": "first",
     "startPitch": 0.95,
+    "orbs": [
+      {
+        "type": "scout_sphere",
+        "x": 70.5,
+        "z": 31.3,
+        "at": 74.0,
+        "y": 30,
+        "lowAt": 100,
+        "hx": 6,
+        "hz": 4
+      },
+      {
+        "type": "scout_sphere",
+        "x": -21.3,
+        "z": 68.5,
+        "at": 75.5,
+        "y": 30,
+        "lowAt": 101,
+        "hx": 6,
+        "hz": 4
+      },
+      {
+        "type": "scout_sphere",
+        "x": -58.5,
+        "z": -23.3,
+        "at": 77.0,
+        "y": 30,
+        "lowAt": 102,
+        "hx": 6,
+        "hz": 4
+      },
+      {
+        "type": "scout_sphere",
+        "x": 33.3,
+        "z": -60.5,
+        "at": 78.5,
+        "y": 30,
+        "lowAt": 103,
+        "hx": 6,
+        "hz": 4
+      },
+      {
+        "type": "abductor_sphere",
+        "x": 70,
+        "z": -60,
+        "at": 112,
+        "y": 70,
+        "hx": 6,
+        "hz": 4
+      },
+      {
+        "type": "hunter_sphere",
+        "x": 51.0,
+        "z": 4.0,
+        "at": 127.0,
+        "y": 25
+      },
+      {
+        "type": "hunter_sphere",
+        "x": 19.9,
+        "z": 46.8,
+        "at": 127.6,
+        "y": 25
+      },
+      {
+        "type": "hunter_sphere",
+        "x": -30.4,
+        "z": 30.5,
+        "at": 128.2,
+        "y": 25
+      },
+      {
+        "type": "hunter_sphere",
+        "x": -30.4,
+        "z": -22.5,
+        "at": 128.8,
+        "y": 25
+      },
+      {
+        "type": "hunter_sphere",
+        "x": 19.9,
+        "z": -38.8,
+        "at": 129.4,
+        "y": 25
+      }
+    ],
     "subtitles": [
       {
         "at": 2,
@@ -27688,7 +27774,7 @@
       },
       {
         "at": 12,
-        "duration": 4,
+        "duration": 5,
         "text": "That doesn't look like a star..."
       },
       {
@@ -27698,12 +27784,12 @@
       },
       {
         "at": 26,
-        "duration": 4,
+        "duration": 5,
         "text": "Wait. Are they coming this way?"
       },
       {
         "at": 34,
-        "duration": 4,
+        "duration": 5,
         "text": "They're getting closer!"
       },
       {
@@ -27712,9 +27798,119 @@
         "text": "Something is wrong. Look at them!"
       },
       {
-        "at": 56,
+        "at": 54,
         "duration": 5,
         "text": "They're stopping over the houses..."
+      },
+      {
+        "at": 61,
+        "duration": 3.5,
+        "text": "What are those things?"
+      },
+      {
+        "at": 65,
+        "duration": 3.5,
+        "text": "Are those drones?"
+      },
+      {
+        "at": 69,
+        "duration": 3.5,
+        "text": "Is this real?!"
+      },
+      {
+        "at": 73,
+        "duration": 3.5,
+        "text": "Look, they're everywhere!"
+      },
+      {
+        "at": 77,
+        "duration": 3.5,
+        "text": "I have no signal on my phone."
+      },
+      {
+        "at": 81,
+        "duration": 3,
+        "text": "Me neither."
+      },
+      {
+        "at": 85,
+        "duration": 3.5,
+        "text": "What's going on?!"
+      },
+      {
+        "at": 89,
+        "duration": 3.5,
+        "text": "I can't see anything!"
+      },
+      {
+        "at": 93,
+        "duration": 3.5,
+        "text": "Does anyone have a flashlight?"
+      },
+      {
+        "at": 97,
+        "duration": 3.5,
+        "text": "Use your phones!"
+      },
+      {
+        "at": 101,
+        "duration": 3.5,
+        "text": "What is that?!"
+      },
+      {
+        "at": 105,
+        "duration": 3.5,
+        "text": "It's so low..."
+      },
+      {
+        "at": 109,
+        "duration": 4,
+        "text": "Don't get too close..."
+      },
+      {
+        "at": 114,
+        "duration": 4,
+        "text": "Oh my god, it's taking him!"
+      },
+      {
+        "at": 119,
+        "duration": 4,
+        "text": "Let him go!"
+      },
+      {
+        "at": 124,
+        "duration": 4,
+        "text": "AAAAH!"
+      },
+      {
+        "at": 129,
+        "duration": 3,
+        "text": "RUN!!!"
+      },
+      {
+        "at": 132,
+        "duration": 3,
+        "text": "Who's got a gun?!"
+      },
+      {
+        "at": 135,
+        "duration": 3,
+        "text": "Help! Somebody help us!"
+      },
+      {
+        "at": 138,
+        "duration": 3,
+        "text": "They're killing everyone!"
+      },
+      {
+        "at": 141,
+        "duration": 3,
+        "text": "RUN!!"
+      },
+      {
+        "at": 145,
+        "duration": 4,
+        "text": "No, no, no, please!"
       }
     ]
   },

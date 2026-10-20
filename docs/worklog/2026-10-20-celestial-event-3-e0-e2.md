@@ -31,3 +31,22 @@ The user asked for Map 6 to open as a scene: the player is an unarmed neighbour 
 | Subtitles       | Yellow lines at the bottom (map rule `subtitles`: `at`, `duration`, `text`); the health, wave and gold readouts are hidden while a sky show runs                                                                                                            | `src/hud.ts`, `src/hud.css`                                                                  |
 
 To look at: lamp brightness (`LAMP_INTENSITY`, `LAMP_RANGE`), glow size (`GLOW_SIZE`), the lean (`WATCH_LEAN`), the timeline numbers in `skyShow`, the subtitle times, whether the flashlight cone of the night mode shows on the unarmed marine. The metal sphere is no longer in this map (it comes back after the show). Re-generate the map with the script if the layout changes (it is not kept in the repo).
+
+## E3 (second part): scouts, blackout, abduction and hunters (same day)
+
+The scene now runs about 2.5 minutes in Map 6 (times are seconds into the run):
+
+| Time       | What                                                                                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0 to 60    | Stars, then the blue lights wander, cross the sky and come down over the houses (first part)                                                                 |
+| 61 to 81   | Neighbours: "What are those things?", "Are those drones?", "Is this real?!", "Look, they're everywhere!", "I have no signal on my phone.", "Me neither."     |
+| 74         | Four scout spheres (fast metal, short dashes and sudden stops) start crossing the sky                                                                        |
+| 84 to 88   | The street lights and windows flicker, then everything goes out; only a little moonlight is left (`skyShow.blackoutLight`)                                   |
+| 85 to 101  | "What's going on?!", "I can't see anything!", "Does anyone have a flashlight?", "Use your phones!"; from 98 every third neighbour holds a white glow (phone) |
+| 100+       | The scouts come down to hang about 5 m up over the crowd; from 104 the neighbours walk over and stand under them                                             |
+| 112 to 124 | An abductor sphere arrives, shines a wide beam on one person and lifts them slowly (1.1 m/s, 7 m); the crowd panics; the sphere leaves straight up at speed  |
+| 127+       | Five small hunter spheres appear beside people and vaporise them as they run; subtitles "RUN!!!", "Who's got a gun?!", "Help!"...                            |
+
+Code: `kind` in `orbs` of `game.json` (`metal`, `scout`, `abductor`), `src/sim/orbs.ts`, `lift` and `gathered` on animals, `setStreetPower` / `StreetLights.setPower` / `EnvironmentView.setDim` for the blackout, phone glows in `SkyLightViews.updatePhones`. The soldier's flashlight is off whenever a map runs the sky show.
+
+Checked headlessly (throwaway test, deleted): at 110 s 19 people stand near the crowd point, at 120 s one is lifted, the abductor leaves, and the hunters kill all 46 by about 3 minutes. Nothing seen in a browser. To look at: the darkness of the blackout, the glow and size of the spheres, the abduction beam, the pace of the hunters (`hunter_sphere` delays), the subtitle timing against what happens. The player is not a target yet.
