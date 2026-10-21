@@ -151,7 +151,13 @@ export function setPomQuality(next: number): void {
   }
 }
 
+const VERTEX_DECLARATIONS = /* glsl */ `
+attribute vec2 pomExtent;
+varying vec2 vPomExtent;
+`;
+
 const FRAGMENT_DECLARATIONS = /* glsl */ `
+varying vec2 vPomExtent;
 uniform sampler2D pomHeight;
 uniform float pomDepth;
 uniform float pomSteps;
@@ -208,6 +214,13 @@ const FRAGMENT_UV = /* glsl */ `
     float before = dmPrev - dPrev;
     float w = clamp(after / min(after - before, -1e-4), 0.0, 1.0);
     pomUv = mix(uvCur, vMapUv + dUv * dPrev, w);
+
+    // Silhouette: where the carved surface lies beyond the edge of the face, there is no surface,
+    // so the corners of a brick or stone wall follow the relief instead of staying straight.
+    if (vPomExtent.x > 0.0 &&
+        (pomUv.x < 0.0 || pomUv.y < 0.0 || pomUv.x > vPomExtent.x || pomUv.y > vPomExtent.y)) {
+      discard;
+    }
 
     // Hollows are darker; the high parts shadow the low ones from the sun.
     float hHere = pomH(pomUv);
@@ -291,6 +304,9 @@ export function createPomMaterial(kind: PomKind): THREE.MeshStandardMaterial {
   };
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('void main() {', `${VERTEX_DECLARATIONS}\nvoid main() {`)
+      .replace('#include <uv_vertex>', '#include <uv_vertex>\nvPomExtent = pomExtent;');
     shader.fragmentShader = shader.fragmentShader
       .replace('void main() {', `${FRAGMENT_DECLARATIONS}\nvoid main() {`)
       .replace('#include <map_fragment>', FRAGMENT_UV)
@@ -326,12 +342,16 @@ export function pomBox(
     [width, height],
     [width, height],
   ];
+  const extent = new Float32Array(24 * 2);
   sizes.forEach(([w, h], face) => {
     for (let i = 0; i < 4; i++) {
       const k = face * 4 + i;
+      extent[k * 2] = w / tile;
+      extent[k * 2 + 1] = h / tile;
       uv.setXY(k, (uv.getX(k) * w) / tile, (uv.getY(k) * h) / tile);
     }
   });
+  geometry.setAttribute('pomExtent', new THREE.BufferAttribute(extent, 2));
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
