@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import type { Obstacle } from '../sim';
-import { createPomMaterial, pomBox, type PomKind } from './pom';
+import { GLASS_KINDS, POM_FLOOR_KINDS, POM_WALL_KINDS, type GlassKind, type PomKind } from '../sim';
+import { buildGlass } from './glass';
+import { createPomMaterial, pomBox } from './pom';
 
 /** Shapes for the props of a suburb: houses, trees, street lamps and parked cars. All procedural. */
 
@@ -186,19 +188,27 @@ export function buildLamp(o: Obstacle): THREE.Group {
 }
 
 /** A parked car: a body, a cabin and four wheels. */
-export function buildCar(o: Obstacle): THREE.Group {
+export function buildCar(o: Obstacle, police = false): THREE.Group {
   const h = hash(o.x, o.z);
   const group = new THREE.Group();
   const long = o.halfW >= o.halfD;
   const length = Math.max(o.halfW, o.halfD) * 2;
   const width = Math.min(o.halfW, o.halfD) * 2;
   const paint = new THREE.MeshStandardMaterial({
-    color: pick(CAR_COLORS, h),
+    color: police ? 0xeeeef2 : pick(CAR_COLORS, h),
     metalness: 0.4,
     roughness: 0.45,
   });
   const body = shadowed(new THREE.Mesh(new THREE.BoxGeometry(length, 0.65, width), paint));
   body.position.y = 0.6;
+  if (police) {
+    // A dark band along the doors, as on a patrol car.
+    const band = shadowed(
+      new THREE.Mesh(new THREE.BoxGeometry(length + 0.02, 0.22, width + 0.02), tireMaterial),
+    );
+    band.position.y = 0.6;
+    group.add(band);
+  }
   const cabin = shadowed(
     new THREE.Mesh(new THREE.BoxGeometry(length * 0.5, 0.5, width * 0.9), glassMaterial),
   );
@@ -218,12 +228,29 @@ export function buildCar(o: Obstacle): THREE.Group {
   return group;
 }
 
-const POM_ASSETS: Record<string, PomKind> = {
-  pom_brick: 'brick',
-  pom_stone: 'stone',
-  pom_plates: 'plates',
-  pom_cobble: 'cobble',
-};
+const POM_ASSETS: Record<string, PomKind> = Object.fromEntries(
+  [...POM_WALL_KINDS, ...POM_FLOOR_KINDS].map((k) => [`pom_${k}`, k]),
+);
+const GLASS_ASSETS: Record<string, GlassKind> = Object.fromEntries(
+  GLASS_KINDS.map((k) => [`glass_${k}`, k]),
+);
+
+/** A police light stand: a pole and a base. The flashing bar on top belongs to `Sirens`. */
+function buildSirenPost(o: Obstacle): THREE.Group {
+  const group = new THREE.Group();
+  const pole = shadowed(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.3, 8), poleMaterial),
+  );
+  pole.position.y = 1.15;
+  const base = shadowed(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.2, 12), poleMaterial),
+  );
+  base.position.y = 0.1;
+  group.add(pole, base);
+  group.position.set(o.x, 0, o.z);
+  return group;
+}
+
 const pomMaterials = new Map<PomKind, THREE.Material>();
 
 /** A wall or slab of the texture lab: a box with a parallax-mapped surface. */
@@ -234,7 +261,7 @@ function buildPom(kind: PomKind, o: Obstacle): THREE.Group {
     pomMaterials.set(kind, material);
   }
   const height = o.height ?? WALL_HEIGHT;
-  const box = pomBox(o.halfW * 2, height, o.halfD * 2, material);
+  const box = pomBox(kind, o.halfW * 2, height, o.halfD * 2, material);
   box.position.y = height / 2;
   const group = new THREE.Group();
   group.add(box);
@@ -253,9 +280,15 @@ export function buildProp(o: Obstacle): THREE.Group | null {
       return buildLamp(o);
     case 'car':
       return buildCar(o);
+    case 'police_car':
+      return buildCar(o, true);
+    case 'siren':
+      return buildSirenPost(o);
     default: {
       const pom = POM_ASSETS[o.asset ?? ''];
-      return pom ? buildPom(pom, o) : null;
+      if (pom) return buildPom(pom, o);
+      const glass = GLASS_ASSETS[o.asset ?? ''];
+      return glass ? buildGlass(glass, o) : null;
     }
   }
 }

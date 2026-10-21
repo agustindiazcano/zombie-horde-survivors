@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import type { PomKind } from '../sim';
+import { SURFACES, type Texel } from './pomPatterns';
 
 /**
  * Parallax occlusion mapping (POM) for the texture lab: a surface that looks carved. Each material
@@ -8,226 +10,116 @@ import * as THREE from 'three';
  * slope. The textures are drawn here (no files), so nothing is downloaded and they tile.
  */
 
-export type PomKind = 'brick' | 'stone' | 'plates' | 'cobble';
-
-const SIZE = 512;
-/** One texture repeat covers this many metres. */
-export const POM_TILE = 2;
-/** How deep (m) the carving goes at full height difference. */
-const DEPTH: Record<PomKind, number> = { brick: 0.1, stone: 0.16, plates: 0.07, cobble: 0.14 };
+const SIZE = 256;
 const MAX_STEPS = 48;
 
-// ---------- Tileable noise ----------
-
-const hash2 = (x: number, y: number, seed: number): number => {
-  const v = Math.sin(x * 127.1 + y * 311.7 + seed * 74.7) * 43758.5453;
-  return v - Math.floor(v);
+type Surface = {
+  albedo: THREE.CanvasTexture;
+  height: THREE.CanvasTexture;
+  glow: THREE.CanvasTexture | null;
+  rough: THREE.CanvasTexture | null;
 };
-
-/** Value noise on a lattice of `period` cells that wraps, so the texture tiles. */
-function noise(u: number, v: number, period: number, seed: number): number {
-  const x = u * period;
-  const y = v * period;
-  const x0 = Math.floor(x);
-  const y0 = Math.floor(y);
-  const fx = x - x0;
-  const fy = y - y0;
-  const sx = fx * fx * (3 - 2 * fx);
-  const sy = fy * fy * (3 - 2 * fy);
-  const at = (i: number, j: number) =>
-    hash2(((i % period) + period) % period, ((j % period) + period) % period, seed);
-  const top = at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx;
-  const bottom = at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx;
-  return top * (1 - sy) + bottom * sy;
-}
-
-const fbm = (u: number, v: number, seed: number): number =>
-  noise(u, v, 8, seed) * 0.5 + noise(u, v, 16, seed + 1) * 0.3 + noise(u, v, 32, seed + 2) * 0.2;
-
-const smooth = (a: number, b: number, x: number): number => {
-  const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
-  return t * t * (3 - 2 * t);
-};
-
-// ---------- Patterns: each returns the height (0..1) and an RGB colour at (u, v) ----------
-
-type Texel = { h: number; rgb: [number, number, number] };
-type Pattern = (u: number, v: number) => Texel;
-
-const mix3 = (a: number[], b: number[], t: number): [number, number, number] => [
-  a[0]! + (b[0]! - a[0]!) * t,
-  a[1]! + (b[1]! - a[1]!) * t,
-  a[2]! + (b[2]! - a[2]!) * t,
-];
-
-/** Rows of blocks, each row shifted half a block: bricks or stone blocks. */
-function blocks(
-  cols: number,
-  rows: number,
-  groove: number,
-  palette: number[][],
-  mortar: number[],
-  rough: number,
-  seed: number,
-): Pattern {
-  return (u, v) => {
-    const row = Math.floor(v * rows);
-    const shifted = u * cols + (row % 2) * 0.5;
-    const col = Math.floor(shifted);
-    const bx = shifted - col;
-    const by = v * rows - row;
-    // Distance to the nearest joint, in texture units.
-    const d = Math.min(Math.min(bx, 1 - bx) / cols, Math.min(by, 1 - by) / rows);
-    const edge = smooth(groove * 0.3, groove * 1.6, d);
-    const id = hash2(((col % cols) + cols) % cols, row, seed);
-    const grain = fbm(u, v, seed);
-    const h = (0.12 + 0.88 * edge) * (0.82 + 0.18 * id) * (1 - rough * 0.25 + rough * 0.5 * grain);
-    const base = mix3(
-      palette[Math.floor(id * palette.length) % palette.length]!,
-      palette[0]!,
-      0.25,
-    );
-    const tone = 0.8 + 0.4 * grain;
-    const rgb = mix3(
-      mortar,
-      base.map((c) => c * tone),
-      edge,
-    );
-    return { h: Math.min(Math.max(h, 0), 1), rgb };
-  };
-}
-
-/** Rounded stones packed together (a jittered grid, with the nearest cell deciding). */
-function cobble(cells: number, seed: number): Pattern {
-  return (u, v) => {
-    const x = u * cells;
-    const y = v * cells;
-    const cx = Math.floor(x);
-    const cy = Math.floor(y);
-    let best = 9;
-    let second = 9;
-    let bestId = 0;
-    for (let j = -1; j <= 1; j++) {
-      for (let i = -1; i <= 1; i++) {
-        const wx = (((cx + i) % cells) + cells) % cells;
-        const wy = (((cy + j) % cells) + cells) % cells;
-        const px = cx + i + 0.15 + 0.7 * hash2(wx, wy, seed);
-        const py = cy + j + 0.15 + 0.7 * hash2(wx, wy, seed + 5);
-        const dist = Math.hypot(x - px, y - py);
-        if (dist < best) {
-          second = best;
-          best = dist;
-          bestId = hash2(wx, wy, seed + 9);
-        } else if (dist < second) second = dist;
-      }
-    }
-    const edge = smooth(0.0, 0.32, second - best);
-    const grain = fbm(u, v, seed);
-    const h = (0.08 + 0.92 * edge) * (0.85 + 0.15 * bestId) * (0.9 + 0.2 * grain);
-    const stone = [95 + bestId * 55, 92 + bestId * 50, 86 + bestId * 45];
-    return {
-      h: Math.min(Math.max(h, 0), 1),
-      rgb: mix3(
-        [38, 34, 30],
-        stone.map((c) => c * (0.8 + 0.4 * grain)),
-        edge,
-      ),
-    };
-  };
-}
-
-/** Riveted metal panels split by grooves. */
-function plates(panels: number, seed: number): Pattern {
-  return (u, v) => {
-    const x = u * panels;
-    const y = v * panels;
-    const fx = x - Math.floor(x);
-    const fy = y - Math.floor(y);
-    const d = Math.min(Math.min(fx, 1 - fx), Math.min(fy, 1 - fy)) / panels;
-    const groove = smooth(0.004, 0.016, d);
-    // A rivet near each corner of a panel.
-    const rx = Math.min(fx, 1 - fx);
-    const ry = Math.min(fy, 1 - fy);
-    const rivet = 1 - smooth(0.02, 0.06, Math.hypot(rx - 0.09, ry - 0.09));
-    const scratch = noise(u * 3, v * 40, 40, seed) * 0.5 + noise(u * 40, v * 3, 40, seed + 2) * 0.5;
-    const grain = fbm(u, v, seed);
-    const h = Math.min(0.35 + 0.45 * groove + 0.2 * rivet + 0.04 * scratch, 1);
-    const metal = 120 + 40 * grain + 25 * scratch;
-    const rgb = mix3([30, 30, 32], [metal * 0.95, metal, metal * 1.08], 0.35 + 0.65 * groove);
-    return { h, rgb: mix3(rgb, [rgb[0] + 55, rgb[1] + 55, rgb[2] + 60], rivet * 0.5) };
-  };
-}
-
-const PATTERNS: Record<PomKind, Pattern> = {
-  brick: blocks(
-    4,
-    8,
-    0.012,
-    [
-      [150, 62, 46],
-      [128, 54, 40],
-      [166, 80, 58],
-      [112, 48, 38],
-    ],
-    [150, 146, 138],
-    0.7,
-    3,
-  ),
-  stone: blocks(
-    2,
-    4,
-    0.02,
-    [
-      [150, 148, 140],
-      [128, 126, 120],
-      [168, 162, 150],
-    ],
-    [60, 58, 54],
-    1,
-    11,
-  ),
-  plates: plates(2, 21),
-  cobble: cobble(7, 31),
-};
-
-// ---------- Textures and materials ----------
-
-type Surface = { albedo: THREE.CanvasTexture; height: THREE.CanvasTexture };
 const surfaces = new Map<PomKind, Surface>();
+
+const SLICE_MS = 10;
+
+const put = (out: Uint8ClampedArray, i: number, r: number, g: number, b: number): void => {
+  out[i] = r;
+  out[i + 1] = g;
+  out[i + 2] = b;
+  out[i + 3] = 255;
+};
+
+type Job = {
+  kind: PomKind;
+  row: number;
+  planes: {
+    data: Uint8ClampedArray;
+    texture: THREE.CanvasTexture;
+    canvas: HTMLCanvasElement;
+    fill: (t: Texel, out: Uint8ClampedArray, i: number) => void;
+  }[];
+};
+const jobs: Job[] = [];
+let running = false;
+
+/** A canvas texture that starts as a flat neutral colour and is filled in later. */
+function plane(
+  color: boolean,
+  neutral: [number, number, number],
+  fill: Job['planes'][number]['fill'],
+): Job['planes'][number] {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = SIZE;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = `rgb(${neutral[0]}, ${neutral[1]}, ${neutral[2]})`;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 8;
+  texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  return { data: new Uint8ClampedArray(SIZE * SIZE * 4), texture, canvas, fill };
+}
+
+/** Evaluates the patterns a few milliseconds per frame, so a map never freezes while it loads. */
+function work(): void {
+  const t0 = performance.now();
+  while (jobs.length > 0 && performance.now() - t0 < SLICE_MS) {
+    const job = jobs[0]!;
+    const { pattern } = SURFACES[job.kind];
+    const y = job.row++;
+    for (let x = 0; x < SIZE; x++) {
+      const t = pattern((x + 0.5) / SIZE, (y + 0.5) / SIZE);
+      const i = (y * SIZE + x) * 4;
+      for (const p of job.planes) p.fill(t, p.data, i);
+    }
+    if (job.row >= SIZE) {
+      for (const p of job.planes) {
+        p.canvas
+          .getContext('2d')!
+          .putImageData(new ImageData(p.data as Uint8ClampedArray<ArrayBuffer>, SIZE, SIZE), 0, 0);
+        p.texture.needsUpdate = true;
+      }
+      jobs.shift();
+    }
+  }
+  if (jobs.length > 0) requestAnimationFrame(work);
+  else running = false;
+}
 
 function surfaceOf(kind: PomKind): Surface {
   const cached = surfaces.get(kind);
   if (cached) return cached;
-  const pattern = PATTERNS[kind];
-  const albedo = document.createElement('canvas');
-  const height = document.createElement('canvas');
-  albedo.width = albedo.height = height.width = height.height = SIZE;
-  const ca = albedo.getContext('2d')!;
-  const ch = height.getContext('2d')!;
-  const ia = ca.createImageData(SIZE, SIZE);
-  const ih = ch.createImageData(SIZE, SIZE);
-  for (let y = 0; y < SIZE; y++) {
-    for (let x = 0; x < SIZE; x++) {
-      const t = pattern((x + 0.5) / SIZE, (y + 0.5) / SIZE);
-      const i = (y * SIZE + x) * 4;
-      ia.data[i] = t.rgb[0];
-      ia.data[i + 1] = t.rgb[1];
-      ia.data[i + 2] = t.rgb[2];
-      ia.data[i + 3] = 255;
-      ih.data[i] = ih.data[i + 1] = ih.data[i + 2] = Math.round(t.h * 255);
-      ih.data[i + 3] = 255;
-    }
+  const def = SURFACES[kind];
+  const albedo = plane(true, [128, 128, 128], (t, out, i) =>
+    put(out, i, t.rgb[0], t.rgb[1], t.rgb[2]),
+  );
+  const height = plane(false, [128, 128, 128], (t, out, i) =>
+    put(out, i, t.h * 255, t.h * 255, t.h * 255),
+  );
+  const glow = def.glow
+    ? plane(true, [0, 0, 0], (t, out, i) =>
+        put(out, i, t.glow?.[0] ?? 0, t.glow?.[1] ?? 0, t.glow?.[2] ?? 0),
+      )
+    : null;
+  // The roughness is read from the green channel.
+  const rough = def.rough
+    ? plane(false, [0, def.roughness * 255, 0], (t, out, i) =>
+        put(out, i, 0, (t.rough ?? def.roughness) * 255, 0),
+      )
+    : null;
+  const planes = [albedo, height, ...(glow ? [glow] : []), ...(rough ? [rough] : [])];
+  jobs.push({ kind, row: 0, planes });
+  if (!running) {
+    running = true;
+    requestAnimationFrame(work);
   }
-  ca.putImageData(ia, 0, 0);
-  ch.putImageData(ih, 0, 0);
-  const make = (canvas: HTMLCanvasElement, color: boolean) => {
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.anisotropy = 8;
-    tex.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-    return tex;
+  const surface: Surface = {
+    albedo: albedo.texture,
+    height: height.texture,
+    glow: glow?.texture ?? null,
+    rough: rough?.texture ?? null,
   };
-  const surface = { albedo: make(albedo, true), height: make(height, false) };
   surfaces.set(kind, surface);
   return surface;
 }
@@ -350,16 +242,34 @@ const FRAGMENT_NORMAL = /* glsl */ `
 }
 `;
 
+// The roughness and glow maps are read where the carved surface really is, not where the face is.
+const FRAGMENT_ROUGHNESS = /* glsl */ `
+float roughnessFactor = roughness;
+#ifdef USE_ROUGHNESSMAP
+roughnessFactor *= textureGrad(roughnessMap, pomUv, pomGx, pomGy).g;
+#endif
+`;
+const FRAGMENT_EMISSIVE = /* glsl */ `
+#ifdef USE_EMISSIVEMAP
+totalEmissiveRadiance *= textureGrad(emissiveMap, pomUv, pomGx, pomGy).rgb;
+#endif
+`;
+
 export function createPomMaterial(kind: PomKind): THREE.MeshStandardMaterial {
-  const { albedo, height } = surfaceOf(kind);
+  const { albedo, height, glow, rough } = surfaceOf(kind);
+  const def = SURFACES[kind];
   const material = new THREE.MeshStandardMaterial({
     map: albedo,
-    roughness: 0.92,
-    metalness: kind === 'plates' ? 0.5 : 0,
+    roughness: rough ? 1 : def.roughness,
+    roughnessMap: rough,
+    metalness: def.metalness,
+    emissive: glow ? 0xffffff : 0x000000,
+    emissiveMap: glow,
+    emissiveIntensity: 1.4,
   });
   const uniforms: PomUniforms = {
     pomHeight: { value: height },
-    pomDepth: { value: DEPTH[kind] / POM_TILE },
+    pomDepth: { value: def.depth / def.tile },
     pomSteps: { value: stepsFor(quality) },
     pomShadow: { value: quality >= 2 ? 1 : 0 },
   };
@@ -368,6 +278,8 @@ export function createPomMaterial(kind: PomKind): THREE.MeshStandardMaterial {
     shader.fragmentShader = shader.fragmentShader
       .replace('void main() {', `${FRAGMENT_DECLARATIONS}\nvoid main() {`)
       .replace('#include <map_fragment>', FRAGMENT_UV)
+      .replace('#include <roughnessmap_fragment>', FRAGMENT_ROUGHNESS)
+      .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE)
       .replace(
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>\n${FRAGMENT_NORMAL}`,
@@ -380,11 +292,13 @@ export function createPomMaterial(kind: PomKind): THREE.MeshStandardMaterial {
 
 /** A box whose faces carry the texture at its real size, so the bricks keep their proportions. */
 export function pomBox(
+  kind: PomKind,
   width: number,
   height: number,
   depth: number,
   material: THREE.Material,
 ): THREE.Mesh {
+  const tile = SURFACES[kind].tile;
   const geometry = new THREE.BoxGeometry(width, height, depth);
   const uv = geometry.getAttribute('uv') as THREE.BufferAttribute;
   // Faces in order: +x, -x, +y, -y, +z, -z; four vertices each.
@@ -399,7 +313,7 @@ export function pomBox(
   sizes.forEach(([w, h], face) => {
     for (let i = 0; i < 4; i++) {
       const k = face * 4 + i;
-      uv.setXY(k, (uv.getX(k) * w) / POM_TILE, (uv.getY(k) * h) / POM_TILE);
+      uv.setXY(k, (uv.getX(k) * w) / tile, (uv.getY(k) * h) / tile);
     }
   });
   const mesh = new THREE.Mesh(geometry, material);

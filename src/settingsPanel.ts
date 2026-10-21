@@ -80,6 +80,7 @@ export class SettingsPanel {
       'Quality',
       s.quality,
       [
+        ['toaster', 'Toaster'],
         ['low', 'Low'],
         ['medium', 'Medium'],
         ['high', 'High'],
@@ -104,11 +105,22 @@ export class SettingsPanel {
       panel,
       'Resolution',
       s.resolutionScale,
-      0.5,
+      0.25,
       1,
       0.05,
       (v) => `${Math.round(v * 100)}%`,
       (v) => this.change({ resolutionScale: v }),
+    );
+    this.select(
+      panel,
+      'Surface depth',
+      String(s.parallax),
+      [
+        ['0', 'Off'],
+        ['1', 'Light'],
+        ['2', 'Full, with shadows'],
+      ],
+      (v) => this.change({ parallax: Number(v) }),
     );
     this.toggle(panel, 'Blood and gibs', s.gore, (v) => this.change({ gore: v }));
     this.select(

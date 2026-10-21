@@ -5,6 +5,7 @@ export * from './rng';
 export * from './config';
 export * from './collision';
 export * from './terrain';
+export * from './lab';
 export * from './types';
 export { firstPlayerOf, isHostile, localPlayer } from './players';
 export { createGame, step } from './game';

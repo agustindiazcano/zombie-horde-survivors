@@ -21,6 +21,8 @@ import { SkyLightViews } from './skyLights';
 import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
+import { setPomQuality } from './pom';
+import { Sirens } from './sirens';
 import { GroundItemViews } from './groundItems';
 import { PickupMeshes } from './pickups';
 import { createShip } from './ships';
@@ -238,6 +240,7 @@ export class GameRenderer {
   private readonly orbViews: OrbViews;
   private readonly skyLights = new SkyLightViews();
   private readonly streetLights: StreetLights;
+  private readonly sirens: Sirens;
   private readonly looseParts = new LooseParts();
   private readonly pickups = new PickupMeshes();
   /** Remaining hit-flash time per enemy id. */
@@ -292,6 +295,8 @@ export class GameRenderer {
     this.orbViews = new OrbViews((x, z) => this.groundAt(x, z), this.renderer);
     this.streetLights = new StreetLights(this.scene);
     this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
+    this.sirens = new Sirens(this.scene);
+    this.sirens.set(this.arenaGroup.userData.sirens ?? []);
     this.fireViews = new FireViews(config, (x, z) => this.groundAt(x, z));
     this.structureViews = new StructureViews(
       config,
@@ -476,6 +481,7 @@ export class GameRenderer {
     });
     this.arenaGroup = buildArena(arena);
     this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
+    this.sirens.set(this.arenaGroup.userData.sirens ?? []);
     this.scene.add(this.arenaGroup);
     this.halfSize = arena.halfSize;
     const cam = this.sun.shadow.camera;
@@ -510,6 +516,7 @@ export class GameRenderer {
     this.skyLights.updatePhones(state, this.config, alpha);
     this.updateBlackout(state);
     this.streetLights.update(this.camera.position, dt);
+    this.sirens.update(dt);
     this.syncCrates(state, dt);
     this.effects.update(dt);
     this.grenades.update(state, dt);
@@ -1310,9 +1317,13 @@ export class GameRenderer {
     shadowMapSize: number;
     resolutionScale: number;
     gore: boolean;
+    parallax: number;
   }): void {
     this.goreEnabled = g.gore;
+    setPomQuality(g.parallax);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * g.resolutionScale);
+    // Below half resolution the picture is drawn in plain blocks instead of blurred.
+    this.renderer.domElement.style.imageRendering = g.resolutionScale < 0.5 ? 'pixelated' : 'auto';
     this.resize();
     this.sun.castShadow = g.shadows;
     if (this.sun.shadow.mapSize.x !== g.shadowMapSize) {

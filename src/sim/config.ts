@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LAB_PROP_HEIGHTS, SEE_THROUGH_GLASS, type GlassKind } from './lab';
 import { steepObstacles, waterObstacles } from './terrain';
 import type { Vec2 } from './vec';
 
@@ -380,11 +381,8 @@ const PROP_HEIGHTS: Record<string, number> = {
   tree: 6,
   lamp: 5,
   car: 1.5,
-  // The texture lab: tall walls and a floor slab low enough to walk over.
-  pom_brick: 3.2,
-  pom_stone: 3.2,
-  pom_plates: 3.2,
-  pom_cobble: 0.2,
+  // The texture lab: walls, floor slabs low enough to walk over, glass and sirens.
+  ...LAB_PROP_HEIGHTS,
 };
 
 function propObstacles(map: MapData): Obstacle[] {
@@ -404,6 +402,12 @@ function propObstacles(map: MapData): Obstacle[] {
       box.facing = p.rotation;
       const height = PROP_HEIGHTS[p.asset];
       if (height) box.height = height;
+      if (
+        p.asset.startsWith('glass_') &&
+        SEE_THROUGH_GLASS.includes(p.asset.slice(6) as GlassKind)
+      ) {
+        box.seeThrough = true;
+      }
     }
     return [box];
   });

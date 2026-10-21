@@ -1,5 +1,5 @@
 /** Player-facing options, kept in the browser (localStorage). No Three.js or DOM here. */
-export type Quality = 'low' | 'medium' | 'high' | 'custom';
+export type Quality = 'toaster' | 'low' | 'medium' | 'high' | 'custom';
 
 export interface Settings {
   /** Preset name, or 'custom' once any graphics option is changed by hand. */
@@ -7,10 +7,12 @@ export interface Settings {
   shadows: boolean;
   /** Shadow map resolution in pixels (square). */
   shadowMapSize: number;
-  /** Fraction of the screen's full pixel density the game renders at (0.5 to 1). */
+  /** Fraction of the screen's full pixel density the game renders at (0.25 to 1; the Toaster preset goes below the old 0.5 floor). */
   resolutionScale: number;
   /** Blood and gibs when enemies burst. */
   gore: boolean;
+  /** Depth of carved surfaces (parallax occlusion mapping): 0 off, 1 light, 2 full with sun shadows. */
+  parallax: number;
   /** Dim lighting with a flashlight per soldier. */
   darkMode: boolean;
   showFps: boolean;
@@ -20,12 +22,17 @@ export interface Settings {
   volume: number;
 }
 
-type GraphicsFields = Pick<Settings, 'shadows' | 'shadowMapSize' | 'resolutionScale' | 'gore'>;
+type GraphicsFields = Pick<
+  Settings,
+  'shadows' | 'shadowMapSize' | 'resolutionScale' | 'gore' | 'parallax'
+>;
 
-export const PRESETS: Record<'low' | 'medium' | 'high', GraphicsFields> = {
-  low: { shadows: false, shadowMapSize: 1024, resolutionScale: 0.65, gore: true },
-  medium: { shadows: true, shadowMapSize: 1024, resolutionScale: 0.85, gore: true },
-  high: { shadows: true, shadowMapSize: 2048, resolutionScale: 1, gore: true },
+export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high', GraphicsFields> = {
+  // For machines that struggle: a third of the pixels each way, drawn blocky, no shadows or depth.
+  toaster: { shadows: false, shadowMapSize: 1024, resolutionScale: 0.35, gore: false, parallax: 0 },
+  low: { shadows: false, shadowMapSize: 1024, resolutionScale: 0.65, gore: true, parallax: 1 },
+  medium: { shadows: true, shadowMapSize: 1024, resolutionScale: 0.85, gore: true, parallax: 1 },
+  high: { shadows: true, shadowMapSize: 2048, resolutionScale: 1, gore: true, parallax: 2 },
 };
 
 export const SHADOW_SIZES = [1024, 2048, 4096] as const;
@@ -43,13 +50,14 @@ const KEY = 'zombie-horde-survivors.settings';
 
 /** The preset whose graphics values match, or 'custom'. */
 export function qualityOf(s: GraphicsFields): Quality {
-  for (const name of ['low', 'medium', 'high'] as const) {
+  for (const name of ['toaster', 'low', 'medium', 'high'] as const) {
     const p = PRESETS[name];
     if (
       p.shadows === s.shadows &&
       p.shadowMapSize === s.shadowMapSize &&
       p.resolutionScale === s.resolutionScale &&
-      p.gore === s.gore
+      p.gore === s.gore &&
+      p.parallax === s.parallax
     ) {
       return name;
     }
@@ -77,8 +85,9 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     quality: d.quality,
     shadows: bool(raw.shadows, d.shadows),
     shadowMapSize: size,
-    resolutionScale: Math.round(clamp(raw.resolutionScale, 0.5, 1, d.resolutionScale) * 20) / 20,
+    resolutionScale: Math.round(clamp(raw.resolutionScale, 0.25, 1, d.resolutionScale) * 20) / 20,
     gore: bool(raw.gore, d.gore),
+    parallax: Math.round(clamp(raw.parallax, 0, 2, d.parallax)),
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),
     aimToggle: bool(raw.aimToggle, d.aimToggle),

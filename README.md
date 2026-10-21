@@ -78,13 +78,13 @@ There are two kinds of experience. The **global** XP comes from the blue orbs an
 
 Press **O** (or use the Settings button on the title screen and the pause screen) for the settings window. Opened in the middle of a game it pauses, and gives the game back when you close it. Everything is saved in your browser.
 
-| Section  | Options                                                                                                                                  |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Graphics | Quality preset (Low / Medium / High), shadows on/off, shadow quality, resolution (50-100% of the screen's pixel density), blood and gibs |
-| Lighting | Normal, or dark with a flashlight per soldier (also **L**)                                                                               |
-| Other    | FPS counter (also **F3**), sound volume                                                                                                  |
+| Section  | Options                                                                                                                                                                      |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Graphics | Quality preset (Toaster / Low / Medium / High), shadows on/off, shadow quality, resolution (25-100% of the screen's pixel density), surface depth (parallax), blood and gibs |
+| Lighting | Normal, or dark with a flashlight per soldier (also **L**)                                                                                                                   |
+| Other    | FPS counter (also **F3**), sound volume                                                                                                                                      |
 
-If the game runs slowly, try the **Low** preset or lower the resolution. Changing any graphics option by hand switches the preset to Custom.
+If the game runs slowly, try the **Low** preset or lower the resolution. **Toaster** goes further: about a third of the pixels each way, drawn blocky, with no shadows, no surface depth and no gibs. Changing any graphics option by hand switches the preset to Custom.
 
 ## Perks and the shop
 

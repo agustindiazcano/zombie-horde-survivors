@@ -44,6 +44,7 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
 
   const obstacleMat = new THREE.MeshStandardMaterial({ color: 0x8a6d4b });
   const lamps: { x: number; y: number; z: number }[] = [];
+  const sirens: { x: number; y: number; z: number }[] = [];
   for (const o of arena.base ?? arena.obstacles) {
     if (o.water) continue;
     const shaped = buildProp(o);
@@ -52,6 +53,8 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
       shaped.position.y = y;
       group.add(shaped);
       // A lamp's real light hangs over the street at the head, which leans the way the lamp faces.
+      if (o.asset === 'siren') sirens.push({ x: o.x, y: y + 2.45, z: o.z });
+      if (o.asset === 'police_car') sirens.push({ x: o.x, y: y + 1.5, z: o.z });
       if (o.asset === 'lamp') {
         const f = o.facing ?? 0;
         lamps.push({ x: o.x + Math.sin(f) * 1.05, y, z: o.z + Math.cos(f) * 1.05 });
@@ -69,6 +72,7 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
   }
 
   group.userData.lamps = lamps;
+  group.userData.sirens = sirens;
   return group;
 }
 

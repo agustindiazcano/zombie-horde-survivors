@@ -1,47 +1,74 @@
-"""Generates data/maps/map-11.json: the texture lab. A flat 80 x 80 arena with walls in four
-parallax-mapped materials (brick, stone, metal plates; a cobble floor slab), set in different
-directions so the sun lights each differently. The `timeControl` rule lets the player turn the
-time of day with the , and . keys.
+"""Generates data/maps/map-11.json: the texture lab. A flat 160 x 160 arena laid out in zones:
+
+  * a row of eight floor slabs (cobble, metal, sci-fi, alien, dirt, sand, wet, road) and a long road
+  * a row of eight parallax-mapped walls (brick, stone, plates, concrete, wood, corrugated, sci-fi, alien)
+  * a glass gallery: six kinds of window in front of a dark wall
+  * a police scene (patrol car, siren post, wet street) to see the red and blue lights
+  * a small sci-fi / alien corner
+
+The `timeControl` rule lets the player turn the time of day with the , and . keys.
+All of these assets are drawn by src/render (pom.ts, glass.ts, sirens.ts); see src/sim/lab.ts.
 
 Usage (from the repo root): python scripts/gen-map11.py ."""
 import json
 import sys
 
 root = sys.argv[1]
+N = 160
+
+FLOORS = ["cobble", "metal", "scififloor", "alienfloor", "dirt", "sand", "wet", "road"]
+WALLS = ["brick", "stone", "plates", "concrete", "wood", "corrugated", "scifiwall", "alienwall"]
+GLASS = ["clear", "blue", "green", "smoke", "frosted", "cracked"]
 
 
-def prop(asset, x, z, hw, hd):
-    return {"asset": asset, "x": x, "z": z, "rotation": 0, "scale": 1, "layer": "outdoor",
+def prop(asset, x, z, hw, hd, rotation=0):
+    return {"asset": asset, "x": x, "z": z, "rotation": rotation, "scale": 1, "layer": "outdoor",
             "collider": {"halfW": hw, "halfD": hd}}
 
 
-props = [prop("pom_cobble", 0, 0, 14, 14)]
-# The far wall: one of each material, facing the squad.
-for i, asset in enumerate(["pom_brick", "pom_stone", "pom_plates"]):
-    props.append(prop(asset, -22 + i * 22, -32, 9, 0.6))
-# Side walls running north-south, lit from the other side of the day.
-props.append(prop("pom_brick", -32, -8, 0.6, 9))
-props.append(prop("pom_stone", 32, -8, 0.6, 9))
-props.append(prop("pom_plates", -32, 14, 0.6, 9))
-props.append(prop("pom_brick", 32, 14, 0.6, 9))
-# A corridor of two parallel walls to walk between, and a short stub that turns the other way.
-props.append(prop("pom_stone", -12, 26, 9, 0.6))
-props.append(prop("pom_stone", 12, 26, 9, 0.6))
-props.append(prop("pom_plates", 20, 8, 0.6, 5))
-props.append(prop("pom_brick", -20, 8, 0.6, 5))
-# Thick pillars to look at the edges and corners.
+props = []
+# Floors: eight 16 m slabs in a row you can walk along (they are 0.2 m high: you step onto them).
+for i, kind in enumerate(FLOORS):
+    props.append(prop(f"pom_{kind}", -56 + i * 16, 20, 8, 8))
+# A long road along the south edge, where the squad starts.
+props.append(prop("pom_road", 0, 62, 40, 6))
+# Walls: one of each, 12 m wide, in a row north of the floors.
+for i, kind in enumerate(WALLS):
+    props.append(prop(f"pom_{kind}", -56 + i * 16, -10, 6, 0.6))
+# The same walls turned the other way, further north, so the sun lights their other face.
+for i, kind in enumerate(reversed(WALLS)):
+    props.append(prop(f"pom_{kind}", -56 + i * 16, -30, 0.6, 6))
+# Glass gallery: a dark wall and six panes in front of it, then two panes in a corridor.
+props.append(prop("pom_plates", 0, -62, 60, 0.6))
+for i, kind in enumerate(GLASS):
+    props.append(prop(f"glass_{kind}", -50 + i * 20, -52, 4.5, 0.1))
+props.append(prop("pom_concrete", -30, -42, 0.6, 3))
+props.append(prop("pom_concrete", 30, -42, 0.6, 3))
+# Police scene in the west: a patrol car, a siren post, a wet street and walls to light up.
+props.append(prop("pom_wet", -58, 50, 16, 10))
+props.append(prop("police_car", -60, 52, 2.3, 1.0))
+props.append(prop("siren", -52, 44, 0.4, 0.4))
+props.append(prop("pom_brick", -58, 36, 12, 0.6))
+props.append(prop("pom_concrete", -74, 46, 0.6, 8))
+# Sci-fi and alien corner in the east.
+props.append(prop("pom_scififloor", 52, 50, 14, 10))
+props.append(prop("pom_scifiwall", 52, 38, 14, 0.6))
+props.append(prop("pom_alienfloor", 58, 72, 14, 6))
+props.append(prop("pom_alienwall", 68, 52, 0.6, 8))
+props.append(prop("pom_metal", 30, 44, 8, 8))
+# Pillars to look at corners and edges.
 for x in (-8, 8):
-    props.append(prop("pom_stone", x, -14, 1.2, 1.2))
+    props.append(prop("pom_stone", x, 40, 1.2, 1.2))
 
 units = [
-    {"type": f"marine{i + 1}", "x": -3 + i * 2, "z": 18, "owner": "p1", "rotation": 3.14}
+    {"type": f"marine{i + 1}", "x": -3 + i * 2, "z": 60, "owner": "p1", "rotation": 3.14}
     for i in range(4)
 ]
 
 data = {
     "version": 1,
     "meta": {"id": "map-11", "name": "Map 11 - Texture lab", "author": "Zombie Horde Survivors",
-             "created": "2026-10-21", "updated": "2026-10-21", "size": {"width": 80, "depth": 80}},
+             "created": "2026-10-21", "updated": "2026-10-21", "size": {"width": N, "depth": N}},
     "terrain": {"heights": None, "water": None, "paint": None},
     "surfaces": [],
     "props": props,
@@ -50,7 +77,7 @@ data = {
         {"id": "horde", "name": "The horde", "kind": "ai", "team": 1, "color": "#d94b3d"},
     ],
     "units": units,
-    "environment": {"sky": True, "timeOfDay": 9, "sun": True, "moon": True, "clouds": 0.1, "fog": 0},
+    "environment": {"sky": True, "timeOfDay": 19, "sun": True, "moon": True, "clouds": 0.1, "fog": 0},
     "logic": {"mode": "waves", "noWaves": True, "timeControl": True, "startView": "third",
               "startGold": 0, "boss": {"enabled": False}},
 }
