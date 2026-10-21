@@ -80,7 +80,7 @@ Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watch
 
 ### 2l — 🔴 Helicopter and Map 8 (built 2026-10-21, branch `feat/helicopter`)
 
-Procedural helicopter with its own mechanics ([worklog](docs/worklog/2026-10-21-helicopter.md)); controls in [docs/CONTROLS.md](docs/CONTROLS.md).
+Procedural helicopter (plus Huey, Chinook, V-22) with its own mechanics ([worklog](docs/worklog/2026-10-21-helicopter.md)); controls in [docs/CONTROLS.md](docs/CONTROLS.md).
 
 - [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 8. Hold W 10 s in the helicopter, Space / C / Shift, V on the ground; in RTS order the second one around (Space, C, H). Tune `vehicles.helicopter.air` in `game.json` and the `HELI_*` look constants (the bank sign is a guess).
 - [ ] 🟡 Models for vehicles, police, civilians and military units: ask before downloading (CC0 / CC-BY only; Kenney and Quaternius are the usual candidates, check each licence).

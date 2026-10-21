@@ -23,7 +23,7 @@ import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
 import { GroundItemViews } from './groundItems';
 import { PickupMeshes } from './pickups';
-import { createGroundShadow, createHelicopter, createJeep, type HelicopterParts } from './vehicles';
+import { createAircraft, createGroundShadow, createJeep, type HelicopterParts } from './vehicles';
 import { GrenadeEffects, type GrenadePreview } from './grenades';
 import { SelectionMarkers } from './markers';
 import { ViewModel } from './viewModel';
@@ -833,12 +833,12 @@ export class GameRenderer {
       let entry = this.vehicles.get(v.id);
       if (!entry) {
         if (v.air) {
-          const heli = createHelicopter();
+          const heli = createAircraft(v.type);
           entry = {
             object: heli.object,
             wheels: [],
             heli,
-            shadow: createGroundShadow(),
+            shadow: createGroundShadow(this.config.vehicles[v.type]!.radius * 1.2),
             pitch: 0,
             bank: 0,
           };
@@ -858,7 +858,9 @@ export class GameRenderer {
       if (v.air && entry.heli) {
         const def = this.config.vehicles[v.type]!;
         // Nose down with speed, banked into the turn; both ease so the machine does not snap.
-        const pitchTarget = (v.speed / def.maxSpeed) * HELI_PITCH;
+        // A tiltrotor flies level: its pods do the leaning.
+        const tiltrotor = entry.heli.nacelles.length > 0;
+        const pitchTarget = (v.speed / def.maxSpeed) * (tiltrotor ? HELI_PITCH / 4 : HELI_PITCH);
         const bankTarget = Math.max(
           -HELI_BANK,
           Math.min(HELI_BANK, turn * 60 * HELI_BANK_PER_TURN),
@@ -867,8 +869,14 @@ export class GameRenderer {
         entry.bank = lerp(entry.bank ?? 0, bankTarget, 0.1);
         entry.heli.tilt.rotation.x = entry.pitch;
         entry.heli.tilt.rotation.z = entry.bank;
-        entry.heli.mainRotor.rotation.y += v.air.rotor * HELI_ROTOR_STEP;
-        entry.heli.tailRotor.rotation.x += v.air.rotor * HELI_ROTOR_STEP * 1.6;
+        for (const r of entry.heli.rotors) {
+          r.group.rotation[r.axis] += v.air.rotor * HELI_ROTOR_STEP * r.speed;
+        }
+        // The pods point up to hover and swing forward with speed.
+        const nacelleTilt = (v.speed / def.maxSpeed) * (Math.PI / 2) * v.air.rotor;
+        for (const pod of entry.heli.nacelles) {
+          pod.rotation.x = lerp(pod.rotation.x, nacelleTilt, 0.08);
+        }
         if (entry.shadow) {
           entry.shadow.position.set(x, ground + 0.06, z);
           entry.shadow.scale.setScalar(1 + alt * 0.03);
@@ -883,7 +891,7 @@ export class GameRenderer {
         this.healthBars.show(
           -v.id - 1,
           x,
-          ground + alt + (v.air ? 4.6 : 2.6),
+          ground + alt + (entry.heli?.height ?? 2.6),
           z,
           2.2,
           v.health / v.maxHealth,

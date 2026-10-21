@@ -367,6 +367,27 @@
       "rotation": 0
     },
     {
+      "type": "huey",
+      "x": 22,
+      "z": -26,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "chinook",
+      "x": 44,
+      "z": -26,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "v22",
+      "x": -44,
+      "z": -26,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
       "type": "marine_wanderer",
       "x": -35,
       "z": 44,

@@ -181,6 +181,18 @@
                 {
                   "id": "helicopter",
                   "name": "Helicopter"
+                },
+                {
+                  "id": "huey",
+                  "name": "UH-1 Huey"
+                },
+                {
+                  "id": "chinook",
+                  "name": "CH-47 Chinook"
+                },
+                {
+                  "id": "v22",
+                  "name": "V-22 Osprey"
                 }
               ]
             },

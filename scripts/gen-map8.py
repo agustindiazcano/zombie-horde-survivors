@@ -35,6 +35,10 @@ units = [
     # Helicopter 1 for flying yourself, helicopter 2 for ordering around in RTS.
     {"type": "helicopter", "x": 0, "z": -26, "owner": "p1", "rotation": 0},
     {"type": "helicopter", "x": -22, "z": -26, "owner": "p1", "rotation": 0},
+    # One of each of the other aircraft, parked in a row.
+    {"type": "huey", "x": 22, "z": -26, "owner": "p1", "rotation": 0},
+    {"type": "chinook", "x": 44, "z": -26, "owner": "p1", "rotation": 0},
+    {"type": "v22", "x": -44, "z": -26, "owner": "p1", "rotation": 0},
 ]
 # Wanderers far to the north and east: they are there to show that an airborne helicopter is safe.
 for k in range(8):

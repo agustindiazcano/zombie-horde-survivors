@@ -386,6 +386,84 @@
         "orbitSpeed": 8,
         "safeAlt": 2.5
       }
+    },
+    "huey": {
+      "name": "UH-1 Huey",
+      "health": 450,
+      "maxSpeed": 22,
+      "accel": 6,
+      "turnRate": 1.7,
+      "radius": 2.4,
+      "seats": 6,
+      "passengersShoot": true,
+      "enterRange": 3,
+      "ramDps": 0,
+      "ramSpeed": 0,
+      "air": {
+        "spoolTime": 10,
+        "aiSpoolTime": 3,
+        "minFlyAlt": 2,
+        "maxAlt": 40,
+        "cruiseAlt": 14,
+        "climbRate": 5,
+        "descendRate": 6,
+        "boostScale": 1.6,
+        "orbitRadius": 14,
+        "orbitSpeed": 8,
+        "safeAlt": 2.5
+      }
+    },
+    "chinook": {
+      "name": "CH-47 Chinook",
+      "health": 900,
+      "maxSpeed": 24,
+      "accel": 5,
+      "turnRate": 1.2,
+      "radius": 3.4,
+      "seats": 10,
+      "passengersShoot": true,
+      "enterRange": 3.5,
+      "ramDps": 0,
+      "ramSpeed": 0,
+      "air": {
+        "spoolTime": 10,
+        "aiSpoolTime": 4,
+        "minFlyAlt": 2,
+        "maxAlt": 40,
+        "cruiseAlt": 16,
+        "climbRate": 4,
+        "descendRate": 5,
+        "boostScale": 1.5,
+        "orbitRadius": 20,
+        "orbitSpeed": 9,
+        "safeAlt": 2.5
+      }
+    },
+    "v22": {
+      "name": "V-22 Osprey",
+      "health": 700,
+      "maxSpeed": 38,
+      "accel": 7,
+      "turnRate": 1.0,
+      "radius": 3.6,
+      "seats": 8,
+      "passengersShoot": true,
+      "enterRange": 3.5,
+      "ramDps": 0,
+      "ramSpeed": 0,
+      "air": {
+        "spoolTime": 10,
+        "aiSpoolTime": 4,
+        "minFlyAlt": 2,
+        "maxAlt": 50,
+        "cruiseAlt": 20,
+        "climbRate": 6,
+        "descendRate": 6,
+        "boostScale": 1.5,
+        "orbitRadius": 32,
+        "orbitSpeed": 16,
+        "safeAlt": 2.5
+      }
     }
   },
   "difficulty": {

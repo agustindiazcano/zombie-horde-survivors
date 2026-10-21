@@ -9,3 +9,16 @@ Branch `feat/helicopter` (from `main` at `54b68c5`, not pushed, no PR). 48 tests
 - **Map 8 "Helicopter test"** (`scripts/gen-map8.py`): two helicopters (one to fly, one to order around), blocks, a wall of blocks, 6 m houses and trees to fly over, and sleeping wanderers to the north.
 - Checked headlessly with a throw-away probe (not kept): engine at 10 s, climb, speed 20 and 24 with Shift, exit blocked in the air, AI take-off, arrival, circle, landing and re-take-off.
 - Not done: models, rotor sound and wind, crash damage when falling, wreck, AI soldiers boarding a helicopter by themselves, weapons on the helicopter, RTS hint line, mobile buttons. Tune the bank and pitch constants (`HELI_*` in `gameRenderer.ts`) after looking at it: the signs of the bank are a guess.
+
+## Second part: Huey, Chinook and V-22
+
+Three more aircraft types in `vehicles` (same `air` block, own numbers) and their own procedural models (`createHuey`, `createChinook`, `createOsprey` in `src/render/vehicles.ts`; `createAircraft(type)` picks one, any other id falls back to the plain helicopter). Rotors are now a list (`HelicopterParts.rotors`, each with an axis and a signed speed), so the Chinook's two rotors turn opposite ways.
+
+| Type         | Seats | Health | Max speed | Notes                                                                                                                        |
+| ------------ | ----- | ------ | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `helicopter` | 4     | 500    | 20        | the generic one                                                                                                              |
+| `huey`       | 6     | 450    | 22        | bubble nose, long tail, two-bladed rotor                                                                                     |
+| `chinook`    | 10    | 900    | 24        | tandem rotors, ramp, wheel pods, no tail rotor; slow to turn                                                                 |
+| `v22`        | 8     | 700    | 38        | wing with a rotor pod at each tip; the pods point up to hover and swing forward with speed (`nacelles`); wide circles (32 m) |
+
+Map 8 now has one of each parked in a row (generic at x=0, Huey x=22, Chinook x=44, V-22 x=-44 and a second generic at x=-22). The pod tilt, rotor sizes and proportions were never seen: tune the builders and the `HELI_*` constants after looking.
