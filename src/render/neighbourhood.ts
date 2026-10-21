@@ -6,6 +6,7 @@ import {
   POM_WALL_KINDS,
   REAL_FLOOR_KINDS,
   REAL_WALL_KINDS,
+  STEP_COUNT,
   type GlassKind,
   type PomKind,
 } from '../sim';
@@ -242,9 +243,37 @@ const POM_ASSETS: Record<string, PomKind> = Object.fromEntries([
     (k) => [`pom_real_${k}`, `real_${k}` as const] as const,
   ),
 ]);
+// The castle test: stone steps, a wooden floor and a taller stone keep.
+for (let i = 1; i <= STEP_COUNT; i++) POM_ASSETS[`step_${i}`] = 'stone';
+POM_ASSETS.floor_wood = 'wood';
+POM_ASSETS.keep_stone = 'stone';
 const GLASS_ASSETS: Record<string, GlassKind> = Object.fromEntries(
   GLASS_KINDS.map((k) => [`glass_${k}`, k]),
 );
+
+const flameMaterial = new THREE.MeshBasicMaterial({ color: 0xff9a2a });
+const flameCoreMaterial = new THREE.MeshBasicMaterial({ color: 0xffe08a });
+const woodMaterial = new THREE.MeshStandardMaterial({ color: 0x5a3b22, roughness: 0.9 });
+
+/** A wall torch: a wooden shaft with a burning head. Its real light comes from `StreetLights`. */
+function buildTorch(o: Obstacle): THREE.Group {
+  const group = new THREE.Group();
+  const shaft = shadowed(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 1.5, 8), woodMaterial),
+  );
+  shaft.position.y = 0.75;
+  const cup = shadowed(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.07, 0.2, 8), poleMaterial),
+  );
+  cup.position.y = 1.55;
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.42, 8), flameMaterial);
+  flame.position.y = 1.85;
+  const core = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.24, 8), flameCoreMaterial);
+  core.position.y = 1.8;
+  group.add(shaft, cup, flame, core);
+  group.position.set(o.x, 0, o.z);
+  return group;
+}
 
 /** A police light stand: a pole and a base. The flashing bar on top belongs to `Sirens`. */
 function buildSirenPost(o: Obstacle): THREE.Group {
@@ -295,6 +324,8 @@ export function buildProp(o: Obstacle): THREE.Group | null {
       return buildCar(o, true);
     case 'siren':
       return buildSirenPost(o);
+    case 'torch':
+      return buildTorch(o);
     default: {
       const pom = POM_ASSETS[o.asset ?? ''];
       if (pom) return buildPom(pom, o);

@@ -821,6 +821,630 @@
         "halfW": 1.2,
         "halfD": 1.2
       }
+    },
+    {
+      "asset": "floor_wood",
+      "x": 0,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 13.4,
+        "halfD": 9.4
+      }
+    },
+    {
+      "asset": "keep_stone",
+      "x": -14,
+      "z": 74,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.6,
+        "halfD": 1.6
+      }
+    },
+    {
+      "asset": "keep_stone",
+      "x": -14,
+      "z": 94,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.6,
+        "halfD": 1.6
+      }
+    },
+    {
+      "asset": "keep_stone",
+      "x": 14,
+      "z": 74,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.6,
+        "halfD": 1.6
+      }
+    },
+    {
+      "asset": "keep_stone",
+      "x": 14,
+      "z": 94,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.6,
+        "halfD": 1.6
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -11.2,
+      "z": 74,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.2000000000000002,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "glass_clear",
+      "x": -8.0,
+      "z": 74,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.0,
+        "halfD": 0.1
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -3.5,
+      "z": 74,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.5,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 3.5,
+      "z": 74,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.5,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "glass_blue",
+      "x": 8.0,
+      "z": 74,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.0,
+        "halfD": 0.1
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 11.2,
+      "z": 74,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.2000000000000002,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -8.2,
+      "z": 94,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4.2,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "glass_green",
+      "x": 0.0,
+      "z": 94,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4.0,
+        "halfD": 0.1
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 8.2,
+      "z": 94,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4.2,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -14,
+      "z": 77.8,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 2.200000000000003
+      }
+    },
+    {
+      "asset": "glass_clear",
+      "x": -14,
+      "z": 82.0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.1,
+        "halfD": 2.0
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -14,
+      "z": 88.2,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 4.200000000000003
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 14,
+      "z": 77.8,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 2.200000000000003
+      }
+    },
+    {
+      "asset": "glass_smoke",
+      "x": 14,
+      "z": 82.0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.1,
+        "halfD": 2.0
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 14,
+      "z": 88.2,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 4.200000000000003
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -6,
+      "z": 76.3,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 1.7000000000000028
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -6,
+      "z": 84.0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 4.0
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -6,
+      "z": 91.7,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 1.7000000000000028
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -9.5,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.9000000000000004,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 3,
+      "z": 79,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.8,
+        "halfD": 0.8
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 3,
+      "z": 89,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.8,
+        "halfD": 0.8
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 10,
+      "z": 79,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.8,
+        "halfD": 0.8
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 10,
+      "z": 89,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.8,
+        "halfD": 0.8
+      }
+    },
+    {
+      "asset": "step_1",
+      "x": 6.5,
+      "z": 91.6,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4.5,
+        "halfD": 1.4
+      }
+    },
+    {
+      "asset": "step_2",
+      "x": 6.5,
+      "z": 92.0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.5,
+        "halfD": 1.0
+      }
+    },
+    {
+      "asset": "torch",
+      "x": -3,
+      "z": 72.8,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "torch",
+      "x": 3,
+      "z": 72.8,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "torch",
+      "x": -15.4,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "torch",
+      "x": 15.4,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "torch",
+      "x": 0,
+      "z": 95.4,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "torch",
+      "x": 13.0,
+      "z": 78,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "torch",
+      "x": 13.0,
+      "z": 90,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "torch",
+      "x": -4.8,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "torch",
+      "x": -3,
+      "z": 75.2,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "torch",
+      "x": 3,
+      "z": 75.2,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.15,
+        "halfD": 0.15
+      }
+    },
+    {
+      "asset": "step_1",
+      "x": 22.4,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.4000000000000004,
+        "halfD": 2.49
+      }
+    },
+    {
+      "asset": "step_2",
+      "x": 23.0,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.8000000000000007,
+        "halfD": 2.48
+      }
+    },
+    {
+      "asset": "step_3",
+      "x": 23.6,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.200000000000001,
+        "halfD": 2.47
+      }
+    },
+    {
+      "asset": "step_4",
+      "x": 24.200000000000003,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.5999999999999996,
+        "halfD": 2.46
+      }
+    },
+    {
+      "asset": "step_1",
+      "x": -24.0,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4.0,
+        "halfD": 2.49
+      }
+    },
+    {
+      "asset": "step_2",
+      "x": -24.5,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3.5,
+        "halfD": 2.48
+      }
+    },
+    {
+      "asset": "step_3",
+      "x": -25.0,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 3.0,
+        "halfD": 2.47
+      }
+    },
+    {
+      "asset": "step_4",
+      "x": -25.5,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.5,
+        "halfD": 2.46
+      }
+    },
+    {
+      "asset": "step_5",
+      "x": -26.0,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2.0,
+        "halfD": 2.45
+      }
+    },
+    {
+      "asset": "step_6",
+      "x": -26.5,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.5,
+        "halfD": 2.44
+      }
+    },
+    {
+      "asset": "step_7",
+      "x": -27.0,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.0,
+        "halfD": 2.43
+      }
+    },
+    {
+      "asset": "step_8",
+      "x": -27.5,
+      "z": 84,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.5,
+        "halfD": 2.42
+      }
     }
   ],
   "players": [
@@ -885,6 +1509,29 @@
     "startGold": 0,
     "boss": {
       "enabled": false
-    }
+    },
+    "structures": [
+      {
+        "type": "door",
+        "x": 0,
+        "z": 74,
+        "turns": 0,
+        "level": 1
+      },
+      {
+        "type": "door",
+        "x": -6,
+        "z": 79,
+        "turns": 1,
+        "level": 1
+      },
+      {
+        "type": "glassDoor",
+        "x": -6,
+        "z": 89,
+        "turns": 1,
+        "level": 1
+      }
+    ]
   }
 }

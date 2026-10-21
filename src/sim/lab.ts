@@ -64,6 +64,10 @@ export const WALL_PROP_HEIGHT = 3.2;
 export const FLOOR_PROP_HEIGHT = 0.2;
 export const GLASS_PROP_HEIGHT = 2.6;
 
+/** Stone steps, `step_1` to `step_8`, each a quarter metre taller than the one before. */
+export const STEP_COUNT = 8;
+export const STEP_RISE = 0.25;
+
 /** Height (m) of each lab asset, for the collider and the line of sight. */
 export const LAB_PROP_HEIGHTS: Record<string, number> = {
   ...Object.fromEntries(POM_WALL_KINDS.map((k) => [`pom_${k}`, WALL_PROP_HEIGHT])),
@@ -71,6 +75,12 @@ export const LAB_PROP_HEIGHTS: Record<string, number> = {
   ...Object.fromEntries(REAL_WALL_KINDS.map((k) => [`pom_real_${k}`, WALL_PROP_HEIGHT])),
   ...Object.fromEntries(REAL_FLOOR_KINDS.map((k) => [`pom_real_${k}`, FLOOR_PROP_HEIGHT])),
   ...Object.fromEntries(GLASS_KINDS.map((k) => [`glass_${k}`, GLASS_PROP_HEIGHT])),
+  ...Object.fromEntries(
+    Array.from({ length: STEP_COUNT }, (_, i) => [`step_${i + 1}`, (i + 1) * STEP_RISE]),
+  ),
+  floor_wood: 0.12,
+  keep_stone: 5.2,
+  torch: 1.9,
   siren: 2.6,
   police_car: 1.9,
 };

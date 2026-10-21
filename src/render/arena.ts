@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { heightAt, OBSTACLE_HEIGHT, type GameConfig } from '../sim';
 import { terrainData, textureColor } from '../terrainData';
-import { buildProp } from './neighbourhood';
+import { buildProp, LAMP_LIGHT_HEIGHT } from './neighbourhood';
 
 const WALL_HEIGHT = 1.5;
 const WALL_THICKNESS = 0.5;
@@ -55,6 +55,7 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
       // A lamp's real light hangs over the street at the head, which leans the way the lamp faces.
       if (o.asset === 'siren') sirens.push({ x: o.x, y: y + 2.45, z: o.z });
       if (o.asset === 'police_car') sirens.push({ x: o.x, y: y + 1.5, z: o.z });
+      if (o.asset === 'torch') lamps.push({ x: o.x, y: y + 1.9 - LAMP_LIGHT_HEIGHT, z: o.z });
       if (o.asset === 'lamp') {
         const f = o.facing ?? 0;
         lamps.push({ x: o.x + Math.sin(f) * 1.05, y, z: o.z + Math.cos(f) * 1.05 });
