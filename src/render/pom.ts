@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import type { PomKind } from '../sim';
+import type { PomKind, ProceduralKind } from '../sim';
 import { SURFACES, type Texel } from './pomPatterns';
+import { isReal, loadReal, realDef } from './realSurfaces';
 
 /**
  * Parallax occlusion mapping (POM) for the texture lab: a surface that looks carved. Each material
@@ -14,10 +15,10 @@ const SIZE = 256;
 const MAX_STEPS = 48;
 
 type Surface = {
-  albedo: THREE.CanvasTexture;
-  height: THREE.CanvasTexture;
-  glow: THREE.CanvasTexture | null;
-  rough: THREE.CanvasTexture | null;
+  albedo: THREE.Texture;
+  height: THREE.Texture;
+  glow: THREE.Texture | null;
+  rough: THREE.Texture | null;
 };
 const surfaces = new Map<PomKind, Surface>();
 
@@ -31,7 +32,7 @@ const put = (out: Uint8ClampedArray, i: number, r: number, g: number, b: number)
 };
 
 type Job = {
-  kind: PomKind;
+  kind: ProceduralKind;
   row: number;
   planes: {
     data: Uint8ClampedArray;
@@ -90,6 +91,11 @@ function work(): void {
 function surfaceOf(kind: PomKind): Surface {
   const cached = surfaces.get(kind);
   if (cached) return cached;
+  if (isReal(kind)) {
+    const loaded = { ...loadReal(kind), glow: null };
+    surfaces.set(kind, loaded);
+    return loaded;
+  }
   const def = SURFACES[kind];
   const albedo = plane(true, [128, 128, 128], (t, out, i) =>
     put(out, i, t.rgb[0], t.rgb[1], t.rgb[2]),
@@ -255,9 +261,19 @@ totalEmissiveRadiance *= textureGrad(emissiveMap, pomUv, pomGx, pomGy).rgb;
 #endif
 `;
 
+/** The carving depth, tile size and material numbers of a surface, procedural or real. */
+function defOf(kind: PomKind): {
+  depth: number;
+  tile: number;
+  roughness: number;
+  metalness: number;
+} {
+  return isReal(kind) ? realDef(kind) : SURFACES[kind];
+}
+
 export function createPomMaterial(kind: PomKind): THREE.MeshStandardMaterial {
   const { albedo, height, glow, rough } = surfaceOf(kind);
-  const def = SURFACES[kind];
+  const def = defOf(kind);
   const material = new THREE.MeshStandardMaterial({
     map: albedo,
     roughness: rough ? 1 : def.roughness,
@@ -298,7 +314,7 @@ export function pomBox(
   depth: number,
   material: THREE.Material,
 ): THREE.Mesh {
-  const tile = SURFACES[kind].tile;
+  const tile = defOf(kind).tile;
   const geometry = new THREE.BoxGeometry(width, height, depth);
   const uv = geometry.getAttribute('uv') as THREE.BufferAttribute;
   // Faces in order: +x, -x, +y, -y, +z, -z; four vertices each.

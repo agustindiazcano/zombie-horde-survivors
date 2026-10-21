@@ -7,8 +7,8 @@
     "created": "2026-10-21",
     "updated": "2026-10-21",
     "size": {
-      "width": 160,
-      "depth": 160
+      "width": 200,
+      "depth": 200
     }
   },
   "terrain": {
@@ -543,6 +543,258 @@
       "layer": "outdoor",
       "collider": {
         "halfW": 8,
+        "halfD": 8
+      }
+    },
+    {
+      "asset": "pom_real_bricks",
+      "x": -48,
+      "z": -76,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_real_sandstone",
+      "x": -32,
+      "z": -76,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_real_planks",
+      "x": -16,
+      "z": -76,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_real_concrete",
+      "x": 0,
+      "z": -76,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_real_plaster",
+      "x": 16,
+      "z": -76,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_real_darkrock",
+      "x": 32,
+      "z": -76,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_real_darkmetal",
+      "x": 48,
+      "z": -76,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_real_paving",
+      "x": -48,
+      "z": -90,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 8,
+        "halfD": 7
+      }
+    },
+    {
+      "asset": "pom_real_roadreal",
+      "x": -32,
+      "z": -90,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 8,
+        "halfD": 7
+      }
+    },
+    {
+      "asset": "pom_real_gravel",
+      "x": -16,
+      "z": -90,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 8,
+        "halfD": 7
+      }
+    },
+    {
+      "asset": "pom_real_mossground",
+      "x": 0,
+      "z": -90,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 8,
+        "halfD": 7
+      }
+    },
+    {
+      "asset": "pom_real_clay",
+      "x": 16,
+      "z": -90,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 8,
+        "halfD": 7
+      }
+    },
+    {
+      "asset": "pom_real_marble",
+      "x": 32,
+      "z": -90,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 8,
+        "halfD": 7
+      }
+    },
+    {
+      "asset": "pom_real_tiles",
+      "x": 48,
+      "z": -90,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 8,
+        "halfD": 7
+      }
+    },
+    {
+      "asset": "pom_real_bricks",
+      "x": 92,
+      "z": -60,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 8
+      }
+    },
+    {
+      "asset": "pom_real_sandstone",
+      "x": 92,
+      "z": -40,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 8
+      }
+    },
+    {
+      "asset": "pom_real_planks",
+      "x": 92,
+      "z": -20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 8
+      }
+    },
+    {
+      "asset": "pom_real_concrete",
+      "x": 92,
+      "z": 0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 8
+      }
+    },
+    {
+      "asset": "pom_real_plaster",
+      "x": 92,
+      "z": 20,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 8
+      }
+    },
+    {
+      "asset": "pom_real_darkrock",
+      "x": 92,
+      "z": 40,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 8
+      }
+    },
+    {
+      "asset": "pom_real_darkmetal",
+      "x": 92,
+      "z": 60,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
         "halfD": 8
       }
     },

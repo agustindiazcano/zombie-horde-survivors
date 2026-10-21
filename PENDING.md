@@ -190,7 +190,8 @@ Plan agreed with the user: a polished one-map, one-mission demo plus waves, prom
 
 - [x] POM test built: procedural brick, stone, plates and cobble, Map 11 "Texture lab", time of day with **,** and **.** ([worklog](docs/worklog/2026-10-21-texture-lab-map-11.md)). 🔴 Look at Map 11 in the browser, move the clock, check FPS with F3, and say if the depth and shadows read well.
 - [x] Done: a Surface depth option in Settings, a Toaster preset, 16 surfaces, glass and sirens ([worklog](docs/worklog/2026-10-21-texture-lab-more.md)). 🔴 Look at Map 11 again (bigger, with sirens at 19:00) and at Settings > Quality > Toaster.
-- [ ] 🟡 Next for POM: POM on the terrain ground, real CC0 texture sets (ask first), siren sound, reflections for wet floors and glass.
+- [x] Real CC0 texture sets (ambientCG, 14 sets, the user approved) are in Map 11 beside the procedural ones ([worklog](docs/worklog/2026-10-21-real-textures.md)). 🔴 Look at them in the browser: scale of each tile, depth, the stretched concrete.
+- [ ] 🟡 Next for POM: POM on the terrain ground, real sci-fi and alien sets (ask first), siren sound, reflections for wet floors and glass, use the downloaded normal maps.
 - [ ] 🟡 **Ground and prop textures with depth.** Today the ground is flat vertex colours (no textures at all). Plan: CC0 PBR sets (albedo, normal, roughness, height) and normal maps first; **parallax occlusion mapping (POM)** as an optional shader on the ground and walls, because three.js 0.186 has no built-in POM (a custom `onBeforeCompile` patch or a TSL node). It costs fragment time, so it needs a quality setting and a distance fade; check FPS with F3.
 - [ ] 🟡 Check the Meshy marine's licence for a paid release before aiming at Steam.
 - [ ] ⚪ Idea: a mod of the marine for Men of War: Assault Squad 2 or Call to Arms. Pipeline unverified (older sources mention 3ds Max and the GEM 2 human-model export); ask the user which engine their earlier mod used.

@@ -1,6 +1,14 @@
 import * as THREE from 'three';
 import type { Obstacle } from '../sim';
-import { GLASS_KINDS, POM_FLOOR_KINDS, POM_WALL_KINDS, type GlassKind, type PomKind } from '../sim';
+import {
+  GLASS_KINDS,
+  POM_FLOOR_KINDS,
+  POM_WALL_KINDS,
+  REAL_FLOOR_KINDS,
+  REAL_WALL_KINDS,
+  type GlassKind,
+  type PomKind,
+} from '../sim';
 import { buildGlass } from './glass';
 import { createPomMaterial, pomBox } from './pom';
 
@@ -228,9 +236,12 @@ export function buildCar(o: Obstacle, police = false): THREE.Group {
   return group;
 }
 
-const POM_ASSETS: Record<string, PomKind> = Object.fromEntries(
-  [...POM_WALL_KINDS, ...POM_FLOOR_KINDS].map((k) => [`pom_${k}`, k]),
-);
+const POM_ASSETS: Record<string, PomKind> = Object.fromEntries([
+  ...[...POM_WALL_KINDS, ...POM_FLOOR_KINDS].map((k) => [`pom_${k}`, k] as const),
+  ...[...REAL_WALL_KINDS, ...REAL_FLOOR_KINDS].map(
+    (k) => [`pom_real_${k}`, `real_${k}` as const] as const,
+  ),
+]);
 const GLASS_ASSETS: Record<string, GlassKind> = Object.fromEntries(
   GLASS_KINDS.map((k) => [`glass_${k}`, k]),
 );

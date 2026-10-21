@@ -121,3 +121,101 @@ author = "Quaternius"
 source = "https://opengameart.org/content/animated-animales-low-poly"
 license = "CC0-1.0"
 path = "public/models/animal-cat.glb"
+
+[[asset]]
+name = "Bricks 059 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Bricks059"
+license = "CC0-1.0"
+path = "public/textures/real/bricks_color.jpg"
+
+[[asset]]
+name = "Bricks 106 A (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Bricks106A"
+license = "CC0-1.0"
+path = "public/textures/real/sandstone_color.jpg"
+
+[[asset]]
+name = "Planks 037 A (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Planks037A"
+license = "CC0-1.0"
+path = "public/textures/real/planks_color.jpg"
+
+[[asset]]
+name = "Concrete 034 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Concrete034"
+license = "CC0-1.0"
+path = "public/textures/real/concrete_color.jpg"
+
+[[asset]]
+name = "Plaster 001 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Plaster001"
+license = "CC0-1.0"
+path = "public/textures/real/plaster_color.jpg"
+
+[[asset]]
+name = "Rock 035 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Rock035"
+license = "CC0-1.0"
+path = "public/textures/real/darkrock_color.jpg"
+
+[[asset]]
+name = "Metal 046 B (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Metal046B"
+license = "CC0-1.0"
+path = "public/textures/real/darkmetal_color.jpg"
+
+[[asset]]
+name = "Paving Stones 070 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/PavingStones070"
+license = "CC0-1.0"
+path = "public/textures/real/paving_color.jpg"
+
+[[asset]]
+name = "Road 007 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Road007"
+license = "CC0-1.0"
+path = "public/textures/real/roadreal_color.jpg"
+
+[[asset]]
+name = "Gravel 023 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Gravel023"
+license = "CC0-1.0"
+path = "public/textures/real/gravel_color.jpg"
+
+[[asset]]
+name = "Ground 037 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Ground037"
+license = "CC0-1.0"
+path = "public/textures/real/mossground_color.jpg"
+
+[[asset]]
+name = "Ground 111 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Ground111"
+license = "CC0-1.0"
+path = "public/textures/real/clay_color.jpg"
+
+[[asset]]
+name = "Marble 012 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Marble012"
+license = "CC0-1.0"
+path = "public/textures/real/marble_color.jpg"
+
+[[asset]]
+name = "Tiles 107 (ambientCG material, shrunk to 512 px)"
+author = "ambientCG"
+source = "https://ambientcg.com/a/Tiles107"
+license = "CC0-1.0"
+path = "public/textures/real/tiles_color.jpg"

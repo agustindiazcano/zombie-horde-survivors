@@ -24,7 +24,34 @@ export const POM_FLOOR_KINDS = [
   'road',
 ] as const;
 
-export type PomKind = (typeof POM_WALL_KINDS)[number] | (typeof POM_FLOOR_KINDS)[number];
+/** Surfaces drawn by code (src/render/pomPatterns.ts). */
+export type ProceduralKind = (typeof POM_WALL_KINDS)[number] | (typeof POM_FLOOR_KINDS)[number];
+
+/**
+ * Real photographed surfaces (CC0, ambientCG), files in public/textures/real/<name>_color.jpg,
+ * _height.jpg and _rough.jpg. The asset is `pom_real_<name>`; the credits are in assets.toml.
+ */
+export const REAL_WALL_KINDS = [
+  'bricks',
+  'sandstone',
+  'planks',
+  'concrete',
+  'plaster',
+  'darkrock',
+  'darkmetal',
+] as const;
+export const REAL_FLOOR_KINDS = [
+  'paving',
+  'roadreal',
+  'gravel',
+  'mossground',
+  'clay',
+  'marble',
+  'tiles',
+] as const;
+export type RealName = (typeof REAL_WALL_KINDS)[number] | (typeof REAL_FLOOR_KINDS)[number];
+
+export type PomKind = ProceduralKind | `real_${RealName}`;
 
 /** Panes of glass in a frame: the asset is `glass_<kind>`. */
 export const GLASS_KINDS = ['clear', 'blue', 'green', 'smoke', 'frosted', 'cracked'] as const;
@@ -41,6 +68,8 @@ export const GLASS_PROP_HEIGHT = 2.6;
 export const LAB_PROP_HEIGHTS: Record<string, number> = {
   ...Object.fromEntries(POM_WALL_KINDS.map((k) => [`pom_${k}`, WALL_PROP_HEIGHT])),
   ...Object.fromEntries(POM_FLOOR_KINDS.map((k) => [`pom_${k}`, FLOOR_PROP_HEIGHT])),
+  ...Object.fromEntries(REAL_WALL_KINDS.map((k) => [`pom_real_${k}`, WALL_PROP_HEIGHT])),
+  ...Object.fromEntries(REAL_FLOOR_KINDS.map((k) => [`pom_real_${k}`, FLOOR_PROP_HEIGHT])),
   ...Object.fromEntries(GLASS_KINDS.map((k) => [`glass_${k}`, GLASS_PROP_HEIGHT])),
   siren: 2.6,
   police_car: 1.9,

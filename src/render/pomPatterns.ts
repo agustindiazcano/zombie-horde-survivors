@@ -1,4 +1,4 @@
-import type { PomKind } from '../sim';
+import type { ProceduralKind } from '../sim';
 
 /**
  * Procedural surfaces for the texture lab. A pattern gives, for a point (u, v) of a tileable
@@ -391,7 +391,7 @@ const STONES = [
   [168, 162, 150],
 ];
 
-export const SURFACES: Record<PomKind, SurfaceDef> = {
+export const SURFACES: Record<ProceduralKind, SurfaceDef> = {
   brick: {
     pattern: blocks(4, 8, 0.012, BRICKS, [150, 146, 138], 0.7, 3),
     depth: 0.1,

@@ -146,7 +146,7 @@ Not in git: `node_modules/`, `dist/`.
 
 ## 9. Assets and licenses
 
-- Only CC0 or CC-BY (3.0 / 4.0) assets, each listed in `assets.toml` (name, author, source, license, path). CI fails otherwise. Currently 11 assets (Quaternius and KayKit models, all CC0).
+- Only CC0 or CC-BY (3.0 / 4.0) assets, each listed in `assets.toml` (name, author, source, license, path). CI fails otherwise. Currently 31 assets: Quaternius and KayKit models (CC0), the Meshy marine (CC-BY-4.0) and 14 ambientCG surface sets (CC0, shrunk to 512 px, in `public/textures/real/`).
 - Models are GLB (glTF binary): +Y up, facing +Z, origin at the feet, about 1.7–2 units tall per `scale`, one skeleton, animations inside the file and in place; no Draco/meshopt compression (the loader has no decoders). Clip names are mapped state → name in `data/characters.json` and must match exactly (e.g. `CharacterArmature|Walk`). Soldiers need idle, run, death; enemies walk, attack, death (death plays once). A model without clips can use `procedural: 'wiggle' | 'hover'`.
 - After adding a model: copy it to `public/models/`, add it to `assets.toml`, map it in `characters.json`, run `npm run credits`, and check the clip names against the file.
 

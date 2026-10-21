@@ -1,10 +1,11 @@
-"""Generates data/maps/map-11.json: the texture lab. A flat 160 x 160 arena laid out in zones:
+"""Generates data/maps/map-11.json: the texture lab. A flat 200 x 200 arena laid out in zones:
 
   * a row of eight floor slabs (cobble, metal, sci-fi, alien, dirt, sand, wet, road) and a long road
   * a row of eight parallax-mapped walls (brick, stone, plates, concrete, wood, corrugated, sci-fi, alien)
   * a glass gallery: six kinds of window in front of a dark wall
   * a police scene (patrol car, siren post, wet street) to see the red and blue lights
   * a small sci-fi / alien corner
+  * real CC0 photographed surfaces (7 walls, 7 floors) in the north, and the walls again along the east edge
 
 The `timeControl` rule lets the player turn the time of day with the , and . keys.
 All of these assets are drawn by src/render (pom.ts, glass.ts, sirens.ts); see src/sim/lab.ts.
@@ -14,11 +15,14 @@ import json
 import sys
 
 root = sys.argv[1]
-N = 160
+N = 200
 
 FLOORS = ["cobble", "metal", "scififloor", "alienfloor", "dirt", "sand", "wet", "road"]
 WALLS = ["brick", "stone", "plates", "concrete", "wood", "corrugated", "scifiwall", "alienwall"]
 GLASS = ["clear", "blue", "green", "smoke", "frosted", "cracked"]
+# Real CC0 photographed surfaces (public/textures/real, see assets.toml).
+REAL_WALLS = ["bricks", "sandstone", "planks", "concrete", "plaster", "darkrock", "darkmetal"]
+REAL_FLOORS = ["paving", "roadreal", "gravel", "mossground", "clay", "marble", "tiles"]
 
 
 def prop(asset, x, z, hw, hd, rotation=0):
@@ -56,6 +60,14 @@ props.append(prop("pom_scifiwall", 52, 38, 14, 0.6))
 props.append(prop("pom_alienfloor", 58, 72, 14, 6))
 props.append(prop("pom_alienwall", 68, 52, 0.6, 8))
 props.append(prop("pom_metal", 30, 44, 8, 8))
+# The real surfaces in the north: a row of walls and, behind it, a row of floor slabs.
+for i, kind in enumerate(REAL_WALLS):
+    props.append(prop(f"pom_real_{kind}", -48 + i * 16, -76, 6, 0.6))
+for i, kind in enumerate(REAL_FLOORS):
+    props.append(prop(f"pom_real_{kind}", -48 + i * 16, -90, 8, 7))
+# The same walls again along the east edge, turned the other way.
+for i, kind in enumerate(REAL_WALLS):
+    props.append(prop(f"pom_real_{kind}", 92, -60 + i * 20, 0.6, 8))
 # Pillars to look at corners and edges.
 for x in (-8, 8):
     props.append(prop("pom_stone", x, 40, 1.2, 1.2))
