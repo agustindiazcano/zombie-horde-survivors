@@ -13,6 +13,8 @@ export interface Settings {
   gore: boolean;
   /** Depth of carved surfaces (parallax occlusion mapping): 0 off, 1 light, 2 full with sun shadows. */
   parallax: number;
+  /** Detail of the surface textures: 0 melted, 1 low, 2 normal, 3 ultra (sharper, bigger files). */
+  textures: number;
   /** Dim lighting with a flashlight per soldier. */
   darkMode: boolean;
   showFps: boolean;
@@ -24,15 +26,43 @@ export interface Settings {
 
 type GraphicsFields = Pick<
   Settings,
-  'shadows' | 'shadowMapSize' | 'resolutionScale' | 'gore' | 'parallax'
+  'shadows' | 'shadowMapSize' | 'resolutionScale' | 'gore' | 'parallax' | 'textures'
 >;
 
 export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high', GraphicsFields> = {
   // For machines that struggle: a third of the pixels each way, drawn blocky, no shadows or depth.
-  toaster: { shadows: false, shadowMapSize: 1024, resolutionScale: 0.35, gore: false, parallax: 0 },
-  low: { shadows: false, shadowMapSize: 1024, resolutionScale: 0.65, gore: true, parallax: 1 },
-  medium: { shadows: true, shadowMapSize: 1024, resolutionScale: 0.85, gore: true, parallax: 1 },
-  high: { shadows: true, shadowMapSize: 2048, resolutionScale: 1, gore: true, parallax: 2 },
+  toaster: {
+    shadows: false,
+    shadowMapSize: 1024,
+    resolutionScale: 0.35,
+    gore: false,
+    parallax: 0,
+    textures: 0,
+  },
+  low: {
+    shadows: false,
+    shadowMapSize: 1024,
+    resolutionScale: 0.65,
+    gore: true,
+    parallax: 1,
+    textures: 1,
+  },
+  medium: {
+    shadows: true,
+    shadowMapSize: 1024,
+    resolutionScale: 0.85,
+    gore: true,
+    parallax: 1,
+    textures: 2,
+  },
+  high: {
+    shadows: true,
+    shadowMapSize: 2048,
+    resolutionScale: 1,
+    gore: true,
+    parallax: 2,
+    textures: 2,
+  },
 };
 
 export const SHADOW_SIZES = [1024, 2048, 4096] as const;
@@ -57,7 +87,8 @@ export function qualityOf(s: GraphicsFields): Quality {
       p.shadowMapSize === s.shadowMapSize &&
       p.resolutionScale === s.resolutionScale &&
       p.gore === s.gore &&
-      p.parallax === s.parallax
+      p.parallax === s.parallax &&
+      p.textures === s.textures
     ) {
       return name;
     }
@@ -88,6 +119,7 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     resolutionScale: Math.round(clamp(raw.resolutionScale, 0.25, 1, d.resolutionScale) * 20) / 20,
     gore: bool(raw.gore, d.gore),
     parallax: Math.round(clamp(raw.parallax, 0, 2, d.parallax)),
+    textures: Math.round(clamp(raw.textures, 0, 3, d.textures)),
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),
     aimToggle: bool(raw.aimToggle, d.aimToggle),

@@ -11,7 +11,9 @@ import { isReal, loadReal, realDef } from './realSurfaces';
  * slope. The textures are drawn here (no files), so nothing is downloaded and they tile.
  */
 
-const SIZE = 256;
+/** Side (px) of a drawn texture at each texture quality: 0 melted, 1 low, 2 normal, 3 ultra. */
+const SIZES = [64, 128, 256, 512] as const;
+let textureLevel = 2;
 const MAX_STEPS = 48;
 
 type Surface = {
@@ -20,7 +22,7 @@ type Surface = {
   glow: THREE.Texture | null;
   rough: THREE.Texture | null;
 };
-const surfaces = new Map<PomKind, Surface>();
+const surfaces = new Map<string, Surface>();
 
 const SLICE_MS = 10;
 
@@ -33,6 +35,7 @@ const put = (out: Uint8ClampedArray, i: number, r: number, g: number, b: number)
 
 type Job = {
   kind: ProceduralKind;
+  size: number;
   row: number;
   planes: {
     data: Uint8ClampedArray;
@@ -46,20 +49,21 @@ let running = false;
 
 /** A canvas texture that starts as a flat neutral colour and is filled in later. */
 function plane(
+  size: number,
   color: boolean,
   neutral: [number, number, number],
   fill: Job['planes'][number]['fill'],
 ): Job['planes'][number] {
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = SIZE;
+  canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d')!;
   ctx.fillStyle = `rgb(${neutral[0]}, ${neutral[1]}, ${neutral[2]})`;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillRect(0, 0, size, size);
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.anisotropy = 8;
   texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  return { data: new Uint8ClampedArray(SIZE * SIZE * 4), texture, canvas, fill };
+  return { data: new Uint8ClampedArray(size * size * 4), texture, canvas, fill };
 }
 
 /** Evaluates the patterns a few milliseconds per frame, so a map never freezes while it loads. */
@@ -69,16 +73,20 @@ function work(): void {
     const job = jobs[0]!;
     const { pattern } = SURFACES[job.kind];
     const y = job.row++;
-    for (let x = 0; x < SIZE; x++) {
-      const t = pattern((x + 0.5) / SIZE, (y + 0.5) / SIZE);
-      const i = (y * SIZE + x) * 4;
+    for (let x = 0; x < job.size; x++) {
+      const t = pattern((x + 0.5) / job.size, (y + 0.5) / job.size);
+      const i = (y * job.size + x) * 4;
       for (const p of job.planes) p.fill(t, p.data, i);
     }
-    if (job.row >= SIZE) {
+    if (job.row >= job.size) {
       for (const p of job.planes) {
         p.canvas
           .getContext('2d')!
-          .putImageData(new ImageData(p.data as Uint8ClampedArray<ArrayBuffer>, SIZE, SIZE), 0, 0);
+          .putImageData(
+            new ImageData(p.data as Uint8ClampedArray<ArrayBuffer>, job.size, job.size),
+            0,
+            0,
+          );
         p.texture.needsUpdate = true;
       }
       jobs.shift();
@@ -89,33 +97,35 @@ function work(): void {
 }
 
 function surfaceOf(kind: PomKind): Surface {
-  const cached = surfaces.get(kind);
+  const key = `${kind}@${textureLevel}`;
+  const cached = surfaces.get(key);
   if (cached) return cached;
   if (isReal(kind)) {
-    const loaded = { ...loadReal(kind), glow: null };
-    surfaces.set(kind, loaded);
+    const loaded = { ...loadReal(kind, textureLevel), glow: null };
+    surfaces.set(key, loaded);
     return loaded;
   }
+  const size = SIZES[textureLevel] ?? 256;
   const def = SURFACES[kind];
-  const albedo = plane(true, [128, 128, 128], (t, out, i) =>
+  const albedo = plane(size, true, [128, 128, 128], (t, out, i) =>
     put(out, i, t.rgb[0], t.rgb[1], t.rgb[2]),
   );
-  const height = plane(false, [128, 128, 128], (t, out, i) =>
+  const height = plane(size, false, [128, 128, 128], (t, out, i) =>
     put(out, i, t.h * 255, t.h * 255, t.h * 255),
   );
   const glow = def.glow
-    ? plane(true, [0, 0, 0], (t, out, i) =>
+    ? plane(size, true, [0, 0, 0], (t, out, i) =>
         put(out, i, t.glow?.[0] ?? 0, t.glow?.[1] ?? 0, t.glow?.[2] ?? 0),
       )
     : null;
   // The roughness is read from the green channel.
   const rough = def.rough
-    ? plane(false, [0, def.roughness * 255, 0], (t, out, i) =>
+    ? plane(size, false, [0, def.roughness * 255, 0], (t, out, i) =>
         put(out, i, 0, (t.rough ?? def.roughness) * 255, 0),
       )
     : null;
   const planes = [albedo, height, ...(glow ? [glow] : []), ...(rough ? [rough] : [])];
-  jobs.push({ kind, row: 0, planes });
+  jobs.push({ kind, size, row: 0, planes });
   if (!running) {
     running = true;
     requestAnimationFrame(work);
@@ -126,13 +136,17 @@ function surfaceOf(kind: PomKind): Surface {
     glow: glow?.texture ?? null,
     rough: rough?.texture ?? null,
   };
-  surfaces.set(kind, surface);
+  surfaces.set(key, surface);
   return surface;
 }
 
 /** Quality of the parallax: 0 off (a plain textured surface), 1 the cheaper march, 2 the full one. */
 let quality = 2;
-const materials: { uniforms: PomUniforms }[] = [];
+const materials: {
+  uniforms: PomUniforms;
+  material: THREE.MeshStandardMaterial;
+  kind: PomKind;
+}[] = [];
 
 type PomUniforms = {
   pomHeight: { value: THREE.Texture };
@@ -140,6 +154,20 @@ type PomUniforms = {
   pomSteps: { value: number };
   pomShadow: { value: number };
 };
+
+/** Texture detail: 0 melted, 1 low, 2 normal, 3 ultra. Surfaces already on screen switch over in place. */
+export function setTextureQuality(level: number): void {
+  const next = Math.min(Math.max(Math.round(level), 0), SIZES.length - 1);
+  if (next === textureLevel) return;
+  textureLevel = next;
+  for (const m of materials) {
+    const surface = surfaceOf(m.kind);
+    m.material.map = surface.albedo;
+    m.material.roughnessMap = surface.rough;
+    m.material.emissiveMap = surface.glow;
+    m.uniforms.pomHeight.value = surface.height;
+  }
+}
 
 const stepsFor = (q: number): number => (q >= 2 ? 40 : q === 1 ? 16 : 0);
 
@@ -252,7 +280,7 @@ const FRAGMENT_UV = /* glsl */ `
 // Runs after the normal map step: the slope of the height field tilts the normal.
 const FRAGMENT_NORMAL = /* glsl */ `
 {
-  float e = 1.0 / ${SIZE}.0;
+  float e = 1.0 / float(textureSize(pomHeight, 0).x);
   float hx = pomH(pomUv + vec2(e, 0.0)) - pomH(pomUv - vec2(e, 0.0));
   float hy = pomH(pomUv + vec2(0.0, e)) - pomH(pomUv - vec2(0.0, e));
   vec2 slope = vec2(hx, hy) * (pomDepth / (2.0 * e));
@@ -318,7 +346,7 @@ export function createPomMaterial(kind: PomKind): THREE.MeshStandardMaterial {
       );
   };
   material.customProgramCacheKey = () => 'pom';
-  materials.push({ uniforms });
+  materials.push({ uniforms, material, kind });
   return material;
 }
 

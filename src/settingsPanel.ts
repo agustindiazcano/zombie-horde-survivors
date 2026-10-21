@@ -122,6 +122,18 @@ export class SettingsPanel {
       ],
       (v) => this.change({ parallax: Number(v) }),
     );
+    this.select(
+      panel,
+      'Textures',
+      String(s.textures),
+      [
+        ['0', 'Melted (toaster)'],
+        ['1', 'Low'],
+        ['2', 'Normal'],
+        ['3', 'Ultra (bigger download)'],
+      ],
+      (v) => this.change({ textures: Number(v) }),
+    );
     this.toggle(panel, 'Blood and gibs', s.gore, (v) => this.change({ gore: v }));
     this.select(
       panel,

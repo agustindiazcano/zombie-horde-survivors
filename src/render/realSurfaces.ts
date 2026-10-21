@@ -2,9 +2,11 @@ import * as THREE from 'three';
 import type { PomKind, RealName } from '../sim';
 
 /**
- * Real photographed surfaces for the texture lab: CC0 sets from ambientCG, shrunk to 512 px
- * (colour, height and roughness JPGs in public/textures/real). They go through the same
- * parallax material as the procedural ones. The files load when a map first uses them.
+ * Real photographed surfaces for the texture lab: CC0 sets from ambientCG (colour, height and
+ * roughness JPGs). Normal quality reads the 512 px files in public/textures/real, ultra the 1K
+ * ones in public/textures/real1k, and the two lower levels shrink the 512 px files to 64 or
+ * 128 px. They go through the same parallax material as the procedural ones. The files load
+ * when a map first uses them.
  */
 
 export type RealKind = `real_${RealName}`;
@@ -42,24 +44,46 @@ export const realDef = (kind: RealKind): RealDef => REAL[nameOf(kind)];
 
 const loader = new THREE.TextureLoader();
 
-function texture(name: RealName, part: 'color' | 'height' | 'rough'): THREE.Texture {
-  const tex = loader.load(`${import.meta.env.BASE_URL}textures/real/${name}_${part}.jpg`);
+/** Side (px) the small levels shrink to; the normal and ultra levels use the files as they are. */
+const SHRUNK = [64, 128];
+
+function texture(name: RealName, part: 'color' | 'height' | 'rough', level: number): THREE.Texture {
+  const folder = level >= 3 ? 'real1k' : 'real';
+  const url = `${import.meta.env.BASE_URL}textures/${folder}/${name}_${part}.jpg`;
+  const small = SHRUNK[level];
+  let tex: THREE.Texture;
+  if (small === undefined) {
+    tex = loader.load(url);
+  } else {
+    // Draw the file onto a tiny canvas once it arrives, so the surface really is a few pixels.
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = small;
+    const canvasTex = new THREE.CanvasTexture(canvas);
+    new THREE.ImageLoader().load(url, (image) => {
+      canvas.getContext('2d')!.drawImage(image, 0, 0, small, small);
+      canvasTex.needsUpdate = true;
+    });
+    tex = canvasTex;
+  }
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.anisotropy = 8;
   tex.colorSpace = part === 'color' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   return tex;
 }
 
-/** The three maps of a real surface (they fill in when the files arrive). */
-export function loadReal(kind: RealKind): {
+/** The three maps of a real surface at a texture quality (they fill in when the files arrive). */
+export function loadReal(
+  kind: RealKind,
+  level: number,
+): {
   albedo: THREE.Texture;
   height: THREE.Texture;
   rough: THREE.Texture;
 } {
   const name = nameOf(kind);
   return {
-    albedo: texture(name, 'color'),
-    height: texture(name, 'height'),
-    rough: texture(name, 'rough'),
+    albedo: texture(name, 'color', level),
+    height: texture(name, 'height', level),
+    rough: texture(name, 'rough', level),
   };
 }

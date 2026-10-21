@@ -21,7 +21,7 @@ import { SkyLightViews } from './skyLights';
 import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
-import { setPomQuality } from './pom';
+import { setPomQuality, setTextureQuality } from './pom';
 import { Sirens } from './sirens';
 import { GroundItemViews } from './groundItems';
 import { PickupMeshes } from './pickups';
@@ -1319,9 +1319,11 @@ export class GameRenderer {
     resolutionScale: number;
     gore: boolean;
     parallax: number;
+    textures: number;
   }): void {
     this.goreEnabled = g.gore;
     setPomQuality(g.parallax);
+    setTextureQuality(g.textures);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * g.resolutionScale);
     // Below half resolution the picture is drawn in plain blocks instead of blurred.
     this.renderer.domElement.style.imageRendering = g.resolutionScale < 0.5 ? 'pixelated' : 'auto';
