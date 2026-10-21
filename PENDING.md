@@ -184,6 +184,14 @@ Full note: [docs/PLAN-webgpu-engine.md](docs/PLAN-webgpu-engine.md). The user's 
 - [ ] 🟢 Four dynamic flashlights plus the muzzle flash light in dark mode: measure the cost; the zombie views are pooled, the lights are not.
 - [ ] ⚪ Mobile / touch controls (the game needs keyboard and mouse; the menu says so).
 
+### 4b — 🟡 Showcase polish for the Steam / ModDB / indie-site MVP (noted 2026-10-21)
+
+Plan agreed with the user: a polished one-map, one-mission demo plus waves, promoted through the user's popular mod ([[project-launch-strategy]] in memory). Order: the user's visual review, first-person showcase (real weapon models, reload and recoil animations, FX and sound), a few vehicles for the trailer, model and texture compression, then textures, then gameplay polish and the public page. Ask before downloading any asset or opening any account.
+
+- [ ] 🟡 **Ground and prop textures with depth.** Today the ground is flat vertex colours (no textures at all). Plan: CC0 PBR sets (albedo, normal, roughness, height) and normal maps first; **parallax occlusion mapping (POM)** as an optional shader on the ground and walls, because three.js 0.186 has no built-in POM (a custom `onBeforeCompile` patch or a TSL node). It costs fragment time, so it needs a quality setting and a distance fade; check FPS with F3.
+- [ ] 🟡 Check the Meshy marine's licence for a paid release before aiming at Steam.
+- [ ] ⚪ Idea: a mod of the marine for Men of War: Assault Squad 2 or Call to Arms. Pipeline unverified (older sources mention 3ds Max and the GEM 2 human-model export); ask the user which engine their earlier mod used.
+
 ### 5 — 🟢 Code health
 
 - [ ] 🟢 `InventoryUi.openInventory` (the old single-unit window) is unused since `I` opens the squad screen; remove it or keep it for crates only.
