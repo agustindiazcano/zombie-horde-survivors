@@ -4,27 +4,18 @@ Only what is still open: read this first in every session. When an item here is 
 
 ## Where things stand
 
-- **`main`** is at the merge of PR #47 (`a9b8658`) and has everything built so far: the whole stack of phases 1 to 8 and 10, the editor work and the polish. (PRs #36 to #46 were merged into their parent branches instead of `main`, so #47 brought the rest in one go; the stack branches are still on the remote, merged and safe to delete once the user agrees.) No PR or feature branch is open apart from the docs update that refreshed this file.
+- **`main`** is at the merge of PR #59 (`54b68c5`; at PR #47 it was `a9b8658`) and has everything built so far: the whole stack of phases 1 to 8 and 10, the editor work and the polish. (PRs #36 to #46 were merged into their parent branches instead of `main`, so #47 brought the rest in one go; the stack branches are still on the remote, merged and safe to delete once the user agrees.) No PR or feature branch is open apart from the docs update that refreshed this file.
 - **The game is live** at https://agustindiazcano.github.io/zombie-horde-survivors/ (GitHub Pages, redeployed by `.github/workflows/pages.yml` on every push to `main`; the last deploy succeeded). The user tests locally at http://127.0.0.1:5173/ with the dev server, which serves whatever branch is checked out.
 - **Nothing has been seen in a browser by Claude.** Lighting, boss eyes, radar, menus, the squad screen, drag and drop and the settings presets are all untested visually, and the balance comes from headless simulations of a passive squad. Expect the user to report visual and feel problems; tune with the constants named in the code (see PENDING §0–1).
 - Last verified on `main`: lint, format check, typecheck, the 48 tests, build and the asset check all pass.
 
-## Branches of 2026-10-20 (none pushed, no PR, all from `main` at `3a6c454`)
+## Merged on 2026-10-20 (PRs #57 to #59, `main` at `54b68c5`)
 
-`main` has PRs #54 to #56 (Celestial Event III, mobile look pad). The rest is local:
+Everything that was local on 2026-10-20 is now in `main`: the SUV colour texture (#57), AI grenades (#58), and the stack in #59 (W0 soldier pathing, objects block movement, draggable corpses and loose items, door system v2 with Map 7, machine-gun nest and watchtower with turret ammo, structures in the map editor). Worklogs: `w0-soldier-pathing`, `ai-grenades`, `objects-block-movement`, `corpses-and-loose-items`, `doors-v2`, `posts-and-turret-ammo`, `editor-structures` (all 2026-10-20). The old local branches are all merged; do not delete them without asking the user (PENDING §5).
 
-| Branch                           | What                                                               | Based on                               |
-| -------------------------------- | ------------------------------------------------------------------ | -------------------------------------- |
-| `fix/suv-colormap`               | The jeep's colour texture (Kenney, CC0)                            | `main`                                 |
-| `feat/ai-grenades`               | AI soldiers throw grenades at groups of 4+                         | `main`                                 |
-| `feat/soldier-structure-pathing` | W0: soldiers path round structures and open doors                  | `main`                                 |
-| `feat/objects-block-movement`    | Objects on the ground block movement                               | `main`                                 |
-| `feat/corpses-and-loose-items`   | Draggable corpses, loose items (Drop / Take), AI drags the wounded | `feat/objects-block-movement`          |
-| `feat/doors-v2`                  | Door system v2, large gates, Map 7 "Door gallery"                  | W0 branch + corpses branch merged      |
-| `feat/posts-and-ammo`            | Machine-gun nest, watchtower, turret ammo                          | `feat/doors-v2`                        |
-| `feat/editor-structures`         | Structures, objects and loose items in the map editor              | `feat/posts-and-ammo` (the active one) |
+**Still never seen in a browser (the user looks next):** Map 7 (doors), the nest and tower of Map 2, the editor's Assets tab, corpses with Drop / Take, and the AI dragging the wounded. What the user reports as looking or feeling wrong is fixed first.
 
-The last branch contains everything except `fix/suv-colormap` and `feat/ai-grenades`. Merge them in any order; the stacked ones must go in the order of the table (or open one PR from `feat/editor-structures`). Possible small docs conflicts in PENDING.md / LASTCONTEXT.md. Worklogs of 2026-10-20: `w0-soldier-pathing`, `ai-grenades`, `objects-block-movement`, `corpses-and-loose-items`, `doors-v2`, `posts-and-turret-ammo`, `editor-structures`. Nothing was seen in a browser.
+Known limits: the AI does not use posts, doors or keys; zombies ignore the crew of a post; the editor does not yet validate overlaps or the quantity of loose items.
 
 **2026-10-21:** branch `feat/helicopter` (from `main`, local, no PR): procedural helicopter and Map 8, see [worklog](docs/worklog/2026-10-21-helicopter.md). Waiting for the user's look. Also Map 9 "Sea test" (carrier, frigate, island, speedboats): [worklog](docs/worklog/2026-10-21-map-9-sea.md).
 
