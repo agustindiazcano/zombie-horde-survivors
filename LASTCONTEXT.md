@@ -17,7 +17,21 @@ Everything that was local on 2026-10-20 is now in `main`: the SUV colour texture
 
 Known limits: the AI does not use posts, doors or keys; zombies ignore the crew of a post; the editor does not yet validate overlaps or the quantity of loose items.
 
-**2026-10-21:** branch `feat/helicopter` (from `main`, local, no PR): procedural helicopter and Map 8, see [worklog](docs/worklog/2026-10-21-helicopter.md). Waiting for the user's look. Also Map 9 "Sea test" (carrier, frigate, island, speedboats): [worklog](docs/worklog/2026-10-21-map-9-sea.md).
+## Work of 2026-10-21 (branch `feat/helicopter`, 5 commits, not pushed, no PR)
+
+`feat/helicopter` is cut from `main` (`54b68c5`) and also contains the docs refresh of `docs/refresh-lastcontext-after-59`. Nothing below was seen in a browser; headless probes checked the sim only.
+
+| Commit    | What                                                                             |
+| --------- | -------------------------------------------------------------------------------- |
+| `25bc92c` | Procedural helicopter (engine start, hover, circles) and Map 8 "Helicopter test" |
+| `8f4f8bf` | Huey, Chinook and V-22 (tilting pods) with their own procedural models           |
+| `5d288c8` | Map 9 "Sea test": walkable carrier, frigate, island, drivable speedboats         |
+| `7914b6b` | Fix: aircraft fly over water and cliffs (`resolveFlying`)                        |
+
+- **Aircraft** (`src/sim/aircraft.ts`, `air` block in `vehicles.*` of `game.json`): hold forward 10 s on the ground to start the engine, Space up, C / Ctrl down, Shift faster; an AI pilot takes off by itself on a move order, then hovers or circles (RTS: Space take off, C land, H hover / circle). Zombies cannot reach it above 2.5 m. Models in `src/render/vehicles.ts`. Worklog: [helicopter](docs/worklog/2026-10-21-helicopter.md).
+- **Boats and ships** (`src/sim/naval.ts`, `water` / `fixed` / `ship` in `vehicleType`): speedboats sail only on water and are stopped by the shore and by hulls; stepping out needs dry ground within 8 m. The carrier and the frigate are `fixed` (not drivable yet); the carrier's walkable deck is a plateau baked into the height grid. Models in `src/render/ships.ts`. Worklog: [map-9-sea](docs/worklog/2026-10-21-map-9-sea.md).
+- **Known problems:** the carrier tower's collider is 2 m high but the model is about 25 m (aircraft clip through it); moving the carrier in the editor does not move its deck; the main bundle grew from 714 kB to 1.5 MB because of Map 9's 800 kB JSON (excluded from Prettier).
+- **Waiting on the user:** a look at Maps 7, 8 and 9, the Map 2 nest and tower, the editor's Assets tab, corpses with Drop / Take and the AI dragging the wounded; and an OK before any model download (police, civilians, military, vehicles; CC0 / CC-BY only).
 
 ## Decisions the user has made (do not re-litigate)
 
