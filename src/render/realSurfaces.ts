@@ -47,28 +47,40 @@ const loader = new THREE.TextureLoader();
 /** Side (px) the small levels shrink to; the normal and ultra levels use the files as they are. */
 const SHRUNK = [64, 128];
 
-function texture(name: RealName, part: 'color' | 'height' | 'rough', level: number): THREE.Texture {
+function texture(
+  name: RealName,
+  part: 'color' | 'height' | 'rough',
+  level: number,
+): { tex: THREE.Texture; ready: Promise<void> } {
   const folder = level >= 3 ? 'real1k' : 'real';
   const url = `${import.meta.env.BASE_URL}textures/${folder}/${name}_${part}.jpg`;
   const small = SHRUNK[level];
+  let finish = (): void => {};
+  const ready = new Promise<void>((resolve) => (finish = resolve));
   let tex: THREE.Texture;
   if (small === undefined) {
-    tex = loader.load(url);
+    tex = loader.load(url, finish, undefined, finish);
   } else {
     // Draw the file onto a tiny canvas once it arrives, so the surface really is a few pixels.
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = small;
     const canvasTex = new THREE.CanvasTexture(canvas);
-    new THREE.ImageLoader().load(url, (image) => {
-      canvas.getContext('2d')!.drawImage(image, 0, 0, small, small);
-      canvasTex.needsUpdate = true;
-    });
+    new THREE.ImageLoader().load(
+      url,
+      (image) => {
+        canvas.getContext('2d')!.drawImage(image, 0, 0, small, small);
+        canvasTex.needsUpdate = true;
+        finish();
+      },
+      undefined,
+      finish,
+    );
     tex = canvasTex;
   }
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.anisotropy = 8;
   tex.colorSpace = part === 'color' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  return tex;
+  return { tex, ready };
 }
 
 /** The three maps of a real surface at a texture quality (they fill in when the files arrive). */
@@ -79,11 +91,16 @@ export function loadReal(
   albedo: THREE.Texture;
   height: THREE.Texture;
   rough: THREE.Texture;
+  ready: Promise<void>;
 } {
   const name = nameOf(kind);
+  const color = texture(name, 'color', level);
+  const height = texture(name, 'height', level);
+  const rough = texture(name, 'rough', level);
   return {
-    albedo: texture(name, 'color', level),
-    height: texture(name, 'height', level),
-    rough: texture(name, 'rough', level),
+    albedo: color.tex,
+    height: height.tex,
+    rough: rough.tex,
+    ready: Promise.all([color.ready, height.ready, rough.ready]).then(() => undefined),
   };
 }

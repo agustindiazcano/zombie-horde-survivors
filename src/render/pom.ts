@@ -21,6 +21,8 @@ type Surface = {
   height: THREE.Texture;
   glow: THREE.Texture | null;
   rough: THREE.Texture | null;
+  /** Settles once every map is drawn or downloaded, so a quality change can wait for it. */
+  ready: Promise<void>;
 };
 const surfaces = new Map<string, Surface>();
 
@@ -36,6 +38,7 @@ const put = (out: Uint8ClampedArray, i: number, r: number, g: number, b: number)
 type Job = {
   kind: ProceduralKind;
   size: number;
+  done: () => void;
   row: number;
   planes: {
     data: Uint8ClampedArray;
@@ -89,7 +92,7 @@ function work(): void {
           );
         p.texture.needsUpdate = true;
       }
-      jobs.shift();
+      jobs.shift()?.done();
     }
   }
   if (jobs.length > 0) requestAnimationFrame(work);
@@ -101,7 +104,7 @@ function surfaceOf(kind: PomKind): Surface {
   const cached = surfaces.get(key);
   if (cached) return cached;
   if (isReal(kind)) {
-    const loaded = { ...loadReal(kind, textureLevel), glow: null };
+    const loaded: Surface = { ...loadReal(kind, textureLevel), glow: null };
     surfaces.set(key, loaded);
     return loaded;
   }
@@ -125,7 +128,9 @@ function surfaceOf(kind: PomKind): Surface {
       )
     : null;
   const planes = [albedo, height, ...(glow ? [glow] : []), ...(rough ? [rough] : [])];
-  jobs.push({ kind, size, row: 0, planes });
+  let done = (): void => {};
+  const ready = new Promise<void>((resolve) => (done = resolve));
+  jobs.push({ kind, size, done, row: 0, planes });
   if (!running) {
     running = true;
     requestAnimationFrame(work);
@@ -135,6 +140,7 @@ function surfaceOf(kind: PomKind): Surface {
     height: height.texture,
     glow: glow?.texture ?? null,
     rough: rough?.texture ?? null,
+    ready,
   };
   surfaces.set(key, surface);
   return surface;
@@ -162,10 +168,14 @@ export function setTextureQuality(level: number): void {
   textureLevel = next;
   for (const m of materials) {
     const surface = surfaceOf(m.kind);
-    m.material.map = surface.albedo;
-    m.material.roughnessMap = surface.rough;
-    m.material.emissiveMap = surface.glow;
-    m.uniforms.pomHeight.value = surface.height;
+    // The old maps stay on screen until the new ones are ready, instead of a grey flash.
+    void surface.ready.then(() => {
+      if (textureLevel !== next) return;
+      m.material.map = surface.albedo;
+      m.material.roughnessMap = surface.rough;
+      m.material.emissiveMap = surface.glow;
+      m.uniforms.pomHeight.value = surface.height;
+    });
   }
 }
 
