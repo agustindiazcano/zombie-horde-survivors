@@ -93,6 +93,11 @@ Carrier you can walk on, frigate, island with beach and houses, drivable speedbo
 - [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 9. Walk the deck, take off from it, board a speedboat at the port rail (V), sail to the beach and step out, ram the frigate. Check the hull shape, deck markings, the tower, the parked fighters, the beach colours, FPS with F3 (256 x 256 terrain).
 - [ ] 🟡 Next: drivable carrier / frigate, AI boarding boats, wake and swell, sinking, a deck height for aircraft in the sim, editor support for moving the carrier with its deck.
 
+### 2n — 🔴 Swimming and Map 10 (built 2026-10-21, branch `feat/helicopter`)
+
+- [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 10. Walk into the sea, **C** dives, **Space** surfaces, **Shift** swims fast, watch the OXYGEN bar and the drowning. Tune `swimming` in `game.json` and `SWIM_*` in `gameRenderer.ts` ([worklog](docs/worklog/2026-10-21-swimming-map-10.md)).
+- [ ] 🟢 Next: swim animation, splash and bubbles, underwater tint, sound, AI that dives.
+
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
 Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. W1 to W6 are built on `feat/weapon-instances` (worklogs 2026-10-19 `weapons-w1`, `w2`, `w3`, `w4`, `w5`, `w6`, `weapons-in-hand`).

@@ -26,6 +26,7 @@ type Patch = {
       | 'build'
       | 'noWaves'
       | 'startGold'
+      | 'swim'
       | 'startOrbs'
       | 'skyShowOn'
       | 'startView'
@@ -49,6 +50,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     drone: { ...base.drone, count: 0 },
     enemies: {},
     stance: { ...base.stance },
+    swimming: { ...base.swimming },
     loot: { ...base.loot },
     progress: { ...base.progress },
     downed: { ...base.downed },

@@ -732,6 +732,18 @@
     "climbMaxHeight": 2.2,
     "climbStamina": 30
   },
+  "swimming": {
+    "swimDepth": 0.9,
+    "speed": 3.2,
+    "fastScale": 1.7,
+    "maxDepth": 8,
+    "diveSpeed": 2.4,
+    "submergedSpeedScale": 0.8,
+    "headDepth": 0.5,
+    "breath": 30,
+    "breathRegen": 6,
+    "drownDamage": 12
+  },
   "loot": {
     "collectRadius": 1.2,
     "lifetime": 60,

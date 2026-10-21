@@ -156,6 +156,9 @@ const STRIKE_TIME = 0.5;
 /** A soldier keeps the gun at the shoulder this long after a shot, and raises it at this rate (1/s). */
 const GUN_RAISED_TIME = 0.8;
 const GUN_RAISE_RATE = 12;
+/** A swimmer's feet sit this far under the surface, and its body tips forward by this much (radians). */
+const SWIM_FLOAT = 0.35;
+const SWIM_PITCH = 1.3;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -225,7 +228,7 @@ export class GameRenderer {
   private savedTop = { yaw: 0, pitch: DEFAULT_PITCH };
   private focusInitialized = false;
   /** Smoothed crouch (0..1) and sprint lean (0..1) per soldier id. */
-  private readonly stanceVisual = new Map<number, { crouch: number; lean: number }>();
+  private readonly stanceVisual = new Map<number, { crouch: number; lean: number; swim: number }>();
   private readonly healthBars = new HealthBars();
   private structureViews!: StructureViews;
   private objectViews!: ObjectViews;
@@ -988,18 +991,26 @@ export class GameRenderer {
       // Applied after the view's own update, which may reset its root transform.
       const ground = this.groundAt(view.object.position.x, view.object.position.z);
       view.object.position.y = ground + (drone ? this.droneHeight : lerp(s.prevY, s.y, alpha));
+      const level = this.config.arena.terrain.water;
+      if (s.swimming && level !== null) {
+        // A swimmer floats on the surface or sinks with its depth, never below the sea floor.
+        view.object.position.y = Math.max(ground, level - SWIM_FLOAT - s.depth);
+      }
       if (drone) continue;
       let vis = this.stanceVisual.get(s.id);
       if (!vis) {
-        vis = { crouch: 0, lean: 0 };
+        vis = { crouch: 0, lean: 0, swim: 0 };
         this.stanceVisual.set(s.id, vis);
       }
       const k = 1 - Math.exp(-14 * dt);
       const alive = !s.dead && !s.downed;
-      vis.crouch = lerp(vis.crouch, alive && state.stance === 'crouch' ? 1 : 0, k);
-      vis.lean = lerp(vis.lean, alive && state.stance === 'sprint' && moving ? 1 : 0, k);
+      const stance = s.swimming ? 'normal' : state.stance;
+      vis.crouch = lerp(vis.crouch, alive && stance === 'crouch' ? 1 : 0, k);
+      vis.lean = lerp(vis.lean, alive && stance === 'sprint' && moving ? 1 : 0, k);
+      vis.swim = lerp(vis.swim, alive && s.swimming ? 1 : 0, k);
       view.object.scale.set(1 + 0.06 * vis.crouch, 1 - 0.28 * vis.crouch, 1 + 0.06 * vis.crouch);
-      view.object.rotation.x = 0.25 * vis.lean;
+      // A swimmer lies almost flat, face down.
+      view.object.rotation.x = 0.25 * vis.lean + SWIM_PITCH * vis.swim;
     }
   }
 

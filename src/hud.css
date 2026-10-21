@@ -434,3 +434,33 @@
 .hud--cinema .hud__xp {
   display: none;
 }
+
+.hud__oxygen {
+  position: absolute;
+  left: 16px;
+  bottom: 62px;
+  width: min(280px, 50vw);
+  display: none;
+}
+
+.hud__oxygen--visible {
+  display: block;
+}
+
+.hud__oxygen-label {
+  font-size: 12px;
+  margin-bottom: 3px;
+  color: #8fe3ff;
+}
+
+.hud__oxygen .hud__bar-fill {
+  background: #38b6ff;
+}
+
+.hud__oxygen--low .hud__bar-fill {
+  background: #ff4a3d;
+}
+
+.hud--cinema .hud__oxygen {
+  display: none;
+}

@@ -186,6 +186,10 @@ export interface Soldier {
   /** Sprint energy (0 to `stance.staminaMax`); `winded` blocks sprinting until it recovers. */
   stamina: number;
   winded: boolean;
+  /** In water too deep to wade; how far under the surface (m, 0 = floating) and seconds of breath left. */
+  swimming: boolean;
+  depth: number;
+  oxygen: number;
   /** A name set by the map, shown instead of "Soldier 2". */
   name?: string;
   /** Health before perks; the type's default unless the map changes it. */

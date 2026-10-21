@@ -735,8 +735,17 @@ async function main(): Promise<void> {
         : performance.now() < rts.noticeUntil
           ? `  [${rts.notice}]`
           : '';
+      const swimHint = unit?.swimming
+        ? `  [SWIMMING · depth ${unit.depth.toFixed(1)} m · C: dive · Space: surface · Shift: swim fast]`
+        : '';
       hud.setHint(
-        (rtsMode ? HINT_RTS : HINT_DIRECT) + stance + view + rideHint + carryHint + aimHint,
+        (rtsMode ? HINT_RTS : HINT_DIRECT) +
+          stance +
+          view +
+          rideHint +
+          carryHint +
+          swimHint +
+          aimHint,
       );
       squad.update(state, rts.selected, maxHealthOf(state, config));
     },

@@ -158,6 +158,8 @@ const mapLogic = z
     /** No waves spawn: only the units the map places (test maps, hide and seek). */
     noWaves: z.boolean().optional(),
     startGold: nonNegative.optional(),
+    /** Water can be swum and dived in (see `swimming` in game.json) instead of being a wall. */
+    swim: z.boolean().optional(),
     /** Runs the sky show of `skyShow` in game.json: blue lights that wander, fly and come down over the houses. */
     skyShow: z.boolean().optional(),
     /** The camera the run starts in, and how far up (radians) a first-person view looks. */
@@ -361,7 +363,9 @@ export function arenaOf(map: MapData): Arena {
     terrain: map.terrain,
     surfaces: map.surfaces,
     obstacles: [
-      ...waterObstacles(map.terrain.heights, map.terrain.water, map.meta.size.width / 2),
+      ...(map.logic.swim
+        ? []
+        : waterObstacles(map.terrain.heights, map.terrain.water, map.meta.size.width / 2)),
       ...steepObstacles(map.terrain.heights, map.meta.size.width / 2),
       ...propObstacles(map),
     ],
@@ -1379,6 +1383,26 @@ export const GameConfigSchema = z
       .strict(),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
     enemies: z.record(z.string(), enemyType),
+    /** Swimming and diving on maps with the `swim` rule. */
+    swimming: z
+      .object({
+        /** Ground this far under the water level (m) is too deep to wade: the unit swims. */
+        swimDepth: positive,
+        /** Horizontal speed while swimming, and the multiplier when Shift is held. */
+        speed: positive,
+        fastScale: positive,
+        /** Diving: the deepest a unit goes (m), its vertical speed, and the slowdown when submerged. */
+        maxDepth: positive,
+        diveSpeed: positive,
+        submergedSpeedScale: positive,
+        /** Below this depth (m) the head is under water and the unit holds its breath. */
+        headDepth: positive,
+        /** Seconds of breath, how fast it comes back at the surface (per second) and drowning damage per second. */
+        breath: positive,
+        breathRegen: positive,
+        drownDamage: nonNegative,
+      })
+      .strict(),
     /** Squad stances (set by the controlled player) and the controlled soldier's jump. */
     stance: z
       .object({
@@ -1645,6 +1669,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   build: boolean;
   noWaves: boolean;
   startGold: number;
+  /** Water is swimmable: units wade, swim and dive instead of being stopped by it. */
+  swim: boolean;
   /** Orbs that wake up during the run. */
   startOrbs: NonNullable<MapLogic['orbs']>;
   /** The sky show is on, the camera the run starts in, its first-person pitch and the subtitles. */
@@ -1721,6 +1747,7 @@ type MapRules = Pick<
   | 'build'
   | 'noWaves'
   | 'startGold'
+  | 'swim'
   | 'startOrbs'
   | 'skyShowOn'
   | 'startView'
@@ -1776,6 +1803,7 @@ export function mapRules(
     build: logic.build ?? false,
     noWaves: logic.noWaves ?? false,
     startGold: logic.startGold ?? 0,
+    swim: logic.swim ?? false,
     startOrbs: logic.orbs ?? [],
     skyShowOn: logic.skyShow ?? false,
     startView: logic.startView,

@@ -7,6 +7,7 @@ import { ARRIVE_SHARE, findInteractable, performInteract } from './interact';
 import { aiThrowGrenade } from './grenades';
 import { throwCarried } from './objects';
 import { bonus } from './training';
+import { isSubmerged, isSwimming, updateBreath } from './swim';
 import { resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
@@ -120,6 +121,9 @@ function newUnit(
     kills: 0,
     stamina: config.stance.staminaMax,
     winded: false,
+    swimming: false,
+    depth: 0,
+    oxygen: config.swimming.breath,
     armor: 0,
     downed: false,
     bleedOut: 0,
@@ -305,9 +309,12 @@ export function updateSoldiers(
       const max = maxHealthOf(state, config, s);
       s.health = Math.min(max, s.health + state.mods.regen * dt);
     }
-    // The squad's sprint order only works for a unit that still has breath.
+    s.swimming = isSwimming(config, s);
+    // The squad's sprint order only works for a unit that still has breath; in water there are no stances.
     const stance =
-      s.downed || (state.stance === 'sprint' && (s.winded || isDrone(s))) ? 'normal' : state.stance;
+      s.downed || s.swimming || (state.stance === 'sprint' && (s.winded || isDrone(s)))
+        ? 'normal'
+        : state.stance;
     if (s.post !== null) updatePosted(state, config, s, input, controlledId);
     else if (s.vehicleId !== null) updateSeated(state, config, s, input, controlledId);
     else if (s.id === controlledId) updateControlled(state, config, s, input, stance, dt);
@@ -316,6 +323,7 @@ export function updateSoldiers(
     }
     updateStamina(config, s, stance, dt);
     if (s.post === null) updateJump(config, s, dt);
+    updateBreath(state, config, s, dt);
   }
   separateSoldiers(state, config);
 }
@@ -432,7 +440,16 @@ function updateControlled(
   // Normalize only above unit length so analog input keeps its magnitude.
   const l = Math.hypot(move.x, move.z);
   const k = l > 1 ? 1 / l : 1;
-  const speed = speedOf(config, s, state.mods, stance);
+  let speed = speedOf(config, s, state.mods, stance);
+  if (s.swimming) {
+    // C dives, Space comes up, Shift swims faster.
+    const w = config.swimming;
+    s.depth += ((input.crouch ? 1 : 0) - (input.jump ? 1 : 0)) * w.diveSpeed * dt;
+    speed =
+      w.speed *
+      (input.sprint ? w.fastScale : 1) *
+      (isSubmerged(config, s) ? w.submergedSpeedScale : 1);
+  }
   s.pos.x += move.x * k * speed * dt;
   s.pos.z += move.z * k * speed * dt;
   resolveUnit(s, config);
@@ -442,7 +459,7 @@ function updateControlled(
   if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
 
   const grounded = s.vy === 0 && s.y === supportHeight(config.arena, s.pos, s.y);
-  if (input.jump && grounded && !isDrone(s) && !s.downed) {
+  if (input.jump && grounded && !isDrone(s) && !s.downed && !s.swimming) {
     // Walking into a box that a plain jump cannot clear: vault up onto it.
     s.vy = climbSpeed(config, s, move) ?? config.stance.jumpSpeed;
   }
@@ -454,7 +471,10 @@ function updateControlled(
     return;
   }
   s.throwHeld = input.firing;
-  if (triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)) {
+  if (
+    !isSubmerged(config, s) &&
+    triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)
+  ) {
     fireWeapon(state, config, s);
   }
   // Touch play has no reload button: the gun reloads itself.
@@ -471,7 +491,7 @@ function updateAi(
 ): void {
   // Movement destination from the current order.
   let dest: Vec2 | null = null;
-  let speed = speedOf(config, s, state.mods, stance);
+  let speed = s.swimming ? config.swimming.speed : speedOf(config, s, state.mods, stance);
   if (s.order.type === 'move') {
     dest = { x: s.order.x, z: s.order.z };
     if (Math.hypot(dest.x - s.pos.x, dest.z - s.pos.z) < ARRIVE_DISTANCE) {
