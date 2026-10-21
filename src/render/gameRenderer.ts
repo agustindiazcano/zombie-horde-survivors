@@ -286,6 +286,7 @@ export class GameRenderer {
     this.scene.add(this.arenaGroup);
     this.addLights(config.arena.halfSize);
     this.environment = new EnvironmentView(this.scene, this.hemi, this.sun);
+    this.scene.environment = buildReflectionMap(this.renderer);
 
     this.config = config;
     this.halfSize = config.arena.halfSize;
@@ -1410,4 +1411,54 @@ export class GameRenderer {
     this.camera.updateProjectionMatrix();
     this.viewModel.resize(w / h);
   };
+}
+
+/**
+ * A sky-and-ground gradient baked once into a prefiltered cube map: the reflection source for
+ * metal, glass, wet floors and the soldiers' gear. EnvironmentView scales its strength with the
+ * daylight, so the same map serves day and night.
+ */
+function buildReflectionMap(renderer: THREE.WebGLRenderer): THREE.Texture {
+  const scene = new THREE.Scene();
+  const geometry = new THREE.SphereGeometry(50, 32, 16);
+  const position = geometry.getAttribute('position');
+  const colors = new Float32Array(position.count * 3);
+  const stops: [number, number][] = [
+    [-1, 0x3b3f3a],
+    [-0.05, 0x7a8088],
+    [0.05, 0xd2e2f2],
+    [0.5, 0x7fb0e6],
+    [1, 0x3f7fd0],
+  ];
+  const color = new THREE.Color();
+  const low = new THREE.Color();
+  const high = new THREE.Color();
+  for (let i = 0; i < position.count; i++) {
+    const t = position.getY(i) / 50;
+    let k = 1;
+    while (k < stops.length - 1 && t > stops[k]![0]) k++;
+    const [t0, c0] = stops[k - 1]!;
+    const [t1, c1] = stops[k]!;
+    low.set(c0);
+    high.set(c1);
+    color.copy(low).lerp(high, Math.min(1, Math.max(0, (t - t0) / (t1 - t0))));
+    colors.set([color.r, color.g, color.b], i * 3);
+  }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  scene.add(
+    new THREE.Mesh(
+      geometry,
+      new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide }),
+    ),
+  );
+  const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(5, 12, 8),
+    new THREE.MeshBasicMaterial({ color: 0xfff2d0 }),
+  );
+  sun.position.set(25, 30, 20);
+  scene.add(sun);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const texture = pmrem.fromScene(scene, 0.04).texture;
+  pmrem.dispose();
+  return texture;
 }

@@ -275,6 +275,8 @@ export class EnvironmentView {
     if (env.lightColor) hemiSky.lerp(c(parseInt(env.lightColor.slice(1), 16)), 0.4);
     this.hemi.color.copy(hemiSky);
     this.hemi.groundColor.copy(mix(c(0x1a1d24), c(0x30343a), day));
+    // Reflections follow the daylight: bright by day, a faint trace at night.
+    this.scene.environmentIntensity = (0.04 + 0.4 * day) * (1 - 0.3 * murk) * this.dim;
     this.hemi.intensity =
       (NIGHT_AMBIENT + (DAY_AMBIENT - NIGHT_AMBIENT) * day) * (1 - 0.2 * murk) * this.dim;
 
