@@ -1,0 +1,254 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "map-11",
+    "name": "Map 11 - Texture lab",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-21",
+    "updated": "2026-10-21",
+    "size": {
+      "width": 80,
+      "depth": 80
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "surfaces": [],
+  "props": [
+    {
+      "asset": "pom_cobble",
+      "x": 0,
+      "z": 0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 14,
+        "halfD": 14
+      }
+    },
+    {
+      "asset": "pom_brick",
+      "x": -22,
+      "z": -32,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 9,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 0,
+      "z": -32,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 9,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_plates",
+      "x": 22,
+      "z": -32,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 9,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_brick",
+      "x": -32,
+      "z": -8,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 9
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 32,
+      "z": -8,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 9
+      }
+    },
+    {
+      "asset": "pom_plates",
+      "x": -32,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 9
+      }
+    },
+    {
+      "asset": "pom_brick",
+      "x": 32,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 9
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -12,
+      "z": 26,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 9,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 12,
+      "z": 26,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 9,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "pom_plates",
+      "x": 20,
+      "z": 8,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 5
+      }
+    },
+    {
+      "asset": "pom_brick",
+      "x": -20,
+      "z": 8,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 5
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": -8,
+      "z": -14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.2,
+        "halfD": 1.2
+      }
+    },
+    {
+      "asset": "pom_stone",
+      "x": 8,
+      "z": -14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 1.2,
+        "halfD": 1.2
+      }
+    }
+  ],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
+  "units": [
+    {
+      "type": "marine1",
+      "x": -3,
+      "z": 18,
+      "owner": "p1",
+      "rotation": 3.14
+    },
+    {
+      "type": "marine2",
+      "x": -1,
+      "z": 18,
+      "owner": "p1",
+      "rotation": 3.14
+    },
+    {
+      "type": "marine3",
+      "x": 1,
+      "z": 18,
+      "owner": "p1",
+      "rotation": 3.14
+    },
+    {
+      "type": "marine4",
+      "x": 3,
+      "z": 18,
+      "owner": "p1",
+      "rotation": 3.14
+    }
+  ],
+  "environment": {
+    "sky": true,
+    "timeOfDay": 9,
+    "sun": true,
+    "moon": true,
+    "clouds": 0.1,
+    "fog": 0
+  },
+  "logic": {
+    "mode": "waves",
+    "noWaves": true,
+    "timeControl": true,
+    "startView": "third",
+    "startGold": 0,
+    "boss": {
+      "enabled": false
+    }
+  }
+}

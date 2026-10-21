@@ -160,6 +160,8 @@ const mapLogic = z
     startGold: nonNegative.optional(),
     /** Water can be swum and dived in (see `swimming` in game.json) instead of being a wall. */
     swim: z.boolean().optional(),
+    /** The player can turn the time of day with the , and . keys (the texture lab). */
+    timeControl: z.boolean().optional(),
     /** Runs the sky show of `skyShow` in game.json: blue lights that wander, fly and come down over the houses. */
     skyShow: z.boolean().optional(),
     /** The camera the run starts in, and how far up (radians) a first-person view looks. */
@@ -373,7 +375,17 @@ export function arenaOf(map: MapData): Arena {
 }
 
 /** Heights (m) of the shaped props, for the line of sight; the plain block uses `OBSTACLE_HEIGHT`. */
-const PROP_HEIGHTS: Record<string, number> = { house: 6, tree: 6, lamp: 5, car: 1.5 };
+const PROP_HEIGHTS: Record<string, number> = {
+  house: 6,
+  tree: 6,
+  lamp: 5,
+  car: 1.5,
+  // The texture lab: tall walls and a floor slab low enough to walk over.
+  pom_brick: 3.2,
+  pom_stone: 3.2,
+  pom_plates: 3.2,
+  pom_cobble: 0.2,
+};
 
 function propObstacles(map: MapData): Obstacle[] {
   return map.props.flatMap((p) => {
@@ -1671,6 +1683,7 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   startGold: number;
   /** Water is swimmable: units wade, swim and dive instead of being stopped by it. */
   swim: boolean;
+  timeControl: boolean;
   /** Orbs that wake up during the run. */
   startOrbs: NonNullable<MapLogic['orbs']>;
   /** The sky show is on, the camera the run starts in, its first-person pitch and the subtitles. */
@@ -1748,6 +1761,7 @@ type MapRules = Pick<
   | 'noWaves'
   | 'startGold'
   | 'swim'
+  | 'timeControl'
   | 'startOrbs'
   | 'skyShowOn'
   | 'startView'
@@ -1804,6 +1818,7 @@ export function mapRules(
     noWaves: logic.noWaves ?? false,
     startGold: logic.startGold ?? 0,
     swim: logic.swim ?? false,
+    timeControl: logic.timeControl ?? false,
     startOrbs: logic.orbs ?? [],
     skyShowOn: logic.skyShow ?? false,
     startView: logic.startView,

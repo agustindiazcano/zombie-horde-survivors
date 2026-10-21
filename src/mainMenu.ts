@@ -237,6 +237,8 @@ export class MainMenu {
     } else {
       const wanted = screen === 'story' ? 'story' : 'waves';
       const entries = listMaps().filter((m) => m.mode === wanted);
+      // Many maps: the list scrolls instead of running off the screen.
+      list.classList.add('menu__list--scroll');
       if (entries.length === 0) el('p', 'menu__empty', panel, 'No missions yet.');
       for (const map of entries) {
         const wrap = el('div', 'menu__maprow', list);

@@ -33,6 +33,10 @@ You control one soldier; the rest of the squad follows and shoots on its own.
 
 Ctrl+W closes the browser tab and the browser won't let a page block it, so **C** is provided as an alternative way to crouch.
 
+## Time of day (maps with the `timeControl` rule, e.g. Map 11)
+
+**.** (period) moves the clock forward and **,** (comma) back, a quarter of an hour per press (hold to run). The sun, sky and light follow; the hint line shows the time.
+
 ## Swimming and diving (maps with the `swim` rule, e.g. Map 10)
 
 On these maps water is not a wall. Deeper than 0.9 m a soldier swims instead of walking (no stances, no jump; the squad follows at the surface). The keys keep their place: **C** / **Ctrl** dives deeper (down to 8 m, never below the sea floor), **Space** swims up, **Shift** swims faster. Under 0.5 m the head is under water: the **OXYGEN** bar (above the health bar) runs down over 30 s, the unit cannot shoot and swims a little slower. With no air left it loses 12 health a second; at the surface the bar refills.

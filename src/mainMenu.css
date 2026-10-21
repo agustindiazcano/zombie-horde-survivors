@@ -111,6 +111,12 @@
   min-width: min(360px, 80vw);
 }
 
+.menu__list--scroll {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
 .menu__option {
   position: relative;
   display: flex;

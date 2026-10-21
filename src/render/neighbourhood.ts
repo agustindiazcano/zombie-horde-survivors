@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Obstacle } from '../sim';
+import { createPomMaterial, pomBox, type PomKind } from './pom';
 
 /** Shapes for the props of a suburb: houses, trees, street lamps and parked cars. All procedural. */
 
@@ -217,6 +218,30 @@ export function buildCar(o: Obstacle): THREE.Group {
   return group;
 }
 
+const POM_ASSETS: Record<string, PomKind> = {
+  pom_brick: 'brick',
+  pom_stone: 'stone',
+  pom_plates: 'plates',
+  pom_cobble: 'cobble',
+};
+const pomMaterials = new Map<PomKind, THREE.Material>();
+
+/** A wall or slab of the texture lab: a box with a parallax-mapped surface. */
+function buildPom(kind: PomKind, o: Obstacle): THREE.Group {
+  let material = pomMaterials.get(kind);
+  if (!material) {
+    material = createPomMaterial(kind);
+    pomMaterials.set(kind, material);
+  }
+  const height = o.height ?? WALL_HEIGHT;
+  const box = pomBox(o.halfW * 2, height, o.halfD * 2, material);
+  box.position.y = height / 2;
+  const group = new THREE.Group();
+  group.add(box);
+  group.position.set(o.x, 0, o.z);
+  return group;
+}
+
 /** The shape for a prop asset, or null for the plain block. */
 export function buildProp(o: Obstacle): THREE.Group | null {
   switch (o.asset) {
@@ -228,8 +253,10 @@ export function buildProp(o: Obstacle): THREE.Group | null {
       return buildLamp(o);
     case 'car':
       return buildCar(o);
-    default:
-      return null;
+    default: {
+      const pom = POM_ASSETS[o.asset ?? ''];
+      return pom ? buildPom(pom, o) : null;
+    }
   }
 }
 

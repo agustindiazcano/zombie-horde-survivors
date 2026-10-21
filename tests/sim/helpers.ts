@@ -27,6 +27,7 @@ type Patch = {
       | 'noWaves'
       | 'startGold'
       | 'swim'
+      | 'timeControl'
       | 'startOrbs'
       | 'skyShowOn'
       | 'startView'

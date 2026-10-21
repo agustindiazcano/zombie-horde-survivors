@@ -126,9 +126,15 @@ async function main(): Promise<void> {
       setPaused(false);
     });
   };
+  // Maps with the `timeControl` rule let the player turn the clock (, and .) to see the light change.
+  let mapEnvironment = defaultEnvironment();
+  let hour = mapEnvironment.timeOfDay;
   window.addEventListener('keydown', (e) => {
     if (settingsPanel.isOpen) return;
-    if (e.code === 'KeyL' && !menu.isOpen)
+    if ((e.code === 'Comma' || e.code === 'Period') && config.timeControl && !menu.isOpen) {
+      hour = (hour + (e.code === 'Period' ? 0.25 : -0.25) + 24) % 24;
+      renderer.setEnvironment({ ...mapEnvironment, timeOfDay: hour });
+    } else if (e.code === 'KeyL' && !menu.isOpen)
       commitSettings({ ...settings, darkMode: !settings.darkMode });
     else if (e.code === 'F3') {
       e.preventDefault();
@@ -263,7 +269,9 @@ async function main(): Promise<void> {
     Object.assign(config, mapRules(globalRules, map.logic, map.units));
     config.players = map.players;
     config.placed = map.units;
-    renderer.setEnvironment(map.environment ?? defaultEnvironment());
+    mapEnvironment = map.environment ?? defaultEnvironment();
+    hour = mapEnvironment.timeOfDay;
+    renderer.setEnvironment(mapEnvironment);
     // Dragging an environment slider changes neither the ground nor the props: skip the rebuild.
     const ground = [map.meta.size, map.terrain, map.props, map.surfaces];
     if (!ground.every((part, i) => part === groundOf[i])) {
@@ -738,8 +746,12 @@ async function main(): Promise<void> {
       const swimHint = unit?.swimming
         ? `  [SWIMMING · depth ${unit.depth.toFixed(1)} m · C: dive · Space: surface · Shift: swim fast]`
         : '';
+      const clockHint = config.timeControl
+        ? `  [TIME ${String(Math.floor(hour)).padStart(2, '0')}:${String(Math.floor((hour % 1) * 60)).padStart(2, '0')} · , and . turn the clock]`
+        : '';
       hud.setHint(
         (rtsMode ? HINT_RTS : HINT_DIRECT) +
+          clockHint +
           stance +
           view +
           rideHint +

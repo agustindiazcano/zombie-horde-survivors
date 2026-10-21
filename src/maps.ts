@@ -72,13 +72,14 @@ export function listMaps(): MapEntry[] {
     .map((m) => entryOf(m, true))
     .sort(
       (a, b) =>
-        Number(b.id === MAP_1_ID) - Number(a.id === MAP_1_ID) || a.name.localeCompare(b.name),
+        Number(b.id === MAP_1_ID) - Number(a.id === MAP_1_ID) ||
+        a.name.localeCompare(b.name, undefined, { numeric: true }),
     );
   const builtInIds = new Set(builtIn.map((m) => m.id));
   const saved = loadSaved()
     .filter((m) => !builtInIds.has(m.meta.id))
     .map((m) => entryOf(m, false))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   return [...builtIn, ...saved];
 }
 
