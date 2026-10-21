@@ -1,4 +1,4 @@
-import { resolveStatic } from './collision';
+import { resolveFlying } from './collision';
 import type { GameConfig } from './config';
 import { localPlayer } from './players';
 import type { AirState, GameState, Input, Soldier, Vehicle } from './types';
@@ -183,8 +183,8 @@ export function updateAircraft(
   const dir = dirFromAngle(v.facing);
   const wanted = { x: v.pos.x + dir.x * v.speed * dt, z: v.pos.z + dir.z * v.speed * dt };
   const moved = { ...wanted };
-  // Obstacles lower than the machine pass beneath it; taller ones (and the arena edge) stop it.
-  resolveStatic(moved, vdef.radius, config.arena, air.alt);
+  // Props lower than the machine pass beneath it, and water and cliffs never stop it.
+  resolveFlying(moved, vdef.radius, config.arena, air.alt);
   if (Math.hypot(moved.x - wanted.x, moved.z - wanted.z) > 1e-3) v.speed *= CRASH_KEEP;
   v.pos.x = moved.x;
   v.pos.z = moved.z;

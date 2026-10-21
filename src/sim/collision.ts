@@ -97,3 +97,28 @@ export function resolveStatic(pos: Vec2, radius: number, arena: GameConfig['aren
   pos.x = Math.min(Math.max(pos.x, -lim), lim);
   pos.z = Math.min(Math.max(pos.z, -lim), lim);
 }
+
+/**
+ * Like `resolveStatic` for something that flies at height `y`: water and cliffs do not stop it
+ * (they have no top), and a prop only does when it is taller than `y`. The arena edge still does.
+ */
+export function resolveFlying(
+  pos: Vec2,
+  radius: number,
+  arena: GameConfig['arena'],
+  y: number,
+): void {
+  for (const box of obstaclesNear(
+    arena,
+    pos.x - radius,
+    pos.z - radius,
+    pos.x + radius,
+    pos.z + radius,
+  )) {
+    if (box.water || topOf(box) <= y + STEP_UP) continue;
+    resolveCircleAabb(pos, radius, box);
+  }
+  const lim = arena.halfSize - radius;
+  pos.x = Math.min(Math.max(pos.x, -lim), lim);
+  pos.z = Math.min(Math.max(pos.z, -lim), lim);
+}
