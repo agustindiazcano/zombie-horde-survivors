@@ -37,6 +37,8 @@ Known limits: the AI does not use posts, doors or keys; zombies ignore the crew 
 
 ## Decisions the user has made (do not re-litigate)
 
+- **Steam is the target and download size is not a constraint** (2026-10-21): do not shrink assets to save weight. Graphics options must also serve people with a real GPU (Ultra preset); the user's own PC has none, so its FPS does not matter.
+
 - **No new tests / no TDD** for the prototype; keep the 48 sim tests passing.
 - **Name:** Zombie Horde Survivors; it must contain "zombie".
 - **The drone is a machine** (a small spaceship), never a monster. It starts **unarmed** and needs a **Drone gun** (shop or crates) to fire.

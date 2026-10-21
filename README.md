@@ -78,13 +78,13 @@ There are two kinds of experience. The **global** XP comes from the blue orbs an
 
 Press **O** (or use the Settings button on the title screen and the pause screen) for the settings window. Opened in the middle of a game it pauses, and gives the game back when you close it. Everything is saved in your browser.
 
-| Section  | Options                                                                                                                                                                      |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Graphics | Quality preset (Toaster / Low / Medium / High), shadows on/off, shadow quality, resolution (25-100% of the screen's pixel density), surface depth (parallax), blood and gibs |
-| Lighting | Normal, or dark with a flashlight per soldier (also **L**)                                                                                                                   |
-| Other    | FPS counter (also **F3**), sound volume                                                                                                                                      |
+| Section  | Options                                                                                                                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Graphics | Quality preset (Toaster / Low / Medium / High / Ultra), shadows on/off, shadow quality, resolution (25-200% of the screen's pixel density), surface depth (parallax), textures (melted / low / normal / ultra), blood and gibs |
+| Lighting | Normal, or dark with a flashlight per soldier (also **L**)                                                                                                                                                                     |
+| Other    | FPS counter (also **F3**), sound volume                                                                                                                                                                                        |
 
-If the game runs slowly, try the **Low** preset or lower the resolution. **Toaster** goes further: about a third of the pixels each way, drawn blocky, with no shadows, no surface depth and no gibs. Changing any graphics option by hand switches the preset to Custom.
+**Ultra** is for a computer with a real graphics card: 4K shadows, the picture drawn at 1.5x and scaled down, the finest surface depth and 1K textures. If the game runs slowly, try the **Low** preset or lower the resolution. **Toaster** goes further: about a third of the pixels each way, drawn blocky, with no shadows, no surface depth and no gibs. Changing any graphics option by hand switches the preset to Custom.
 
 ## Perks and the shop
 

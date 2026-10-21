@@ -15,10 +15,10 @@ A browser-based 3D squad shooter prototype: four soldiers and a drone against en
 The user raised the market as a reason for decisions (the name, going public); no market research has been done and no figures are known. What is established:
 
 - **Audience:** casual-to-core PC players who like short action runs ("survivors-like" waves with perks) and a little tactics. It needs a desktop browser with keyboard and mouse; mobile is not supported.
-- **Channel and cost:** free to play, no download, no ads or payments. Shared by link with friends first (the user's stated goal: let acquaintances try it), then maybe more widely.
+- **Channel and cost:** free to play in the browser, no ads or payments. Shared by link with friends first (the user's stated goal: let acquaintances try it). The longer plan is to ship on **Steam** (the user's call): a desktop wrapper (Electron or Tauri) is not built or decided yet.
 - **Genre references (inspiration, not copies):** wave survival with level-up perks and a pause panel in the style of Vampire Survivors; the motion-tracker radar of the film Aliens; RTS-action hybrids (command a squad, or take control of one unit).
 - **What makes it different:** the same game plays as a third/first-person shooter _and_ as an RTS; a squad with individual inventories, XP and kill counts; mini bosses that grow each time.
-- **Constraints that shape the product:** only CC0 / CC-BY assets (no budget for art), no backend yet (a small relay server is planned for online multiplayer: see [docs/PLAN-multiplayer.md](docs/PLAN-multiplayer.md)), a first load of about 16 MB, desktop only.
+- **Constraints that shape the product:** only CC0 / CC-BY assets (no budget for art), no backend yet (a small relay server is planned for online multiplayer: see [docs/PLAN-multiplayer.md](docs/PLAN-multiplayer.md)), desktop only. **Download size is not a constraint** (the user's decision, because of Steam): do not shrink assets to save weight, and keep the heavy optional ones (ultra textures) loaded only when the player picks that quality. The browser first load is about 16 MB.
 - **Open market questions** (not researched): competitors in browser zombie shooters, discoverability, whether to monetize. Do not invent numbers about any of them.
 
 ## 3. Gameplay
@@ -38,6 +38,7 @@ The user raised the market as a reason for decisions (the name, going public); n
 | **Shop**                  | `B` between waves: field kit (heal), reinforcement (revive), weapons, drone gun, permanent upgrades; prices grow per purchase. Gold resets every run                                                                                                                                                                                                                                                                                                 |
 | **Weapons and inventory** | Each unit has two hands, a vest slot and a 10-slot backpack of stacks. Items are in `data/items.json` (pistol, rifle, heavy machine gun, drone gun, medkits and defibrillator are playable; the grenade, vest and accessories are mocked and not obtainable yet). Weapons come from crates (open with `E`) or the shop and move between units by drag and drop on the squad screen; a held weapon can be unequipped (an unarmed unit does not shoot) |
 | **Radar**                 | A round light-blue motion tracker bottom-right: a pulse ring spreads from the squad and enemies appear as blips only when it crosses them; 30 m range                                                                                                                                                                                                                                                                                                |
+| **Graphics**              | Presets Toaster, Low, Medium, High and Ultra (Ultra is for a machine with a real GPU: 4K shadows, 1.5x render scale, finest parallax, 1K textures) plus the individual options: shadows, shadow size, resolution (25% to 200%), surface depth (parallax 0 to 3), textures (0 melted, 1 low, 2 normal, 3 ultra) and gore. The user's own PC has no GPU, so FPS on it is not a target; the presets are for others                                      |
 | **Lighting**              | Normal by default; a dark mode with a flashlight per soldier on `L`                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ## 4. Controls
@@ -92,6 +93,7 @@ test-game/
 │   └── characters.json        model path, scale, clips and procedural motion per character
 ├── docs/worklog/              snapshots of what was done (moved out of LASTCONTEXT / PENDING)
 ├── public/
+│   ├── textures/real/         14 ambientCG sets at 512 px (normal textures); real1k/ the same at 1K (ultra)
 │   ├── models/                the GLB models (soldiers, enemies, drone) and their license texts
 │   ├── robots.txt · sitemap.xml
 ├── scripts/                   assets.mjs, check-assets.mjs, generate-credits.mjs
@@ -112,7 +114,8 @@ test-game/
 │   │   ├── loot.ts            gold and XP, levels
 │   │   └── upgrades.ts        perks, shop, multipliers
 │   ├── render/                Three.js rendering
-│   │   ├── gameRenderer.ts    scene, cameras, lighting, unit sync, bosses, graphics options
+│   │   ├── gameRenderer.ts    scene, cameras, lighting, reflection map, unit sync, bosses, graphics options
+│   │   ├── pom.ts · pomPatterns.ts · realSurfaces.ts · glass.ts · sirens.ts   texture lab: parallax occlusion material with silhouette clipping, procedural surfaces, ambientCG sets, glass, police lights
 │   │   ├── assetLoader.ts · characterConfig.ts · characters.ts · animationController.ts
 │   │   └── arena.ts · effects.ts · gore.ts · healthBars.ts · markers.ts · pickups.ts
 │   ├── input.ts · cameraControls.ts · rts.ts      keyboard, mouse, RTS selection and orders
@@ -146,7 +149,7 @@ Not in git: `node_modules/`, `dist/`.
 
 ## 9. Assets and licenses
 
-- Only CC0 or CC-BY (3.0 / 4.0) assets, each listed in `assets.toml` (name, author, source, license, path). CI fails otherwise. Currently 31 assets: Quaternius and KayKit models (CC0), the Meshy marine (CC-BY-4.0) and 14 ambientCG surface sets (CC0, shrunk to 512 px, in `public/textures/real/`).
+- Only CC0 or CC-BY (3.0 / 4.0) assets, each listed in `assets.toml` (name, author, source, license, path). CI fails otherwise. Currently 31 assets: Quaternius and KayKit models (CC0), the Meshy marine (CC-BY-4.0) and 14 ambientCG surface sets (CC0; 512 px in `public/textures/real/` for normal quality, 1K in `public/textures/real1k/` for ultra, same licences).
 - Models are GLB (glTF binary): +Y up, facing +Z, origin at the feet, about 1.7–2 units tall per `scale`, one skeleton, animations inside the file and in place; no Draco/meshopt compression (the loader has no decoders). Clip names are mapped state → name in `data/characters.json` and must match exactly (e.g. `CharacterArmature|Walk`). Soldiers need idle, run, death; enemies walk, attack, death (death plays once). A model without clips can use `procedural: 'wiggle' | 'hover'`.
 - After adding a model: copy it to `public/models/`, add it to `assets.toml`, map it in `characters.json`, run `npm run credits`, and check the clip names against the file.
 

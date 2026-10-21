@@ -1,5 +1,5 @@
 /** Player-facing options, kept in the browser (localStorage). No Three.js or DOM here. */
-export type Quality = 'toaster' | 'low' | 'medium' | 'high' | 'custom';
+export type Quality = 'toaster' | 'low' | 'medium' | 'high' | 'ultra' | 'custom';
 
 export interface Settings {
   /** Preset name, or 'custom' once any graphics option is changed by hand. */
@@ -29,7 +29,7 @@ type GraphicsFields = Pick<
   'shadows' | 'shadowMapSize' | 'resolutionScale' | 'gore' | 'parallax' | 'textures'
 >;
 
-export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high', GraphicsFields> = {
+export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', GraphicsFields> = {
   // For machines that struggle: a third of the pixels each way, drawn blocky, no shadows or depth.
   toaster: {
     shadows: false,
@@ -63,6 +63,15 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high', GraphicsFiel
     parallax: 2,
     textures: 2,
   },
+  // For a machine with a real GPU: 4K shadows, drawn at 1.5x and scaled down, the finest parallax and textures.
+  ultra: {
+    shadows: true,
+    shadowMapSize: 4096,
+    resolutionScale: 1.5,
+    gore: true,
+    parallax: 3,
+    textures: 3,
+  },
 };
 
 export const SHADOW_SIZES = [1024, 2048, 4096] as const;
@@ -80,7 +89,7 @@ const KEY = 'zombie-horde-survivors.settings';
 
 /** The preset whose graphics values match, or 'custom'. */
 export function qualityOf(s: GraphicsFields): Quality {
-  for (const name of ['toaster', 'low', 'medium', 'high'] as const) {
+  for (const name of ['toaster', 'low', 'medium', 'high', 'ultra'] as const) {
     const p = PRESETS[name];
     if (
       p.shadows === s.shadows &&
@@ -116,9 +125,9 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     quality: d.quality,
     shadows: bool(raw.shadows, d.shadows),
     shadowMapSize: size,
-    resolutionScale: Math.round(clamp(raw.resolutionScale, 0.25, 1, d.resolutionScale) * 20) / 20,
+    resolutionScale: Math.round(clamp(raw.resolutionScale, 0.25, 2, d.resolutionScale) * 20) / 20,
     gore: bool(raw.gore, d.gore),
-    parallax: Math.round(clamp(raw.parallax, 0, 2, d.parallax)),
+    parallax: Math.round(clamp(raw.parallax, 0, 3, d.parallax)),
     textures: Math.round(clamp(raw.textures, 0, 3, d.textures)),
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),

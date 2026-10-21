@@ -84,6 +84,7 @@ export class SettingsPanel {
         ['low', 'Low'],
         ['medium', 'Medium'],
         ['high', 'High'],
+        ['ultra', 'Ultra (needs a GPU)'],
         ['custom', 'Custom'],
       ],
       (v) => {
@@ -106,7 +107,7 @@ export class SettingsPanel {
       'Resolution',
       s.resolutionScale,
       0.25,
-      1,
+      2,
       0.05,
       (v) => `${Math.round(v * 100)}%`,
       (v) => this.change({ resolutionScale: v }),
@@ -119,6 +120,7 @@ export class SettingsPanel {
         ['0', 'Off'],
         ['1', 'Light'],
         ['2', 'Full, with shadows'],
+        ['3', 'Ultra (finest, with shadows)'],
       ],
       (v) => this.change({ parallax: Number(v) }),
     );

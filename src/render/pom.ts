@@ -14,7 +14,7 @@ import { isReal, loadReal, realDef } from './realSurfaces';
 /** Side (px) of a drawn texture at each texture quality: 0 melted, 1 low, 2 normal, 3 ultra. */
 const SIZES = [64, 128, 256, 512] as const;
 let textureLevel = 2;
-const MAX_STEPS = 48;
+const MAX_STEPS = 72;
 
 type Surface = {
   albedo: THREE.Texture;
@@ -169,7 +169,7 @@ export function setTextureQuality(level: number): void {
   }
 }
 
-const stepsFor = (q: number): number => (q >= 2 ? 40 : q === 1 ? 16 : 0);
+const stepsFor = (q: number): number => (q >= 3 ? 72 : q === 2 ? 40 : q === 1 ? 16 : 0);
 
 export function setPomQuality(next: number): void {
   quality = next;
