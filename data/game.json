@@ -464,6 +464,51 @@
         "orbitSpeed": 16,
         "safeAlt": 2.5
       }
+    },
+    "speedboat": {
+      "name": "Speedboat",
+      "health": 280,
+      "maxSpeed": 17,
+      "accel": 8,
+      "turnRate": 2.4,
+      "radius": 1.6,
+      "seats": 4,
+      "passengersShoot": true,
+      "enterRange": 5,
+      "ramDps": 0,
+      "ramSpeed": 0,
+      "water": true,
+      "ship": { "length": 7, "width": 2.4, "bow": 3, "deck": 0.7 }
+    },
+    "frigate": {
+      "name": "Frigate",
+      "health": 5000,
+      "maxSpeed": 1,
+      "accel": 1,
+      "turnRate": 1,
+      "radius": 1,
+      "seats": 1,
+      "passengersShoot": false,
+      "enterRange": 1,
+      "ramDps": 0,
+      "ramSpeed": 0,
+      "fixed": true,
+      "ship": { "length": 62, "width": 9, "bow": 18, "deck": 3.2 }
+    },
+    "carrier": {
+      "name": "Aircraft carrier",
+      "health": 50000,
+      "maxSpeed": 1,
+      "accel": 1,
+      "turnRate": 1,
+      "radius": 1,
+      "seats": 1,
+      "passengersShoot": false,
+      "enterRange": 1,
+      "ramDps": 0,
+      "ramSpeed": 0,
+      "fixed": true,
+      "ship": { "length": 150, "width": 34, "bow": 45, "deck": 3 }
     }
   },
   "difficulty": {

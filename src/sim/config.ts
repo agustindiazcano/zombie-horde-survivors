@@ -793,6 +793,18 @@ const vehicleType = z
     /** Damage per second to enemies under the hull, above `ramSpeed`. */
     ramDps: nonNegative,
     ramSpeed: nonNegative,
+    /** A boat: it sails only on water (ground below the map's water level) and is stopped by land. */
+    water: z.boolean().optional(),
+    /** A ship that stays where it was put: nobody drives or enters it (the carrier, the frigate). */
+    fixed: z.boolean().optional(),
+    /**
+     * Hull outline in metres, seen from above: a rectangle of `length` x `width` whose last `bow`
+     * metres taper to a point. `deck` is the height of the deck above the water.
+     */
+    ship: z
+      .object({ length: positive, width: positive, bow: positive, deck: positive })
+      .strict()
+      .optional(),
     /** Present on aircraft: they climb, hover and need the engine started. */
     air: z
       .object({

@@ -26,7 +26,7 @@ Only what is still open: read this first in every session. When an item here is 
 
 The last branch contains everything except `fix/suv-colormap` and `feat/ai-grenades`. Merge them in any order; the stacked ones must go in the order of the table (or open one PR from `feat/editor-structures`). Possible small docs conflicts in PENDING.md / LASTCONTEXT.md. Worklogs of 2026-10-20: `w0-soldier-pathing`, `ai-grenades`, `objects-block-movement`, `corpses-and-loose-items`, `doors-v2`, `posts-and-turret-ammo`, `editor-structures`. Nothing was seen in a browser.
 
-**2026-10-21:** branch `feat/helicopter` (from `main`, local, no PR): procedural helicopter and Map 8, see [worklog](docs/worklog/2026-10-21-helicopter.md). Waiting for the user's look.
+**2026-10-21:** branch `feat/helicopter` (from `main`, local, no PR): procedural helicopter and Map 8, see [worklog](docs/worklog/2026-10-21-helicopter.md). Waiting for the user's look. Also Map 9 "Sea test" (carrier, frigate, island, speedboats): [worklog](docs/worklog/2026-10-21-map-9-sea.md).
 
 ## Decisions the user has made (do not re-litigate)
 

@@ -19,6 +19,7 @@ export {
   orderMove,
 } from './soldiers';
 export { orderAircraft } from './aircraft';
+export { shipHalfWidth, shipOutline, type ShipShape } from './naval';
 export { bossStats, spawnZombie } from './zombies';
 export {
   ARMOR_PLATE,

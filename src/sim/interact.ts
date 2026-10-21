@@ -161,7 +161,7 @@ export function listInteractables(
     }
   }
   for (const v of state.vehicles) {
-    if (!v.seats.includes(null)) continue;
+    if (!v.seats.includes(null) || config.vehicles[v.type]!.fixed) continue;
     const def = config.vehicles[v.type]!;
     out.push({
       kind: 'vehicle',

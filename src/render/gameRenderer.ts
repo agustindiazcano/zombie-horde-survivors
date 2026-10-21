@@ -23,6 +23,7 @@ import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
 import { GroundItemViews } from './groundItems';
 import { PickupMeshes } from './pickups';
+import { createShip } from './ships';
 import { createAircraft, createGroundShadow, createJeep, type HelicopterParts } from './vehicles';
 import { GrenadeEffects, type GrenadePreview } from './grenades';
 import { SelectionMarkers } from './markers';
@@ -828,8 +829,10 @@ export class GameRenderer {
   /** Draws the vehicles of the state: a jeep for every ground type, the procedural helicopter for aircraft. */
   private syncVehicles(state: GameState, alpha: number): void {
     const live = new Set<number>();
+    const sea = this.config.arena.terrain.water ?? 0;
     for (const v of state.vehicles) {
       live.add(v.id);
+      const def = this.config.vehicles[v.type]!;
       let entry = this.vehicles.get(v.id);
       if (!entry) {
         if (v.air) {
@@ -838,25 +841,30 @@ export class GameRenderer {
             object: heli.object,
             wheels: [],
             heli,
-            shadow: createGroundShadow(this.config.vehicles[v.type]!.radius * 1.2),
+            shadow: createGroundShadow(def.radius * 1.2),
             pitch: 0,
             bank: 0,
           };
           this.scene.add(entry.shadow!);
-        } else entry = createJeep(this.vehicleModel);
+        } else if (def.ship) entry = { object: createShip(v.type, def.ship), wheels: [] };
+        else entry = createJeep(this.vehicleModel);
         this.vehicles.set(v.id, entry);
         this.scene.add(entry.object);
       }
       const x = lerp(v.prev.x, v.pos.x, alpha);
       const z = lerp(v.prev.z, v.pos.z, alpha);
-      const ground = this.groundAt(x, z);
+      // Ships float on the water; everything else follows the ground.
+      const ground = def.ship ? sea : this.groundAt(x, z);
       const alt = v.air ? lerp(v.air.prevAlt, v.air.alt, alpha) : 0;
-      entry.object.position.set(x, ground + alt, z);
+      // A boat rides the swell a little; the big ships are steady.
+      const swell = def.water ? Math.sin(state.time * 1.7 + v.id) : 0;
+      entry.object.position.set(x, ground + alt + swell * 0.07, z);
+      entry.object.rotation.z = swell * 0.02;
+      entry.object.rotation.x = def.water ? Math.cos(state.time * 1.3 + v.id) * 0.015 : 0;
       const turn = Math.atan2(Math.sin(v.facing - v.prevFacing), Math.cos(v.facing - v.prevFacing));
       entry.object.rotation.y = v.prevFacing + turn * alpha;
       for (const wheel of entry.wheels) wheel.rotation.x += v.speed * 0.02;
       if (v.air && entry.heli) {
-        const def = this.config.vehicles[v.type]!;
         // Nose down with speed, banked into the turn; both ease so the machine does not snap.
         // A tiltrotor flies level: its pods do the leaning.
         const tiltrotor = entry.heli.nacelles.length > 0;

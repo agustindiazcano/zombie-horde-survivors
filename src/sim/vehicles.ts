@@ -1,6 +1,7 @@
 import { BOARD_ALT, createAirState, updateAircraft } from './aircraft';
 import { resolveStatic } from './collision';
 import type { GameConfig } from './config';
+import { landSpotNear, moveBoat } from './naval';
 import { localPlayer } from './players';
 import type { GameState, Input, Soldier, Vehicle } from './types';
 import { dirFromAngle, type Vec2 } from './vec';
@@ -12,6 +13,8 @@ const ARRIVE_DISTANCE = 2.5;
 const BOARD_FOLLOWERS_RANGE = 12;
 /** Gap (metres) between the hull and a soldier stepping out. */
 const EXIT_GAP = 1.2;
+/** A sunk boat's crew swims to dry ground at most this far (metres) away. */
+const WRECK_LAND_REACH = 40;
 /** Braking is this many times stronger than accelerating. */
 const BRAKE_FACTOR = 2;
 /** A crash into an obstacle keeps this share of the speed. */
@@ -60,7 +63,7 @@ export function vehicleInReach(
   let best: Vehicle | undefined;
   let bestDist = Infinity;
   for (const v of state.vehicles) {
-    if (!v.seats.includes(null)) continue;
+    if (!v.seats.includes(null) || config.vehicles[v.type]!.fixed) continue;
     // Nobody climbs into a helicopter that has left the ground.
     if (v.air && v.air.alt > BOARD_ALT) continue;
     const def = config.vehicles[v.type]!;
@@ -85,17 +88,30 @@ function seat(v: Vehicle, s: Soldier, index: number): void {
 }
 
 /** Puts a soldier on the ground next to the hull; `slot` spreads several of them around it. */
-function dismount(config: GameConfig, v: Vehicle, s: Soldier, slot: number): void {
+function dismount(
+  config: GameConfig,
+  v: Vehicle,
+  s: Soldier,
+  slot: number,
+  spot?: Vec2 | null,
+): void {
   const index = v.seats.indexOf(s.id);
   if (index >= 0) v.seats[index] = null;
   s.vehicleId = null;
   const def = config.vehicles[v.type]!;
-  const angle = v.facing + Math.PI / 2 + slot * 0.9;
-  const dir = dirFromAngle(angle);
-  const r = def.radius + config.player.radius + EXIT_GAP;
-  s.pos.x = v.pos.x + dir.x * r;
-  s.pos.z = v.pos.z + dir.z * r;
-  resolveStatic(s.pos, config.player.radius, config.arena);
+  if (def.water) {
+    // From a boat a soldier steps onto dry ground; far from any, it stays where the boat is.
+    const land = spot ?? landSpotNear(config, v, slot, WRECK_LAND_REACH);
+    s.pos.x = land?.x ?? v.pos.x;
+    s.pos.z = land?.z ?? v.pos.z;
+  } else {
+    const angle = v.facing + Math.PI / 2 + slot * 0.9;
+    const dir = dirFromAngle(angle);
+    const r = def.radius + config.player.radius + EXIT_GAP;
+    s.pos.x = v.pos.x + dir.x * r;
+    s.pos.z = v.pos.z + dir.z * r;
+    resolveStatic(s.pos, config.player.radius, config.arena);
+  }
   s.prev.x = s.pos.x;
   s.prev.z = s.pos.z;
 }
@@ -113,9 +129,14 @@ export function toggleVehicle(state: GameState, config: GameConfig, soldierId: n
     if (current.air && current.air.alt > BOARD_ALT) return;
     const crew =
       current.seats[0] === s.id ? current.seats.filter((id): id is number => id !== null) : [s.id];
+    // Out at sea nobody can step off a boat: it needs dry ground close by.
+    const spots = config.vehicles[current.type]!.water
+      ? crew.map((_, i) => landSpotNear(config, current, i))
+      : null;
+    if (spots?.some((spot) => spot === null)) return;
     crew.forEach((id, i) => {
       const member = state.soldiers.find((u) => u.id === id);
-      if (member) dismount(config, current, member, i);
+      if (member) dismount(config, current, member, i, spots?.[i]);
     });
     current.speed = 0;
     if (current.air && current.seats[0] === null) {
@@ -149,6 +170,7 @@ export function hurtVehicle(
   v: Vehicle,
   amount: number,
 ): void {
+  if (config.vehicles[v.type]!.fixed) return;
   v.health = Math.max(0, v.health - amount);
   if (v.health > 0) return;
   state.events.push({ type: 'vehicleDestroyed', vehicleId: v.id, pos: { ...v.pos } });
@@ -193,6 +215,7 @@ export function updateVehicles(
     v.prev.x = v.pos.x;
     v.prev.z = v.pos.z;
     v.prevFacing = v.facing;
+    if (def.fixed) continue;
 
     const driver = driverOf(state, v);
     if (v.air) {
@@ -214,8 +237,9 @@ export function updateVehicles(
 
     const dir = dirFromAngle(v.facing);
     const wanted = { x: v.pos.x + dir.x * v.speed * dt, z: v.pos.z + dir.z * v.speed * dt };
-    const moved = { ...wanted };
-    resolveStatic(moved, def.radius, config.arena);
+    let moved = { ...wanted };
+    if (def.water) moved = moveBoat(state, config, def.radius, v.pos, wanted).pos;
+    else resolveStatic(moved, def.radius, config.arena);
     if (Math.hypot(moved.x - wanted.x, moved.z - wanted.z) > 1e-3) v.speed *= CRASH_KEEP;
     v.pos.x = moved.x;
     v.pos.z = moved.z;

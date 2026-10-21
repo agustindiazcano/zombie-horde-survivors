@@ -35,6 +35,8 @@ Ctrl+W closes the browser tab and the browser won't let a page block it, so **C*
 
 In a vehicle the driver steers with W / A / S / D and passengers keep shooting; zombies bite the hull.
 
+**Boats (speedboat):** driven like a jeep (W / A / S / D), but only on water: the shore and the hulls of the ships stop them. Climb in from the deck of the carrier or the beach (**V** / **E**, reach about 6 m); you can only step out where there is dry ground within about 8 m, never out at sea. The carrier and the frigate are fixed: they cannot be entered or driven yet.
+
 **Helicopter, direct control (pilot):** on the ground **hold W** (any move key) for 10 s to start the engine (the rotor spools up and the hint shows the percentage; letting go makes it fall back). Once running: **Space** climbs, **C** / **Ctrl** descends (down to the ground), **W / A / S / D** fly (only above 2 m), **Shift** flies faster. You can only get out (**V** / **E**) when it is on the ground. Zombies cannot reach it above 2.5 m.
 
 ## Views (T)

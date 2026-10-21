@@ -722,7 +722,7 @@ async function main(): Promise<void> {
             : `  [ALT ${ride.air.alt.toFixed(0)} m · Space: up · C: down · Shift: faster]`
           : '';
       const rideHint = ride
-        ? `  [${config.vehicles[ride.type]!.name.toUpperCase()} ${Math.round((ride.health / ride.maxHealth) * 100)}% · V: get out]${flightHint}`
+        ? `  [${config.vehicles[ride.type]!.name.toUpperCase()} ${Math.round((ride.health / ride.maxHealth) * 100)}% · V: get out${config.vehicles[ride.type]!.water ? ' (near land)' : ''}]${flightHint}`
         : '';
 
       const focusId = localPlayer(state).controlledId ?? [...rts.selected][0] ?? null;

@@ -199,7 +199,20 @@
             {
               "id": "military-sea",
               "name": "Sea",
-              "items": []
+              "items": [
+                {
+                  "id": "speedboat",
+                  "name": "Speedboat"
+                },
+                {
+                  "id": "frigate",
+                  "name": "Frigate"
+                },
+                {
+                  "id": "carrier",
+                  "name": "Aircraft carrier"
+                }
+              ]
             },
             {
               "id": "military-land",
