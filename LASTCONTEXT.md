@@ -17,7 +17,7 @@ Everything that was local on 2026-10-20 is now in `main`: the SUV colour texture
 
 Known limits: the AI does not use posts, doors or keys; zombies ignore the crew of a post; the editor does not yet validate overlaps or the quantity of loose items.
 
-## Work of 2026-10-21 (branch `feat/helicopter`, 5 commits, not pushed, no PR)
+## Work of 2026-10-21 (branch `feat/helicopter`, 18 commits ahead of `main`, not pushed, no PR)
 
 `feat/helicopter` is cut from `main` (`54b68c5`) and also contains the docs refresh of `docs/refresh-lastcontext-after-59`. Nothing below was seen in a browser; headless probes checked the sim only.
 
@@ -32,6 +32,7 @@ Known limits: the AI does not use posts, doors or keys; zombies ignore the crew 
 - **Boats and ships** (`src/sim/naval.ts`, `water` / `fixed` / `ship` in `vehicleType`): speedboats sail only on water and are stopped by the shore and by hulls; stepping out needs dry ground within 8 m. The carrier and the frigate are `fixed` (not drivable yet); the carrier's walkable deck is a plateau baked into the height grid. Models in `src/render/ships.ts`. Worklog: [map-9-sea](docs/worklog/2026-10-21-map-9-sea.md).
 - **Swimming (Map 10, `swim` map rule, `src/sim/swim.ts`):** C dives, Space surfaces, Shift swims faster, an oxygen bar runs while the head is under. Worklog: [swimming-map-10](docs/worklog/2026-10-21-swimming-map-10.md). Never seen in a browser.
 - **Texture lab (Map 11, `src/render/pom.ts`):** parallax occlusion mapped walls (brick, stone, plates, cobble slab) from procedural textures; **,** and **.** turn the time of day on maps with `timeControl`; the map list now scrolls. Worklog: [texture-lab-map-11](docs/worklog/2026-10-21-texture-lab-map-11.md). The shader was checked in headless Chrome; the map itself was not seen. Later the same day: 14 real CC0 ambientCG surfaces ([worklog](docs/worklog/2026-10-21-real-textures.md)), 16 procedural surfaces, six kinds of glass, a police light bar, a Toaster graphics preset and Map 11 grown to 160 x 160 ([worklog](docs/worklog/2026-10-21-texture-lab-more.md)).
+- **Reflections, castle and graphics (later the same day):** a baked reflection map, parallax silhouette clipping (the user says it works), a small castle in Map 11 (wood floor, swing and glass doors, glass windows, torches) with two flights of steps for testing feet, a Textures setting (melted to ultra, 1K sets for ultra) and an Ultra graphics preset. Worklog: [castle-and-graphics](docs/worklog/2026-10-21-castle-and-graphics.md). **Next:** the user looks at the castle, doors, steps, Ultra and the texture levels; then 2K / 4K ultra textures, then procedural IK (quadruped test first).
 - **Known problems:** the carrier tower's collider is 2 m high but the model is about 25 m (aircraft clip through it); moving the carrier in the editor does not move its deck; the main bundle grew from 714 kB to 1.5 MB because of Map 9's 800 kB JSON (excluded from Prettier).
 - **Waiting on the user:** a look at Maps 7, 8 and 9, the Map 2 nest and tower, the editor's Assets tab, corpses with Drop / Take and the AI dragging the wounded; and an OK before any model download (police, civilians, military, vehicles; CC0 / CC-BY only).
 
