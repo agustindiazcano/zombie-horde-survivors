@@ -208,9 +208,9 @@ export function updateGrenades(state: GameState, config: GameConfig, dt: number)
       const y0 = (thrower?.y ?? 0) + g.releaseHeight;
       const ground = supportHeight(config.arena, gr.to, 100);
       // Closed-form ballistic height: starts at the hand, ends on the ground at the target.
-      const vy = (ground - y0 + 0.5 * g.gravity * gr.flight * gr.flight) / gr.flight;
+      const vy = (ground - y0 + 0.5 * state.gravity * gr.flight * gr.flight) / gr.flight;
       const s = gr.flown;
-      gr.y = Math.max(ground, y0 + vy * s - 0.5 * g.gravity * s * s);
+      gr.y = Math.max(ground, y0 + vy * s - 0.5 * state.gravity * s * s);
       // A landing inside a wall is pushed out to its edge.
       if (gr.flown >= gr.flight) resolveStatic(gr.pos, GRENADE_RADIUS, config.arena, gr.y);
     }

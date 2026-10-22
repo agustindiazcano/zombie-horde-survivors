@@ -184,6 +184,7 @@ export class RtsController {
       radius: pick.aim.radius,
       clamped: pick.aim.clamped,
       height: this.config.grenades.releaseHeight + pick.soldier.y,
+      gravity: this.getState().gravity,
     };
   }
 

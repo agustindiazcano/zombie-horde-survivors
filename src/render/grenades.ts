@@ -19,6 +19,8 @@ export interface GrenadePreview {
   clamped: boolean;
   /** Height of the hand at release. */
   height: number;
+  /** The world gravity now (m/s²). */
+  gravity: number;
 }
 
 interface Blast {
@@ -123,12 +125,12 @@ export class GrenadeEffects {
     const startY = this.groundAt(p.from.x, p.from.z) + p.height;
     const d = Math.hypot(p.landing.x - p.from.x, p.landing.z - p.from.z);
     const flight = Math.max(0.25, d / g.throwSpeed);
-    const vy = (ground - startY + 0.5 * g.gravity * flight * flight) / flight;
+    const vy = (ground - startY + 0.5 * p.gravity * flight * flight) / flight;
     for (let i = 0; i < ARC_POINTS; i++) {
       const t = i / (ARC_POINTS - 1);
       const s = t * flight;
       this.arcPositions[i * 3] = p.from.x + (p.landing.x - p.from.x) * t;
-      this.arcPositions[i * 3 + 1] = Math.max(ground, startY + vy * s - 0.5 * g.gravity * s * s);
+      this.arcPositions[i * 3 + 1] = Math.max(ground, startY + vy * s - 0.5 * p.gravity * s * s);
       this.arcPositions[i * 3 + 2] = p.from.z + (p.landing.z - p.from.z) * t;
     }
     this.arc.geometry.attributes.position!.needsUpdate = true;

@@ -163,6 +163,8 @@ const mapLogic = z
     swim: z.boolean().optional(),
     /** The player can turn the time of day with the , and . keys (the texture lab). */
     timeControl: z.boolean().optional(),
+    /** The physics lab (Map 12): the panel to drop balls and ragdolls and set off blasts, see src/sim/physics. */
+    physicsLab: z.boolean().optional(),
     /** Runs the sky show of `skyShow` in game.json: blue lights that wander, fly and come down over the houses. */
     skyShow: z.boolean().optional(),
     /** The camera the run starts in, and how far up (radians) a first-person view looks. */
@@ -962,6 +964,8 @@ export const GameConfigSchema = z
         radius: positive,
       })
       .strict(),
+    /** The one gravity (m/s²): jumps, falls, grenades and the Map 12 lab. Live value: `GameState.gravity`. */
+    gravity: positive,
     squad: z
       .object({
         /** Soldiers at the start of a game. */
@@ -1012,7 +1016,6 @@ export const GameConfigSchema = z
         throwSpeed: positive,
         /** Height of the hand at release (metres above the thrower's feet). */
         releaseHeight: positive,
-        gravity: positive,
         /** Seconds before the thrower can fire or throw again. */
         cooldown: nonNegative,
         /** Share of the blast damage that hurts allies, including the thrower (0 = none). */
@@ -1435,9 +1438,8 @@ export const GameConfigSchema = z
         staminaRegen: positive,
         /** After running dry a unit cannot sprint again until it has recovered this much. */
         staminaResume: positive,
-        /** Initial upward speed of a jump and the downward pull on it. */
+        /** Initial upward speed of a jump (the downward pull is the world `gravity`). */
         jumpSpeed: positive,
-        gravity: positive,
         /** The tallest box (metres) a unit can vault onto, and the stamina the vault costs. */
         climbMaxHeight: positive,
         climbStamina: nonNegative,
@@ -1688,6 +1690,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   /** Water is swimmable: units wade, swim and dive instead of being stopped by it. */
   swim: boolean;
   timeControl: boolean;
+  /** The physics lab panel is on (Map 12). */
+  physicsLab: boolean;
   /** Orbs that wake up during the run. */
   startOrbs: NonNullable<MapLogic['orbs']>;
   /** The sky show is on, the camera the run starts in, its first-person pitch and the subtitles. */
@@ -1766,6 +1770,7 @@ type MapRules = Pick<
   | 'startGold'
   | 'swim'
   | 'timeControl'
+  | 'physicsLab'
   | 'startOrbs'
   | 'skyShowOn'
   | 'startView'
@@ -1823,6 +1828,7 @@ export function mapRules(
     startGold: logic.startGold ?? 0,
     swim: logic.swim ?? false,
     timeControl: logic.timeControl ?? false,
+    physicsLab: logic.physicsLab ?? false,
     startOrbs: logic.orbs ?? [],
     skyShowOn: logic.skyShow ?? false,
     startView: logic.startView,

@@ -28,6 +28,8 @@ type Patch = {
       | 'startGold'
       | 'swim'
       | 'timeControl'
+      | 'physicsLab'
+      | 'gravity'
       | 'startOrbs'
       | 'skyShowOn'
       | 'startView'
@@ -93,7 +95,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
   Object.assign(catalog.items.rifle, { spread: 0, recoil: undefined }, weapon);
   const { arena, ...settings } = merged;
   return {
-    ...parseConfig(settings, parseMap(map1), units, catalog),
+    ...parseConfig({ ...settings, gravity: base.gravity }, parseMap(map1), units, catalog),
     arena: arena as unknown as GameConfig['arena'],
   };
 }

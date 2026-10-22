@@ -98,6 +98,17 @@ Carrier you can walk on, frigate, island with beach and houses, drivable speedbo
 - [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 10. Walk into the sea, **C** dives, **Space** surfaces, **Shift** swims fast, watch the OXYGEN bar and the drowning. Tune `swimming` in `game.json` and `SWIM_*` in `gameRenderer.ts` ([worklog](docs/worklog/2026-10-21-swimming-map-10.md)).
 - [ ] 🟢 Next: swim animation, splash and bubbles, underwater tint, sound, AI that dives.
 
+### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
+
+Plan: [docs/PLAN-physics-lab.md](docs/PLAN-physics-lab.md). Map 12 now runs Rapier (deterministic build): balls, boxes with rotation, a box pyramid and marine-zombie ragdolls with hinge joints ([worklog](docs/worklog/2026-10-21-rapier-lab.md), [PHYSICS.md section 6](docs/PHYSICS.md)). The own sphere solver is kept for the Rust/WASM port. Measured headless only (`npm run check:rapier`, `bench:physics`, `check:ragdoll`).
+
+- [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 12 (Rapier loads the first time, a 4.4 MB chunk). Esc frees the mouse. Drop a box pyramid, loose boxes, balls on the ramp, a Zombie marine, a grenade into a pile. Tell what looks wrong (the ragdoll sinking, stiff torso, twisted hips, balls that never stop, sliding).
+- [ ] 🔴 Decide point 3: how the 2D units meet Rapier bodies (kinematic capsules for everyone, only the player and squad, or loose bodies as decoration).
+- [ ] 🟡 Shots push bodies (the hitscan hit point of `weapon.ts` through `RapierWorld.raycast`), a ragdoll on a real enemy death (needs the bone pose of the death clip), grab and throw with G / E (`objects.ts`, `drag.ts`, `rescueDrag.ts`), limbs from `dismember.ts` as loose bodies.
+- [ ] 🟡 Tune masses, friction, bounce, damping and the blast scale, `torsoRadius`, joint limits for hips and shoulders, from what you see.
+- [ ] 🟡 Check determinism in a real browser (Chrome and Firefox): the hash in the panel must match `check:rapier` for the same scene.
+- [ ] ⚪ Rust, Cargo and `wasm-pack` are installed (see memory); the WASM port of the own solver (plan phases 6 to 8) only if Rapier is not enough.
+
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
 Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. W1 to W6 are built on `feat/weapon-instances` (worklogs 2026-10-19 `weapons-w1`, `w2`, `w3`, `w4`, `w5`, `w6`, `weapons-in-hand`).

@@ -646,6 +646,8 @@ export interface Orb {
 }
 
 export interface GameState {
+  /** Gravity in m/s², starts at `config.gravity`; the Map 12 slider changes it live. */
+  gravity: number;
   time: number;
   status: 'playing' | 'gameover' | 'victory';
   /** The map editor's live preview: units can be driven, but there are no waves and enemies stand still. */

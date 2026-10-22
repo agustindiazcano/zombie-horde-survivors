@@ -21,7 +21,7 @@ export {
 } from './soldiers';
 export { orderAircraft } from './aircraft';
 export { shipHalfWidth, shipOutline, type ShipShape } from './naval';
-export { bossStats, spawnZombie } from './zombies';
+export { bossStats, damageZombie, spawnZombie } from './zombies';
 export {
   ARMOR_PLATE,
   addToBackpack,

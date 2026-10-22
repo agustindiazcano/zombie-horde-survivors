@@ -8,7 +8,7 @@ import { aiThrowGrenade } from './grenades';
 import { throwCarried } from './objects';
 import { bonus } from './training';
 import { isSubmerged, isSwimming, updateBreath } from './swim';
-import { resolveStatic, supportHeight, topOf } from './collision';
+import { dynamicSolids, nearestOnSolid, resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
 import { getVehicle, toggleVehicle } from './vehicles';
@@ -322,7 +322,7 @@ export function updateSoldiers(
       updateAi(state, config, s, leader, stance, dt);
     }
     updateStamina(config, s, stance, dt);
-    if (s.post === null) updateJump(config, s, dt);
+    if (s.post === null) updateJump(state, config, s, dt);
     updateBreath(state, config, s, dt);
   }
   separateSoldiers(state, config);
@@ -344,11 +344,11 @@ function updateStamina(config: GameConfig, s: Soldier, stance: Stance, dt: numbe
 }
 
 /** Vertical motion of a jump; runs for every unit so a jump always finishes. */
-function updateJump(config: GameConfig, s: Soldier, dt: number): void {
+function updateJump(state: GameState, config: GameConfig, s: Soldier, dt: number): void {
   // The floor is the ground, or the top of the box the unit is over.
   const floor = supportHeight(config.arena, s.pos, s.y);
   if (s.y === floor && s.vy === 0) return;
-  s.vy -= config.stance.gravity * dt;
+  s.vy -= state.gravity * dt;
   s.y += s.vy * dt;
   if (s.y <= floor) {
     s.y = floor;
@@ -360,26 +360,43 @@ function updateJump(config: GameConfig, s: Soldier, dt: number): void {
  * The upward speed that lifts a unit onto the box it is walking into, or null when there is none
  * in reach, it is too tall, or the unit is out of breath. Costs stamina.
  */
-function climbSpeed(config: GameConfig, s: Soldier, move: Vec2): number | null {
-  const { gravity, jumpSpeed, climbMaxHeight, climbStamina } = config.stance;
+function climbSpeed(state: GameState, config: GameConfig, s: Soldier, move: Vec2): number | null {
+  const { jumpSpeed, climbMaxHeight, climbStamina } = config.stance;
+  const gravity = state.gravity;
   const len = Math.hypot(move.x, move.z);
   if (len < 0.1 || s.winded || s.stamina < climbStamina) return null;
   const reach = config.player.radius + CLIMB_REACH;
-  for (const box of config.arena.obstacles) {
-    const rise = topOf(box) - s.y;
+  /** Whether a box with this top and nearest point (cx, cz) is one to vault onto. */
+  const vaultable = (top: number, cx: number, cz: number): boolean => {
+    const rise = top - s.y;
     if (rise > climbMaxHeight || rise <= (jumpSpeed * jumpSpeed) / (2 * gravity) - CLIMB_CLEAR) {
-      continue;
+      return false;
     }
-    const cx = Math.min(Math.max(s.pos.x, box.x - box.halfW), box.x + box.halfW);
-    const cz = Math.min(Math.max(s.pos.z, box.z - box.halfD), box.z + box.halfD);
     const dx = cx - s.pos.x;
     const dz = cz - s.pos.z;
     const dist = Math.hypot(dx, dz);
-    if (dist > reach || dist < 1e-6) continue;
+    if (dist > reach || dist < 1e-6) return false;
     // Only when walking towards the box.
-    if ((dx * move.x + dz * move.z) / (dist * len) < CLIMB_FACING) continue;
+    return (dx * move.x + dz * move.z) / (dist * len) >= CLIMB_FACING;
+  };
+  const climb = (top: number): number => {
     s.stamina -= climbStamina;
-    return Math.sqrt(2 * gravity * (rise + CLIMB_CLEAR));
+    return Math.sqrt(2 * gravity * (top - s.y + CLIMB_CLEAR));
+  };
+  for (const box of config.arena.obstacles) {
+    const cx = Math.min(Math.max(s.pos.x, box.x - box.halfW), box.x + box.halfW);
+    const cz = Math.min(Math.max(s.pos.z, box.z - box.halfD), box.z + box.halfD);
+    if (vaultable(topOf(box), cx, cz)) return climb(topOf(box));
+  }
+  // The free boxes of the physics lab (Map 12).
+  for (const box of dynamicSolids()) {
+    if (
+      !box.walkable ||
+      Math.hypot(box.x - s.pos.x, box.z - s.pos.z) > reach + box.halfW + box.halfD
+    )
+      continue;
+    const near = nearestOnSolid(s.pos, box);
+    if (vaultable(box.top, near.x, near.z)) return climb(box.top);
   }
   return null;
 }
@@ -461,7 +478,7 @@ function updateControlled(
   const grounded = s.vy === 0 && s.y === supportHeight(config.arena, s.pos, s.y);
   if (input.jump && grounded && !isDrone(s) && !s.downed && !s.swimming) {
     // Walking into a box that a plain jump cannot clear: vault up onto it.
-    s.vy = climbSpeed(config, s, move) ?? config.stance.jumpSpeed;
+    s.vy = climbSpeed(state, config, s, move) ?? config.stance.jumpSpeed;
   }
 
   // Hands full: a fresh press throws what is held instead of firing.

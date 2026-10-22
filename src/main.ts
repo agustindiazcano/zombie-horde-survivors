@@ -61,6 +61,7 @@ import { DEFAULT_SETTINGS, PRESETS, loadSettings, saveSettings, type Settings } 
 import { SettingsPanel } from './settingsPanel';
 import { Radar } from './radar';
 import { BuildUi } from './buildUi';
+import { PhysicsLab } from './physicsLab';
 import { PerkPicker, Shop } from './upgradesUi';
 
 /** Mobile: enemies within this distance (world units) are shot at automatically. */
@@ -74,7 +75,7 @@ const PAN_SPEED = 22;
 const EDITOR_PICK_RANGE = 1.5;
 
 const HINT_DIRECT =
-  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Z: walk · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: use / pick up / open / enter · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
+  'Direct control · WASD move · Mouse aim · Click fire · Ctrl/C: crouch · Shift: sprint · Z: walk · Space: jump · T: change view · Y: back to RTS · I: squad & inventories · E: use / pick up / open / enter (Map 12: lift a box, click throws it) · R: reload · Right button: aim (3rd/1st person) · Q: throw a grenade · G: drag a body (or a box) · V: enter / leave a vehicle · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
@@ -92,6 +93,24 @@ async function main(): Promise<void> {
   let state = createGame(config, Date.now());
   let paused = false;
   const renderer = new GameRenderer(document.body, config, factories);
+  // The physics lab (Map 12): drops balls and zombie ragdolls in front of the leader.
+  const lab = new PhysicsLab(
+    renderer.scene,
+    document.body,
+    factories,
+    () => config.arena,
+    () => {
+      const s =
+        state.soldiers.find((u) => u.id === localPlayer(state).controlledId) ?? state.soldiers[0];
+      return s ? { x: s.pos.x, z: s.pos.z, facing: s.facing } : null;
+    },
+    {
+      get: () => state.gravity,
+      set: (v) => {
+        state.gravity = v;
+      },
+    },
+  );
   renderer.setVehicleModel(await loadVehicleModel());
   const input = new InputController(renderer.domElement);
   const sfx = new Sfx();
@@ -257,6 +276,7 @@ async function main(): Promise<void> {
       controlSoldier(state, null);
     }
     hud.reset();
+    lab.reset();
     build.close();
     rts.set([]);
     ui.close();
@@ -267,6 +287,7 @@ async function main(): Promise<void> {
   let groundOf: unknown[] = [];
   const loadMap = (map: MapData, unitsKept = false) => {
     Object.assign(config, mapRules(globalRules, map.logic, map.units));
+    lab.setActive(config.physicsLab);
     config.players = map.players;
     config.placed = map.units;
     mapEnvironment = map.environment ?? defaultEnvironment();
@@ -527,8 +548,13 @@ async function main(): Promise<void> {
       const unitId = localPlayer(state).controlledId;
       if (ui.isOpen) ui.close();
       else if (playable() && !modalOpen() && unitId !== null && !e.repeat) {
-        const crateId = useNearest(state, config, unitId);
-        if (crateId !== null) ui.openCrate(unitId, crateId);
+        // A box or ball of the physics lab (Map 12) in reach is lifted (or dropped) first.
+        const grabbed = lab.grab(state, unitId);
+        if (typeof grabbed === 'string') rts.notice = grabbed;
+        if (!grabbed) {
+          const crateId = useNearest(state, config, unitId);
+          if (crateId !== null) ui.openCrate(unitId, crateId);
+        }
       }
     } else if (
       e.code === 'KeyT' &&
@@ -628,6 +654,7 @@ async function main(): Promise<void> {
       if (mobile) ensureMobileLeader();
       const direct = localPlayer(state).controlledId !== null;
       step(state, config, direct ? readInput() : noInput, dt);
+      lab.step(state, config);
       renderer.onStep(state);
       hud.onStep(state);
       damageNumbers.onStep(state);
@@ -686,6 +713,7 @@ async function main(): Promise<void> {
       renderer.setGrenadePreview(rts.grenadePreview());
       build.update();
       renderer.setBuildGhost(build.ghost());
+      lab.render(frameDt);
       renderer.render(state, alpha, frameDt);
       damageNumbers.update(paused ? 0 : frameDt);
       fps.tick(frameDt);

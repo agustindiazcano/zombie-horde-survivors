@@ -1,4 +1,5 @@
 {
+  "gravity": 20,
   "squad": {
     "count": 4,
     "followDistance": 3,
@@ -127,7 +128,6 @@
   "grenades": {
     "throwSpeed": 14,
     "releaseHeight": 1.4,
-    "gravity": 20,
     "cooldown": 0.8,
     "friendlyFire": 0.5,
     "aiMinEnemies": 4,
@@ -728,7 +728,6 @@
     "staminaRegen": 14,
     "staminaResume": 30,
     "jumpSpeed": 6.5,
-    "gravity": 20,
     "climbMaxHeight": 2.2,
     "climbStamina": 30
   },

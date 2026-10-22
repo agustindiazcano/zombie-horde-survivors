@@ -151,3 +151,7 @@ On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the
 | 📦 (bottom-right) | Appears when the leader stands next to a crate: tap to open it                                    |
 | 🧎 / 💨 / ⤒       | Crouch and sprint (tap to toggle) and jump (hold)                                                 |
 | Pinch / ⛶ / buzz  | Two-finger zoom; full screen button; the phone vibrates when a soldier is hurt                    |
+
+## Physics lab (Map 12)
+
+Start → Single Player → Waves → Map 12 "Physics lab". The panel on the right drops things 10 m in front of the soldier: balls (100 or 1000), a pyramid, a marine-zombie ragdoll, joints-only ragdoll, a blast, five zombies and a blast. Sliders turn gravity, bounce, friction, contact stiffness, sub-steps, passes, bone damping and blast power; Pause, One step and Reset control the run; "Ver juntas y huesos" shows the joints. In first or third person the mouse is locked: press Esc to free it (the view returns to top-down). The four marines start with 8 frag grenades each here (Q throws, G aims in RTS): a grenade thrown into the pile pushes the bodies too.

@@ -29,6 +29,7 @@ export function createGame(config: GameConfig, seed = 1, sandbox = false): GameS
     controlledId: p.id === humanId ? (soldiers[0]?.id ?? null) : null,
   }));
   const state: GameState = {
+    gravity: config.gravity,
     time: 0,
     status: 'playing',
     sandbox,

@@ -36,6 +36,10 @@ Known limits: the AI does not use posts, doors or keys; zombies ignore the crew 
 - **Known problems:** the carrier tower's collider is 2 m high but the model is about 25 m (aircraft clip through it); moving the carrier in the editor does not move its deck; the main bundle grew from 714 kB to 1.5 MB because of Map 9's 800 kB JSON (excluded from Prettier).
 - **Waiting on the user:** a look at Maps 7, 8 and 9, the Map 2 nest and tower, the editor's Assets tab, corpses with Drop / Take and the AI dragging the wounded; and an OK before any model download (police, civilians, military, vehicles; CC0 / CC-BY only).
 
+## Physics lab on Rapier (2026-10-21, branch `feat/physics-lab`, uncommitted, mixed with `feat/helicopter` work)
+
+Map 12 runs `@dimforge/rapier3d-deterministic-compat` (balls, boxes, ragdolls); the own sphere solver stays as the Rust/WASM reference ([worklog](docs/worklog/2026-10-21-rapier-lab.md), PENDING §2o). Never seen in a browser. Decided by the user: Rapier instead of the own solver, ragdoll bones as Rapier joints. **Open:** how the 2D units meet Rapier bodies; then shots as impulses, ragdoll on death, grab and throw, loose limbs. `npm run check:rapier` and `bench:physics` print the determinism hash.
+
 ## Decisions the user has made (do not re-litigate)
 
 - **Steam is the target and download size is not a constraint** (2026-10-21): do not shrink assets to save weight. Graphics options must also serve people with a real GPU (Ultra preset); the user's own PC has none, so its FPS does not matter.

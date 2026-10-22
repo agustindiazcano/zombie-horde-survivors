@@ -53,6 +53,7 @@ All controls live in [docs/CONTROLS.md](docs/CONTROLS.md): direct control, views
 | `npm run lint` · `npm run format:check` · `npm run typecheck` | The static checks CI runs                                                                                 |
 | `npm test`                                                    | The 48 existing sim tests (Vitest)                                                                        |
 | `npm run bench:sim`                                           | Stress benchmark of the sim step with 100 to 1000 zombies (ms per step); not a test, prints numbers       |
+| `npm run bench:physics` · `check:rapier` · `check:ragdoll`    | Map 12 physics: timings, determinism hashes, Rapier checks, the ragdoll rig on the real model (not tests) |
 | `npm run build`                                               | `tsc --noEmit` + Vite build into `dist/`                                                                  |
 | `npm run check:assets`                                        | Fails if an asset in `assets.toml` has a license other than CC0-1.0, CC-BY-3.0 or CC-BY-4.0               |
 | `npm run credits`                                             | Regenerates the README credits block from `assets.toml`                                                   |
@@ -64,6 +65,7 @@ Before every commit run lint, format check, typecheck, tests, build and check:as
 - **`src/sim`** is the pure simulation: no Three.js, no DOM. ESLint (`no-restricted-imports`) and a test enforce it. Fixed 60 Hz step (`FIXED_DT`); the render interpolates with `prev` fields and `alpha`.
 - **`src/render`** is Three.js only (arena, characters, effects, cameras, lighting). Game code talks to characters through the `CharacterView` interface.
 - **`src/*.ts`** are input, HUD, audio and the DOM screens (main menu, pause panel, squad screen, shop and perk picker, settings, radar). `src/main.ts` wires everything and owns the pause and modal logic.
+- **Physics** is documented in [docs/PHYSICS.md](docs/PHYSICS.md): update it in the same commit whenever a physics rule or formula changes.
 - **Data-driven:** every gameplay number lives in `data/game.json`, validated by a strict zod schema in `src/sim/config.ts` (a typo fails loudly). Models and animation clips are mapped in `data/characters.json` (`src/render/characterConfig.ts`).
 - Adding a perk, shop item, weapon, enemy or boss rule means editing the JSON (and the schema if a field is new), not the code. The shared test config in `tests/sim/helpers.ts` builds a config by hand: add any new required section there too.
 - Player options (graphics, lighting, FPS counter, volume) live in `src/settings.ts` and localStorage; they are not part of the sim.
@@ -78,6 +80,7 @@ test-game/
 ├── PENDING.md                 open work by priority
 ├── README.md                  player-facing reference and credits
 ├── docs/CONTROLS.md           every key and mouse action (the only list of controls)
+├── docs/PHYSICS.md            every physics rule and formula (the only place that explains them)
 ├── assets.toml                every third-party asset: author, source, license, path
 ├── index.html                 page shell, SEO meta tags, structured data
 ├── package.json / package-lock.json
@@ -135,7 +138,7 @@ test-game/
     └── sim/                   the 48 sim tests and their shared helpers.ts
 ```
 
-Not in git: `node_modules/`, `dist/`.
+Not in git: `node_modules/`, `dist/`, and the two root folders `game-engine/` and `models/` (in `.gitignore`): they are where the user drops things to try out or add to the game (engine experiments, new models). Look there when the user says they put something to test; never commit them. A model that is accepted goes through section 9 (copy to `public/models/`, `assets.toml`, `characters.json`).
 
 ## 8. Workflow rules
 

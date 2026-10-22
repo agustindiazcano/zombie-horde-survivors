@@ -32,7 +32,9 @@ npm run lint && npm run format:check && npm run typecheck
 
 ## How it plays
 
-**Menus:** Start → **Single Player** (**Story**: no missions yet; **Waves**: pick a map from the list, Map 1 is the built-in arena), **Multiplayer** (coming soon, disabled) or **Editor** (desktop only: a paused map editor with a Play / Stop button and a right-hand panel; New / Open / Save / Export / Import work, its drawing tools are placeholders for now; saved maps appear in the Waves list). Esc steps back one menu.
+**Web build:** the public page offers only Single Player → Waves → Map 1; everything else (Story, Development, Multiplayer, Editor, other maps) runs locally. The Pages workflow sets `VITE_WEB_DEMO=true` at build time (`src/webDemo.ts`).
+
+**Menus:** Start → **Single Player** (**Story**: no missions yet; **Waves**: Map 1, the built-in arena), **Multiplayer** (coming soon, disabled), **Development** (every other map: test maps, labs, saved and imported ones) or **Editor** (desktop only: a paused map editor with a Play / Stop button and a right-hand panel; New / Open / Save / Export / Import work, its drawing tools are placeholders for now; saved maps appear in the Development list). Esc steps back one menu.
 
 You start in **direct control** of one soldier, with the rest of the squad following you and shooting on their own. Press **Y** to switch to **RTS mode**, select units, send them anywhere on the map, then press **Y** again to take direct control of one of them.
 
