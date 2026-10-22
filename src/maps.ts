@@ -1,4 +1,5 @@
 import { parseMap, type MapData } from './sim';
+import { WEB_DEMO } from './webDemo';
 
 /** One row of the map list. `builtIn` maps ship with the game; saved ones live in localStorage. */
 export interface MapEntry {
@@ -68,17 +69,22 @@ function writeSaved(maps: MapData[]): void {
 
 /** Every map the player can pick: Map 1 first, then the other built-in ones, then the saved ones. */
 export function listMaps(): MapEntry[] {
+  if (WEB_DEMO)
+    return builtInMaps()
+      .filter((m) => m.meta.id === MAP_1_ID)
+      .map((m) => entryOf(m, true));
   const builtIn = builtInMaps()
     .map((m) => entryOf(m, true))
     .sort(
       (a, b) =>
-        Number(b.id === MAP_1_ID) - Number(a.id === MAP_1_ID) || a.name.localeCompare(b.name),
+        Number(b.id === MAP_1_ID) - Number(a.id === MAP_1_ID) ||
+        a.name.localeCompare(b.name, undefined, { numeric: true }),
     );
   const builtInIds = new Set(builtIn.map((m) => m.id));
   const saved = loadSaved()
     .filter((m) => !builtInIds.has(m.meta.id))
     .map((m) => entryOf(m, false))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   return [...builtIn, ...saved];
 }
 

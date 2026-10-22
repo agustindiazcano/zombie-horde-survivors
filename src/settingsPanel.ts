@@ -80,9 +80,11 @@ export class SettingsPanel {
       'Quality',
       s.quality,
       [
+        ['toaster', 'Toaster'],
         ['low', 'Low'],
         ['medium', 'Medium'],
         ['high', 'High'],
+        ['ultra', 'Ultra (needs a GPU)'],
         ['custom', 'Custom'],
       ],
       (v) => {
@@ -104,11 +106,35 @@ export class SettingsPanel {
       panel,
       'Resolution',
       s.resolutionScale,
-      0.5,
-      1,
+      0.25,
+      2,
       0.05,
       (v) => `${Math.round(v * 100)}%`,
       (v) => this.change({ resolutionScale: v }),
+    );
+    this.select(
+      panel,
+      'Surface depth',
+      String(s.parallax),
+      [
+        ['0', 'Off'],
+        ['1', 'Light'],
+        ['2', 'Full, with shadows'],
+        ['3', 'Ultra (finest, with shadows)'],
+      ],
+      (v) => this.change({ parallax: Number(v) }),
+    );
+    this.select(
+      panel,
+      'Textures',
+      String(s.textures),
+      [
+        ['0', 'Melted (toaster)'],
+        ['1', 'Low'],
+        ['2', 'Normal'],
+        ['3', 'Ultra (bigger download)'],
+      ],
+      (v) => this.change({ textures: Number(v) }),
     );
     this.toggle(panel, 'Blood and gibs', s.gore, (v) => this.change({ gore: v }));
     this.select(

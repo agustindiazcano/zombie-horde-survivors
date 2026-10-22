@@ -186,6 +186,10 @@ export interface Soldier {
   /** Sprint energy (0 to `stance.staminaMax`); `winded` blocks sprinting until it recovers. */
   stamina: number;
   winded: boolean;
+  /** In water too deep to wade; how far under the surface (m, 0 = floating) and seconds of breath left. */
+  swimming: boolean;
+  depth: number;
+  oxygen: number;
   /** A name set by the map, shown instead of "Soldier 2". */
   name?: string;
   /** Health before perks; the type's default unless the map changes it. */
@@ -282,6 +286,25 @@ export interface Vehicle {
   health: number;
   maxHealth: number;
   seats: (number | null)[];
+  /** Only aircraft have this. */
+  air?: AirState;
+}
+
+/** What an aircraft adds to a vehicle: engine, rotor and height. */
+export interface AirState {
+  /** The engine runs; before that the pilot spools it up. */
+  engine: boolean;
+  /** Seconds the engine has been spooling (a player holds forward; an AI pilot just waits). */
+  spool: number;
+  /** Rotor speed from 0 (stopped) to 1 (flying); only for the drawing. */
+  rotor: number;
+  /** Height above the ground in metres. */
+  alt: number;
+  prevAlt: number;
+  /** The height an AI pilot flies to (0 = land). A pilot under direct control keeps it equal to `alt`. */
+  wantAlt: number;
+  /** What an AI pilot does with no destination: stay still in the air or fly circles. */
+  idle: 'hover' | 'orbit';
 }
 
 export interface Zombie {
@@ -623,6 +646,8 @@ export interface Orb {
 }
 
 export interface GameState {
+  /** Gravity in m/s², starts at `config.gravity`; the Map 12 slider changes it live. */
+  gravity: number;
   time: number;
   status: 'playing' | 'gameover' | 'victory';
   /** The map editor's live preview: units can be driven, but there are no waves and enemies stand still. */

@@ -1,6 +1,7 @@
 import './mainMenu.css';
 import credits from '../data/credits.json';
-import { deleteMap, importMapFile, listMaps, pickMapFile, type MapEntry } from './maps';
+import { MAP_1_ID, deleteMap, importMapFile, listMaps, pickMapFile, type MapEntry } from './maps';
+import { WEB_DEMO } from './webDemo';
 import { MenuModel } from './menuModel';
 import type { CharacterFactory } from './render/characters';
 
@@ -64,7 +65,7 @@ const SLIDES: { title: string; lines: string[] }[] = [
 const SLIDE_MS = 7000;
 
 /** The screens of the menu flow: title → mode → single player → story or the map list. */
-type Screen = 'title' | 'mode' | 'single' | 'story' | 'maps' | 'credits';
+type Screen = 'title' | 'mode' | 'single' | 'story' | 'maps' | 'dev' | 'credits';
 
 /** Where "Back" goes from each screen. */
 const BACK: Record<Exclude<Screen, 'title'>, Screen> = {
@@ -72,6 +73,7 @@ const BACK: Record<Exclude<Screen, 'title'>, Screen> = {
   single: 'mode',
   story: 'single',
   maps: 'single',
+  dev: 'mode',
   credits: 'title',
 };
 
@@ -225,18 +227,28 @@ export class MainMenu {
 
     if (screen === 'mode') {
       option('Single Player', 'Story missions or survival waves', () => this.go('single'));
-      option('Multiplayer', 'Coming soon', null);
-      option(
-        'Editor',
-        this.editorAvailable ? 'Build your own maps' : 'Desktop only',
-        this.editorAvailable ? () => this.openEditor() : null,
-      );
+      if (!WEB_DEMO) {
+        option('Multiplayer', 'Coming soon', null);
+        option('Development', 'Test maps and labs', () => this.go('dev'));
+        option(
+          'Editor',
+          this.editorAvailable ? 'Build your own maps' : 'Desktop only',
+          this.editorAvailable ? () => this.openEditor() : null,
+        );
+      }
     } else if (screen === 'single') {
-      option('Story', 'Missions with objectives', () => this.go('story'));
+      if (!WEB_DEMO) option('Story', 'Missions with objectives', () => this.go('story'));
       option('Waves', 'Survive endless waves on a map', () => this.go('maps'));
     } else {
       const wanted = screen === 'story' ? 'story' : 'waves';
-      const entries = listMaps().filter((m) => m.mode === wanted);
+      // Waves lists only Map 1; every other survival map lives under Development.
+      const entries = listMaps().filter((m) =>
+        screen === 'story'
+          ? m.mode === wanted
+          : m.mode === 'waves' && (screen === 'dev') !== (m.id === MAP_1_ID),
+      );
+      // Many maps: the list scrolls instead of running off the screen.
+      list.classList.add('menu__list--scroll');
       if (entries.length === 0) el('p', 'menu__empty', panel, 'No missions yet.');
       for (const map of entries) {
         const wrap = el('div', 'menu__maprow', list);
@@ -257,6 +269,7 @@ export class MainMenu {
         ).textContent = map.builtIn ? 'Built-in' : 'Saved';
       }
       const imp = el('button', 'menu__back', panel, 'Import a map file…');
+      imp.hidden = WEB_DEMO;
       imp.addEventListener('click', () => {
         void pickMapFile().then(async (file) => {
           if (!file) return;
@@ -300,5 +313,6 @@ const TITLES: Record<Exclude<Screen, 'title'>, string> = {
   single: 'Single Player',
   story: 'Story',
   maps: 'Choose a map',
+  dev: 'Development',
   credits: 'Credits',
 };

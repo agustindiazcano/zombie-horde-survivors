@@ -1,5 +1,5 @@
 /** Player-facing options, kept in the browser (localStorage). No Three.js or DOM here. */
-export type Quality = 'low' | 'medium' | 'high' | 'custom';
+export type Quality = 'toaster' | 'low' | 'medium' | 'high' | 'ultra' | 'custom';
 
 export interface Settings {
   /** Preset name, or 'custom' once any graphics option is changed by hand. */
@@ -7,10 +7,14 @@ export interface Settings {
   shadows: boolean;
   /** Shadow map resolution in pixels (square). */
   shadowMapSize: number;
-  /** Fraction of the screen's full pixel density the game renders at (0.5 to 1). */
+  /** Fraction of the screen's full pixel density the game renders at (0.25 to 1; the Toaster preset goes below the old 0.5 floor). */
   resolutionScale: number;
   /** Blood and gibs when enemies burst. */
   gore: boolean;
+  /** Depth of carved surfaces (parallax occlusion mapping): 0 off, 1 light, 2 full with sun shadows. */
+  parallax: number;
+  /** Detail of the surface textures: 0 melted, 1 low, 2 normal, 3 ultra (sharper, bigger files). */
+  textures: number;
   /** Dim lighting with a flashlight per soldier. */
   darkMode: boolean;
   showFps: boolean;
@@ -20,12 +24,54 @@ export interface Settings {
   volume: number;
 }
 
-type GraphicsFields = Pick<Settings, 'shadows' | 'shadowMapSize' | 'resolutionScale' | 'gore'>;
+type GraphicsFields = Pick<
+  Settings,
+  'shadows' | 'shadowMapSize' | 'resolutionScale' | 'gore' | 'parallax' | 'textures'
+>;
 
-export const PRESETS: Record<'low' | 'medium' | 'high', GraphicsFields> = {
-  low: { shadows: false, shadowMapSize: 1024, resolutionScale: 0.65, gore: true },
-  medium: { shadows: true, shadowMapSize: 1024, resolutionScale: 0.85, gore: true },
-  high: { shadows: true, shadowMapSize: 2048, resolutionScale: 1, gore: true },
+export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', GraphicsFields> = {
+  // For machines that struggle: a third of the pixels each way, drawn blocky, no shadows or depth.
+  toaster: {
+    shadows: false,
+    shadowMapSize: 1024,
+    resolutionScale: 0.35,
+    gore: false,
+    parallax: 0,
+    textures: 0,
+  },
+  low: {
+    shadows: false,
+    shadowMapSize: 1024,
+    resolutionScale: 0.65,
+    gore: true,
+    parallax: 1,
+    textures: 1,
+  },
+  medium: {
+    shadows: true,
+    shadowMapSize: 1024,
+    resolutionScale: 0.85,
+    gore: true,
+    parallax: 1,
+    textures: 2,
+  },
+  high: {
+    shadows: true,
+    shadowMapSize: 2048,
+    resolutionScale: 1,
+    gore: true,
+    parallax: 2,
+    textures: 2,
+  },
+  // For a machine with a real GPU: 4K shadows, drawn at 1.5x and scaled down, the finest parallax and textures.
+  ultra: {
+    shadows: true,
+    shadowMapSize: 4096,
+    resolutionScale: 1.5,
+    gore: true,
+    parallax: 3,
+    textures: 3,
+  },
 };
 
 export const SHADOW_SIZES = [1024, 2048, 4096] as const;
@@ -43,13 +89,15 @@ const KEY = 'zombie-horde-survivors.settings';
 
 /** The preset whose graphics values match, or 'custom'. */
 export function qualityOf(s: GraphicsFields): Quality {
-  for (const name of ['low', 'medium', 'high'] as const) {
+  for (const name of ['toaster', 'low', 'medium', 'high', 'ultra'] as const) {
     const p = PRESETS[name];
     if (
       p.shadows === s.shadows &&
       p.shadowMapSize === s.shadowMapSize &&
       p.resolutionScale === s.resolutionScale &&
-      p.gore === s.gore
+      p.gore === s.gore &&
+      p.parallax === s.parallax &&
+      p.textures === s.textures
     ) {
       return name;
     }
@@ -77,8 +125,10 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     quality: d.quality,
     shadows: bool(raw.shadows, d.shadows),
     shadowMapSize: size,
-    resolutionScale: Math.round(clamp(raw.resolutionScale, 0.5, 1, d.resolutionScale) * 20) / 20,
+    resolutionScale: Math.round(clamp(raw.resolutionScale, 0.25, 2, d.resolutionScale) * 20) / 20,
     gore: bool(raw.gore, d.gore),
+    parallax: Math.round(clamp(raw.parallax, 0, 3, d.parallax)),
+    textures: Math.round(clamp(raw.textures, 0, 3, d.textures)),
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),
     aimToggle: bool(raw.aimToggle, d.aimToggle),

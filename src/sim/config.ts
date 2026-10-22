@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LAB_PROP_HEIGHTS, SEE_THROUGH_GLASS, type GlassKind } from './lab';
 import { steepObstacles, waterObstacles } from './terrain';
 import type { Vec2 } from './vec';
 
@@ -158,6 +159,12 @@ const mapLogic = z
     /** No waves spawn: only the units the map places (test maps, hide and seek). */
     noWaves: z.boolean().optional(),
     startGold: nonNegative.optional(),
+    /** Water can be swum and dived in (see `swimming` in game.json) instead of being a wall. */
+    swim: z.boolean().optional(),
+    /** The player can turn the time of day with the , and . keys (the texture lab). */
+    timeControl: z.boolean().optional(),
+    /** The physics lab (Map 12): the panel to drop balls and ragdolls and set off blasts, see src/sim/physics. */
+    physicsLab: z.boolean().optional(),
     /** Runs the sky show of `skyShow` in game.json: blue lights that wander, fly and come down over the houses. */
     skyShow: z.boolean().optional(),
     /** The camera the run starts in, and how far up (radians) a first-person view looks. */
@@ -361,7 +368,9 @@ export function arenaOf(map: MapData): Arena {
     terrain: map.terrain,
     surfaces: map.surfaces,
     obstacles: [
-      ...waterObstacles(map.terrain.heights, map.terrain.water, map.meta.size.width / 2),
+      ...(map.logic.swim
+        ? []
+        : waterObstacles(map.terrain.heights, map.terrain.water, map.meta.size.width / 2)),
       ...steepObstacles(map.terrain.heights, map.meta.size.width / 2),
       ...propObstacles(map),
     ],
@@ -369,7 +378,14 @@ export function arenaOf(map: MapData): Arena {
 }
 
 /** Heights (m) of the shaped props, for the line of sight; the plain block uses `OBSTACLE_HEIGHT`. */
-const PROP_HEIGHTS: Record<string, number> = { house: 6, tree: 6, lamp: 5, car: 1.5 };
+const PROP_HEIGHTS: Record<string, number> = {
+  house: 6,
+  tree: 6,
+  lamp: 5,
+  car: 1.5,
+  // The texture lab: walls, floor slabs low enough to walk over, glass and sirens.
+  ...LAB_PROP_HEIGHTS,
+};
 
 function propObstacles(map: MapData): Obstacle[] {
   return map.props.flatMap((p) => {
@@ -388,6 +404,12 @@ function propObstacles(map: MapData): Obstacle[] {
       box.facing = p.rotation;
       const height = PROP_HEIGHTS[p.asset];
       if (height) box.height = height;
+      if (
+        p.asset.startsWith('glass_') &&
+        SEE_THROUGH_GLASS.includes(p.asset.slice(6) as GlassKind)
+      ) {
+        box.seeThrough = true;
+      }
     }
     return [box];
   });
@@ -793,6 +815,43 @@ const vehicleType = z
     /** Damage per second to enemies under the hull, above `ramSpeed`. */
     ramDps: nonNegative,
     ramSpeed: nonNegative,
+    /** A boat: it sails only on water (ground below the map's water level) and is stopped by land. */
+    water: z.boolean().optional(),
+    /** A ship that stays where it was put: nobody drives or enters it (the carrier, the frigate). */
+    fixed: z.boolean().optional(),
+    /**
+     * Hull outline in metres, seen from above: a rectangle of `length` x `width` whose last `bow`
+     * metres taper to a point. `deck` is the height of the deck above the water.
+     */
+    ship: z
+      .object({ length: positive, width: positive, bow: positive, deck: positive })
+      .strict()
+      .optional(),
+    /** Present on aircraft: they climb, hover and need the engine started. */
+    air: z
+      .object({
+        /** Seconds a player holds forward on the ground to start the engine. */
+        spoolTime: positive,
+        /** Seconds an AI pilot needs to start the engine before taking off. */
+        aiSpoolTime: positive,
+        /** Below this height (metres) it cannot fly sideways. */
+        minFlyAlt: positive,
+        maxAlt: positive,
+        /** Height an AI pilot climbs to when told to go somewhere or to take off. */
+        cruiseAlt: positive,
+        /** Metres per second up and down. */
+        climbRate: positive,
+        descendRate: positive,
+        /** Speed multiplier while Shift is held in direct control. */
+        boostScale: positive,
+        /** An idle AI pilot circles on this radius at this speed (metres, metres per second). */
+        orbitRadius: positive,
+        orbitSpeed: positive,
+        /** Higher than this, zombies cannot reach the machine. */
+        safeAlt: positive,
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -905,6 +964,8 @@ export const GameConfigSchema = z
         radius: positive,
       })
       .strict(),
+    /** The one gravity (m/s²): jumps, falls, grenades and the Map 12 lab. Live value: `GameState.gravity`. */
+    gravity: positive,
     squad: z
       .object({
         /** Soldiers at the start of a game. */
@@ -955,7 +1016,6 @@ export const GameConfigSchema = z
         throwSpeed: positive,
         /** Height of the hand at release (metres above the thrower's feet). */
         releaseHeight: positive,
-        gravity: positive,
         /** Seconds before the thrower can fire or throw again. */
         cooldown: nonNegative,
         /** Share of the blast damage that hurts allies, including the thrower (0 = none). */
@@ -1342,6 +1402,26 @@ export const GameConfigSchema = z
       .strict(),
     /** Variants besides the base zombie, by id (e.g. alien, hound). */
     enemies: z.record(z.string(), enemyType),
+    /** Swimming and diving on maps with the `swim` rule. */
+    swimming: z
+      .object({
+        /** Ground this far under the water level (m) is too deep to wade: the unit swims. */
+        swimDepth: positive,
+        /** Horizontal speed while swimming, and the multiplier when Shift is held. */
+        speed: positive,
+        fastScale: positive,
+        /** Diving: the deepest a unit goes (m), its vertical speed, and the slowdown when submerged. */
+        maxDepth: positive,
+        diveSpeed: positive,
+        submergedSpeedScale: positive,
+        /** Below this depth (m) the head is under water and the unit holds its breath. */
+        headDepth: positive,
+        /** Seconds of breath, how fast it comes back at the surface (per second) and drowning damage per second. */
+        breath: positive,
+        breathRegen: positive,
+        drownDamage: nonNegative,
+      })
+      .strict(),
     /** Squad stances (set by the controlled player) and the controlled soldier's jump. */
     stance: z
       .object({
@@ -1358,9 +1438,8 @@ export const GameConfigSchema = z
         staminaRegen: positive,
         /** After running dry a unit cannot sprint again until it has recovered this much. */
         staminaResume: positive,
-        /** Initial upward speed of a jump and the downward pull on it. */
+        /** Initial upward speed of a jump (the downward pull is the world `gravity`). */
         jumpSpeed: positive,
-        gravity: positive,
         /** The tallest box (metres) a unit can vault onto, and the stamina the vault costs. */
         climbMaxHeight: positive,
         climbStamina: nonNegative,
@@ -1608,6 +1687,11 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   build: boolean;
   noWaves: boolean;
   startGold: number;
+  /** Water is swimmable: units wade, swim and dive instead of being stopped by it. */
+  swim: boolean;
+  timeControl: boolean;
+  /** The physics lab panel is on (Map 12). */
+  physicsLab: boolean;
   /** Orbs that wake up during the run. */
   startOrbs: NonNullable<MapLogic['orbs']>;
   /** The sky show is on, the camera the run starts in, its first-person pitch and the subtitles. */
@@ -1684,6 +1768,9 @@ type MapRules = Pick<
   | 'build'
   | 'noWaves'
   | 'startGold'
+  | 'swim'
+  | 'timeControl'
+  | 'physicsLab'
   | 'startOrbs'
   | 'skyShowOn'
   | 'startView'
@@ -1739,6 +1826,9 @@ export function mapRules(
     build: logic.build ?? false,
     noWaves: logic.noWaves ?? false,
     startGold: logic.startGold ?? 0,
+    swim: logic.swim ?? false,
+    timeControl: logic.timeControl ?? false,
+    physicsLab: logic.physicsLab ?? false,
     startOrbs: logic.orbs ?? [],
     skyShowOn: logic.skyShow ?? false,
     startView: logic.startView,

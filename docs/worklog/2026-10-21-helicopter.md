@@ -1,0 +1,24 @@
+# 2026-10-21 — Procedural helicopter and Map 8
+
+Branch `feat/helicopter` (from `main` at `54b68c5`, not pushed, no PR). 48 tests, lint, format, typecheck and build pass. Nothing was seen in a browser.
+
+- **Data:** `vehicles.helicopter` in `data/game.json` with a new optional `air` block (`vehicleType` in `config.ts`): `spoolTime` 10 s (player), `aiSpoolTime` 3 s, `minFlyAlt` 2, `maxAlt` 40, `cruiseAlt` 14, `climbRate` 5, `descendRate` 6, `boostScale` 1.6, `orbitRadius` 14, `orbitSpeed` 8, `safeAlt` 2.5. Catalog: Units > Vehicles > Military > Air > Helicopter. 4 seats, door guns (passengers shoot).
+- **Sim (`src/sim/aircraft.ts`):** `Vehicle.air` (`AirState`: engine, spool, rotor, alt, wantAlt, idle). Player pilot: hold a move key 10 s to start (letting go decays the spool twice as fast), then Space up, C / Ctrl down, Shift faster; it flies sideways only above `minFlyAlt`. AI pilot: a move order starts the engine (3 s), climbs to `cruiseAlt`, flies there braking on arrival; with no destination it hovers or circles (`idle`). Without a living pilot the engine dies and it sinks. Obstacles lower than the altitude are flown over (`resolveStatic(..., y = alt)`); the arena edge still stops it. Nobody boards or leaves in the air; zombies ignore it above `safeAlt`.
+- **RTS (`rts.ts`, `orderAircraft`):** Space takes off, C lands (engine off), H toggles hover / circle for the selected soldiers' helicopter.
+- **Render:** `createHelicopter` (primitives: egg fuselage, glass nose, tail boom and fin, skids, door guns, spinning main and tail rotors), pitch with speed, bank into turns, a ground shadow that grows with height. HUD hint shows the engine percentage or the altitude.
+- **Map 8 "Helicopter test"** (`scripts/gen-map8.py`): two helicopters (one to fly, one to order around), blocks, a wall of blocks, 6 m houses and trees to fly over, and sleeping wanderers to the north.
+- Checked headlessly with a throw-away probe (not kept): engine at 10 s, climb, speed 20 and 24 with Shift, exit blocked in the air, AI take-off, arrival, circle, landing and re-take-off.
+- Not done: models, rotor sound and wind, crash damage when falling, wreck, AI soldiers boarding a helicopter by themselves, weapons on the helicopter, RTS hint line, mobile buttons. Tune the bank and pitch constants (`HELI_*` in `gameRenderer.ts`) after looking at it: the signs of the bank are a guess.
+
+## Second part: Huey, Chinook and V-22
+
+Three more aircraft types in `vehicles` (same `air` block, own numbers) and their own procedural models (`createHuey`, `createChinook`, `createOsprey` in `src/render/vehicles.ts`; `createAircraft(type)` picks one, any other id falls back to the plain helicopter). Rotors are now a list (`HelicopterParts.rotors`, each with an axis and a signed speed), so the Chinook's two rotors turn opposite ways.
+
+| Type         | Seats | Health | Max speed | Notes                                                                                                                        |
+| ------------ | ----- | ------ | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `helicopter` | 4     | 500    | 20        | the generic one                                                                                                              |
+| `huey`       | 6     | 450    | 22        | bubble nose, long tail, two-bladed rotor                                                                                     |
+| `chinook`    | 10    | 900    | 24        | tandem rotors, ramp, wheel pods, no tail rotor; slow to turn                                                                 |
+| `v22`        | 8     | 700    | 38        | wing with a rotor pod at each tip; the pods point up to hover and swing forward with speed (`nacelles`); wide circles (32 m) |
+
+Map 8 now has one of each parked in a row (generic at x=0, Huey x=22, Chinook x=44, V-22 x=-44 and a second generic at x=-22). The pod tilt, rotor sizes and proportions were never seen: tune the builders and the `HELI_*` constants after looking.

@@ -78,6 +78,37 @@ Full plan: [docs/PLAN-build-mode.md](docs/PLAN-build-mode.md). Structures (watch
 - [ ] 🔴 Try the editor: Assets tab > Structures / Objects / Loose items, place a door, lock it and set its link, Play.
 - [ ] 🟡 Next: models and sounds for structures, the AI manning posts and feeding turrets.
 
+### 2l — 🔴 Helicopter and Map 8 (built 2026-10-21, branch `feat/helicopter`)
+
+Procedural helicopter (plus Huey, Chinook, V-22) with its own mechanics ([worklog](docs/worklog/2026-10-21-helicopter.md)); controls in [docs/CONTROLS.md](docs/CONTROLS.md).
+
+- [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 8. Hold W 10 s in the helicopter, Space / C / Shift, V on the ground; in RTS order the second one around (Space, C, H). Tune `vehicles.helicopter.air` in `game.json` and the `HELI_*` look constants (the bank sign is a guess).
+- [ ] 🟡 Models for vehicles, police, civilians and military units: ask before downloading (CC0 / CC-BY only; Kenney and Quaternius are the usual candidates, check each licence).
+- [ ] 🟢 Next for aircraft: sound, crash damage, AI soldiers boarding by themselves, wreck, a second type (transport / gunship).
+
+### 2m — 🔴 Map 9 "Sea test" (built 2026-10-21, branch `feat/helicopter`)
+
+Carrier you can walk on, frigate, island with beach and houses, drivable speedboats ([worklog](docs/worklog/2026-10-21-map-9-sea.md)).
+
+- [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 9. Walk the deck, take off from it, board a speedboat at the port rail (V), sail to the beach and step out, ram the frigate. Check the hull shape, deck markings, the tower, the parked fighters, the beach colours, FPS with F3 (256 x 256 terrain).
+- [ ] 🟡 Next: drivable carrier / frigate, AI boarding boats, wake and swell, sinking, a deck height for aircraft in the sim, editor support for moving the carrier with its deck.
+
+### 2n — 🔴 Swimming and Map 10 (built 2026-10-21, branch `feat/helicopter`)
+
+- [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 10. Walk into the sea, **C** dives, **Space** surfaces, **Shift** swims fast, watch the OXYGEN bar and the drowning. Tune `swimming` in `game.json` and `SWIM_*` in `gameRenderer.ts` ([worklog](docs/worklog/2026-10-21-swimming-map-10.md)).
+- [ ] 🟢 Next: swim animation, splash and bubbles, underwater tint, sound, AI that dives.
+
+### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
+
+Plan: [docs/PLAN-physics-lab.md](docs/PLAN-physics-lab.md). Map 12 now runs Rapier (deterministic build): balls, boxes with rotation, a box pyramid and marine-zombie ragdolls with hinge joints ([worklog](docs/worklog/2026-10-21-rapier-lab.md), [PHYSICS.md section 6](docs/PHYSICS.md)). The own sphere solver is kept for the Rust/WASM port. Measured headless only (`npm run check:rapier`, `bench:physics`, `check:ragdoll`).
+
+- [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 12 (Rapier loads the first time, a 4.4 MB chunk). Esc frees the mouse. Drop a box pyramid, loose boxes, balls on the ramp, a Zombie marine, a grenade into a pile. Tell what looks wrong (the ragdoll sinking, stiff torso, twisted hips, balls that never stop, sliding).
+- [ ] 🔴 Decide point 3: how the 2D units meet Rapier bodies (kinematic capsules for everyone, only the player and squad, or loose bodies as decoration).
+- [ ] 🟡 Shots push bodies (the hitscan hit point of `weapon.ts` through `RapierWorld.raycast`), a ragdoll on a real enemy death (needs the bone pose of the death clip), grab and throw with G / E (`objects.ts`, `drag.ts`, `rescueDrag.ts`), limbs from `dismember.ts` as loose bodies.
+- [ ] 🟡 Tune masses, friction, bounce, damping and the blast scale, `torsoRadius`, joint limits for hips and shoulders, from what you see.
+- [ ] 🟡 Check determinism in a real browser (Chrome and Firefox): the hash in the panel must match `check:rapier` for the same scene.
+- [ ] ⚪ Rust, Cargo and `wasm-pack` are installed (see memory); the WASM port of the own solver (plan phases 6 to 8) only if Rapier is not enough.
+
 ### 2f — ⚪ Weapons and combat (planned 2026-10-19, nothing built)
 
 Full plan: [docs/PLAN-weapons-and-combat.md](docs/PLAN-weapons-and-combat.md). Semi-automatic pistol, magazines, ammo and reload times, per-weapon recoil in the JSON, accuracy from skill, movement and stance (weapons less precise than now), hold to aim, headshots, critical hits, melee (a key in direct control; the AI strikes enemies that get close and pushes them away), and a weapon workbench where accessories (scope, suppressor...) take slots of the weapon. W1 to W6 are built on `feat/weapon-instances` (worklogs 2026-10-19 `weapons-w1`, `w2`, `w3`, `w4`, `w5`, `w6`, `weapons-in-hand`).
@@ -163,6 +194,20 @@ Full note: [docs/PLAN-webgpu-engine.md](docs/PLAN-webgpu-engine.md). The user's 
 - [ ] 🟢 Antialiasing cannot change at runtime; if wanted, add it to the settings with a reload.
 - [ ] 🟢 Four dynamic flashlights plus the muzzle flash light in dark mode: measure the cost; the zombie views are pooled, the lights are not.
 - [ ] ⚪ Mobile / touch controls (the game needs keyboard and mouse; the menu says so).
+
+### 4b — 🟡 Showcase polish for the Steam / ModDB / indie-site MVP (noted 2026-10-21)
+
+Plan agreed with the user: a polished one-map, one-mission demo plus waves, promoted through the user's popular mod ([[project-launch-strategy]] in memory). Order: the user's visual review, first-person showcase (real weapon models, reload and recoil animations, FX and sound), a few vehicles for the trailer, model and texture compression, then textures, then gameplay polish and the public page. Ask before downloading any asset or opening any account.
+
+- [x] POM test built: procedural brick, stone, plates and cobble, Map 11 "Texture lab", time of day with **,** and **.** ([worklog](docs/worklog/2026-10-21-texture-lab-map-11.md)). 🔴 Look at Map 11 in the browser, move the clock, check FPS with F3, and say if the depth and shadows read well.
+- [x] Done: a Surface depth option in Settings, a Toaster preset, 16 surfaces, glass and sirens ([worklog](docs/worklog/2026-10-21-texture-lab-more.md)). 🔴 Look at Map 11 again (bigger, with sirens at 19:00) and at Settings > Quality > Toaster.
+- [x] Real CC0 texture sets (ambientCG, 14 sets, the user approved) are in Map 11 beside the procedural ones ([worklog](docs/worklog/2026-10-21-real-textures.md)). 🔴 Look at them in the browser: scale of each tile, depth, the stretched concrete.
+- [x] Done on `feat/helicopter`: reflection map, parallax silhouette clipping, Map 11 castle (wood floor, doors, glass, torches, two flights of steps), texture quality (melted to ultra) and an Ultra preset. 🔴 Look at all of it in the browser. The user's PC has no GPU, so FPS there is not the goal; the presets are for people with one.
+- [ ] 🟡 Ultra textures at 2K or 4K (ambientCG, same sets) and 2048 px marine textures: size is not a limit (Steam plan). Procedural IK next: a quadruped test, then feet on steps for the soldiers.
+- [ ] 🟡 Next for POM: POM on the terrain ground, real sci-fi and alien sets (ask first), siren sound, reflections for wet floors and glass, use the downloaded normal maps.
+- [ ] 🟡 **Ground and prop textures with depth.** Today the ground is flat vertex colours (no textures at all). Plan: CC0 PBR sets (albedo, normal, roughness, height) and normal maps first; **parallax occlusion mapping (POM)** as an optional shader on the ground and walls, because three.js 0.186 has no built-in POM (a custom `onBeforeCompile` patch or a TSL node). It costs fragment time, so it needs a quality setting and a distance fade; check FPS with F3.
+- [ ] 🟡 Check the Meshy marine's licence for a paid release before aiming at Steam.
+- [ ] ⚪ Idea: a mod of the marine for Men of War: Assault Squad 2 or Call to Arms. Pipeline unverified (older sources mention 3ds Max and the GEM 2 human-model export); ask the user which engine their earlier mod used.
 
 ### 5 — 🟢 Code health
 

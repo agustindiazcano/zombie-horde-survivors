@@ -15,10 +15,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "bench:sim": "node scripts/bench-sim.mjs",
+    "bench:physics": "node scripts/bench-physics.mjs",
+    "check:ragdoll": "node scripts/check-ragdoll.mjs",
+    "check:rapier": "node scripts/check-rapier.mjs",
     "check:assets": "node scripts/check-assets.mjs",
     "credits": "node scripts/generate-credits.mjs && prettier --write README.md"
   },
   "dependencies": {
+    "@dimforge/rapier3d-deterministic-compat": "0.21.0",
     "three": "^0.186.1",
     "zod": "^4.6.7"
   },

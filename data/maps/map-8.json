@@ -1,0 +1,455 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "map-8",
+    "name": "Map 8 - Helicopter test",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-21",
+    "updated": "2026-10-21",
+    "size": {
+      "width": 110,
+      "depth": 110
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "surfaces": [],
+  "props": [
+    {
+      "asset": "block",
+      "x": -30,
+      "z": 0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": -15,
+      "z": 0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 0,
+      "z": 0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 15,
+      "z": 0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 30,
+      "z": 0,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "house",
+      "x": -33,
+      "z": 26,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4,
+        "halfD": 4
+      }
+    },
+    {
+      "asset": "house",
+      "x": -11,
+      "z": 26,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4,
+        "halfD": 4
+      }
+    },
+    {
+      "asset": "house",
+      "x": 11,
+      "z": 26,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4,
+        "halfD": 4
+      }
+    },
+    {
+      "asset": "house",
+      "x": 33,
+      "z": 26,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 4,
+        "halfD": 4
+      }
+    },
+    {
+      "asset": "block",
+      "x": -16,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": -12,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": -8,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": -4,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 0,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 4,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 8,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 12,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "block",
+      "x": 16,
+      "z": 14,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 2,
+        "halfD": 2
+      }
+    },
+    {
+      "asset": "tree",
+      "x": -40,
+      "z": -10,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "tree",
+      "x": -36,
+      "z": -4,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "tree",
+      "x": 38,
+      "z": -12,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "tree",
+      "x": 42,
+      "z": -6,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "tree",
+      "x": 30,
+      "z": 38,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 0.6
+      }
+    },
+    {
+      "asset": "tree",
+      "x": -28,
+      "z": 40,
+      "rotation": 0,
+      "scale": 1,
+      "layer": "outdoor",
+      "collider": {
+        "halfW": 0.6,
+        "halfD": 0.6
+      }
+    }
+  ],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
+  "units": [
+    {
+      "type": "marine1",
+      "x": 0,
+      "z": -34,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "marine2",
+      "x": 2,
+      "z": -35,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "marine3",
+      "x": -2,
+      "z": -35,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "marine4",
+      "x": 4,
+      "z": -34,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "helicopter",
+      "x": 0,
+      "z": -26,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "helicopter",
+      "x": -22,
+      "z": -26,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "huey",
+      "x": 22,
+      "z": -26,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "chinook",
+      "x": 44,
+      "z": -26,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "v22",
+      "x": -44,
+      "z": -26,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -35,
+      "z": 44,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -25,
+      "z": 44,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -15,
+      "z": 44,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": -5,
+      "z": 44,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 5,
+      "z": 44,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 15,
+      "z": 44,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 25,
+      "z": 44,
+      "owner": "horde",
+      "rotation": 0
+    },
+    {
+      "type": "marine_wanderer",
+      "x": 35,
+      "z": 44,
+      "owner": "horde",
+      "rotation": 0
+    }
+  ],
+  "logic": {
+    "mode": "waves",
+    "noWaves": true,
+    "startGold": 600,
+    "boss": {
+      "enabled": false
+    }
+  }
+}

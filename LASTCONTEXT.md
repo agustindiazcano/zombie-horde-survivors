@@ -4,29 +4,45 @@ Only what is still open: read this first in every session. When an item here is 
 
 ## Where things stand
 
-- **`main`** is at the merge of PR #47 (`a9b8658`) and has everything built so far: the whole stack of phases 1 to 8 and 10, the editor work and the polish. (PRs #36 to #46 were merged into their parent branches instead of `main`, so #47 brought the rest in one go; the stack branches are still on the remote, merged and safe to delete once the user agrees.) No PR or feature branch is open apart from the docs update that refreshed this file.
+- **`main`** is at the merge of PR #59 (`54b68c5`; at PR #47 it was `a9b8658`) and has everything built so far: the whole stack of phases 1 to 8 and 10, the editor work and the polish. (PRs #36 to #46 were merged into their parent branches instead of `main`, so #47 brought the rest in one go; the stack branches are still on the remote, merged and safe to delete once the user agrees.) No PR or feature branch is open apart from the docs update that refreshed this file.
 - **The game is live** at https://agustindiazcano.github.io/zombie-horde-survivors/ (GitHub Pages, redeployed by `.github/workflows/pages.yml` on every push to `main`; the last deploy succeeded). The user tests locally at http://127.0.0.1:5173/ with the dev server, which serves whatever branch is checked out.
 - **Nothing has been seen in a browser by Claude.** Lighting, boss eyes, radar, menus, the squad screen, drag and drop and the settings presets are all untested visually, and the balance comes from headless simulations of a passive squad. Expect the user to report visual and feel problems; tune with the constants named in the code (see PENDING §0–1).
 - Last verified on `main`: lint, format check, typecheck, the 48 tests, build and the asset check all pass.
 
-## Branches of 2026-10-20 (none pushed, no PR, all from `main` at `3a6c454`)
+## Merged on 2026-10-20 (PRs #57 to #59, `main` at `54b68c5`)
 
-`main` has PRs #54 to #56 (Celestial Event III, mobile look pad). The rest is local:
+Everything that was local on 2026-10-20 is now in `main`: the SUV colour texture (#57), AI grenades (#58), and the stack in #59 (W0 soldier pathing, objects block movement, draggable corpses and loose items, door system v2 with Map 7, machine-gun nest and watchtower with turret ammo, structures in the map editor). Worklogs: `w0-soldier-pathing`, `ai-grenades`, `objects-block-movement`, `corpses-and-loose-items`, `doors-v2`, `posts-and-turret-ammo`, `editor-structures` (all 2026-10-20). The old local branches are all merged; do not delete them without asking the user (PENDING §5).
 
-| Branch                           | What                                                               | Based on                               |
-| -------------------------------- | ------------------------------------------------------------------ | -------------------------------------- |
-| `fix/suv-colormap`               | The jeep's colour texture (Kenney, CC0)                            | `main`                                 |
-| `feat/ai-grenades`               | AI soldiers throw grenades at groups of 4+                         | `main`                                 |
-| `feat/soldier-structure-pathing` | W0: soldiers path round structures and open doors                  | `main`                                 |
-| `feat/objects-block-movement`    | Objects on the ground block movement                               | `main`                                 |
-| `feat/corpses-and-loose-items`   | Draggable corpses, loose items (Drop / Take), AI drags the wounded | `feat/objects-block-movement`          |
-| `feat/doors-v2`                  | Door system v2, large gates, Map 7 "Door gallery"                  | W0 branch + corpses branch merged      |
-| `feat/posts-and-ammo`            | Machine-gun nest, watchtower, turret ammo                          | `feat/doors-v2`                        |
-| `feat/editor-structures`         | Structures, objects and loose items in the map editor              | `feat/posts-and-ammo` (the active one) |
+**Still never seen in a browser (the user looks next):** Map 7 (doors), the nest and tower of Map 2, the editor's Assets tab, corpses with Drop / Take, and the AI dragging the wounded. What the user reports as looking or feeling wrong is fixed first.
 
-The last branch contains everything except `fix/suv-colormap` and `feat/ai-grenades`. Merge them in any order; the stacked ones must go in the order of the table (or open one PR from `feat/editor-structures`). Possible small docs conflicts in PENDING.md / LASTCONTEXT.md. Worklogs of 2026-10-20: `w0-soldier-pathing`, `ai-grenades`, `objects-block-movement`, `corpses-and-loose-items`, `doors-v2`, `posts-and-turret-ammo`, `editor-structures`. Nothing was seen in a browser.
+Known limits: the AI does not use posts, doors or keys; zombies ignore the crew of a post; the editor does not yet validate overlaps or the quantity of loose items.
+
+## Work of 2026-10-21 (branch `feat/helicopter`, 18 commits ahead of `main`, not pushed, no PR)
+
+`feat/helicopter` is cut from `main` (`54b68c5`) and also contains the docs refresh of `docs/refresh-lastcontext-after-59`. Nothing below was seen in a browser; headless probes checked the sim only.
+
+| Commit    | What                                                                             |
+| --------- | -------------------------------------------------------------------------------- |
+| `25bc92c` | Procedural helicopter (engine start, hover, circles) and Map 8 "Helicopter test" |
+| `8f4f8bf` | Huey, Chinook and V-22 (tilting pods) with their own procedural models           |
+| `5d288c8` | Map 9 "Sea test": walkable carrier, frigate, island, drivable speedboats         |
+| `7914b6b` | Fix: aircraft fly over water and cliffs (`resolveFlying`)                        |
+
+- **Aircraft** (`src/sim/aircraft.ts`, `air` block in `vehicles.*` of `game.json`): hold forward 10 s on the ground to start the engine, Space up, C / Ctrl down, Shift faster; an AI pilot takes off by itself on a move order, then hovers or circles (RTS: Space take off, C land, H hover / circle). Zombies cannot reach it above 2.5 m. Models in `src/render/vehicles.ts`. Worklog: [helicopter](docs/worklog/2026-10-21-helicopter.md).
+- **Boats and ships** (`src/sim/naval.ts`, `water` / `fixed` / `ship` in `vehicleType`): speedboats sail only on water and are stopped by the shore and by hulls; stepping out needs dry ground within 8 m. The carrier and the frigate are `fixed` (not drivable yet); the carrier's walkable deck is a plateau baked into the height grid. Models in `src/render/ships.ts`. Worklog: [map-9-sea](docs/worklog/2026-10-21-map-9-sea.md).
+- **Swimming (Map 10, `swim` map rule, `src/sim/swim.ts`):** C dives, Space surfaces, Shift swims faster, an oxygen bar runs while the head is under. Worklog: [swimming-map-10](docs/worklog/2026-10-21-swimming-map-10.md). Never seen in a browser.
+- **Texture lab (Map 11, `src/render/pom.ts`):** parallax occlusion mapped walls (brick, stone, plates, cobble slab) from procedural textures; **,** and **.** turn the time of day on maps with `timeControl`; the map list now scrolls. Worklog: [texture-lab-map-11](docs/worklog/2026-10-21-texture-lab-map-11.md). The shader was checked in headless Chrome; the map itself was not seen. Later the same day: 14 real CC0 ambientCG surfaces ([worklog](docs/worklog/2026-10-21-real-textures.md)), 16 procedural surfaces, six kinds of glass, a police light bar, a Toaster graphics preset and Map 11 grown to 160 x 160 ([worklog](docs/worklog/2026-10-21-texture-lab-more.md)).
+- **Reflections, castle and graphics (later the same day):** a baked reflection map, parallax silhouette clipping (the user says it works), a small castle in Map 11 (wood floor, swing and glass doors, glass windows, torches) with two flights of steps for testing feet, a Textures setting (melted to ultra, 1K sets for ultra) and an Ultra graphics preset. Worklog: [castle-and-graphics](docs/worklog/2026-10-21-castle-and-graphics.md). **Next:** the user looks at the castle, doors, steps, Ultra and the texture levels; then 2K / 4K ultra textures, then procedural IK (quadruped test first).
+- **Known problems:** the carrier tower's collider is 2 m high but the model is about 25 m (aircraft clip through it); moving the carrier in the editor does not move its deck; the main bundle grew from 714 kB to 1.5 MB because of Map 9's 800 kB JSON (excluded from Prettier).
+- **Waiting on the user:** a look at Maps 7, 8 and 9, the Map 2 nest and tower, the editor's Assets tab, corpses with Drop / Take and the AI dragging the wounded; and an OK before any model download (police, civilians, military, vehicles; CC0 / CC-BY only).
+
+## Physics lab on Rapier (2026-10-21, branch `feat/physics-lab`, uncommitted, mixed with `feat/helicopter` work)
+
+Map 12 runs `@dimforge/rapier3d-deterministic-compat` (balls, boxes, ragdolls); the own sphere solver stays as the Rust/WASM reference ([worklog](docs/worklog/2026-10-21-rapier-lab.md), PENDING §2o). Never seen in a browser. Decided by the user: Rapier instead of the own solver, ragdoll bones as Rapier joints. **Open:** how the 2D units meet Rapier bodies; then shots as impulses, ragdoll on death, grab and throw, loose limbs. `npm run check:rapier` and `bench:physics` print the determinism hash.
 
 ## Decisions the user has made (do not re-litigate)
+
+- **Steam is the target and download size is not a constraint** (2026-10-21): do not shrink assets to save weight. Graphics options must also serve people with a real GPU (Ultra preset); the user's own PC has none, so its FPS does not matter.
 
 - **No new tests / no TDD** for the prototype; keep the 48 sim tests passing.
 - **Name:** Zombie Horde Survivors; it must contain "zombie".

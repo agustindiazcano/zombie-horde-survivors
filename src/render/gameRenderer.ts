@@ -21,9 +21,12 @@ import { SkyLightViews } from './skyLights';
 import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
+import { setPomQuality, setTextureQuality } from './pom';
+import { Sirens } from './sirens';
 import { GroundItemViews } from './groundItems';
 import { PickupMeshes } from './pickups';
-import { createJeep } from './vehicles';
+import { createShip } from './ships';
+import { createAircraft, createGroundShadow, createJeep, type HelicopterParts } from './vehicles';
 import { GrenadeEffects, type GrenadePreview } from './grenades';
 import { SelectionMarkers } from './markers';
 import { ViewModel } from './viewModel';
@@ -155,8 +158,29 @@ const STRIKE_TIME = 0.5;
 /** A soldier keeps the gun at the shoulder this long after a shot, and raises it at this rate (1/s). */
 const GUN_RAISED_TIME = 0.8;
 const GUN_RAISE_RATE = 12;
+/** A swimmer's feet sit this far under the surface, and its body tips forward by this much (radians). */
+const SWIM_FLOAT = 0.35;
+const SWIM_PITCH = 1.3;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** A vehicle in the scene; aircraft also carry their rotors and a ground shadow. */
+interface VehicleView {
+  object: THREE.Group;
+  wheels: THREE.Object3D[];
+  heli?: HelicopterParts;
+  shadow?: THREE.Mesh;
+  pitch?: number;
+  bank?: number;
+}
+
+/** Radians the helicopter's nose drops at top speed. */
+const HELI_PITCH = 0.22;
+/** The most it banks into a turn (radians), and how much per radian turned per tick. */
+const HELI_BANK = 0.35;
+const HELI_BANK_PER_TURN = 6;
+/** Rotor radians per frame at full speed. */
+const HELI_ROTOR_STEP = 0.7;
 
 export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
@@ -166,7 +190,7 @@ export class GameRenderer {
   readonly scene = new THREE.Scene();
   private readonly renderer = new THREE.WebGLRenderer({ antialias: true });
   private readonly soldiers = new Map<number, CharacterView>();
-  private readonly vehicles = new Map<number, { object: THREE.Group; wheels: THREE.Object3D[] }>();
+  private readonly vehicles = new Map<number, VehicleView>();
   /** One flashlight per soldier: a group (moved and turned with the unit) holding a spotlight. */
   private readonly flashlights = new Map<number, { group: THREE.Group; light: THREE.SpotLight }>();
   private readonly markers = new SelectionMarkers();
@@ -206,7 +230,7 @@ export class GameRenderer {
   private savedTop = { yaw: 0, pitch: DEFAULT_PITCH };
   private focusInitialized = false;
   /** Smoothed crouch (0..1) and sprint lean (0..1) per soldier id. */
-  private readonly stanceVisual = new Map<number, { crouch: number; lean: number }>();
+  private readonly stanceVisual = new Map<number, { crouch: number; lean: number; swim: number }>();
   private readonly healthBars = new HealthBars();
   private structureViews!: StructureViews;
   private objectViews!: ObjectViews;
@@ -216,6 +240,7 @@ export class GameRenderer {
   private readonly orbViews: OrbViews;
   private readonly skyLights = new SkyLightViews();
   private readonly streetLights: StreetLights;
+  private readonly sirens: Sirens;
   private readonly looseParts = new LooseParts();
   private readonly pickups = new PickupMeshes();
   /** Remaining hit-flash time per enemy id. */
@@ -261,6 +286,7 @@ export class GameRenderer {
     this.scene.add(this.arenaGroup);
     this.addLights(config.arena.halfSize);
     this.environment = new EnvironmentView(this.scene, this.hemi, this.sun);
+    this.scene.environment = buildReflectionMap(this.renderer);
 
     this.config = config;
     this.halfSize = config.arena.halfSize;
@@ -270,6 +296,8 @@ export class GameRenderer {
     this.orbViews = new OrbViews((x, z) => this.groundAt(x, z), this.renderer);
     this.streetLights = new StreetLights(this.scene);
     this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
+    this.sirens = new Sirens(this.scene);
+    this.sirens.set(this.arenaGroup.userData.sirens ?? []);
     this.fireViews = new FireViews(config, (x, z) => this.groundAt(x, z));
     this.structureViews = new StructureViews(
       config,
@@ -313,7 +341,10 @@ export class GameRenderer {
     for (const view of this.soldiers.values()) this.scene.remove(view.object);
     for (const lamp of this.flashlights.values()) this.scene.remove(lamp.group);
     for (const entry of this.zombies.values()) this.scene.remove(entry.view.object);
-    for (const entry of this.vehicles.values()) this.scene.remove(entry.object);
+    for (const entry of this.vehicles.values()) {
+      this.scene.remove(entry.object);
+      if (entry.shadow) this.scene.remove(entry.shadow);
+    }
     this.vehicles.clear();
     this.structureViews.clear();
     this.objectViews.clear();
@@ -451,6 +482,7 @@ export class GameRenderer {
     });
     this.arenaGroup = buildArena(arena);
     this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
+    this.sirens.set(this.arenaGroup.userData.sirens ?? []);
     this.scene.add(this.arenaGroup);
     this.halfSize = arena.halfSize;
     const cam = this.sun.shadow.camera;
@@ -485,6 +517,7 @@ export class GameRenderer {
     this.skyLights.updatePhones(state, this.config, alpha);
     this.updateBlackout(state);
     this.streetLights.update(this.camera.position, dt);
+    this.sirens.update(dt);
     this.syncCrates(state, dt);
     this.effects.update(dt);
     this.grenades.update(state, dt);
@@ -804,29 +837,80 @@ export class GameRenderer {
     this.environment.setDim(power === 0 ? this.config.skyShow.blackoutLight : 1);
   }
 
-  /** Draws the vehicles of the state (a jeep for every type until more models exist). */
+  /** Draws the vehicles of the state: a jeep for every ground type, the procedural helicopter for aircraft. */
   private syncVehicles(state: GameState, alpha: number): void {
     const live = new Set<number>();
+    const sea = this.config.arena.terrain.water ?? 0;
     for (const v of state.vehicles) {
       live.add(v.id);
+      const def = this.config.vehicles[v.type]!;
       let entry = this.vehicles.get(v.id);
       if (!entry) {
-        entry = createJeep(this.vehicleModel);
+        if (v.air) {
+          const heli = createAircraft(v.type);
+          entry = {
+            object: heli.object,
+            wheels: [],
+            heli,
+            shadow: createGroundShadow(def.radius * 1.2),
+            pitch: 0,
+            bank: 0,
+          };
+          this.scene.add(entry.shadow!);
+        } else if (def.ship) entry = { object: createShip(v.type, def.ship), wheels: [] };
+        else entry = createJeep(this.vehicleModel);
         this.vehicles.set(v.id, entry);
         this.scene.add(entry.object);
       }
       const x = lerp(v.prev.x, v.pos.x, alpha);
       const z = lerp(v.prev.z, v.pos.z, alpha);
-      entry.object.position.set(x, this.groundAt(x, z), z);
+      // Ships float on the water; everything else follows the ground.
+      const ground = def.ship ? sea : this.groundAt(x, z);
+      const alt = v.air ? lerp(v.air.prevAlt, v.air.alt, alpha) : 0;
+      // A boat rides the swell a little; the big ships are steady.
+      const swell = def.water ? Math.sin(state.time * 1.7 + v.id) : 0;
+      entry.object.position.set(x, ground + alt + swell * 0.07, z);
+      entry.object.rotation.z = swell * 0.02;
+      entry.object.rotation.x = def.water ? Math.cos(state.time * 1.3 + v.id) * 0.015 : 0;
       const turn = Math.atan2(Math.sin(v.facing - v.prevFacing), Math.cos(v.facing - v.prevFacing));
       entry.object.rotation.y = v.prevFacing + turn * alpha;
       for (const wheel of entry.wheels) wheel.rotation.x += v.speed * 0.02;
+      if (v.air && entry.heli) {
+        // Nose down with speed, banked into the turn; both ease so the machine does not snap.
+        // A tiltrotor flies level: its pods do the leaning.
+        const tiltrotor = entry.heli.nacelles.length > 0;
+        const pitchTarget = (v.speed / def.maxSpeed) * (tiltrotor ? HELI_PITCH / 4 : HELI_PITCH);
+        const bankTarget = Math.max(
+          -HELI_BANK,
+          Math.min(HELI_BANK, turn * 60 * HELI_BANK_PER_TURN),
+        );
+        entry.pitch = lerp(entry.pitch ?? 0, pitchTarget, 0.1);
+        entry.bank = lerp(entry.bank ?? 0, bankTarget, 0.1);
+        entry.heli.tilt.rotation.x = entry.pitch;
+        entry.heli.tilt.rotation.z = entry.bank;
+        for (const r of entry.heli.rotors) {
+          r.group.rotation[r.axis] += v.air.rotor * HELI_ROTOR_STEP * r.speed;
+        }
+        // The pods point up to hover and swing forward with speed.
+        const nacelleTilt = (v.speed / def.maxSpeed) * (Math.PI / 2) * v.air.rotor;
+        for (const pod of entry.heli.nacelles) {
+          pod.rotation.x = lerp(pod.rotation.x, nacelleTilt, 0.08);
+        }
+        if (entry.shadow) {
+          entry.shadow.position.set(x, ground + 0.06, z);
+          entry.shadow.scale.setScalar(1 + alt * 0.03);
+          (entry.shadow.material as THREE.MeshBasicMaterial).opacity = Math.max(
+            0.1,
+            0.35 - alt * 0.008,
+          );
+        }
+      }
       // Only a vehicle with a crew can be hurt, so only then does it show a bar.
       if (v.seats.some((id) => id !== null)) {
         this.healthBars.show(
           -v.id - 1,
           x,
-          this.groundAt(x, z) + 2.6,
+          ground + alt + (entry.heli?.height ?? 2.6),
           z,
           2.2,
           v.health / v.maxHealth,
@@ -839,6 +923,7 @@ export class GameRenderer {
     for (const [id, entry] of this.vehicles) {
       if (live.has(id)) continue;
       this.scene.remove(entry.object);
+      if (entry.shadow) this.scene.remove(entry.shadow);
       this.healthBars.release(-id - 1);
       this.vehicles.delete(id);
     }
@@ -914,18 +999,26 @@ export class GameRenderer {
       // Applied after the view's own update, which may reset its root transform.
       const ground = this.groundAt(view.object.position.x, view.object.position.z);
       view.object.position.y = ground + (drone ? this.droneHeight : lerp(s.prevY, s.y, alpha));
+      const level = this.config.arena.terrain.water;
+      if (s.swimming && level !== null) {
+        // A swimmer floats on the surface or sinks with its depth, never below the sea floor.
+        view.object.position.y = Math.max(ground, level - SWIM_FLOAT - s.depth);
+      }
       if (drone) continue;
       let vis = this.stanceVisual.get(s.id);
       if (!vis) {
-        vis = { crouch: 0, lean: 0 };
+        vis = { crouch: 0, lean: 0, swim: 0 };
         this.stanceVisual.set(s.id, vis);
       }
       const k = 1 - Math.exp(-14 * dt);
       const alive = !s.dead && !s.downed;
-      vis.crouch = lerp(vis.crouch, alive && state.stance === 'crouch' ? 1 : 0, k);
-      vis.lean = lerp(vis.lean, alive && state.stance === 'sprint' && moving ? 1 : 0, k);
+      const stance = s.swimming ? 'normal' : state.stance;
+      vis.crouch = lerp(vis.crouch, alive && stance === 'crouch' ? 1 : 0, k);
+      vis.lean = lerp(vis.lean, alive && stance === 'sprint' && moving ? 1 : 0, k);
+      vis.swim = lerp(vis.swim, alive && s.swimming ? 1 : 0, k);
       view.object.scale.set(1 + 0.06 * vis.crouch, 1 - 0.28 * vis.crouch, 1 + 0.06 * vis.crouch);
-      view.object.rotation.x = 0.25 * vis.lean;
+      // A swimmer lies almost flat, face down.
+      view.object.rotation.x = 0.25 * vis.lean + SWIM_PITCH * vis.swim;
     }
   }
 
@@ -1225,9 +1318,15 @@ export class GameRenderer {
     shadowMapSize: number;
     resolutionScale: number;
     gore: boolean;
+    parallax: number;
+    textures: number;
   }): void {
     this.goreEnabled = g.gore;
+    setPomQuality(g.parallax);
+    setTextureQuality(g.textures);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * g.resolutionScale);
+    // Below half resolution the picture is drawn in plain blocks instead of blurred.
+    this.renderer.domElement.style.imageRendering = g.resolutionScale < 0.5 ? 'pixelated' : 'auto';
     this.resize();
     this.sun.castShadow = g.shadows;
     if (this.sun.shadow.mapSize.x !== g.shadowMapSize) {
@@ -1314,4 +1413,54 @@ export class GameRenderer {
     this.camera.updateProjectionMatrix();
     this.viewModel.resize(w / h);
   };
+}
+
+/**
+ * A sky-and-ground gradient baked once into a prefiltered cube map: the reflection source for
+ * metal, glass, wet floors and the soldiers' gear. EnvironmentView scales its strength with the
+ * daylight, so the same map serves day and night.
+ */
+function buildReflectionMap(renderer: THREE.WebGLRenderer): THREE.Texture {
+  const scene = new THREE.Scene();
+  const geometry = new THREE.SphereGeometry(50, 32, 16);
+  const position = geometry.getAttribute('position');
+  const colors = new Float32Array(position.count * 3);
+  const stops: [number, number][] = [
+    [-1, 0x3b3f3a],
+    [-0.05, 0x7a8088],
+    [0.05, 0xd2e2f2],
+    [0.5, 0x7fb0e6],
+    [1, 0x3f7fd0],
+  ];
+  const color = new THREE.Color();
+  const low = new THREE.Color();
+  const high = new THREE.Color();
+  for (let i = 0; i < position.count; i++) {
+    const t = position.getY(i) / 50;
+    let k = 1;
+    while (k < stops.length - 1 && t > stops[k]![0]) k++;
+    const [t0, c0] = stops[k - 1]!;
+    const [t1, c1] = stops[k]!;
+    low.set(c0);
+    high.set(c1);
+    color.copy(low).lerp(high, Math.min(1, Math.max(0, (t - t0) / (t1 - t0))));
+    colors.set([color.r, color.g, color.b], i * 3);
+  }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  scene.add(
+    new THREE.Mesh(
+      geometry,
+      new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide }),
+    ),
+  );
+  const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(5, 12, 8),
+    new THREE.MeshBasicMaterial({ color: 0xfff2d0 }),
+  );
+  sun.position.set(25, 30, 20);
+  scene.add(sun);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const texture = pmrem.fromScene(scene, 0.04).texture;
+  pmrem.dispose();
+  return texture;
 }

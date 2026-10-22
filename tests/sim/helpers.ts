@@ -26,6 +26,10 @@ type Patch = {
       | 'build'
       | 'noWaves'
       | 'startGold'
+      | 'swim'
+      | 'timeControl'
+      | 'physicsLab'
+      | 'gravity'
       | 'startOrbs'
       | 'skyShowOn'
       | 'startView'
@@ -49,6 +53,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     drone: { ...base.drone, count: 0 },
     enemies: {},
     stance: { ...base.stance },
+    swimming: { ...base.swimming },
     loot: { ...base.loot },
     progress: { ...base.progress },
     downed: { ...base.downed },
@@ -90,7 +95,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
   Object.assign(catalog.items.rifle, { spread: 0, recoil: undefined }, weapon);
   const { arena, ...settings } = merged;
   return {
-    ...parseConfig(settings, parseMap(map1), units, catalog),
+    ...parseConfig({ ...settings, gravity: base.gravity }, parseMap(map1), units, catalog),
     arena: arena as unknown as GameConfig['arena'],
   };
 }

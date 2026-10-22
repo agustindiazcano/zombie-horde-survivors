@@ -5,6 +5,7 @@ export * from './rng';
 export * from './config';
 export * from './collision';
 export * from './terrain';
+export * from './lab';
 export * from './types';
 export { firstPlayerOf, isHostile, localPlayer } from './players';
 export { createGame, step } from './game';
@@ -18,7 +19,9 @@ export {
   orderHold,
   orderMove,
 } from './soldiers';
-export { bossStats, spawnZombie } from './zombies';
+export { orderAircraft } from './aircraft';
+export { shipHalfWidth, shipOutline, type ShipShape } from './naval';
+export { bossStats, damageZombie, spawnZombie } from './zombies';
 export {
   ARMOR_PLATE,
   addToBackpack,

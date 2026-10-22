@@ -61,6 +61,8 @@ const CROSSHAIR_PX_PER_RAD = 700;
 export class Hud {
   private readonly healthLabel: HTMLElement;
   private readonly healthFill: HTMLElement;
+  private readonly oxygen: HTMLElement;
+  private readonly oxygenFill: HTMLElement;
   private readonly wave: HTMLElement;
   private readonly kills: HTMLElement;
   private readonly casualties: HTMLElement;
@@ -111,6 +113,10 @@ export class Hud {
     const health = el('div', 'hud__health', root);
     this.healthLabel = el('div', 'hud__health-label', health);
     this.healthFill = el('div', 'hud__bar-fill', el('div', 'hud__bar', health));
+
+    this.oxygen = el('div', 'hud__oxygen', root);
+    el('div', 'hud__oxygen-label', this.oxygen, 'OXYGEN');
+    this.oxygenFill = el('div', 'hud__bar-fill', el('div', 'hud__bar', this.oxygen));
 
     const stats = el('div', 'hud__stats', root);
     this.wave = el('span', '', stats);
@@ -230,6 +236,11 @@ export class Hud {
     const focus =
       getSoldier(state, focusId) ?? state.soldiers.find((s) => !s.dead) ?? state.soldiers[0];
     const health = Math.ceil(focus?.health ?? 0);
+    // The oxygen bar shows while the unit swims, and turns red when the breath runs low.
+    const breath = focus ? Math.max(0, focus.oxygen) / this.config.swimming.breath : 1;
+    this.oxygen.classList.toggle('hud__oxygen--visible', focus?.swimming === true);
+    this.oxygen.classList.toggle('hud__oxygen--low', breath < 0.25);
+    this.oxygenFill.style.width = `${Math.min(100, breath * 100)}%`;
     const focusKey = focus?.id ?? 0;
     const gun = focus ? gunOf(this.config, focus) : null;
     const ammo = focus && gun !== null ? ammoLabel(this.config, focus) : '';

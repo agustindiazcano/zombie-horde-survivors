@@ -32,7 +32,9 @@ npm run lint && npm run format:check && npm run typecheck
 
 ## How it plays
 
-**Menus:** Start → **Single Player** (**Story**: no missions yet; **Waves**: pick a map from the list, Map 1 is the built-in arena), **Multiplayer** (coming soon, disabled) or **Editor** (desktop only: a paused map editor with a Play / Stop button and a right-hand panel; New / Open / Save / Export / Import work, its drawing tools are placeholders for now; saved maps appear in the Waves list). Esc steps back one menu.
+**Web build:** the public page offers only Single Player → Waves → Map 1; everything else (Story, Development, Multiplayer, Editor, other maps) runs locally. The Pages workflow sets `VITE_WEB_DEMO=true` at build time (`src/webDemo.ts`).
+
+**Menus:** Start → **Single Player** (**Story**: no missions yet; **Waves**: Map 1, the built-in arena), **Multiplayer** (coming soon, disabled), **Development** (every other map: test maps, labs, saved and imported ones) or **Editor** (desktop only: a paused map editor with a Play / Stop button and a right-hand panel; New / Open / Save / Export / Import work, its drawing tools are placeholders for now; saved maps appear in the Development list). Esc steps back one menu.
 
 You start in **direct control** of one soldier, with the rest of the squad following you and shooting on their own. Press **Y** to switch to **RTS mode**, select units, send them anywhere on the map, then press **Y** again to take direct control of one of them.
 
@@ -78,13 +80,13 @@ There are two kinds of experience. The **global** XP comes from the blue orbs an
 
 Press **O** (or use the Settings button on the title screen and the pause screen) for the settings window. Opened in the middle of a game it pauses, and gives the game back when you close it. Everything is saved in your browser.
 
-| Section  | Options                                                                                                                                  |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Graphics | Quality preset (Low / Medium / High), shadows on/off, shadow quality, resolution (50-100% of the screen's pixel density), blood and gibs |
-| Lighting | Normal, or dark with a flashlight per soldier (also **L**)                                                                               |
-| Other    | FPS counter (also **F3**), sound volume                                                                                                  |
+| Section  | Options                                                                                                                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Graphics | Quality preset (Toaster / Low / Medium / High / Ultra), shadows on/off, shadow quality, resolution (25-200% of the screen's pixel density), surface depth (parallax), textures (melted / low / normal / ultra), blood and gibs |
+| Lighting | Normal, or dark with a flashlight per soldier (also **L**)                                                                                                                                                                     |
+| Other    | FPS counter (also **F3**), sound volume                                                                                                                                                                                        |
 
-If the game runs slowly, try the **Low** preset or lower the resolution. Changing any graphics option by hand switches the preset to Custom.
+**Ultra** is for a computer with a real graphics card: 4K shadows, the picture drawn at 1.5x and scaled down, the finest surface depth and 1K textures. If the game runs slowly, try the **Low** preset or lower the resolution. **Toaster** goes further: about a third of the pixels each way, drawn blocky, with no shadows, no surface depth and no gibs. Changing any graphics option by hand switches the preset to Custom.
 
 ## Perks and the shop
 
@@ -151,5 +153,19 @@ Every third-party asset is listed in `assets.toml` (name, author, source, licens
 - **SUV colour palette texture (Car Kit)** by Kenney — [CC0-1.0](https://kenney.nl/assets/car-kit)
 - **Dog (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
 - **Cat (Animal Pack Vol.2)** by Quaternius — [CC0-1.0](https://opengameart.org/content/animated-animales-low-poly)
+- **Bricks 059 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Bricks059)
+- **Bricks 106 A (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Bricks106A)
+- **Planks 037 A (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Planks037A)
+- **Concrete 034 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Concrete034)
+- **Plaster 001 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Plaster001)
+- **Rock 035 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Rock035)
+- **Metal 046 B (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Metal046B)
+- **Paving Stones 070 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/PavingStones070)
+- **Road 007 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Road007)
+- **Gravel 023 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Gravel023)
+- **Ground 037 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Ground037)
+- **Ground 111 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Ground111)
+- **Marble 012 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Marble012)
+- **Tiles 107 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Tiles107)
 
 <!-- credits:end -->

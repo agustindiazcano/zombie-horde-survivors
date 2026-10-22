@@ -177,12 +177,42 @@
             {
               "id": "military-air",
               "name": "Air",
-              "items": []
+              "items": [
+                {
+                  "id": "helicopter",
+                  "name": "Helicopter"
+                },
+                {
+                  "id": "huey",
+                  "name": "UH-1 Huey"
+                },
+                {
+                  "id": "chinook",
+                  "name": "CH-47 Chinook"
+                },
+                {
+                  "id": "v22",
+                  "name": "V-22 Osprey"
+                }
+              ]
             },
             {
               "id": "military-sea",
               "name": "Sea",
-              "items": []
+              "items": [
+                {
+                  "id": "speedboat",
+                  "name": "Speedboat"
+                },
+                {
+                  "id": "frigate",
+                  "name": "Frigate"
+                },
+                {
+                  "id": "carrier",
+                  "name": "Aircraft carrier"
+                }
+              ]
             },
             {
               "id": "military-land",

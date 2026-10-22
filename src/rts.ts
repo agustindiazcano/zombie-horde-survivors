@@ -3,6 +3,7 @@ import type { GrenadePreview } from './render/grenades';
 import {
   grenadeAim,
   interactableAt,
+  orderAircraft,
   orderFollow,
   orderInteract,
   orderMove,
@@ -183,6 +184,7 @@ export class RtsController {
       radius: pick.aim.radius,
       clamped: pick.aim.clamped,
       height: this.config.grenades.releaseHeight + pick.soldier.y,
+      gravity: this.getState().gravity,
     };
   }
 
@@ -314,6 +316,14 @@ export class RtsController {
       this.set(this.living().map((s) => s.id));
     } else if (e.code === 'KeyF') {
       orderFollow(this.getState(), [...this.selected]);
+    } else if (!e.repeat && !e.ctrlKey && ['Space', 'KeyC', 'KeyH'].includes(e.code)) {
+      // The pilot of a selected helicopter: Space takes off, C lands, H hovers or circles when idle.
+      const action = e.code === 'Space' ? 'takeoff' : e.code === 'KeyC' ? 'land' : 'idle';
+      const message = orderAircraft(this.getState(), this.config, [...this.selected], action);
+      if (message) {
+        this.notice = message;
+        this.noticeUntil = performance.now() + 2500;
+      }
     } else if (/^Digit[1-9]$/.test(e.code)) {
       const soldier = this.getState().soldiers[Number(e.code.slice(5)) - 1];
       if (soldier && !soldier.dead) this.toggle(soldier.id, e.shiftKey);
