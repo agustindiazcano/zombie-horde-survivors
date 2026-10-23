@@ -9,6 +9,12 @@ export interface Settings {
   shadowMapSize: number;
   /** Fraction of the screen's full pixel density the game renders at (0.25 to 1; the Toaster preset goes below the old 0.5 floor). */
   resolutionScale: number;
+  /** Share of the game's resolution the enemies and the other characters are drawn at (0.25 to 1). */
+  resolutionNpc: number;
+  /** The same for the enemies alone; they take the lower of this and `resolutionNpc`. */
+  resolutionEnemies: number;
+  /** The same for the water. */
+  resolutionWater: number;
   /** Blood and gibs when enemies burst. */
   gore: boolean;
   /** Depth of carved surfaces (parallax occlusion mapping): 0 off, 1 light, 2 full with sun shadows. */
@@ -63,6 +69,9 @@ type GraphicsFields = Pick<
   | 'shadows'
   | 'shadowMapSize'
   | 'resolutionScale'
+  | 'resolutionNpc'
+  | 'resolutionEnemies'
+  | 'resolutionWater'
   | 'gore'
   | 'parallax'
   | 'textures'
@@ -91,6 +100,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     shadows: false,
     shadowMapSize: 1024,
     resolutionScale: 0.35,
+    resolutionNpc: 1,
+    resolutionEnemies: 1,
+    resolutionWater: 1,
     gore: false,
     parallax: 0,
     textures: 0,
@@ -116,6 +128,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     shadows: false,
     shadowMapSize: 1024,
     resolutionScale: 0.65,
+    resolutionNpc: 1,
+    resolutionEnemies: 1,
+    resolutionWater: 1,
     gore: true,
     parallax: 1,
     textures: 1,
@@ -141,6 +156,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     shadows: true,
     shadowMapSize: 1024,
     resolutionScale: 0.85,
+    resolutionNpc: 1,
+    resolutionEnemies: 1,
+    resolutionWater: 1,
     gore: true,
     parallax: 1,
     textures: 2,
@@ -166,6 +184,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     shadows: true,
     shadowMapSize: 2048,
     resolutionScale: 1,
+    resolutionNpc: 1,
+    resolutionEnemies: 1,
+    resolutionWater: 1,
     gore: true,
     parallax: 2,
     textures: 2,
@@ -192,6 +213,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     shadows: true,
     shadowMapSize: 4096,
     resolutionScale: 1.5,
+    resolutionNpc: 1,
+    resolutionEnemies: 1,
+    resolutionWater: 1,
     gore: true,
     parallax: 3,
     textures: 3,
@@ -236,6 +260,9 @@ export function qualityOf(s: GraphicsFields): Quality {
       p.shadows === s.shadows &&
       p.shadowMapSize === s.shadowMapSize &&
       p.resolutionScale === s.resolutionScale &&
+      p.resolutionNpc === s.resolutionNpc &&
+      p.resolutionEnemies === s.resolutionEnemies &&
+      p.resolutionWater === s.resolutionWater &&
       p.gore === s.gore &&
       p.parallax === s.parallax &&
       p.textures === s.textures &&
@@ -284,6 +311,10 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     shadows: bool(raw.shadows, d.shadows),
     shadowMapSize: size,
     resolutionScale: Math.round(clamp(raw.resolutionScale, 0.25, 2, d.resolutionScale) * 20) / 20,
+    resolutionNpc: Math.round(clamp(raw.resolutionNpc, 0.25, 1, d.resolutionNpc) * 20) / 20,
+    resolutionEnemies:
+      Math.round(clamp(raw.resolutionEnemies, 0.25, 1, d.resolutionEnemies) * 20) / 20,
+    resolutionWater: Math.round(clamp(raw.resolutionWater, 0.25, 1, d.resolutionWater) * 20) / 20,
     gore: bool(raw.gore, d.gore),
     parallax: Math.round(clamp(raw.parallax, 0, 3, d.parallax)),
     textures: Math.round(clamp(raw.textures, 0, 3, d.textures)),

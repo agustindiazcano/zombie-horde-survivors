@@ -37,6 +37,7 @@ import { SelectionMarkers } from './markers';
 import { ViewModel } from './viewModel';
 import { StructureViews, type BuildGhost } from './structures';
 import { FireViews, ObjectViews } from './objects';
+import { ResolutionLayers, type LayerName } from './resolutionLayers';
 
 /** Default camera: above and behind the focus point (towards +z), at zoom 1. */
 const BASE_DISTANCE = Math.hypot(13, 9);
@@ -213,6 +214,9 @@ export class GameRenderer {
   readonly scene = new THREE.Scene();
   private readonly renderer = new THREE.WebGLRenderer({ antialias: rendererAntialias });
   private readonly soldiers = new Map<number, CharacterView>();
+  /** Per-part render resolutions (enemies, other characters, water); 1 = the game's own. */
+  private readonly layerScales: Record<LayerName, number> = { enemies: 1, allies: 1, water: 1 };
+  private layers: ResolutionLayers | null = null;
   private readonly vehicles = new Map<number, VehicleView>();
   /** One flashlight per soldier: a group (moved and turned with the unit) holding a spotlight. */
   private readonly flashlights = new Map<number, { group: THREE.Group; light: THREE.SpotLight }>();
@@ -576,7 +580,7 @@ export class GameRenderer {
       }
     }
     this.drawWaterMirror();
-    this.renderer.render(this.scene, this.camera);
+    this.drawScene();
     if (this.viewMode === 'first') this.viewModel.render(this.renderer);
     this.lens?.render(this.renderer, this.environment.rainAmount, this.clock);
   }
@@ -1403,6 +1407,9 @@ export class GameRenderer {
     shadows: boolean;
     shadowMapSize: number;
     resolutionScale: number;
+    resolutionNpc: number;
+    resolutionEnemies: number;
+    resolutionWater: number;
     gore: boolean;
     parallax: number;
     textures: number;
@@ -1448,6 +1455,10 @@ export class GameRenderer {
     this.environment.setCloudSteps(g.clouds === 0 ? 0 : g.clouds + 2);
     setPomQuality(g.parallax);
     setTextureQuality(g.textures);
+    // Enemies are characters too, so they take the lower of the two sliders.
+    this.layerScales.enemies = Math.min(g.resolutionNpc, g.resolutionEnemies);
+    this.layerScales.allies = g.resolutionNpc;
+    this.layerScales.water = g.resolutionWater;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * g.resolutionScale);
     // Below half resolution the picture is drawn in plain blocks instead of blurred.
     this.renderer.domElement.style.imageRendering = g.resolutionScale < 0.5 ? 'pixelated' : 'auto';
@@ -1459,6 +1470,26 @@ export class GameRenderer {
       this.sun.shadow.map?.dispose();
       this.sun.shadow.map = null;
     }
+  }
+
+  /** Draws the scene to the screen; parts with their own lower resolution go through ResolutionLayers. */
+  private drawScene(): void {
+    if (!ResolutionLayers.isActive(this.layerScales)) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+    this.layers ??= new ResolutionLayers(rendererAntialias ? 4 : 0);
+    const objects = (views: Iterable<CharacterView>): THREE.Object3D[] => {
+      const out: THREE.Object3D[] = [];
+      for (const v of views) out.push(v.object);
+      return out;
+    };
+    this.layers.render(this.renderer, this.scene, this.camera, {
+      scales: this.layerScales,
+      enemies: objects([...this.zombies.values()].map((e) => e.view)),
+      allies: objects([...this.soldiers.values(), ...this.animals.values()]),
+      water: this.ocean?.object ?? null,
+    });
   }
 
   get isDark(): boolean {
@@ -1505,7 +1536,7 @@ export class GameRenderer {
     const gl = this.renderer.getContext();
     const t0 = performance.now();
     this.drawWaterMirror();
-    this.renderer.render(this.scene, this.camera);
+    this.drawScene();
     this.lens?.render(this.renderer, this.environment.rainAmount, this.clock);
     const t1 = performance.now();
     gl.finish();

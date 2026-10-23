@@ -22,6 +22,10 @@ The options live in a registry, `src/graphicsOptions.ts` (label, values, help, a
 | Dynamic lights from the sea | 0, 4, 8                                                               | How many neon orbs also cast real point lights (section 5); the orbs always glow                                                             |
 | Ice detail                  | 0 to 3                                                                | Quality of the ice shader (section 11), never above the Water option                                                                         |
 | Rain drops                  | on / off                                                              | Streak cylinder, wet ground with rings and ring ripples in the sea, instead of 2500 line drops (section 4)                                   |
+| Resolution (whole game)     | 25% to 200%                                                           | Pixel ratio of the canvas; below 50% the picture is drawn in blocks. Presets: Toaster 35%, Low 65%, Medium 85%, High 100%, Ultra 150%        |
+| Resolution: all characters  | 25% to 100%, of the game's resolution                                 | Soldiers, drone, animals and enemies drawn into a smaller picture (section 14). All presets 100%                                             |
+| Resolution: enemies only    | 25% to 100%                                                           | The same for the enemies alone; they use the lower of this and the one above                                                                 |
+| Resolution: water           | 25% to 100%                                                           | The sea drawn into a smaller picture (section 14), the heaviest shader of the game                                                           |
 
 | Preset  | Water | Sky clouds | Rain drops |
 | ------- | ----- | ---------- | ---------- |
@@ -188,6 +192,19 @@ Code: `src/graphicsBench.ts` (the logic, no Three.js or DOM), `GameRenderer.time
 | Prediction      | `frame = measured base + sum over options (cost of the chosen value - cost at the time of measuring)`. The total bars show GPU and CPU milliseconds against the 60 fps frame (16.7 ms) and the verdict gives about how many fps, from the slower of the two (they run in parallel) |
 | Recommend       | The heaviest of Ultra, High, Medium, Low whose prediction is at most 90% of a 60 fps frame, else Toaster                                                                                                                                                                           |
 | Limits          | It measures the scene on screen when it runs: an effect that is not visible (rain on a dry day, ice on an unfrozen sea, snow) measures as free. The result is saved in localStorage and the window says when it was taken. The picture flickers for about a minute while it runs   |
+
+## 14. Resolution per part
+
+Code: `src/render/resolutionLayers.ts`, called from `GameRenderer.drawScene`. Standard technique: render-to-texture with a depth-aware composite (the same idea as dynamic resolution and as drawing particles at half size).
+
+When the enemies, the other characters or the water are set below 100%, the frame is built in four steps; with all three at 100% none runs and the scene is drawn straight to the screen.
+
+1. **World**: the scene is drawn at the game's resolution into an offscreen target with a depth texture. The characters' materials write no colour and no depth in this step, but they stay on layer 0, so they still cast shadows (the shadow map is made here). The sea sits only on its own layer, so it is not drawn.
+2. **Each lowered part** is drawn alone into a smaller target (`scale` x the game's resolution, nearest filtering) from the same camera, with every light enabled on its layer so it is lit and shadowed like the rest (shadow map reused, `scene.background` off, alpha 0). The sea writes depth only in this step.
+3. **Composite**: one full-screen pass. A block of a character part replaces the world where its depth is nearer; the water (premultiplied alpha) goes over whatever is behind it but never over something nearer. This pass also applies the tone mapping and the colour encoding that the screen would have done, so the colours match the normal path.
+4. The lens drops and the first-person weapon draw on top as before.
+
+Enemies take `min(all characters, enemies only)`; the other characters take `all characters`. Cost: one extra scene pass per lowered part (vertex work and draw calls of that part only) plus the composite; a part at 50% saves about three quarters of its fill. Known limits: pieces that are not on a character's view (blood, gibs, loose limbs, health bars) stay at full resolution; blending of transparent things happens in linear colour on this path, so glass and fire can differ very slightly from the normal path; a block can overlap the world's edge by up to one block.
 
 ## 9. Not done
 
