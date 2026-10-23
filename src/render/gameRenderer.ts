@@ -25,6 +25,7 @@ import { EnvironmentView } from './environment';
 import { OceanView } from './oceanView';
 import { WaterReflection } from './waterReflection';
 import { patchGroundRain } from './rainFx';
+import { LensDrops } from './lensDrops';
 import { setPomQuality, setTextureQuality } from './pom';
 import { Sirens } from './sirens';
 import { GroundItemViews } from './groundItems';
@@ -264,6 +265,7 @@ export class GameRenderer {
   private filmic = false;
   /** The planar mirror of the water (High and Ultra), null when the option is off. */
   private reflection: WaterReflection | null = null;
+  private lens: LensDrops | null = null;
   private waterLook: Environment['water'] | null = null;
   private season: Environment['season'] = 'summer';
   private readonly crates = new Map<number, THREE.Mesh>();
@@ -563,6 +565,7 @@ export class GameRenderer {
     this.drawWaterMirror();
     this.renderer.render(this.scene, this.camera);
     if (this.viewMode === 'first') this.viewModel.render(this.renderer);
+    this.lens?.render(this.renderer, this.environment.rainAmount, this.clock);
   }
 
   /** Moves the RTS camera, keeping the focus inside the arena. */
@@ -1394,6 +1397,7 @@ export class GameRenderer {
     clouds: number;
     filmic: boolean;
     reflect: number;
+    lens: number;
   }): void {
     this.goreEnabled = g.gore;
     this.waterQuality = g.water;
@@ -1401,6 +1405,7 @@ export class GameRenderer {
     this.environment.setRainFx(g.rainFx);
     this.filmic = g.filmic;
     this.setReflectionQuality(g.reflect);
+    this.setLensDrops(g.lens);
     this.renderer.toneMapping = g.filmic ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
     // Octaves of the cloud noise: 3, 4 or 5 (0 keeps the puffs).
     this.environment.setCloudSteps(g.clouds === 0 ? 0 : g.clouds + 2);
@@ -1453,6 +1458,17 @@ export class GameRenderer {
     m.emissive.setHex(look.glow);
     m.emissiveIntensity = look.glow === 0 ? 0 : 0.35;
     patchGroundRain(m);
+  }
+
+  /** The rain-on-the-lens option: 0 off, 1 beads that swell and dry, 2 plus running drops. */
+  private setLensDrops(level: number): void {
+    if (level <= 0) {
+      this.lens?.dispose();
+      this.lens = null;
+      return;
+    }
+    this.lens ??= new LensDrops();
+    this.lens.setDetail(level);
   }
 
   /** The water reflection option: 0 off, 1 a half-size mirror, 2 a full-size one. */

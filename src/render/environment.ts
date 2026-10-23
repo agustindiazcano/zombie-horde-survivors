@@ -378,6 +378,11 @@ export class EnvironmentView {
     this.apply();
   }
 
+  /** How hard it rains now, 0 to 1 (the map's weather). */
+  get rainAmount(): number {
+    return this.env.rain;
+  }
+
   /** The rain effects option: streaks around the camera plus ripples on the ground and the sea. */
   setRainFx(on: boolean): void {
     if (on === this.rainFx) return;

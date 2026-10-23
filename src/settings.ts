@@ -25,6 +25,8 @@ export interface Settings {
   filmic: boolean;
   /** Mirror of the world on the ocean (a second render of the scene): 0 off, 1 half size, 2 full size. */
   reflect: number;
+  /** Rain on the camera lens: 0 off, 1 drops that swell and dry, 2 plus running drops (copies the frame once). */
+  lens: number;
   /** Dim lighting with a flashlight per soldier. */
   darkMode: boolean;
   showFps: boolean;
@@ -47,6 +49,7 @@ type GraphicsFields = Pick<
   | 'clouds'
   | 'filmic'
   | 'reflect'
+  | 'lens'
 >;
 
 export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', GraphicsFields> = {
@@ -63,6 +66,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     clouds: 0,
     filmic: true,
     reflect: 0,
+    lens: 0,
   },
   low: {
     shadows: false,
@@ -76,6 +80,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     clouds: 0,
     filmic: true,
     reflect: 0,
+    lens: 0,
   },
   medium: {
     shadows: true,
@@ -89,6 +94,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     clouds: 1,
     filmic: true,
     reflect: 0,
+    lens: 0,
   },
   high: {
     shadows: true,
@@ -102,6 +108,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     clouds: 2,
     filmic: true,
     reflect: 1,
+    lens: 1,
   },
   // For a machine with a real GPU: 4K shadows, drawn at 1.5x and scaled down, the finest parallax and textures.
   ultra: {
@@ -116,6 +123,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     clouds: 3,
     filmic: true,
     reflect: 2,
+    lens: 2,
   },
 };
 
@@ -147,7 +155,8 @@ export function qualityOf(s: GraphicsFields): Quality {
       p.rainFx === s.rainFx &&
       p.clouds === s.clouds &&
       p.filmic === s.filmic &&
-      p.reflect === s.reflect
+      p.reflect === s.reflect &&
+      p.lens === s.lens
     ) {
       return name;
     }
@@ -184,6 +193,7 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     clouds: Math.round(clamp(raw.clouds, 0, 3, d.clouds)),
     filmic: bool(raw.filmic, d.filmic),
     reflect: Math.round(clamp(raw.reflect, 0, 2, d.reflect)),
+    lens: Math.round(clamp(raw.lens, 0, 2, d.lens)),
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),
     aimToggle: bool(raw.aimToggle, d.aimToggle),

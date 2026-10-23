@@ -177,6 +177,17 @@ export class SettingsPanel {
     this.toggle(panel, 'Rain drops (streaks, ground and water rings)', s.rainFx, (v) =>
       this.change({ rainFx: v }),
     );
+    this.select(
+      panel,
+      'Rain on the camera lens',
+      String(s.lens),
+      [
+        ['0', 'Off'],
+        ['1', 'Drops that swell and dry'],
+        ['2', 'Plus running drops'],
+      ],
+      (v) => this.change({ lens: Number(v) }),
+    );
     this.toggle(panel, 'Blood and gibs', s.gore, (v) => this.change({ gore: v }));
     this.select(
       panel,

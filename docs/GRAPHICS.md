@@ -6,13 +6,14 @@ Everything is Three.js with hand-written GLSL. Code: `src/render/environment.ts`
 
 ## 1. Graphics options and presets
 
-| Option              | Values                                                          | What it changes                                                                                                                     |
-| ------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Water               | 0 flat, 1 light, 2 normal, 3 full                               | How much of the map's water look is drawn (section 5). The look itself is the map's; this only holds it back                        |
-| Sky clouds          | 0 simple puffs, 1 / 2 / 3 volumetric with 3 / 4 / 5 octaves     | Puff meshes or the cloud layer inside the sky shader (section 3)                                                                    |
-| Water reflection    | 0 sky colour only, 1 mirror at half size, 2 mirror at full size | A planar mirror of the whole scene on the ocean (section 5): the scene is drawn a second time. Presets: High 1, Ultra 2, the rest 0 |
-| Filmic tone mapping | on / off                                                        | ACES filmic curve with an exposure that follows the hour (section 6): bright colours roll off instead of clipping to flat white     |
-| Rain drops          | on / off                                                        | Streak cylinder, wet ground with rings and ring ripples in the sea, instead of 2500 line drops (section 4)                          |
+| Option              | Values                                                          | What it changes                                                                                                                              |
+| ------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Water               | 0 flat, 1 light, 2 normal, 3 full                               | How much of the map's water look is drawn (section 5). The look itself is the map's; this only holds it back                                 |
+| Sky clouds          | 0 simple puffs, 1 / 2 / 3 volumetric with 3 / 4 / 5 octaves     | Puff meshes or the cloud layer inside the sky shader (section 3)                                                                             |
+| Water reflection    | 0 sky colour only, 1 mirror at half size, 2 mirror at full size | A planar mirror of the whole scene on the ocean (section 5): the scene is drawn a second time. Presets: High 1, Ultra 2, the rest 0          |
+| Filmic tone mapping | on / off                                                        | ACES filmic curve with an exposure that follows the hour (section 6): bright colours roll off instead of clipping to flat white              |
+| Rain on the lens    | 0 off, 1 drops that swell and dry, 2 plus running drops         | Drops of water on the camera (section 12). Copies the finished frame once and draws a full-screen pass. Presets: High 1, Ultra 2, the rest 0 |
+| Rain drops          | on / off                                                        | Streak cylinder, wet ground with rings and ring ripples in the sea, instead of 2500 line drops (section 4)                                   |
 
 | Preset  | Water | Sky clouds | Rain drops |
 | ------- | ----- | ---------- | ---------- |
@@ -104,17 +105,17 @@ Code: `src/render/oceanView.ts`. The waves themselves are in PHYSICS.md section 
 
 ## 8. Ideas from the user's notes (2026-10-23) and where each stands
 
-| Idea                                              | Stands                                                                                                         |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Snow by direction (slope shader), no particles    | **Done** (section 7)                                                                                           |
-| Fake subsurface scattering on snow                | **Done** as a cold rim glow (section 7)                                                                        |
-| Snow with relief by parallax occlusion mapping    | Not done: `pom.ts` exists for walls; snow would need a height texture per surface. Costly, later               |
-| Ice: noisy normals, variable roughness, bubbles   | **Done** (section 11)                                                                                          |
-| Glass: roughness map with fingerprints and dust   | **Done** (section 10)                                                                                          |
-| Glass: screen-space reflections                   | Not done for glass. The water has a planar mirror (section 5); glass uses the baked reflection map             |
-| Rain sheets (planes with animated vertical lines) | **Done** as the streak cylinder (section 4)                                                                    |
-| Rain on the camera lens (post-process)            | Not done: needs a post pass (the scene in a render target) or a drops overlay. Candidate for a graphics option |
-| Wet ground: low roughness and animated ripples    | **Done** (section 7); the rings are computed in the shader, not a flipbook                                     |
+| Idea                                              | Stands                                                                                             |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Snow by direction (slope shader), no particles    | **Done** (section 7)                                                                               |
+| Fake subsurface scattering on snow                | **Done** as a cold rim glow (section 7)                                                            |
+| Snow with relief by parallax occlusion mapping    | Not done: `pom.ts` exists for walls; snow would need a height texture per surface. Costly, later   |
+| Ice: noisy normals, variable roughness, bubbles   | **Done** (section 11)                                                                              |
+| Glass: roughness map with fingerprints and dust   | **Done** (section 10)                                                                              |
+| Glass: screen-space reflections                   | Not done for glass. The water has a planar mirror (section 5); glass uses the baked reflection map |
+| Rain sheets (planes with animated vertical lines) | **Done** as the streak cylinder (section 4)                                                        |
+| Rain on the camera lens (post-process)            | **Done** (section 12)                                                                              |
+| Wet ground: low roughness and animated ripples    | **Done** (section 7); the rings are computed in the shader, not a flipbook                         |
 
 ## 10. Glass dirt
 
@@ -138,6 +139,17 @@ Code: `iceShade` in `src/render/oceanView.ts`. The map's `ocean.frozen` (0 to 1,
 | Light    | `col * (0.2 + 0.8 day) * (0.55 + 0.45 N.L)`, a Fresnel reflection of the sky on clear ice (`0.04 + 0.96 (1 - cos)^5`, times `1 - milky`, 80%), sharp sun glint `pow(N.H, 90) * 1.6`. Alpha 0.84 (clear) to 0.98 (milky)                                                   |
 | Quality  | Water quality 0: flat clear/milky colour; 1: noisy normal and cracks; 2: two bubble layers; 3: three. The noise octaves turn by the golden angle and grow by phi, like the clouds                                                                                         |
 | Not done | Things do not stand on the ice: it is the same sea for the sim with no waves, so bodies still float and swimmers swim. A solid frozen surface (walking, breaking) needs the sim to treat it as ground                                                                     |
+
+## 12. Rain on the lens
+
+Code: `src/render/lensDrops.ts`, called by `GameRenderer` after the frame (and after the first-person gun). Option `lens` in `src/settings.ts`. Nothing is drawn while `rain < 0.03`.
+
+| Rule          | Detail                                                                                                                                                                                                                                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frame copy    | `renderer.copyFramebufferToTexture` into a `FramebufferTexture` the size of the drawing buffer (rebuilt on resize), then one full-screen pass with normal alpha blending. Cost: one copy and about a dozen hash lookups per pixel                                                                                   |
+| Beads         | Three grids (7, 13 and 24 cells per screen height). A cell holds a drop when `hash <= 0.12 + 0.55 rain`; it swells, holds and dries on a cycle `age = fract(t (0.04 + 0.05 h) + h')`, `life = smoothstep(0, 0.12, age) smoothstep(1, 0.7, age)`, radius `(0.16 + 0.22 h) life` of a cell, a little taller than wide |
+| Running drops | Detail 2: 16 columns, one drop per column when `hash <= 0.15 + 0.7 rain`, falling at 0.06 to 0.16 screens per second with a thin trail above it (up to 0.38 of the screen)                                                                                                                                          |
+| Lens          | Each drop gives a normal (the offset from its centre over its radius); the picture inside is the frame sampled at `uv - normal * 0.07` (turned over and shifted), darkened by `0.4 * rim` at the edge and with a soft highlight towards the upper left                                                              |
 
 ## 9. Not done
 
