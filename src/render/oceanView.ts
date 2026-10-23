@@ -28,6 +28,7 @@ uniform vec3 uShape;    // hooke, silk, shoreFade
 uniform vec2 uCurrent;  // m/s
 uniform float uLevel;
 uniform float uTime;
+uniform float uFrozen;  // 0 open water, 1 frozen: the waves die away
 
 const float K_SPIRAL = ${((2 * Math.log(PHI)) / Math.PI).toFixed(10)};
 // Same maths as vortexHeight() in src/sim/ocean.ts; foam is the bright ring round each funnel.
@@ -63,7 +64,7 @@ float oceanH(vec2 p, float groundY) {
     sum += mix(smoothW, sharpW, uShape.x) * amp;
   }
   float unusedFoam;
-  return (sum + vortexH(p, unusedFoam)) * fade;
+  return (sum + vortexH(p, unusedFoam)) * fade * (1.0 - uFrozen);
 }
 `;
 
@@ -89,7 +90,7 @@ void main() {
   vCrest = h;
   float vf;
   vortexH(p, vf);
-  vVortex = vf;
+  vVortex = vf * (1.0 - uFrozen);
   gl_Position = projectionMatrix * viewMatrix * wp;
 }
 `;
@@ -105,6 +106,7 @@ uniform float uNormalDistortion;
 uniform float uCaustics;
 uniform int uPomSteps;
 uniform float uSimple;
+uniform float uIceQ;
 uniform sampler2D tReflect;
 uniform mat4 uReflectMatrix;
 uniform float uReflectOn;
@@ -167,6 +169,93 @@ vec3 skyColor(vec3 dir, vec3 sunDir, float day, float sunset) {
   vec3 c = mix(horizon, zenith, pow(h, 1.0 / PHI));
   float sd = max(dot(dir, sunDir), 0.0);
   return c + vec3(1.0, 0.65, 0.3) * pow(sd, 32.0) * 0.9 * smoothstep(-0.15, 0.1, sunDir.y);
+}
+
+
+// ---- Ice (frozen sea) ----------------------------------------------------------------------
+float h31(vec3 p) {
+  p = fract(p * 0.1031);
+  p += dot(p, p.zyx + 31.32);
+  return fract((p.x + p.y) * p.z);
+}
+float vn3(vec3 p) {
+  vec3 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(mix(h31(i), h31(i + vec3(1, 0, 0)), f.x), mix(h31(i + vec3(0, 1, 0)), h31(i + vec3(1, 1, 0)), f.x), f.y),
+    mix(mix(h31(i + vec3(0, 0, 1)), h31(i + vec3(1, 0, 1)), f.x), mix(h31(i + vec3(0, 1, 1)), h31(i + vec3(1, 1, 1)), f.x), f.y),
+    f.z);
+}
+// Fractal noise whose octaves turn by the golden angle and grow by phi (as in the sky).
+float iceFbm(vec3 p, int octaves) {
+  float a = 0.5, s = 0.0, n = 0.0;
+  for (int i = 0; i < 4; i++) {
+    if (i >= octaves) break;
+    s += a * vn3(p);
+    n += a;
+    p = vec3(mGold * p.xz * PHI, p.y * PHI + 1.7).xzy;
+    a /= PHI;
+  }
+  return s / n;
+}
+// Bright lines where the ground between two cells of a Voronoi pattern is thin: cracks in the ice.
+float iceCracks(vec2 p) {
+  vec2 ip = floor(p), fp = fract(p);
+  float d1 = 8.0, d2 = 8.0;
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 g = vec2(float(i), float(j));
+      vec2 o = vec2(h31(vec3(ip + g, 1.0)), h31(vec3(ip + g, 2.0)));
+      float d = length(g + o - fp);
+      if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+    }
+  }
+  return 1.0 - smoothstep(0.0, 0.07, d2 - d1);
+}
+// The look of the ice sheet: noisy normal, clear and milky zones, cracks, bubbles at three depths.
+// q: 0 flat colour, 1 normal and cracks, 2 + bubbles, 3 + bubbles deeper under the surface.
+vec3 iceShade(vec3 wp, vec3 V, vec3 sunDir, float day, vec3 env, float q, out float alpha) {
+  vec2 p = wp.xz;
+  vec3 N = vec3(0.0, 1.0, 0.0);
+  float f0 = 0.5;
+  if (q > 0.5) {
+    float e = 0.15;
+    f0 = iceFbm(vec3(p * 0.9, 0.0), 3);
+    float fx = iceFbm(vec3((p + vec2(e, 0.0)) * 0.9, 0.0), 3);
+    float fz = iceFbm(vec3((p + vec2(0.0, e)) * 0.9, 0.0), 3);
+    float gx = vn3(vec3(p * 7.0, 2.0)) - vn3(vec3((p + vec2(e, 0.0)) * 7.0, 2.0));
+    float gz = vn3(vec3(p * 7.0, 2.0)) - vn3(vec3((p + vec2(0.0, e)) * 7.0, 2.0));
+    N = normalize(vec3((f0 - fx) * 0.9 + gx * 0.12, 1.0, (f0 - fz) * 0.9 + gz * 0.12));
+  }
+  float milky = smoothstep(0.42, 0.68, iceFbm(vec3(p * 0.11, 3.7), 3));
+  vec3 clearCol = vec3(0.05, 0.21, 0.33);
+  vec3 milkyCol = vec3(0.80, 0.90, 0.96);
+  vec3 col = mix(clearCol, milkyCol, milky * 0.85);
+  if (q > 0.5) {
+    float cr = iceCracks(p * 0.28 + f0 * 0.5) * 0.7 + iceCracks(p * 0.9 + 4.0) * 0.3;
+    col = mix(col, vec3(0.93, 0.97, 1.0), cr * 0.5 * (1.0 - milky * 0.5));
+  }
+  if (q > 1.5) {
+    float b = 0.0;
+    int layers = q > 2.5 ? 3 : 2;
+    for (int k = 0; k < 3; k++) {
+      if (k >= layers) break;
+      float depth = 0.15 + 0.25 * float(k);
+      vec2 q2 = p - V.xz / max(V.y, 0.2) * depth;
+      b += smoothstep(0.86, 0.94, vn3(vec3(q2 * (2.2 + float(k) * 1.1), 5.0 + float(k) * 3.1))) * (1.0 - 0.25 * float(k));
+    }
+    col += min(b, 1.0) * vec3(0.85, 0.95, 1.0) * 0.4 * (1.0 - milky * 0.5);
+  }
+  float light = 0.2 + 0.8 * day;
+  col *= light * (0.55 + 0.45 * max(dot(N, sunDir), 0.0));
+  float cosT = clamp(dot(V, N), 0.001, 1.0);
+  float fres = 0.04 + 0.96 * pow(1.0 - cosT, 5.0);
+  col = mix(col, env, fres * (1.0 - milky) * 0.8);
+  vec3 H = normalize(sunDir + V);
+  float ndh = max(dot(N, H), 0.0);
+  col += vec3(1.0, 0.97, 0.9) * (pow(ndh, 90.0) * 1.6 + pow(ndh, 14.0) * 0.15) * (1.0 - milky * 0.6) * smoothstep(-0.1, 0.08, sunDir.y);
+  alpha = mix(0.84, 0.98, milky);
+  return col;
 }
 
 void main() {
@@ -253,13 +342,21 @@ void main() {
 
   // Foam on the sharpest crests and along the shore.
   float shore = smoothstep(0.35, 0.0, vDepth);
-  float foam = smoothstep(0.24, 0.76, clamp(vCrest * 0.9 + shore * 0.9 + vVortex * 0.7, 0.0, 1.0) + (h0 - 0.5) * 0.24);
+  // Ice covers the sea in patches that join up as it freezes; foam has nothing to break on.
+  float iceAmt = smoothstep(0.0, 0.05, uFrozen) * smoothstep(0.0, 0.12, uFrozen * 1.2 - 0.12 + (iceFbm(vec3(vWorldPos.xz * 0.05, 9.0), 2) - 0.5) * (1.0 - uFrozen) * 0.9);
+  float foam = (1.0 - iceAmt) * smoothstep(0.24, 0.76, clamp(vCrest * 0.9 + shore * 0.9 + vVortex * 0.7, 0.0, 1.0) + (h0 - 0.5) * 0.24);
   vec3 foamCol = mix(vec3(0.35, 0.50, 0.65), vec3(0.97, 0.99, 1.0), day + 0.3) + neon * 0.65;
 
   vec3 col = mix(body, env, clamp(fres * 0.86 * uReflection, 0.0, 1.0));
   col += lit + neon;
   col = mix(col, foamCol, foam * 0.88);
   float alpha = clamp(0.48 + (1.0 - vLight) * 0.48 + fres * 0.32 + foam * 0.4, 0.0, 0.98);
+  if (iceAmt > 0.001) {
+    float iceAlpha;
+    vec3 ice = iceShade(vWorldPos, V, sunDir, day, env, uIceQ, iceAlpha);
+    col = mix(col, ice, iceAmt);
+    alpha = mix(alpha, iceAlpha, iceAmt);
+  }
   gl_FragColor = vec4(col, smoothstep(-0.15, 0.85, vDepth) * alpha);
 }
 `;
@@ -345,6 +442,8 @@ export class OceanView {
         uCaustics: { value: 0.85 },
         uPomSteps: { value: 12 },
         uSimple: { value: 0 },
+        uIceQ: { value: 3 },
+        uFrozen: { value: 0 },
         tReflect: { value: null },
         uReflectMatrix: { value: new THREE.Matrix4() },
         uReflectOn: { value: 0 },
@@ -380,6 +479,7 @@ export class OceanView {
       (u.uPhase!.value as number[])[i] = table.phase[i]!;
     }
     u.uShape!.value.set(o.hooke, o.silk, o.shoreFade);
+    u.uFrozen!.value = o.frozen;
     const whirlpools = u.uVortex!.value as THREE.Vector4[];
     o.vortices.forEach((v, i) => whirlpools[i]!.set(v.x, v.z, v.strength, v.radius));
     u.uVortexN!.value = o.vortices.length;
@@ -419,6 +519,7 @@ export class OceanView {
     };
     const u = this.material.uniforms;
     u.uSimple!.value = q === 0 ? 1 : 0;
+    u.uIceQ!.value = q;
     u.uFresnelMode!.value = w.fresnel === 'area' ? 0 : 1;
     u.uSaturationBrake!.value = w.saturationBrake;
     u.uChromaticFriction!.value = w.chromaticFriction;

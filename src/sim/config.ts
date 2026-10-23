@@ -139,6 +139,8 @@ const oceanFields = {
   seed: z.number().int().min(0).max(99999),
   /** 0 = the pattern as it is; 1 = every wave's direction, height, frequency and phase shaken up. */
   chaos: z.number().min(0).max(1),
+  /** 0 = open water; 1 = a frozen sea: the waves and whirlpools die away (surface and flow scale by 1 - frozen) and the shader draws ice. */
+  frozen: z.number().min(0).max(1).default(0),
   /** The way the swell runs (rad from +x towards +z) and how far (rad) its ridges may turn from it. */
   heading: z.number(),
   spread: z.number().min(0).max(1.57),

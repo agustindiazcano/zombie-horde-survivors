@@ -104,17 +104,17 @@ Code: `src/render/oceanView.ts`. The waves themselves are in PHYSICS.md section 
 
 ## 8. Ideas from the user's notes (2026-10-23) and where each stands
 
-| Idea                                              | Stands                                                                                                                                                                |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Snow by direction (slope shader), no particles    | **Done** (section 7)                                                                                                                                                  |
-| Fake subsurface scattering on snow                | **Done** as a cold rim glow (section 7)                                                                                                                               |
-| Snow with relief by parallax occlusion mapping    | Not done: `pom.ts` exists for walls; snow would need a height texture per surface. Costly, later                                                                      |
-| Ice: noisy normals, variable roughness, bubbles   | Not done: there is no ice in the game yet. It would be a frozen-sea mode of the ocean shader (winter): noisy normal, patches of clear and milky ice, 3D-noise bubbles |
-| Glass: roughness map with fingerprints and dust   | **Done** (section 10)                                                                                                                                                 |
-| Glass: screen-space reflections                   | Not done for glass. The water has a planar mirror (section 5); glass uses the baked reflection map                                                                    |
-| Rain sheets (planes with animated vertical lines) | **Done** as the streak cylinder (section 4)                                                                                                                           |
-| Rain on the camera lens (post-process)            | Not done: needs a post pass (the scene in a render target) or a drops overlay. Candidate for a graphics option                                                        |
-| Wet ground: low roughness and animated ripples    | **Done** (section 7); the rings are computed in the shader, not a flipbook                                                                                            |
+| Idea                                              | Stands                                                                                                         |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Snow by direction (slope shader), no particles    | **Done** (section 7)                                                                                           |
+| Fake subsurface scattering on snow                | **Done** as a cold rim glow (section 7)                                                                        |
+| Snow with relief by parallax occlusion mapping    | Not done: `pom.ts` exists for walls; snow would need a height texture per surface. Costly, later               |
+| Ice: noisy normals, variable roughness, bubbles   | **Done** (section 11)                                                                                          |
+| Glass: roughness map with fingerprints and dust   | **Done** (section 10)                                                                                          |
+| Glass: screen-space reflections                   | Not done for glass. The water has a planar mirror (section 5); glass uses the baked reflection map             |
+| Rain sheets (planes with animated vertical lines) | **Done** as the streak cylinder (section 4)                                                                    |
+| Rain on the camera lens (post-process)            | Not done: needs a post pass (the scene in a render target) or a drops overlay. Candidate for a graphics option |
+| Wet ground: low roughness and animated ripples    | **Done** (section 7); the rings are computed in the shader, not a flipbook                                     |
 
 ## 10. Glass dirt
 
@@ -123,6 +123,21 @@ Code: `src/render/oceanView.ts`. The waves themselves are in PHYSICS.md section 
 | Map      | `dirtMap` in `src/render/glass.ts`: a 256 px roughness map (green channel) shared by every pane except the frosted one. `rough = min(0.05 + 0.9 dirt, 0.65)` with `dirt = max(0, smudge - 0.45) * 1.5 + max(0, dust - 0.6) * 0.35`; `smudge` mixes periodic value noise of 4 and 9 cells (0.6 / 0.4), `dust` has 24 cells |
 | Prints   | Four fingerprints per tile: concentric ellipses (axes 0.75 r and 1.05 r, r from 3 to 20 px) with broken arcs, drawn lighter (rougher) than the glass                                                                                                                                                                      |
 | Material | `roughness = 1` times the map, so clean glass stays at 0.05 and a smudge scatters the sun glint and the baked reflection. The pane's UVs are scaled so one tile covers 1.2 m. Seeded generator: every pane looks the same in every run                                                                                    |
+
+## 11. Ice (frozen sea)
+
+Code: `iceShade` in `src/render/oceanView.ts`. The map's `ocean.frozen` (0 to 1, the editor's "Frozen sea (ice)" slider) does two things: the sim and the shader scale the waves, the whirlpools and the flow by `1 - frozen` (`oceanHeight`, `oceanFlowAt`; 0 keeps every old number), and the shader covers the water with ice.
+
+| Rule     | Detail                                                                                                                                                                                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cover    | `iceAmt = smoothstep(0, 0.05, f) * smoothstep(0, 0.12, 1.2 f - 0.12 + (noise - 0.5) * (1 - f) * 0.9)`: at low freezing only patches (noise at 0.05 cycles per metre) hold ice, they join up as `f` grows, and at 1 the sea is all ice. Foam is multiplied by `1 - iceAmt` |
+| Normal   | `N = normalize((f0 - fx) * 0.9 + gx * 0.12, 1, (f0 - fz) * 0.9 + gz * 0.12)`: the slope of a three-octave fractal noise (0.9 cycles per metre) plus fine grain (7 per metre), by finite differences (0.15 m)                                                              |
+| Zones    | `milky = smoothstep(0.42, 0.68, fbm(p * 0.11))` mixes clear ice `(0.05, 0.21, 0.33)` with milky ice `(0.80, 0.90, 0.96)` (x 0.85)                                                                                                                                         |
+| Cracks   | Voronoi cells (0.28 and 0.9 per metre): lines where `d2 - d1 < 0.07`, `0.7 / 0.3` mix, painted white at up to 50% (less on milky ice)                                                                                                                                     |
+| Bubbles  | 3D value noise, two or three layers at depths 0.15, 0.4 and 0.65 m under the surface, each shifted by the view ray (`p - V.xz / max(V.y, 0.2) * depth`) so they have depth; a bubble is `smoothstep(0.86, 0.94, noise)`, 40% white, weaker on milky ice                   |
+| Light    | `col * (0.2 + 0.8 day) * (0.55 + 0.45 N.L)`, a Fresnel reflection of the sky on clear ice (`0.04 + 0.96 (1 - cos)^5`, times `1 - milky`, 80%), sharp sun glint `pow(N.H, 90) * 1.6`. Alpha 0.84 (clear) to 0.98 (milky)                                                   |
+| Quality  | Water quality 0: flat clear/milky colour; 1: noisy normal and cracks; 2: two bubble layers; 3: three. The noise octaves turn by the golden angle and grow by phi, like the clouds                                                                                         |
+| Not done | Things do not stand on the ice: it is the same sea for the sim with no waves, so bodies still float and swimmers swim. A solid frozen surface (walking, breaking) needs the sim to treat it as ground                                                                     |
 
 ## 9. Not done
 

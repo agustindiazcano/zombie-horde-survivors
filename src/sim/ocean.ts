@@ -175,13 +175,13 @@ export function oceanHeight(
     const sharp = (Math.pow(1 - Math.abs(s), w.pressure[i]!) - 0.45) * 2.15;
     sum += (smooth * (1 - o.hooke) + sharp * o.hooke) * w.amp[i]!;
   }
-  return level + (sum + vortexHeight(o, x, z, t)) * fade;
+  return level + (sum + vortexHeight(o, x, z, t)) * fade * (1 - o.frozen);
 }
 
 /** The speed of the water (m/s) at a point: the steady current. Written into `out` as (x, z). */
 export function oceanFlow(o: OceanParams, out: { x: number; z: number }): void {
-  out.x = Math.cos(o.currentAngle) * o.currentSpeed;
-  out.z = Math.sin(o.currentAngle) * o.currentSpeed;
+  out.x = Math.cos(o.currentAngle) * o.currentSpeed * (1 - o.frozen);
+  out.z = Math.sin(o.currentAngle) * o.currentSpeed * (1 - o.frozen);
 }
 
 /**
@@ -206,7 +206,7 @@ export function oceanFlowAt(
     const radial = tangential * K_SPIRAL * 1.35;
     const c = dx / (r + 0.001);
     const s = dz / (r + 0.001);
-    out.x += -s * tangential - c * radial;
-    out.z += c * tangential - s * radial;
+    out.x += (-s * tangential - c * radial) * (1 - o.frozen);
+    out.z += (c * tangential - s * radial) * (1 - o.frozen);
   }
 }

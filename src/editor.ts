@@ -1677,6 +1677,7 @@ export class Editor {
     physics('speed', 'Wave speed', 0.2, 5, 0.1);
     physics('hooke', 'Sharp crests', 0, 1, 0.05);
     physics('pressure', 'Crest pressure', 0.5, 3, 0.05);
+    physics('frozen', 'Frozen sea (ice)', 0, 1, 0.05);
     physics('currentSpeed', 'Current (m/s)', 0, 15, 0.5);
     physics('currentAngle', 'Current direction (rad)', 0, 6.28, 0.05);
     physics('lift', 'Buoyancy (x gravity)', 0.5, 5, 0.05);
