@@ -123,9 +123,101 @@ export class Ocean {
     }
 }
 if (Symbol.dispose) Ocean.prototype[Symbol.dispose] = Ocean.prototype.free;
+
+/**
+ * The pair-push kernel `separate`, with its grid buffers. Two ways to feed it: slices (the bindings
+ * copy them in and out) or the buffers inside the module's memory (`reserve`, the `*_ptr` getters, `run`).
+ */
+export class Separation {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        SeparationFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_separation_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    alive_ptr() {
+        const ret = wasm.separation_alive_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    constructor() {
+        const ret = wasm.separation_new();
+        this.__wbg_ptr = ret;
+        SeparationFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @returns {number}
+     */
+    radius_ptr() {
+        const ret = wasm.separation_radius_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Makes room for `capacity` bodies in the module's own buffers. Fetch the pointers again afterwards.
+     * @param {number} capacity
+     */
+    reserve(capacity) {
+        wasm.separation_reserve(this.__wbg_ptr, capacity);
+    }
+    /**
+     * Runs the kernel on the module's own buffers (filled by the caller through the pointers).
+     * @param {number} count
+     * @param {number} half
+     * @param {number} widest
+     */
+    run(count, half, widest) {
+        wasm.separation_run(this.__wbg_ptr, count, half, widest);
+    }
+    /**
+     * Runs the kernel on slices: the bindings copy them in, and `x` and `z` back out.
+     * @param {Float64Array} x
+     * @param {Float64Array} z
+     * @param {Float64Array} radius
+     * @param {Uint8Array} alive
+     * @param {number} count
+     * @param {number} half
+     * @param {number} widest
+     */
+    run_slices(x, z, radius, alive, count, half, widest) {
+        var ptr0 = passArrayF64ToWasm0(x, wasm.__wbindgen_malloc);
+        var len0 = WASM_VECTOR_LEN;
+        var ptr1 = passArrayF64ToWasm0(z, wasm.__wbindgen_malloc);
+        var len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArrayF64ToWasm0(radius, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArray8ToWasm0(alive, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.separation_run_slices(this.__wbg_ptr, ptr0, len0, x, ptr1, len1, z, ptr2, len2, ptr3, len3, count, half, widest);
+    }
+    /**
+     * @returns {number}
+     */
+    x_ptr() {
+        const ret = wasm.separation_x_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    z_ptr() {
+        const ret = wasm.separation_z_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+}
+if (Symbol.dispose) Separation.prototype[Symbol.dispose] = Separation.prototype.free;
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg___wbindgen_copy_to_typed_array_88899a52af046901: function(arg0, arg1, arg2) {
+            new Uint8Array(arg2.buffer, arg2.byteOffset, arg2.byteLength).set(getArrayU8FromWasm0(arg0, arg1));
+        },
         __wbg___wbindgen_throw_41e9ee4f547fc59a: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
@@ -148,10 +240,18 @@ function __wbg_get_imports() {
 const OceanFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_ocean_free(ptr, 1));
+const SeparationFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_separation_free(ptr, 1));
 
 function getArrayF64FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
+}
+
+function getArrayU8FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
 }
 
 let cachedFloat64ArrayMemory0 = null;
@@ -172,6 +272,13 @@ function getUint8ArrayMemory0() {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
+}
+
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function passArrayF64ToWasm0(arg, malloc) {

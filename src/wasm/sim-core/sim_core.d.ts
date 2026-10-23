@@ -50,11 +50,38 @@ export class Ocean {
     wave_table(): Float64Array;
 }
 
+/**
+ * The pair-push kernel `separate`, with its grid buffers. Two ways to feed it: slices (the bindings
+ * copy them in and out) or the buffers inside the module's memory (`reserve`, the `*_ptr` getters, `run`).
+ */
+export class Separation {
+    free(): void;
+    [Symbol.dispose](): void;
+    alive_ptr(): number;
+    constructor();
+    radius_ptr(): number;
+    /**
+     * Makes room for `capacity` bodies in the module's own buffers. Fetch the pointers again afterwards.
+     */
+    reserve(capacity: number): void;
+    /**
+     * Runs the kernel on the module's own buffers (filled by the caller through the pointers).
+     */
+    run(count: number, half: number, widest: number): void;
+    /**
+     * Runs the kernel on slices: the bindings copy them in, and `x` and `z` back out.
+     */
+    run_slices(x: Float64Array, z: Float64Array, radius: Float64Array, alive: Uint8Array, count: number, half: number, widest: number): void;
+    x_ptr(): number;
+    z_ptr(): number;
+}
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_ocean_free: (a: number, b: number) => void;
+    readonly __wbg_separation_free: (a: number, b: number) => void;
     readonly ocean_batch_reserve: (a: number, b: number) => number;
     readonly ocean_flow_at: (a: number, b: number, c: number) => void;
     readonly ocean_flow_x: (a: number) => number;
@@ -67,6 +94,14 @@ export interface InitOutput {
     readonly ocean_vortex_height: (a: number, b: number, c: number, d: number) => number;
     readonly ocean_wave_fade: (a: number, b: number, c: number) => number;
     readonly ocean_wave_table: (a: number) => [number, number];
+    readonly separation_alive_ptr: (a: number) => number;
+    readonly separation_new: () => number;
+    readonly separation_radius_ptr: (a: number) => number;
+    readonly separation_reserve: (a: number, b: number) => void;
+    readonly separation_run: (a: number, b: number, c: number, d: number) => void;
+    readonly separation_run_slices: (a: number, b: number, c: number, d: any, e: number, f: number, g: any, h: number, i: number, j: number, k: number, l: number, m: number, n: number) => void;
+    readonly separation_x_ptr: (a: number) => number;
+    readonly separation_z_ptr: (a: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;

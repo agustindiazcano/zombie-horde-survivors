@@ -7,6 +7,8 @@
 
 use wasm_bindgen::prelude::*;
 
+pub mod kernels;
+
 const WAVE_COUNT: usize = 8;
 const MAX_VORTICES: usize = 3;
 

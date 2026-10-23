@@ -102,3 +102,15 @@ No new Vitest tests (the user's rule); scripts like `bench:*` and `check:*`.
 | Start with R0 (hash and kernel benchmark) and layer A1 (`separateZombies`) now?                    | Yes: smallest change, biggest profile share, no layout change       |
 | Is `f64` bit-identical the rule, or may a later Rust version use `f32` and SIMD with its own hash? | `f64` identical first; `f32` + SIMD is a later, separate decision   |
 | Is the Steam wrapper Tauri (Rust runs natively, threads and SIMD for free) or Electron?            | Undecided; it changes whether R5 needs the `SharedArrayBuffer` shim |
+
+## 7. Results so far (2026-10-23)
+
+| Step                                    | Result                                                                                                                                                                                                     |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0 `check:sim-hash`                     | Built. Golden hash `02a0a498` (100, 300 and 1000 zombies, 240 steps), the same on every run                                                                                                                |
+| R1 A1 `separate` kernel in TypeScript   | Built (`src/sim/kernels.ts`), hash unchanged. **No speed-up**: `bench:sim` 1000 zombies 2.3 to 2.6 ms before and after (noise). V8 already optimised the old loop, so flat arrays alone do not win         |
+| R2 A1 `separate` in Rust (`kernels.rs`) | Built, **bit for bit identical** to the TypeScript (`npm run check:kernels`, 5 successive calls, 100 to 3000 bodies). Unchecked indexing in the inner loop (guarded by an `assert!` on the lengths)        |
+| R3 speed of the Rust kernel             | Dense crowd, one call: 1000 bodies 1.0 ms Rust (in module memory) against 1.4 ms TypeScript; 3000 bodies 3.3 against 5.2 ms. About 1.3x to 1.6x, with run-to-run noise of 20%                              |
+| Wired into the game?                    | **No.** `separateZombies` is about 13% of a 2.3 ms step (0.3 ms); a 1.4x kernel saves about 0.1 ms, below the noise of the step. The rule of R3 (wire only a measured gain on the real step) says leave it |
+
+What this teaches: for the sim as it is, Rust gives 1.3x to 1.6x on a pure-arithmetic kernel and nothing on the rest; the whole sim step is 14% of a frame. Porting more kernels one by one adds little. The larger gains are in layers B and C (no gather / scatter, SIMD, threads), and those only pay if a game with thousands of enemies is the goal.

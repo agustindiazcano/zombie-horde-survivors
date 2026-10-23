@@ -2,9 +2,10 @@
 import { readFileSync } from 'node:fs';
 import data from '../data/game.json';
 import { oceanFlowAt, oceanHeight, waveTable } from '../src/sim/ocean';
-import { Ocean, loadOceanWasmSync, oceanBatch, packOceanParams } from '../src/wasm/oceanWasm';
+import { loadSimCoreSync } from '../src/wasm/simCore';
+import { Ocean, oceanBatch, packOceanParams } from '../src/wasm/oceanWasm';
 
-loadOceanWasmSync(readFileSync('src/wasm/sim-core/sim_core_bg.wasm'));
+loadSimCoreSync(readFileSync('src/wasm/sim-core/sim_core_bg.wasm'));
 
 type Params = typeof data.ocean;
 const base = data.ocean as Params;

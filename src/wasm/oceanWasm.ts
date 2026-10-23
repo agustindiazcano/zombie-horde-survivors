@@ -1,5 +1,5 @@
 import type { OceanParams } from '../sim/ocean';
-import init, { initSync, Ocean } from './sim-core/sim_core.js';
+import { Ocean, simCoreMemory } from './simCore';
 
 /**
  * The Rust / WebAssembly copy of `src/sim/ocean.ts` (crate `crates/sim-core`). The TypeScript file is the
@@ -48,27 +48,6 @@ export function packOceanParams(o: OceanParams, out?: Float64Array): Float64Arra
   return a;
 }
 
-let ready = false;
-let memory: WebAssembly.Memory | null = null;
-
-/** Loads the module in the browser (fetches the `.wasm` next to the glue). Resolves false if it cannot. */
-export async function loadOceanWasm(): Promise<boolean> {
-  if (ready) return true;
-  try {
-    memory = (await init()).memory;
-    ready = true;
-  } catch {
-    ready = false;
-  }
-  return ready;
-}
-
-/** Loads the module from bytes already in memory (Node scripts). */
-export function loadOceanWasmSync(bytes: BufferSource): void {
-  memory = initSync({ module: bytes }).memory;
-  ready = true;
-}
-
 /**
  * The batch rows of an `Ocean` as views on the module's memory: write `ground`, `x`, `z` and `t`, call
  * `height_batch(level)`, read `out`. The views are invalid after the memory grows: ask again.
@@ -78,8 +57,7 @@ export function oceanBatch(
   n: number,
 ): { ground: Float64Array; x: Float64Array; z: Float64Array; t: Float64Array; out: Float64Array } {
   const ptr = ocean.batch_reserve(n);
-  if (!memory) throw new Error('oceanBatch: load the module first');
-  const buf = memory.buffer;
+  const buf = simCoreMemory().buffer;
   const row = (r: number) => new Float64Array(buf, ptr + r * n * 8, n);
   return { ground: row(0), x: row(1), z: row(2), t: row(3), out: row(4) };
 }
