@@ -1,0 +1,54 @@
+== run 1
+
+> zombie-horde-survivors@0.0.0 check:kernels
+> node scripts/check-kernels.mjs
+
+bodies   bits differ   ts ms/call   rust slices ms   rust in-memory ms   (best of 3 runs of 200 calls)
+   100            0        0.023            0.015               0.013
+   300            0        0.103            0.056               0.054
+  1000            0        0.477            0.347               0.353
+  2000            0        1.071            0.837               0.835
+  5000            0        3.484            2.720               2.722
+ 10000            0       10.623            7.989               7.996
+
+grid     bits differ   ts ms/call   rust slices ms   rust in-memory ms   (a search from 5 targets)
+  80x80            0        0.718            0.510               0.505
+160x160            0        3.575            2.601               2.587
+320x320            0       17.593           12.413              12.459
+OK: bit for bit identical
+== run 2
+
+> zombie-horde-survivors@0.0.0 check:kernels
+> node scripts/check-kernels.mjs
+
+bodies   bits differ   ts ms/call   rust slices ms   rust in-memory ms   (best of 3 runs of 200 calls)
+   100            0        0.022            0.015               0.013
+   300            0        0.102            0.056               0.054
+  1000            0        0.475            0.348               0.354
+  2000            0        1.075            0.837               0.842
+  5000            0        3.501            2.725               2.724
+ 10000            0       10.773            8.076               7.982
+
+grid     bits differ   ts ms/call   rust slices ms   rust in-memory ms   (a search from 5 targets)
+  80x80            0        0.719            0.513               0.508
+160x160            0        3.591            2.605               2.584
+320x320            0       17.395           12.374              12.332
+OK: bit for bit identical
+== run 3
+
+> zombie-horde-survivors@0.0.0 check:kernels
+> node scripts/check-kernels.mjs
+
+bodies   bits differ   ts ms/call   rust slices ms   rust in-memory ms   (best of 3 runs of 200 calls)
+   100            0        0.022            0.015               0.013
+   300            0        0.103            0.056               0.054
+  1000            0        0.477            0.348               0.355
+  2000            0        1.072            0.838               0.843
+  5000            0        3.508            2.718               2.728
+ 10000            0       10.730            7.963               7.994
+
+grid     bits differ   ts ms/call   rust slices ms   rust in-memory ms   (a search from 5 targets)
+  80x80            0        0.719            0.509               0.505
+160x160            0        3.555            2.588               2.573
+320x320            0       17.375           12.307              12.393
+OK: bit for bit identical

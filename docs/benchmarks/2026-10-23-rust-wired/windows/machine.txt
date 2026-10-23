@@ -1,0 +1,5 @@
+os: windows-latest
+cpu: AMD EPYC 7763 64-Core Processor                 x 4
+memory GB: 16.0
+node: v22.23.4
+22227cfed7d470d7fa155f5647f6b6de4130e959

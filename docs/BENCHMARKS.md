@@ -94,3 +94,22 @@ Rapier (already Rust compiled to WASM) beats the own TypeScript solver from abou
 | 3   | The ratio does not grow with the problem size (it shrinks when memory becomes the limit)                                                      |
 | 4   | A 1000-zombie step is 9% to 13% of a frame; wiring the Rust kernels would save about 0.1 ms. Not wired                                        |
 | 5   | The next real gains are structural: SIMD, threads, or fewer cells and bodies searched; and the GPU side, which no CPU benchmark here measures |
+
+## 8. With the Rust kernels in the game (run `40033238294`, branch `bench/rust-wired`, 2026-10-23)
+
+The game now runs the Rust separation and flow field kernels (rule decided by the user: whatever is equal or better in Rust on the GitHub runners moves to Rust). Raw outputs: [benchmarks/2026-10-23-rust-wired/](benchmarks/2026-10-23-rust-wired/).
+
+| Check                                         | Linux                             | Windows                           |
+| --------------------------------------------- | --------------------------------- | --------------------------------- |
+| `check:sim-hash` with TypeScript kernels      | `02a0a498`                        | `02a0a498`                        |
+| `check:sim-hash` with Rust kernels            | `02a0a498`                        | `02a0a498`                        |
+| Calls the Rust kernels served in the scenario | 720 separations, 45 flow searches | 720 separations, 45 flow searches |
+
+`bench:sim`, 1000 zombies, ms per step, three runs each, same machine and same run:
+
+| Kernels    | Linux            | Windows          |
+| ---------- | ---------------- | ---------------- |
+| TypeScript | 2.06, 2.06, 2.10 | 2.72, 2.08, 2.08 |
+| Rust       | 2.03, 2.09, 2.06 | 2.09, 2.02, 2.05 |
+
+The full step is **level** (the Rust kernels are faster alone, 1.2x to 2.4x, but separation and flow field are only about 15% of the step), and the result is bit-identical. The ocean stays in TypeScript (section 4: level at best, 6% to 8% slower with whirlpools, not bit-identical).
