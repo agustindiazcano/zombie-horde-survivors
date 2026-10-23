@@ -132,9 +132,9 @@ const oceanFields = {
   /**
    * How the 8 waves are laid out. golden: directions on a golden-angle spiral; fibonacci: Fibonacci
    * multiples of that angle; random: seeded random directions; swell: parallel ridges that all run
-   * towards `heading` (long, slow, deep-water speeds); custom: the angles (degrees) of `sequence`.
+   * towards `heading` (long, slow, deep-water speeds); custom: the angles (degrees) of `sequence`; jonswap: eight components sampled from a JONSWAP wave spectrum peaking at `frequency`, spread round `heading`.
    */
-  pattern: z.enum(['golden', 'fibonacci', 'random', 'swell', 'custom']),
+  pattern: z.enum(['golden', 'fibonacci', 'random', 'swell', 'custom', 'jonswap']),
   /** Seed of the random numbers (pattern random and swell, and everything `chaos` adds). */
   seed: z.number().int().min(0).max(99999),
   /** 0 = the pattern as it is; 1 = every wave's direction, height, frequency and phase shaken up. */

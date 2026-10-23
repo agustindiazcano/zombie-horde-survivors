@@ -1755,6 +1755,7 @@ export class Editor {
       ['fibonacci', 'Fibonacci'],
       ['random', 'Random'],
       ['swell', 'Parallel swell'],
+      ['jonswap', 'JONSWAP spectrum'],
       ['custom', 'Custom'],
     ] as const) {
       el(
@@ -1772,8 +1773,8 @@ export class Editor {
     }
     physics('seed', 'Seed', 0, 999, 1);
     physics('chaos', 'Chaos (randomness)', 0, 1, 0.05);
-    if (ocean.pattern === 'swell') {
-      physics('heading', 'Swell direction (rad)', 0, 6.28, 0.05);
+    if (ocean.pattern === 'swell' || ocean.pattern === 'jonswap') {
+      physics('heading', 'Swell / wind direction (rad)', 0, 6.28, 0.05);
       physics('spread', 'Swell spread (rad)', 0, 1.57, 0.02);
     }
     if (ocean.pattern === 'custom') {

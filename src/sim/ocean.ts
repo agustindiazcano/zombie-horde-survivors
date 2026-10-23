@@ -10,6 +10,37 @@ export const WAVE_COUNT = 8;
 /** Pulls the wave directions towards +z so the swell has a main heading. */
 const HEADING = 0.38;
 const FIBONACCI = [1, 1, 2, 3, 5, 8, 13, 21];
+/** JONSWAP: gravity, the peak enhancement and the two widths of the peak. */
+const GRAVITY = 9.81;
+const JON_GAMMA = 3.3;
+const JON_SIGMA_LOW = 0.07;
+const JON_SIGMA_HIGH = 0.09;
+/** The eight components sit on a log scale from 0.7 to about 9 times the peak wavenumber. */
+const JON_START = 0.7;
+const JON_RATIO = 1.45;
+
+/**
+ * Eight components of a JONSWAP spectrum: wavenumbers `k_i = kp * 0.7 * 1.45^i`, `omega = sqrt(g k)`,
+ * `S(omega) = omega^-5 exp(-1.25 (omegaP/omega)^4) gamma^r` with `r = exp(-(omega - omegaP)^2 / (2 sigma^2 omegaP^2))`
+ * (sigma 0.07 below the peak, 0.09 above), and amplitude `sqrt(S * omega)` (the band is proportional to
+ * omega on a log scale). The amplitudes are scaled so the biggest one equals `waveHeight`.
+ */
+function jonswap(o: OceanParams): { k: number[]; amp: number[] } {
+  const wp = Math.sqrt(GRAVITY * o.frequency);
+  const k: number[] = [];
+  const raw: number[] = [];
+  for (let i = 0; i < WAVE_COUNT; i++) {
+    const ki = o.frequency * JON_START * Math.pow(JON_RATIO, i);
+    const w = Math.sqrt(GRAVITY * ki);
+    const sigma = w <= wp ? JON_SIGMA_LOW : JON_SIGMA_HIGH;
+    const r = Math.exp(-((w - wp) * (w - wp)) / (2 * sigma * sigma * wp * wp));
+    const s = Math.pow(w, -5) * Math.exp(-1.25 * Math.pow(wp / w, 4)) * Math.pow(JON_GAMMA, r);
+    k.push(ki);
+    raw.push(Math.sqrt(s * w));
+  }
+  const top = Math.max(...raw);
+  return { k, amp: raw.map((a) => (a / top) * o.waveHeight * (1 + 0.9 * o.wind)) };
+}
 
 /** The eight waves of an ocean: unit direction, height, frequency, speed, crest pressure and phase. */
 export interface WaveTable {
@@ -46,6 +77,7 @@ function buildTable(o: OceanParams): WaveTable {
   };
   const rnd = mulberry32(o.seed);
   const swell = o.pattern === 'swell';
+  const jon = o.pattern === 'jonswap' ? jonswap(o) : null;
   // Swell ridges stay tall and spread out in size; the other patterns shrink fast so small waves ride the big ones.
   const ampStep = swell ? 0.82 : (1 / PHI) * 1.18;
   const freqStep = swell ? 1.18 : PHI * 0.88;
@@ -65,24 +97,29 @@ function buildTable(o: OceanParams): WaveTable {
     if (o.pattern === 'fibonacci') angle = FIBONACCI[i]! * GOLDEN_ANGLE;
     else if (o.pattern === 'random') angle = r1 * Math.PI * 2;
     else if (swell) angle = o.heading + (r1 - 0.5) * 2 * o.spread;
+    // Higher frequencies spread wider round the wind's heading.
+    else if (jon)
+      angle = o.heading + (r1 - 0.5) * 2 * Math.min(o.spread * (1 + 0.35 * i), Math.PI / 2);
     else if (o.pattern === 'custom' && o.sequence.length > 0)
       angle = (o.sequence[i % o.sequence.length]! * Math.PI) / 180;
     else angle = i * GOLDEN_ANGLE;
     angle += o.chaos * (r2 - 0.5) * (Math.PI / 2);
     // Golden, Fibonacci and random layouts lean towards +z; swell and custom go exactly where told.
-    const pull = swell || o.pattern === 'custom' ? 0 : HEADING;
+    const pull = swell || jon || o.pattern === 'custom' ? 0 : HEADING;
     const x = Math.cos(angle) * (1 - pull);
     const z = Math.sin(angle) * (1 - pull) + pull;
     const len = Math.hypot(x, z);
     table.dx[i] = x / len;
     table.dz[i] = z / len;
-    table.amp[i] = amp * (1 + o.chaos * (r3 - 0.5) * 0.8);
-    const f = freq * (1 + o.chaos * (r4 - 0.5) * 0.3);
+    table.amp[i] = (jon ? jon.amp[i]! : amp) * (1 + o.chaos * (r3 - 0.5) * 0.8);
+    const f = (jon ? jon.k[i]! : freq) * (1 + o.chaos * (r4 - 0.5) * 0.3);
     table.freq[i] = f;
     // Swell follows deep-water dispersion (speed grows with the square root of the frequency).
-    table.speed[i] = swell ? o.speed * (1 + 0.35 * o.wind) * Math.sqrt(f / o.frequency) : speed;
+    table.speed[i] =
+      swell || jon ? o.speed * (1 + 0.35 * o.wind) * Math.sqrt(f / o.frequency) : speed;
     table.pressure[i] = pressure;
-    table.phase[i] = o.chaos * r5 * Math.PI * 2;
+    // A spectrum has random phases by nature; the other patterns only when chaos asks for it.
+    table.phase[i] = (jon ? 1 : o.chaos) * r5 * Math.PI * 2;
     amp *= ampStep;
     freq *= freqStep;
     speed *= 1.12;
