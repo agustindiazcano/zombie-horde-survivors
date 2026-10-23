@@ -39,6 +39,14 @@ The options live in a registry, `src/graphicsOptions.ts` (label, values, help, a
 | High    | on   | 2             | on  | 2         | 8          | 3   |
 | Ultra   | on   | 2             | on  | 2         | 8          | 3   |
 
+| Preset  | Anti-aliasing | Draw distance | Particles | FOV  | Frame limit |
+| ------- | ------------- | ------------- | --------- | ---- | ----------- |
+| Toaster | off           | near          | 25%       | 100% | none        |
+| Low     | off           | normal        | 50%       | 100% | 60          |
+| Medium  | on            | normal        | 100%      | 100% | none        |
+| High    | on            | normal        | 100%      | 100% | none        |
+| Ultra   | on            | far           | 100%      | 100% | none        |
+
 ## 2. Sky, sun, moon and night
 
 | Rule         | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |

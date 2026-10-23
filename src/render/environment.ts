@@ -387,6 +387,12 @@ export class EnvironmentView {
     return this.env.rain;
   }
 
+  /** Share (0.25 to 1) of the rain, snow and sand particles that are drawn. */
+  setParticleScale(scale: number): void {
+    this.particleScale = scale;
+    this.apply();
+  }
+
   /** Graphics options of the weather: snow on surfaces, ground detail (0 off, 1 colour, 2 and cloud shadows), height fog, lightning (0 off, 1 flash only, 2 bolt too). */
   setWeatherFx(o: { snow: boolean; ground: number; fog: boolean; lightning: number }): void {
     this.snowOn = o.snow;
@@ -397,6 +403,7 @@ export class EnvironmentView {
     this.apply();
   }
 
+  private particleScale = 1;
   private snowOn = true;
   private groundDetail = 2;
   private fogOn = true;
@@ -571,15 +578,15 @@ export class EnvironmentView {
     if (!env.sky) fog.color.copy(flat).lerp(c(0xc9a36a), env.sand * 0.6);
 
     // Precipitation and wind-blown sand.
-    this.rain.count = Math.round(RAIN_COUNT * env.rain);
+    this.rain.count = Math.round(RAIN_COUNT * env.rain * this.particleScale);
     this.rain.object.visible = this.rain.count > 0 && !this.rainFx;
     this.streaks.visible = this.rainFx && env.rain > 0;
     rainFxUniforms.uRainFx.value = this.rainFx ? env.rain : 0;
     this.rain.object.geometry.setDrawRange(0, this.rain.count * 2);
-    this.snow.count = Math.round(SNOW_COUNT * env.snow);
+    this.snow.count = Math.round(SNOW_COUNT * env.snow * this.particleScale);
     this.snow.object.visible = this.snow.count > 0;
     this.snow.object.geometry.setDrawRange(0, this.snow.count);
-    this.sand.count = Math.round(SAND_COUNT * env.sand);
+    this.sand.count = Math.round(SAND_COUNT * env.sand * this.particleScale);
     this.sand.object.visible = this.sand.count > 0;
     this.sand.object.geometry.setDrawRange(0, this.sand.count);
   }

@@ -17,7 +17,7 @@ import { startLoop } from './loop';
 import { GltfAssetLoader } from './render/assetLoader';
 import { loadVehicleModel } from './render/vehicles';
 import { parseCharactersConfig } from './render/characterConfig';
-import { GameRenderer, type ViewMode } from './render/gameRenderer';
+import { GameRenderer, setRendererAntialias, type ViewMode } from './render/gameRenderer';
 import { RtsController } from './rts';
 import {
   controlSoldier,
@@ -92,6 +92,12 @@ async function main(): Promise<void> {
   const factories = await new GltfAssetLoader().loadCharacters(parseCharactersConfig(characters));
 
   let state = createGame(config, Date.now());
+  // Player options (graphics, lighting, FPS counter, volume), saved in the browser.
+  const mobile = isMobile();
+  let settings = loadSettings(
+    mobile ? { ...DEFAULT_SETTINGS, ...PRESETS.low, quality: 'low' } : DEFAULT_SETTINGS,
+  );
+  setRendererAntialias(settings.antialias);
   let paused = false;
   const renderer = new GameRenderer(document.body, config, factories);
   // The physics lab (Map 12): drops balls and zombie ragdolls in front of the leader.
@@ -118,11 +124,6 @@ async function main(): Promise<void> {
   renderer.onThunder = (distance) => sfx.thunder(distance);
   const fps = new FpsCounter(document.body);
 
-  // Player options (graphics, lighting, FPS counter, volume), saved in the browser.
-  const mobile = isMobile();
-  let settings = loadSettings(
-    mobile ? { ...DEFAULT_SETTINGS, ...PRESETS.low, quality: 'low' } : DEFAULT_SETTINGS,
-  );
   const commitSettings = (next: Settings) => {
     settings = next;
     saveSettings(settings);
@@ -791,6 +792,7 @@ async function main(): Promise<void> {
       );
       squad.update(state, rts.selected, maxHealthOf(state, config));
     },
+    () => settings.fpsCap,
   );
 }
 

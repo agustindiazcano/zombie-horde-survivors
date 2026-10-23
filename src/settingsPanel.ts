@@ -201,6 +201,10 @@ export class SettingsPanel {
       });
     }
     this.chips(side, costOfOption(o, s), o.note);
+    if (o.restart) {
+      const reload = el('button', 'set__button', side, 'Reload now');
+      reload.addEventListener('click', () => location.reload());
+    }
   }
 
   /** `GPU ▮▮▯▯▯  CPU ▮▯▯▯▯  64 MB` for the chosen value. */

@@ -39,6 +39,16 @@ export interface Settings {
   lights: number;
   /** Detail of ice on a frozen sea: 0 flat colour to 3 cracks and deep bubbles. */
   ice: number;
+  /** Anti-aliasing (smooth edges). Only read when the renderer is created, so a change needs a reload. */
+  antialias: boolean;
+  /** How far the camera sees: 0 near, 1 normal, 2 far. Matters on big maps. */
+  drawDistance: number;
+  /** Share of the weather particles (rain, snow, sand) drawn: 0.25, 0.5 or 1. */
+  particles: number;
+  /** Field of view as a multiple of each view's own (0.8 to 1.3). */
+  fov: number;
+  /** Frame-rate limit: 0 none, or 30, 60 or 120 frames per second. */
+  fpsCap: number;
   /** Dim lighting with a flashlight per soldier. */
   darkMode: boolean;
   showFps: boolean;
@@ -68,6 +78,11 @@ type GraphicsFields = Pick<
   | 'lightning'
   | 'lights'
   | 'ice'
+  | 'antialias'
+  | 'drawDistance'
+  | 'particles'
+  | 'fov'
+  | 'fpsCap'
 >;
 
 export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', GraphicsFields> = {
@@ -91,6 +106,11 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     lightning: 0,
     lights: 0,
     ice: 0,
+    antialias: false,
+    drawDistance: 0,
+    particles: 0.25,
+    fov: 1,
+    fpsCap: 0,
   },
   low: {
     shadows: false,
@@ -111,6 +131,11 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     lightning: 1,
     lights: 0,
     ice: 1,
+    antialias: false,
+    drawDistance: 1,
+    particles: 0.5,
+    fov: 1,
+    fpsCap: 60,
   },
   medium: {
     shadows: true,
@@ -131,6 +156,11 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     lightning: 2,
     lights: 4,
     ice: 2,
+    antialias: true,
+    drawDistance: 1,
+    particles: 1,
+    fov: 1,
+    fpsCap: 0,
   },
   high: {
     shadows: true,
@@ -151,6 +181,11 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     lightning: 2,
     lights: 8,
     ice: 3,
+    antialias: true,
+    drawDistance: 1,
+    particles: 1,
+    fov: 1,
+    fpsCap: 0,
   },
   // For a machine with a real GPU: 4K shadows, drawn at 1.5x and scaled down, the finest parallax and textures.
   ultra: {
@@ -172,6 +207,11 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     lightning: 2,
     lights: 8,
     ice: 3,
+    antialias: true,
+    drawDistance: 2,
+    particles: 1,
+    fov: 1,
+    fpsCap: 0,
   },
 };
 
@@ -210,7 +250,12 @@ export function qualityOf(s: GraphicsFields): Quality {
       p.fog === s.fog &&
       p.lightning === s.lightning &&
       p.lights === s.lights &&
-      p.ice === s.ice
+      p.ice === s.ice &&
+      p.antialias === s.antialias &&
+      p.drawDistance === s.drawDistance &&
+      p.particles === s.particles &&
+      p.fov === s.fov &&
+      p.fpsCap === s.fpsCap
     ) {
       return name;
     }
@@ -246,7 +291,7 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     rainFx: bool(raw.rainFx, d.rainFx),
     clouds: Math.round(clamp(raw.clouds, 0, 3, d.clouds)),
     filmic: bool(raw.filmic, d.filmic),
-    reflect: Math.round(clamp(raw.reflect, 0, 2, d.reflect)),
+    reflect: Math.round(clamp(raw.reflect, 0, 3, d.reflect)),
     lens: Math.round(clamp(raw.lens, 0, 2, d.lens)),
     snow: bool(raw.snow, d.snow),
     groundDetail: Math.round(clamp(raw.groundDetail, 0, 2, d.groundDetail)),
@@ -254,6 +299,13 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     lightning: Math.round(clamp(raw.lightning, 0, 2, d.lightning)),
     lights: [0, 4, 8].includes(raw.lights as number) ? (raw.lights as number) : d.lights,
     ice: Math.round(clamp(raw.ice, 0, 3, d.ice)),
+    antialias: bool(raw.antialias, d.antialias),
+    drawDistance: Math.round(clamp(raw.drawDistance, 0, 2, d.drawDistance)),
+    particles: [0.25, 0.5, 1].includes(raw.particles as number)
+      ? (raw.particles as number)
+      : d.particles,
+    fov: Math.round(clamp(raw.fov, 0.8, 1.3, d.fov) * 20) / 20,
+    fpsCap: [0, 30, 60, 120].includes(raw.fpsCap as number) ? (raw.fpsCap as number) : d.fpsCap,
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),
     aimToggle: bool(raw.aimToggle, d.aimToggle),

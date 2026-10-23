@@ -195,13 +195,23 @@ const SEASONS: Record<Environment['season'], { tint: number; glow: number }> = {
   winter: { tint: 0xc4d2e6, glow: 0xdfe8f5 },
 };
 
+let rendererAntialias = true;
+
+/** Anti-aliasing is fixed when the WebGL context is created: call this before `new GameRenderer`. */
+export function setRendererAntialias(on: boolean): void {
+  rendererAntialias = on;
+}
+
+/** Camera far plane for each draw distance (the sky dome is 450 m, so it never goes below that). */
+const FAR_PLANES = [480, 600, 1000];
+
 export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
   get domElement(): HTMLCanvasElement {
     return this.renderer.domElement;
   }
   readonly scene = new THREE.Scene();
-  private readonly renderer = new THREE.WebGLRenderer({ antialias: true });
+  private readonly renderer = new THREE.WebGLRenderer({ antialias: rendererAntialias });
   private readonly soldiers = new Map<number, CharacterView>();
   private readonly vehicles = new Map<number, VehicleView>();
   /** One flashlight per soldier: a group (moved and turned with the unit) holding a spotlight. */
@@ -268,6 +278,7 @@ export class GameRenderer {
   private lens: LensDrops | null = null;
   private iceDetail = 3;
   private lightCap = 8;
+  private fovScale = 1;
   private waterLook: Environment['water'] | null = null;
   private season: Environment['season'] = 'summer';
   private readonly crates = new Map<number, THREE.Mesh>();
@@ -609,7 +620,8 @@ export class GameRenderer {
       this.yaw = facing - Math.PI;
       this.lookPitch = mode === 'third' ? THIRD_PITCH : 0;
     }
-    this.camera.fov = mode === 'first' ? FOV_FIRST : mode === 'third' ? FOV_THIRD : FOV_TOP;
+    this.camera.fov =
+      (mode === 'first' ? FOV_FIRST : mode === 'third' ? FOV_THIRD : FOV_TOP) * this.fovScale;
     this.camera.updateProjectionMatrix();
   }
 
@@ -623,7 +635,7 @@ export class GameRenderer {
     this.aimZoom += (target - this.aimZoom) * Math.min(1, AIM_ZOOM_RATE * dt);
     const base =
       this.viewMode === 'first' ? FOV_FIRST : this.viewMode === 'third' ? FOV_THIRD : FOV_TOP;
-    const fov = base * this.aimZoom;
+    const fov = base * this.aimZoom * this.fovScale;
     if (Math.abs(this.camera.fov - fov) > 0.01) {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();
@@ -1406,6 +1418,9 @@ export class GameRenderer {
     lightning: number;
     lights: number;
     ice: number;
+    drawDistance: number;
+    particles: number;
+    fov: number;
   }): void {
     this.goreEnabled = g.gore;
     this.waterQuality = g.water;
@@ -1420,6 +1435,10 @@ export class GameRenderer {
       fog: g.fog,
       lightning: g.lightning,
     });
+    this.environment.setParticleScale(g.particles);
+    this.camera.far = FAR_PLANES[g.drawDistance] ?? 600;
+    this.fovScale = g.fov;
+    this.camera.updateProjectionMatrix();
     this.iceDetail = g.ice;
     this.lightCap = g.lights;
     this.ocean?.setIceDetail(g.ice);
@@ -1494,9 +1513,9 @@ export class GameRenderer {
     this.lens.setDetail(level);
   }
 
-  /** The water reflection option: 0 off, 1 a half-size mirror, 2 a full-size one. */
+  /** The water reflection option: 0 off, 3 a quarter-size mirror, 1 half size, 2 full size. */
   private setReflectionQuality(q: number): void {
-    const scale = q === 0 ? 0 : q === 1 ? 0.5 : 1;
+    const scale = q === 0 ? 0 : q === 3 ? 0.25 : q === 1 ? 0.5 : 1;
     if (!scale) {
       this.reflection?.dispose();
       this.reflection = null;
