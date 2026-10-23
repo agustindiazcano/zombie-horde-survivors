@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { heightAt, OBSTACLE_HEIGHT, type GameConfig } from '../sim';
 import { terrainData, textureColor } from '../terrainData';
-import { patchGroundLook } from './groundLook';
+import { groundFx, patchGroundLook } from './groundLook';
 import { buildProp, LAMP_LIGHT_HEIGHT } from './neighbourhood';
 
 const WALL_HEIGHT = 1.5;
@@ -17,6 +17,7 @@ export function buildArena(arena: GameConfig['arena']): THREE.Group {
   const size = arena.halfSize * 2;
   const { heights, water } = arena.terrain;
 
+  groundFx.uWaterLevel.value = heights && water !== null ? water : -1e4;
   group.add(buildGround(arena));
   // A painted map has its own ground: no guide grid over it.
   if (!heights && !arena.terrain.paint) {
@@ -92,12 +93,16 @@ function buildGround(arena: GameConfig['arena']): THREE.Mesh {
   for (let i = 0; i < position.count; i++) {
     const x = position.getX(i);
     const z = position.getZ(i);
-    position.setY(i, heightAt(heights, arena.halfSize, x, z));
+    const y = heightAt(heights, arena.halfSize, x, z);
+    position.setY(i, y);
     // A vertex takes the paint of the cell it is the corner of (clamped at the far edges).
     const col = Math.min(Math.round(x + arena.halfSize), size - 1);
     const row = Math.min(Math.round(z + arena.halfSize), size - 1);
     const id = paint?.[row]?.[col];
-    (id ? tint.set(textureColor(id)) : tint.copy(base)).toArray(colors, i * 3);
+    (id ? tint.set(textureColor(id)) : tint.copy(base)).multiplyScalar(
+      occlusion(heights, arena.halfSize, x, z, y),
+    );
+    tint.toArray(colors, i * 3);
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
@@ -108,6 +113,36 @@ function buildGround(arena: GameConfig['arena']): THREE.Mesh {
   ground.receiveShadow = true;
   ground.name = 'ground';
   return ground;
+}
+
+/** Offsets (m) of the eight points around a vertex that are compared with its height. */
+const AO_RING: readonly (readonly [number, number])[] = [
+  [3, 0],
+  [-3, 0],
+  [0, 3],
+  [0, -3],
+  [2.1, 2.1],
+  [-2.1, 2.1],
+  [2.1, -2.1],
+  [-2.1, -2.1],
+];
+
+/**
+ * Ambient occlusion by height, baked into the vertex colour: ground lower than the average of the
+ * ground around it (a hollow, the foot of a slope) is darker, up to 40%; hills and flat ground stay.
+ */
+function occlusion(
+  heights: GameConfig['arena']['terrain']['heights'],
+  halfSize: number,
+  x: number,
+  z: number,
+  y: number,
+): number {
+  if (!heights) return 1;
+  let around = 0;
+  for (const [dx, dz] of AO_RING) around += heightAt(heights, halfSize, x + dx, z + dz);
+  const hollow = around / AO_RING.length - y;
+  return 1 - Math.min(Math.max(hollow * 0.2, 0), 0.4);
 }
 
 function buildWater(size: number, level: number): THREE.Mesh {

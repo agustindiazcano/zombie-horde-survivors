@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { defaultEnvironment, type Environment } from '../sim';
+import { groundFx } from './groundLook';
 import { installHeightFog } from './heightFog';
 import { makeRainStreaks, rainFxUniforms } from './rainFx';
 
@@ -503,6 +504,14 @@ export class EnvironmentView {
     sky.uGlow.value = env.sunGlow;
     sky.uDay.value = day;
     sky.uWind.value = 1 + env.wind * 4;
+    // The ground shades itself with the same clouds: shadows only under the volumetric sky, by day.
+    groundFx.uSunDirG.value.copy(this.sunDir);
+    groundFx.uCloudWind.value = 1 + env.wind * 4;
+    groundFx.uCloudCover.value = Math.min(env.clouds + env.rain * 0.3, 0.96);
+    groundFx.uCloudShadow.value =
+      env.sky && this.cloudSteps > 0
+        ? 0.5 * Math.min(env.clouds * 1.3, 1) * smooth(0.05, 0.3, elevation) * (1 - 0.5 * murk)
+        : 0;
     sky.uTwilight.value = twilight;
     sky.uGrey.value = Math.min(murk * 1.3, 1);
     sky.uCloudCover.value = Math.min(env.clouds + env.rain * 0.3, 0.96);
@@ -548,6 +557,7 @@ export class EnvironmentView {
   update(camera: THREE.Vector3, clock: number): void {
     this.dome.position.copy(camera);
     this.skyUniforms.uTime.value = clock;
+    groundFx.uCloudTime.value = clock;
     rainFxUniforms.uRainTime.value = clock;
     this.streaks.position.set(camera.x, camera.y - 14, camera.z);
     this.storm(camera, clock);
