@@ -321,8 +321,20 @@ export const EnvironmentSchema = z
       .default(null),
     sun: z.boolean().default(true),
     moon: z.boolean().default(true),
+    /** Turns the sun's path around the map, in degrees (0 = the default heading). */
+    sunAzimuth: z.number().min(0).max(360).default(0),
+    /** Strength of the sun and moon halos in the sky, 0 (bare discs) to 2. */
+    sunGlow: z.number().min(0).max(2).default(1),
+    /** The clock runs by itself: game hours per real minute (0 = frozen at `timeOfDay`). */
+    dayCycle: z.number().min(0).max(12).default(0),
+    /** How much light is left at night: 0 pitch dark (only lamps and flashlights show) to 1 bright moonlight. */
+    nightLight: unit01.default(0.35),
     /** From 0 (none) to 1 (overcast). */
     clouds: unit01.default(0),
+    /** Thickness of the volumetric clouds (the graphics option draws them; puffs ignore it). */
+    cloudDensity: z.number().min(0.2).max(2.5).default(1.2),
+    /** Storm lightning: 0 none, 1 a strike every few seconds (flash, bolt and a lit sky). */
+    lightning: unit01.default(0),
     /** Weather strengths from 0 (off) to 1 (heaviest). */
     rain: unit01.default(0),
     snow: unit01.default(0),

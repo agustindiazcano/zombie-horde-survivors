@@ -65,7 +65,8 @@ Before every commit run lint, format check, typecheck, tests, build and check:as
 - **`src/sim`** is the pure simulation: no Three.js, no DOM. ESLint (`no-restricted-imports`) and a test enforce it. Fixed 60 Hz step (`FIXED_DT`); the render interpolates with `prev` fields and `alpha`.
 - **`src/render`** is Three.js only (arena, characters, effects, cameras, lighting). Game code talks to characters through the `CharacterView` interface.
 - **`src/*.ts`** are input, HUD, audio and the DOM screens (main menu, pause panel, squad screen, shop and perk picker, settings, radar). `src/main.ts` wires everything and owns the pause and modal logic.
-- **Physics** is documented in [docs/PHYSICS.md](docs/PHYSICS.md): update it in the same commit whenever a physics rule or formula changes.
+- **Physics** is documented in [docs/PHYSICS.md](docs/PHYSICS.md): update it in the same commit whenever a physics rule or formula changes. The same goes for [docs/GRAPHICS.md](docs/GRAPHICS.md) (sky, light, weather, water).
+- **The physics, fluid and optics techniques are the user's own work** (he calls them "Diaz-Cano" formulas). Keep them registered in [docs/TECHNIQUES.md](docs/TECHNIQUES.md) under his names, name the standard technique next to each, and never call them standard. Do not write "invented" or "novel" in public text: the literature has not been checked (a paper is planned, PENDING 2q).
 - **Data-driven:** every gameplay number lives in `data/game.json`, validated by a strict zod schema in `src/sim/config.ts` (a typo fails loudly). Models and animation clips are mapped in `data/characters.json` (`src/render/characterConfig.ts`).
 - Adding a perk, shop item, weapon, enemy or boss rule means editing the JSON (and the schema if a field is new), not the code. The shared test config in `tests/sim/helpers.ts` builds a config by hand: add any new required section there too.
 - Player options (graphics, lighting, FPS counter, volume) live in `src/settings.ts` and localStorage; they are not part of the sim.
@@ -81,6 +82,8 @@ test-game/
 ├── README.md                  player-facing reference and credits
 ├── docs/CONTROLS.md           every key and mouse action (the only list of controls)
 ├── docs/PHYSICS.md            every physics rule and formula (the only place that explains them)
+├── docs/GRAPHICS.md           every sky, light, weather and water rule and formula
+├── docs/TECHNIQUES.md         register of the author's own techniques (his names, where they live) and the paper plan
 ├── assets.toml                every third-party asset: author, source, license, path
 ├── index.html                 page shell, SEO meta tags, structured data
 ├── package.json / package-lock.json

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RAIN_RIPPLES_GLSL, rainFxUniforms } from './rainFx';
 import { heightAt, WAVE_COUNT, WAVE_DIRS, type Environment, type GameConfig } from '../sim';
 
 type WaterLook = Environment['water'];
@@ -77,6 +78,9 @@ uniform float uReflection;
 uniform float uNormalDistortion;
 uniform float uCaustics;
 uniform int uPomSteps;
+uniform float uSimple;
+uniform float uRainFx;
+uniform float uRainTime;
 uniform float uPomDepth;
 uniform vec3 uTint;
 uniform float uTintMix;
@@ -88,6 +92,7 @@ varying vec3 vNormal;
 varying float vDepth;
 varying float vCrest;
 ${COMMON}
+${RAIN_RIPPLES_GLSL}
 const mat2 mGold = mat2(-0.7373688, -0.6754903, 0.6754903, -0.7373688);
 
 // Small ripples with sharp crests, used for the parallax, the normal and the caustics.
@@ -137,11 +142,22 @@ vec3 skyColor(vec3 dir, vec3 sunDir, float day, float sunset) {
 void main() {
   if (vDepth < -0.15) discard;
   vec3 V = normalize(cameraPosition - vWorldPos);
-  vec2 pomXZ = pom(vWorldPos.xz, V);
-  float h0 = micro(pomXZ);
-  float hx = micro(pomXZ + vec2(0.18, 0.0));
-  float hz = micro(pomXZ + vec2(0.0, 0.18));
+  // The flat quality skips every ripple lookup: the big waves' own normal is all it uses.
+  vec2 pomXZ = uSimple > 0.5 ? vWorldPos.xz : pom(vWorldPos.xz, V);
+  float h0 = 0.5, hx = 0.5, hz = 0.5;
+  if (uSimple < 0.5) {
+    h0 = micro(pomXZ);
+    hx = micro(pomXZ + vec2(0.18, 0.0));
+    hz = micro(pomXZ + vec2(0.0, 0.18));
+  }
   vec3 N = normalize(vNormal + vec3((h0 - hx) * uNormalDistortion * 4.5, 0.0, (h0 - hz) * uNormalDistortion * 4.5));
+  // Rain drops landing on the surface bend the normal into rings.
+  if (uRainFx > 0.0 && uSimple < 0.5) {
+    float r0 = rainRipples(vWorldPos.xz, uRainTime);
+    float rx = rainRipples(vWorldPos.xz + vec2(0.12, 0.0), uRainTime);
+    float rz = rainRipples(vWorldPos.xz + vec2(0.0, 0.12), uRainTime);
+    N = normalize(N + vec3(r0 - rx, 0.0, r0 - rz) * 2.4 * uRainFx);
+  }
   vec3 R = reflect(-V, N);
 
   vec3 sunDir = normalize(uSunDir);
@@ -159,7 +175,7 @@ void main() {
 
   // Caustics: ripple pattern bent by the surface, strongest in clear shallows by day.
   vec2 floorXZ = pomXZ - N.xz * (1.0 - vLight) * 3.8;
-  float pattern = pow(micro(floorXZ * 1.35 + uTime * 0.38), PHI_SQ) * 2.8;
+  float pattern = uCaustics > 0.001 ? pow(micro(floorXZ * 1.35 + uTime * 0.38), PHI_SQ) * 2.8 : 0.0;
   body += vec3(0.25, 0.95, 0.85) * pattern * vLight * smoothstep(-0.1, 1.2, vDepth) * uCaustics * (day * 0.85 + 0.15);
 
   // Reflectivity: R0 from the impedance step air -> water, then the chosen curve.
@@ -225,6 +241,8 @@ export class OceanView {
   private readonly orbPos: THREE.Vector3[] = [];
   private readonly level: number;
   private readonly center = new THREE.Vector2();
+  private quality = 3;
+  private look: WaterLook | null = null;
 
   constructor(arena: GameConfig['arena'], level: number, params: GameConfig['ocean']) {
     this.level = level;
@@ -281,6 +299,8 @@ export class OceanView {
         uNormalDistortion: { value: 0.42 },
         uCaustics: { value: 0.85 },
         uPomSteps: { value: 12 },
+        uSimple: { value: 0 },
+        ...rainFxUniforms,
         uPomDepth: { value: 0.45 },
         uTint: { value: new THREE.Color() },
         uTintMix: { value: 0 },
@@ -308,9 +328,28 @@ export class OceanView {
     );
   }
 
-  /** The look of the map's water (`environment.water`). */
-  setLook(w: WaterLook): void {
+  /**
+   * How much of the look is drawn (the graphics option): 0 flat (no ripples, caustics or orbs),
+   * 1 light (ripples only), 2 normal (cheaper parallax, caustics, three orbs), 3 as the map says.
+   */
+  setQuality(q: number): void {
+    this.quality = q;
+    if (this.look) this.setLook(this.look);
+  }
+
+  /** The look of the map's water (`environment.water`), held back by the graphics quality. */
+  setLook(look: WaterLook): void {
+    this.look = look;
+    const q = this.quality;
+    const w: WaterLook = {
+      ...look,
+      pomSteps: q >= 3 ? look.pomSteps : q === 2 ? Math.min(look.pomSteps, 6) : 0,
+      caustics: q >= 2 ? look.caustics : 0,
+      neonOrbs: q >= 3 ? look.neonOrbs : q === 2 ? Math.min(look.neonOrbs, 3) : 0,
+      normalDistortion: q >= 1 ? look.normalDistortion : 0,
+    };
     const u = this.material.uniforms;
+    u.uSimple!.value = q === 0 ? 1 : 0;
     u.uFresnelMode!.value = w.fresnel === 'area' ? 0 : 1;
     u.uSaturationBrake!.value = w.saturationBrake;
     u.uChromaticFriction!.value = w.chromaticFriction;

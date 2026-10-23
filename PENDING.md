@@ -102,11 +102,23 @@ Carrier you can walk on, frigate, island with beach and houses, drivable speedbo
 
 Wave ocean ported from the user's `game-engine/ai_studio_code (4).html` demo: the surface (`src/sim/ocean.ts`), bodies of the Rapier lab floating on it, the water shader (`src/render/oceanView.ts`), Map 13, the Season and Ocean water groups in the editor ([worklog](docs/worklog/2026-10-23-ocean-map-13.md), [PHYSICS.md section 7](docs/PHYSICS.md)). The shader was checked in headless Chrome (compiles, renders waves, foam and neon); the game was not opened.
 
+- [ ] 🔴 Look at the sky work too ([worklog](docs/worklog/2026-10-23-sky-storm-rain.md)): Map 13, Editor > Environment: Night light, Storm button (lightning, rain, volumetric clouds), Sun heading; Settings: Water, Sky clouds, Rain drops. Tell what looks wrong. Still open from that list: thunder sound, a better fog (height fog, sand and snow storms like `motor_atmosferico_y_oceano_ligero_3d (1).html`), neon spheres lighting the clouds, snow piling on the ground.
 - [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 13. Drop balls, boxes and ragdolls from the Map 12 panel into the sea; swim; press **,** / **.** for dusk and night (neon orbs, moon glints). Editor > Environment: season buttons and the Ocean water sliders. Tell what looks wrong.
 - [ ] 🟡 Weather: rain, snow, sandstorm, fog and clouds exist as sliders already; still to do: wind (drives the waves, current and clouds), storms (waves and rain together), clouds from the demo's golden noise instead of the cloud puffs.
 - [ ] 🟡 Seasons only tint the ground today: trees, snow on roofs, foliage colour, season-dependent weather and an automatic cycle are still to do.
 - [ ] 🟡 The demo's screen-space reflection (second render pass, needs a clip plane) as a High/Ultra graphics option; whirlpools (vortices) with their pull on bodies.
 - [ ] 🟡 Swimming and boats on the waves (`swim.ts`, `naval.ts`); splashes when something falls in.
+
+### 2q — 🟡 The author's techniques, a paper, wave randomness and the Rust question (noted 2026-10-23)
+
+The physics, fluid and optics formulas are the author's own work; they are now registered in [docs/TECHNIQUES.md](docs/TECHNIQUES.md) (his names, where they live, the standard technique next to each) and the visual rules in [docs/GRAPHICS.md](docs/GRAPHICS.md).
+
+- [ ] 🟡 **Paper of the author's techniques** (plan in TECHNIQUES.md section 2): choose the scope, check the literature row by row (nothing is checked yet, so no public text says "invented" or "novel"), write the formulas, measure, make figures.
+- [ ] 🟡 **Keep the register current:** whenever a formula of the author is ported or changed, add or edit its row in TECHNIQUES.md and its rule in PHYSICS.md or GRAPHICS.md in the same commit.
+- [ ] 🟡 **Rows still to port from his demos** (all in `game-engine/`): whirlpools and "Law 3" (TECHNIQUES 9), the unified-solver features not in Rapier, the demo's height fog and storms of sand and snow, neon orbs lighting clouds.
+- [ ] 🟡 **Wave randomness (decision for the user):** today the 8 waves use fixed golden ratios, which looks regular. Option: a switch plus a `seed`, a `chaos` amount and a choice of sequence (golden, Fibonacci, seeded random, or a list of numbers the user types) for the directions, phases and amplitudes. It must stay identical on CPU and GPU (numbers go to the shader as uniforms) and `check:rapier` / `check:ocean` must be re-run.
+- [ ] 🟡 **Shaders and Rust (decision for the user):** shaders stay GLSL (WGSL if the engine moves to WebGPU, see PLAN-webgpu-engine.md); Rust/WASM is for the CPU side (waves, buoyancy, the own solver). Do not write them twice: keep one spec (the formula in the docs) and the two copies checked against each other.
+- [ ] ⚪ Thunder sound for lightning; the wind that drives waves, current and clouds.
 
 ### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
 

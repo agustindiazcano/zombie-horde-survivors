@@ -23,6 +23,7 @@ import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
 import { OceanView } from './oceanView';
+import { patchGroundRain } from './rainFx';
 import { setPomQuality, setTextureQuality } from './pom';
 import { Sirens } from './sirens';
 import { GroundItemViews } from './groundItems';
@@ -258,6 +259,7 @@ export class GameRenderer {
   private readonly config: GameConfig;
   /** The wave ocean of the current map (Map 13), or null for flat water. */
   private ocean: OceanView | null = null;
+  private waterQuality = 3;
   private waterLook: Environment['water'] | null = null;
   private season: Environment['season'] = 'summer';
   private readonly crates = new Map<number, THREE.Mesh>();
@@ -1346,8 +1348,16 @@ export class GameRenderer {
     gore: boolean;
     parallax: number;
     textures: number;
+    water: number;
+    rainFx: boolean;
+    clouds: number;
   }): void {
     this.goreEnabled = g.gore;
+    this.waterQuality = g.water;
+    this.ocean?.setQuality(g.water);
+    this.environment.setRainFx(g.rainFx);
+    // Octaves of the cloud noise: 3, 4 or 5 (0 keeps the puffs).
+    this.environment.setCloudSteps(g.clouds === 0 ? 0 : g.clouds + 2);
     setPomQuality(g.parallax);
     setTextureQuality(g.textures);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * g.resolutionScale);
@@ -1396,6 +1406,7 @@ export class GameRenderer {
     m.color.setHex(look.tint);
     m.emissive.setHex(look.glow);
     m.emissiveIntensity = look.glow === 0 ? 0 : 0.35;
+    patchGroundRain(m);
   }
 
   /** Swaps the flat water plane for the wave ocean when the map has the `ocean` rule (or back). */
@@ -1409,6 +1420,7 @@ export class GameRenderer {
     if (!this.config.oceanOn || level === null || !arena.terrain.heights) return;
     this.arenaGroup.getObjectByName('water')?.removeFromParent();
     this.ocean = new OceanView(arena, level, this.config.ocean);
+    this.ocean.setQuality(this.waterQuality);
     if (this.waterLook) this.ocean.setLook(this.waterLook);
     this.scene.add(this.ocean.object);
   }

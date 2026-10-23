@@ -1,6 +1,6 @@
 # Physics
 
-The single place that explains how things move, collide and fall in the game. There is **no physics engine in the game itself**: everything is hand-written kinematics inside `src/sim` (pure code, no Three.js, no DOM). The one exception is the Map 12 lab, which runs Rapier (section 6) as a separate module that nothing else uses yet; the user's own sphere solver (section 5) is kept as the reference for a later Rust/WASM port. Keep this file in sync whenever a physics rule changes, and put new formulas here before or together with the code.
+The single place that explains how things move, collide and fall in the game. The floating, contact and wave formulas are the author's own techniques: see [TECHNIQUES.md](TECHNIQUES.md) for their names and the standard technique next to each; the visual side is in [GRAPHICS.md](GRAPHICS.md). There is **no physics engine in the game itself**: everything is hand-written kinematics inside `src/sim` (pure code, no Three.js, no DOM). The one exception is the Map 12 lab, which runs Rapier (section 6) as a separate module that nothing else uses yet; the user's own sphere solver (section 5) is kept as the reference for a later Rust/WASM port. Keep this file in sync whenever a physics rule changes, and put new formulas here before or together with the code.
 
 ## 1. Ground rules
 

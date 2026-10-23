@@ -136,6 +136,33 @@ export class SettingsPanel {
       ],
       (v) => this.change({ textures: Number(v) }),
     );
+    this.select(
+      panel,
+      'Water',
+      String(s.water),
+      [
+        ['0', 'Flat (like the toaster demo)'],
+        ['1', 'Light (ripples only)'],
+        ['2', 'Normal (caustics, few orbs)'],
+        ['3', 'Full (every optic of the map)'],
+      ],
+      (v) => this.change({ water: Number(v) }),
+    );
+    this.select(
+      panel,
+      'Sky clouds',
+      String(s.clouds),
+      [
+        ['0', 'Simple puffs'],
+        ['1', 'Volumetric (light)'],
+        ['2', 'Volumetric (normal)'],
+        ['3', 'Volumetric (fine)'],
+      ],
+      (v) => this.change({ clouds: Number(v) }),
+    );
+    this.toggle(panel, 'Rain drops (streaks, ground and water rings)', s.rainFx, (v) =>
+      this.change({ rainFx: v }),
+    );
     this.toggle(panel, 'Blood and gibs', s.gore, (v) => this.change({ gore: v }));
     this.select(
       panel,

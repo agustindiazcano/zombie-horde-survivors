@@ -1495,6 +1495,15 @@ export class Editor {
         this.setTab('sky');
       });
     }
+    this.rangeRow(skyBody, 'Sun heading (deg)', env.sunAzimuth, 0, 360, 5, (v) =>
+      set({ sunAzimuth: v }, !this.sliding),
+    );
+    this.rangeRow(skyBody, 'Sun and moon halo', env.sunGlow, 0, 2, 0.05, (v) =>
+      set({ sunGlow: v }, !this.sliding),
+    );
+    this.rangeRow(skyBody, 'Auto day (hours per minute, 0 = off)', env.dayCycle, 0, 12, 0.25, (v) =>
+      set({ dayCycle: v }, !this.sliding),
+    );
     const colorRow = el('label', 'editor__row', skyBody, 'Light colour');
     const color = el('input', 'editor__color', colorRow);
     color.type = 'color';
@@ -1519,6 +1528,26 @@ export class Editor {
       true,
     );
 
+    this.rangeRow(
+      skyBody,
+      'Night light (0 = pitch dark)',
+      env.nightLight,
+      0,
+      1,
+      0.05,
+      (v) => set({ nightLight: v }, !this.sliding),
+      true,
+    );
+    this.rangeRow(
+      skyBody,
+      'Cloud thickness (volumetric clouds)',
+      env.cloudDensity,
+      0.2,
+      2.5,
+      0.05,
+      (v) => set({ cloudDensity: v }, !this.sliding),
+    );
+
     const weather = el('details', 'editor__group', this.body);
     weather.open = true;
     el('summary', 'editor__summary', weather, 'Weather');
@@ -1528,6 +1557,7 @@ export class Editor {
       ['snow', 'Snow'],
       ['sand', 'Sandstorm'],
       ['fog', 'Fog'],
+      ['lightning', 'Lightning'],
     ] as const) {
       this.rangeRow(
         weatherBody,
@@ -1539,6 +1569,19 @@ export class Editor {
         (v) => set({ [key]: v }, !this.sliding),
         true,
       );
+    }
+    const presets = el('div', 'editor__row', weatherBody);
+    for (const [name, patch] of [
+      ['Clear', { rain: 0, snow: 0, sand: 0, fog: 0, lightning: 0, clouds: 0 }],
+      ['Storm', { rain: 0.85, snow: 0, sand: 0, fog: 0.2, lightning: 0.8, clouds: 0.85 }],
+      ['Blizzard', { rain: 0, snow: 1, sand: 0, fog: 0.5, lightning: 0, clouds: 0.8 }],
+      ['Sandstorm', { rain: 0, snow: 0, sand: 1, fog: 0.3, lightning: 0, clouds: 0.3 }],
+      ['Fog', { rain: 0, snow: 0, sand: 0, fog: 0.9, lightning: 0, clouds: 0.4 }],
+    ] as const) {
+      el('button', 'editor__btn', presets, name).addEventListener('click', () => {
+        set(patch);
+        this.setTab('sky');
+      });
     }
     this.seasonGroup(env, set);
     this.waterGroup(env, set);

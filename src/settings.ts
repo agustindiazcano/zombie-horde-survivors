@@ -15,6 +15,12 @@ export interface Settings {
   parallax: number;
   /** Detail of the surface textures: 0 melted, 1 low, 2 normal, 3 ultra (sharper, bigger files). */
   textures: number;
+  /** How much of the wave ocean is drawn: 0 flat, 1 light, 2 normal, 3 full (every optic the map sets). */
+  water: number;
+  /** Rain streaks and rings where the drops land on the ground and the water. */
+  rainFx: boolean;
+  /** Volumetric sky clouds: 0 simple puffs, 1 to 3 the noise clouds with more detail at each step. */
+  clouds: number;
   /** Dim lighting with a flashlight per soldier. */
   darkMode: boolean;
   showFps: boolean;
@@ -26,7 +32,15 @@ export interface Settings {
 
 type GraphicsFields = Pick<
   Settings,
-  'shadows' | 'shadowMapSize' | 'resolutionScale' | 'gore' | 'parallax' | 'textures'
+  | 'shadows'
+  | 'shadowMapSize'
+  | 'resolutionScale'
+  | 'gore'
+  | 'parallax'
+  | 'textures'
+  | 'water'
+  | 'rainFx'
+  | 'clouds'
 >;
 
 export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', GraphicsFields> = {
@@ -38,6 +52,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     gore: false,
     parallax: 0,
     textures: 0,
+    water: 0,
+    rainFx: false,
+    clouds: 0,
   },
   low: {
     shadows: false,
@@ -46,6 +63,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     gore: true,
     parallax: 1,
     textures: 1,
+    water: 1,
+    rainFx: false,
+    clouds: 0,
   },
   medium: {
     shadows: true,
@@ -54,6 +74,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     gore: true,
     parallax: 1,
     textures: 2,
+    water: 2,
+    rainFx: true,
+    clouds: 1,
   },
   high: {
     shadows: true,
@@ -62,6 +85,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     gore: true,
     parallax: 2,
     textures: 2,
+    water: 3,
+    rainFx: true,
+    clouds: 2,
   },
   // For a machine with a real GPU: 4K shadows, drawn at 1.5x and scaled down, the finest parallax and textures.
   ultra: {
@@ -71,6 +97,9 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     gore: true,
     parallax: 3,
     textures: 3,
+    water: 3,
+    rainFx: true,
+    clouds: 3,
   },
 };
 
@@ -97,7 +126,10 @@ export function qualityOf(s: GraphicsFields): Quality {
       p.resolutionScale === s.resolutionScale &&
       p.gore === s.gore &&
       p.parallax === s.parallax &&
-      p.textures === s.textures
+      p.textures === s.textures &&
+      p.water === s.water &&
+      p.rainFx === s.rainFx &&
+      p.clouds === s.clouds
     ) {
       return name;
     }
@@ -129,6 +161,9 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     gore: bool(raw.gore, d.gore),
     parallax: Math.round(clamp(raw.parallax, 0, 3, d.parallax)),
     textures: Math.round(clamp(raw.textures, 0, 3, d.textures)),
+    water: Math.round(clamp(raw.water, 0, 3, d.water)),
+    rainFx: bool(raw.rainFx, d.rainFx),
+    clouds: Math.round(clamp(raw.clouds, 0, 3, d.clouds)),
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),
     aimToggle: bool(raw.aimToggle, d.aimToggle),
