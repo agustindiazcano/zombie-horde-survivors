@@ -110,11 +110,19 @@ Code: `src/render/oceanView.ts`. The waves themselves are in PHYSICS.md section 
 | Fake subsurface scattering on snow                | **Done** as a cold rim glow (section 7)                                                                                                                               |
 | Snow with relief by parallax occlusion mapping    | Not done: `pom.ts` exists for walls; snow would need a height texture per surface. Costly, later                                                                      |
 | Ice: noisy normals, variable roughness, bubbles   | Not done: there is no ice in the game yet. It would be a frozen-sea mode of the ocean shader (winter): noisy normal, patches of clear and milky ice, 3D-noise bubbles |
-| Glass: roughness map with fingerprints and dust   | Not done: `glass.ts` has six clean kinds with a fixed roughness. A dirt noise in the roughness is cheap and the best next step for glass                              |
+| Glass: roughness map with fingerprints and dust   | **Done** (section 10)                                                                                                                                                 |
 | Glass: screen-space reflections                   | Not done for glass. The water has a planar mirror (section 5); glass uses the baked reflection map                                                                    |
 | Rain sheets (planes with animated vertical lines) | **Done** as the streak cylinder (section 4)                                                                                                                           |
 | Rain on the camera lens (post-process)            | Not done: needs a post pass (the scene in a render target) or a drops overlay. Candidate for a graphics option                                                        |
 | Wet ground: low roughness and animated ripples    | **Done** (section 7); the rings are computed in the shader, not a flipbook                                                                                            |
+
+## 10. Glass dirt
+
+| Rule     | Detail                                                                                                                                                                                                                                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Map      | `dirtMap` in `src/render/glass.ts`: a 256 px roughness map (green channel) shared by every pane except the frosted one. `rough = min(0.05 + 0.9 dirt, 0.65)` with `dirt = max(0, smudge - 0.45) * 1.5 + max(0, dust - 0.6) * 0.35`; `smudge` mixes periodic value noise of 4 and 9 cells (0.6 / 0.4), `dust` has 24 cells |
+| Prints   | Four fingerprints per tile: concentric ellipses (axes 0.75 r and 1.05 r, r from 3 to 20 px) with broken arcs, drawn lighter (rougher) than the glass                                                                                                                                                                      |
+| Material | `roughness = 1` times the map, so clean glass stays at 0.05 and a smudge scatters the sun glint and the baked reflection. The pane's UVs are scaled so one tile covers 1.2 m. Seeded generator: every pane looks the same in every run                                                                                    |
 
 ## 9. Not done
 
