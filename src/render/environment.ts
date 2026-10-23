@@ -3,6 +3,7 @@ import { defaultEnvironment, type Environment } from '../sim';
 import { groundFx } from './groundLook';
 import { installHeightFog } from './heightFog';
 import { makeRainStreaks, rainFxUniforms } from './rainFx';
+import { installSnowLayer, snowFx } from './snowLayer';
 
 /** The lighting of a normal day (the game's look before the environment existed) and of the dark mode. */
 const DAY_AMBIENT = 1.2;
@@ -124,6 +125,7 @@ export class EnvironmentView {
     private readonly sun: THREE.DirectionalLight,
   ) {
     installHeightFog();
+    installSnowLayer();
     // Height fog: `near` is the density and `far` the falloff (see heightFog.ts).
     this.scene.fog = new THREE.Fog(0x9cc8ee, 0, 0.055);
 
@@ -276,6 +278,9 @@ export class EnvironmentView {
   }
 
   private clock = 0;
+  /** Snow settled so far (0 to 1): grows while it snows, melts slowly when it does not. */
+  private settled = 0;
+  private lastClock = 0;
 
   /** Lightning: now and then a bolt strikes, the sky and the light flash twice, then fade. */
   private storm(camera: THREE.Vector3, clock: number): void {
@@ -556,6 +561,18 @@ export class EnvironmentView {
   /** Moves the sky with the camera, drifts the clouds and animates the weather. */
   update(camera: THREE.Vector3, clock: number): void {
     this.dome.position.copy(camera);
+    // Snow settles over about two minutes of a full blizzard and melts over five without it.
+    const elapsed = Math.min(Math.max(clock - this.lastClock, 0), 0.1);
+    this.lastClock = clock;
+    this.settled = Math.min(
+      Math.max(this.settled + (this.env.snow > 0 ? this.env.snow / 120 : -1 / 300) * elapsed, 0),
+      1,
+    );
+    snowFx.uSnowCover.value = Math.max(
+      this.settled,
+      this.env.snowCover,
+      this.env.season === 'winter' ? 0.75 : 0,
+    );
     this.skyUniforms.uTime.value = clock;
     groundFx.uCloudTime.value = clock;
     rainFxUniforms.uRainTime.value = clock;

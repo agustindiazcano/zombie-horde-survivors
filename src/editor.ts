@@ -1580,6 +1580,9 @@ export class Editor {
       0.005,
       (v) => set({ fogFalloff: v }, !this.sliding),
     );
+    this.rangeRow(weatherBody, 'Snow on the ground (0 = none)', env.snowCover, 0, 1, 0.05, (v) =>
+      set({ snowCover: v }, !this.sliding),
+    );
     const presets = el('div', 'editor__row', weatherBody);
     for (const [name, patch] of [
       ['Clear', { rain: 0, snow: 0, sand: 0, fog: 0, wind: 0, lightning: 0, clouds: 0 }],

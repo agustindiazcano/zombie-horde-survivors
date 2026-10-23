@@ -368,6 +368,8 @@ export const EnvironmentSchema = z
     snow: unit01.default(0),
     sand: unit01.default(0),
     fog: unit01.default(0),
+    /** Snow already lying on everything that faces the sky (0 none, 1 buried). Snowfall adds to it while it lasts; winter keeps at least 0.75. */
+    snowCover: unit01.default(0),
     /** How fast the fog thins with height (1/m): 0.005 a tall bank, 0.2 a layer hugging the ground. */
     fogFalloff: z.number().min(0.005).max(0.2).default(0.055),
     /** Wind, 0 calm to 1 gale: slants rain, drives snow and sand, speeds the clouds. */

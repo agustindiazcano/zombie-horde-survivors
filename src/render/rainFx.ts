@@ -68,6 +68,23 @@ export function patchGroundRain(material: THREE.MeshStandardMaterial): void {
         '#include <common>',
         `#include <common>\nvarying vec3 vRainPos;\nuniform float uRainFx;\nuniform float uRainTime;\n${RAIN_RIPPLES_GLSL}`,
       )
+      // Wet ground: nearly mirror-smooth, and each drop's ring bends the normal so the sky shimmers in it.
+      .replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+        roughnessFactor = mix(roughnessFactor, 0.12, clamp(uRainFx * 1.4, 0.0, 1.0) * 0.85);`,
+      )
+      .replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+        if (uRainFx > 0.0) {
+          float r0 = rainRipples(vRainPos.xz, uRainTime);
+          float rx = rainRipples(vRainPos.xz + vec2(0.1, 0.0), uRainTime);
+          float rz = rainRipples(vRainPos.xz + vec2(0.0, 0.1), uRainTime);
+          vec3 bend = vec3(r0 - rx, 0.0, r0 - rz) * 1.6 * uRainFx;
+          normal = normalize(normal + (viewMatrix * vec4(bend, 0.0)).xyz);
+        }`,
+      )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
