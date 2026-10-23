@@ -160,6 +160,17 @@ export class SettingsPanel {
       ],
       (v) => this.change({ clouds: Number(v) }),
     );
+    this.select(
+      panel,
+      'Water reflection',
+      String(s.reflect),
+      [
+        ['0', 'Sky colour only'],
+        ['1', 'Mirror (half size)'],
+        ['2', 'Mirror (full size)'],
+      ],
+      (v) => this.change({ reflect: Number(v) }),
+    );
     this.toggle(panel, 'Filmic tone mapping (colours roll off, not clip)', s.filmic, (v) =>
       this.change({ filmic: v }),
     );

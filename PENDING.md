@@ -107,7 +107,7 @@ Wave ocean ported from the user's `game-engine/ai_studio_code (4).html` demo: th
 - [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 13. Drop balls, boxes and ragdolls from the Map 12 panel into the sea; swim; press **,** / **.** for dusk and night (neon orbs, moon glints). Editor > Environment: season buttons and the Ocean water sliders. Tell what looks wrong.
 - [ ] 🟡 Weather: rain, snow, sandstorm, fog and clouds exist as sliders already; still to do: wind (drives the waves, current and clouds), storms (waves and rain together), clouds from the demo's golden noise instead of the cloud puffs.
 - [ ] 🟡 Seasons only tint the ground today: trees, snow on roofs, foliage colour, season-dependent weather and an automatic cycle are still to do.
-- [ ] 🟡 The demo's screen-space reflection (second render pass, needs a clip plane) as a High/Ultra graphics option; whirlpools (vortices) with their pull on bodies.
+- [x] Done 2026-10-23: the water mirror (planar reflection with an oblique clip plane) as the Water reflection graphics option, High and Ultra ([GRAPHICS.md section 5](docs/GRAPHICS.md)). 🔴 Look at it in Map 13 with Settings > Water reflection, and check the FPS (F3): it draws the scene twice.
 - [ ] 🟡 Swimming and boats on the waves (`swim.ts`, `naval.ts`); splashes when something falls in.
 
 ### 2q — 🟡 The author's techniques, a paper, wave randomness and the Rust question (noted 2026-10-23)

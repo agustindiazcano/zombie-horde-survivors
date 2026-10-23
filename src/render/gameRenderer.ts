@@ -23,6 +23,7 @@ import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
 import { OceanView } from './oceanView';
+import { WaterReflection } from './waterReflection';
 import { patchGroundRain } from './rainFx';
 import { setPomQuality, setTextureQuality } from './pom';
 import { Sirens } from './sirens';
@@ -261,6 +262,8 @@ export class GameRenderer {
   private ocean: OceanView | null = null;
   private waterQuality = 3;
   private filmic = false;
+  /** The planar mirror of the water (High and Ultra), null when the option is off. */
+  private reflection: WaterReflection | null = null;
   private waterLook: Environment['water'] | null = null;
   private season: Environment['season'] = 'summer';
   private readonly crates = new Map<number, THREE.Mesh>();
@@ -557,6 +560,7 @@ export class GameRenderer {
         flame.scale.y = 0.8 + 0.35 * Math.sin(this.clock * 9 + (flame.userData.phase as number));
       }
     }
+    this.drawWaterMirror();
     this.renderer.render(this.scene, this.camera);
     if (this.viewMode === 'first') this.viewModel.render(this.renderer);
   }
@@ -1389,12 +1393,14 @@ export class GameRenderer {
     rainFx: boolean;
     clouds: number;
     filmic: boolean;
+    reflect: number;
   }): void {
     this.goreEnabled = g.gore;
     this.waterQuality = g.water;
     this.ocean?.setQuality(g.water);
     this.environment.setRainFx(g.rainFx);
     this.filmic = g.filmic;
+    this.setReflectionQuality(g.reflect);
     this.renderer.toneMapping = g.filmic ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
     // Octaves of the cloud noise: 3, 4 or 5 (0 keeps the puffs).
     this.environment.setCloudSteps(g.clouds === 0 ? 0 : g.clouds + 2);
@@ -1447,6 +1453,49 @@ export class GameRenderer {
     m.emissive.setHex(look.glow);
     m.emissiveIntensity = look.glow === 0 ? 0 : 0.35;
     patchGroundRain(m);
+  }
+
+  /** The water reflection option: 0 off, 1 a half-size mirror, 2 a full-size one. */
+  private setReflectionQuality(q: number): void {
+    const scale = q === 0 ? 0 : q === 1 ? 0.5 : 1;
+    if (!scale) {
+      this.reflection?.dispose();
+      this.reflection = null;
+      return;
+    }
+    if (this.reflection && this.reflectionScale === scale) return;
+    this.reflection?.dispose();
+    this.reflectionScale = scale;
+    this.reflection = new WaterReflection(scale);
+    this.resizeReflection();
+  }
+
+  private reflectionScale = 0;
+
+  private resizeReflection(): void {
+    if (!this.reflection) return;
+    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    this.reflection.resize(size.x, size.y);
+  }
+
+  /** Draws the mirror of the world for the ocean, when there is an ocean and the option is on. */
+  private drawWaterMirror(): void {
+    const ocean = this.ocean;
+    if (!ocean) return;
+    const level = this.config.arena.terrain.water;
+    if (!this.reflection || level === null || this.waterQuality === 0) {
+      ocean.setReflection(null, new THREE.Matrix4());
+      return;
+    }
+    this.camera.updateMatrixWorld();
+    const drawn = this.reflection.render(
+      this.renderer,
+      this.scene,
+      this.camera,
+      level,
+      ocean.object,
+    );
+    ocean.setReflection(drawn ? this.reflection.target.texture : null, this.reflection.matrix);
   }
 
   /** Swaps the flat water plane for the wave ocean when the map has the `ocean` rule (or back). */
@@ -1517,6 +1566,7 @@ export class GameRenderer {
     const w = this.container.clientWidth || window.innerWidth;
     const h = this.container.clientHeight || window.innerHeight;
     this.renderer.setSize(w, h);
+    this.resizeReflection();
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.viewModel.resize(w / h);

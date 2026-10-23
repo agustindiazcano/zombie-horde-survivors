@@ -23,6 +23,8 @@ export interface Settings {
   clouds: number;
   /** Filmic tone mapping: bright colours roll off instead of clipping to flat white. */
   filmic: boolean;
+  /** Mirror of the world on the ocean (a second render of the scene): 0 off, 1 half size, 2 full size. */
+  reflect: number;
   /** Dim lighting with a flashlight per soldier. */
   darkMode: boolean;
   showFps: boolean;
@@ -44,6 +46,7 @@ type GraphicsFields = Pick<
   | 'rainFx'
   | 'clouds'
   | 'filmic'
+  | 'reflect'
 >;
 
 export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', GraphicsFields> = {
@@ -59,6 +62,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     rainFx: false,
     clouds: 0,
     filmic: true,
+    reflect: 0,
   },
   low: {
     shadows: false,
@@ -71,6 +75,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     rainFx: false,
     clouds: 0,
     filmic: true,
+    reflect: 0,
   },
   medium: {
     shadows: true,
@@ -83,6 +88,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     rainFx: true,
     clouds: 1,
     filmic: true,
+    reflect: 0,
   },
   high: {
     shadows: true,
@@ -95,6 +101,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     rainFx: true,
     clouds: 2,
     filmic: true,
+    reflect: 1,
   },
   // For a machine with a real GPU: 4K shadows, drawn at 1.5x and scaled down, the finest parallax and textures.
   ultra: {
@@ -108,6 +115,7 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     rainFx: true,
     clouds: 3,
     filmic: true,
+    reflect: 2,
   },
 };
 
@@ -138,7 +146,8 @@ export function qualityOf(s: GraphicsFields): Quality {
       p.water === s.water &&
       p.rainFx === s.rainFx &&
       p.clouds === s.clouds &&
-      p.filmic === s.filmic
+      p.filmic === s.filmic &&
+      p.reflect === s.reflect
     ) {
       return name;
     }
@@ -174,6 +183,7 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     rainFx: bool(raw.rainFx, d.rainFx),
     clouds: Math.round(clamp(raw.clouds, 0, 3, d.clouds)),
     filmic: bool(raw.filmic, d.filmic),
+    reflect: Math.round(clamp(raw.reflect, 0, 2, d.reflect)),
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),
     aimToggle: bool(raw.aimToggle, d.aimToggle),

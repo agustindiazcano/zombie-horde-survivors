@@ -102,6 +102,9 @@ uniform float uNormalDistortion;
 uniform float uCaustics;
 uniform int uPomSteps;
 uniform float uSimple;
+uniform sampler2D tReflect;
+uniform mat4 uReflectMatrix;
+uniform float uReflectOn;
 uniform float uRainFx;
 uniform float uRainTime;
 uniform float uPomDepth;
@@ -216,6 +219,14 @@ void main() {
   float fres = clamp(r0 + (1.0 - r0) * curve, 0.0, 1.0);
 
   vec3 env = skyColor(R, sunDir, day, sunset);
+  // The planar mirror (graphics option): the real scene upside down, bent by the ripples.
+  if (uReflectOn > 0.5) {
+    vec4 rp = uReflectMatrix * vec4(vWorldPos, 1.0);
+    vec2 ruv = rp.xy / rp.w + N.xz * uNormalDistortion * 0.06;
+    float inside = step(0.0, ruv.x) * step(ruv.x, 1.0) * step(0.0, ruv.y) * step(ruv.y, 1.0);
+    vec3 mirror = pow(texture2D(tReflect, clamp(ruv, 0.002, 0.998)).rgb, vec3(1.0 / 2.2));
+    env = mix(env, mirror, 0.9 * inside);
+  }
   vec3 H = normalize(sunDir + V);
   float ndh = max(dot(N, H), 0.0);
   float spec = pow(ndh, 220.0) * 4.2 + pow(ndh, 30.0) * 0.45;
@@ -327,6 +338,9 @@ export class OceanView {
         uCaustics: { value: 0.85 },
         uPomSteps: { value: 12 },
         uSimple: { value: 0 },
+        tReflect: { value: null },
+        uReflectMatrix: { value: new THREE.Matrix4() },
+        uReflectOn: { value: 0 },
         ...rainFxUniforms,
         uPomDepth: { value: 0.45 },
         uTint: { value: new THREE.Color() },
@@ -375,6 +389,14 @@ export class OceanView {
   setQuality(q: number): void {
     this.quality = q;
     if (this.look) this.setLook(this.look);
+  }
+
+  /** The planar mirror of the world (null shows only the sky colour in the reflection). */
+  setReflection(texture: THREE.Texture | null, matrix: THREE.Matrix4): void {
+    const u = this.material.uniforms;
+    u.tReflect!.value = texture;
+    u.uReflectOn!.value = texture && this.quality > 0 ? 1 : 0;
+    (u.uReflectMatrix!.value as THREE.Matrix4).copy(matrix);
   }
 
   /** The look of the map's water (`environment.water`), held back by the graphics quality. */
