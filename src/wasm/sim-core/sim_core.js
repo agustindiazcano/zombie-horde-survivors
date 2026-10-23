@@ -1,6 +1,94 @@
 /* @ts-self-types="./sim_core.d.ts" */
 
 /**
+ * The flow field search of `flowSearch` in `src/sim/kernels.ts`: Dijkstra over a grid with a binary
+ * heap, identical tie-breaking. Fed through slices or through the buffers in the module's memory.
+ */
+export class FlowSearch {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        FlowSearchFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_flowsearch_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    cells_ptr() {
+        const ret = wasm.flowsearch_cells_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    dist_ptr() {
+        const ret = wasm.flowsearch_dist_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    extra_ptr() {
+        const ret = wasm.flowsearch_extra_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    constructor() {
+        const ret = wasm.flowsearch_new();
+        this.__wbg_ptr = ret;
+        FlowSearchFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Room for an `n` x `n` grid and `max_targets` targets in the module's own buffers.
+     * @param {number} n
+     * @param {number} max_targets
+     */
+    reserve(n, max_targets) {
+        wasm.flowsearch_reserve(this.__wbg_ptr, n, max_targets);
+    }
+    /**
+     * Searches on the module's own buffers.
+     * @param {number} n
+     * @param {number} target_count
+     */
+    run(n, target_count) {
+        wasm.flowsearch_run(this.__wbg_ptr, n, target_count);
+    }
+    /**
+     * Searches on slices: the bindings copy them in and `dist` back out.
+     * @param {number} n
+     * @param {Uint8Array} cells
+     * @param {Float32Array} extra
+     * @param {Float64Array} dist
+     * @param {Int32Array} targets
+     * @param {number} target_count
+     */
+    run_slices(n, cells, extra, dist, targets, target_count) {
+        const ptr0 = passArray8ToWasm0(cells, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF32ToWasm0(extra, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        var ptr2 = passArrayF64ToWasm0(dist, wasm.__wbindgen_malloc);
+        var len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArray32ToWasm0(targets, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        wasm.flowsearch_run_slices(this.__wbg_ptr, n, ptr0, len0, ptr1, len1, ptr2, len2, dist, ptr3, len3, target_count);
+    }
+    /**
+     * @returns {number}
+     */
+    targets_ptr() {
+        const ret = wasm.flowsearch_targets_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+}
+if (Symbol.dispose) FlowSearch.prototype[Symbol.dispose] = FlowSearch.prototype.free;
+
+/**
  * One ocean: the parameters, its wave table and the last flow asked for.
  */
 export class Ocean {
@@ -237,6 +325,9 @@ function __wbg_get_imports() {
     };
 }
 
+const FlowSearchFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_flowsearch_free(ptr, 1));
 const OceanFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_ocean_free(ptr, 1));
@@ -254,6 +345,14 @@ function getArrayU8FromWasm0(ptr, len) {
     return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
 }
 
+let cachedFloat32ArrayMemory0 = null;
+function getFloat32ArrayMemory0() {
+    if (cachedFloat32ArrayMemory0 === null || cachedFloat32ArrayMemory0.byteLength === 0) {
+        cachedFloat32ArrayMemory0 = new Float32Array(wasm.memory.buffer);
+    }
+    return cachedFloat32ArrayMemory0;
+}
+
 let cachedFloat64ArrayMemory0 = null;
 function getFloat64ArrayMemory0() {
     if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
@@ -266,6 +365,14 @@ function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);
 }
 
+let cachedUint32ArrayMemory0 = null;
+function getUint32ArrayMemory0() {
+    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
+        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
+    }
+    return cachedUint32ArrayMemory0;
+}
+
 let cachedUint8ArrayMemory0 = null;
 function getUint8ArrayMemory0() {
     if (cachedUint8ArrayMemory0 === null || cachedUint8ArrayMemory0.byteLength === 0) {
@@ -274,9 +381,23 @@ function getUint8ArrayMemory0() {
     return cachedUint8ArrayMemory0;
 }
 
+function passArray32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4, 4) >>> 0;
+    getUint32ArrayMemory0().set(arg, ptr / 4);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+function passArrayF32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4, 4) >>> 0;
+    getFloat32ArrayMemory0().set(arg, ptr / 4);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
@@ -309,7 +430,9 @@ function __wbg_finalize_init(instance, module) {
     wasmInstance = instance;
     wasm = instance.exports;
     wasmModule = module;
+    cachedFloat32ArrayMemory0 = null;
     cachedFloat64ArrayMemory0 = null;
+    cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;

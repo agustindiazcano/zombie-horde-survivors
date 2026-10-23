@@ -2,6 +2,32 @@
 /* eslint-disable */
 
 /**
+ * The flow field search of `flowSearch` in `src/sim/kernels.ts`: Dijkstra over a grid with a binary
+ * heap, identical tie-breaking. Fed through slices or through the buffers in the module's memory.
+ */
+export class FlowSearch {
+    free(): void;
+    [Symbol.dispose](): void;
+    cells_ptr(): number;
+    dist_ptr(): number;
+    extra_ptr(): number;
+    constructor();
+    /**
+     * Room for an `n` x `n` grid and `max_targets` targets in the module's own buffers.
+     */
+    reserve(n: number, max_targets: number): void;
+    /**
+     * Searches on the module's own buffers.
+     */
+    run(n: number, target_count: number): void;
+    /**
+     * Searches on slices: the bindings copy them in and `dist` back out.
+     */
+    run_slices(n: number, cells: Uint8Array, extra: Float32Array, dist: Float64Array, targets: Int32Array, target_count: number): void;
+    targets_ptr(): number;
+}
+
+/**
  * One ocean: the parameters, its wave table and the last flow asked for.
  */
 export class Ocean {
@@ -80,8 +106,17 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly __wbg_flowsearch_free: (a: number, b: number) => void;
     readonly __wbg_ocean_free: (a: number, b: number) => void;
     readonly __wbg_separation_free: (a: number, b: number) => void;
+    readonly flowsearch_cells_ptr: (a: number) => number;
+    readonly flowsearch_dist_ptr: (a: number) => number;
+    readonly flowsearch_extra_ptr: (a: number) => number;
+    readonly flowsearch_new: () => number;
+    readonly flowsearch_reserve: (a: number, b: number, c: number) => void;
+    readonly flowsearch_run: (a: number, b: number, c: number) => void;
+    readonly flowsearch_run_slices: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: any, j: number, k: number, l: number) => void;
+    readonly flowsearch_targets_ptr: (a: number) => number;
     readonly ocean_batch_reserve: (a: number, b: number) => number;
     readonly ocean_flow_at: (a: number, b: number, c: number) => void;
     readonly ocean_flow_x: (a: number) => number;

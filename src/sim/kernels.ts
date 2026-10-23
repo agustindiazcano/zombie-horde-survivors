@@ -89,3 +89,110 @@ export function separate(
     }
   }
 }
+
+/** Cell neighbours of the flow field: dx, dz and the cost of the step (flat, same order as flowfield.ts). */
+const FLOW_DX = new Int8Array([1, -1, 0, 0, 1, 1, -1, -1]);
+const FLOW_DZ = new Int8Array([0, 0, 1, -1, 1, -1, 1, -1]);
+const FLOW_STEP = new Float64Array([1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2]);
+
+/** The binary heap of the flow field search (grown when needed, reused between searches). */
+export interface FlowScratch {
+  cost: Float64Array;
+  cell: Int32Array;
+  size: number;
+}
+
+export const newFlowScratch = (): FlowScratch => ({
+  cost: new Float64Array(1024),
+  cell: new Int32Array(1024),
+  size: 0,
+});
+
+function heapPush(h: FlowScratch, cost: number, cell: number): void {
+  if (h.size === h.cost.length) {
+    const cc = new Float64Array(h.size * 2);
+    cc.set(h.cost);
+    h.cost = cc;
+    const ce = new Int32Array(h.size * 2);
+    ce.set(h.cell);
+    h.cell = ce;
+  }
+  let i = h.size++;
+  while (i > 0) {
+    const parent = (i - 1) >> 1;
+    if (h.cost[parent]! <= cost) break;
+    h.cost[i] = h.cost[parent]!;
+    h.cell[i] = h.cell[parent]!;
+    i = parent;
+  }
+  h.cost[i] = cost;
+  h.cell[i] = cell;
+}
+
+/** Removes the cheapest entry; the caller reads it from slot 0 first. */
+function heapPop(h: FlowScratch): void {
+  const size = --h.size;
+  if (size === 0) return;
+  const lastCost = h.cost[size]!;
+  const lastCell = h.cell[size]!;
+  let i = 0;
+  for (;;) {
+    let child = 2 * i + 1;
+    if (child >= size) break;
+    if (child + 1 < size && h.cost[child + 1]! < h.cost[child]!) child++;
+    if (h.cost[child]! >= lastCost) break;
+    h.cost[i] = h.cost[child]!;
+    h.cell[i] = h.cell[child]!;
+    i = child;
+  }
+  h.cost[i] = lastCost;
+  h.cell[i] = lastCell;
+}
+
+/**
+ * Fills `dist` (n x n cells) with the walking distance from every free cell to the nearest of the
+ * `targets` cells: Dijkstra over 8 neighbours, diagonals cost sqrt 2 and may not cut a corner, a cell
+ * of kind 1 is a wall, `extra` is added to the cost of entering a cell (breakable structures).
+ */
+export function flowSearch(
+  h: FlowScratch,
+  n: number,
+  cells: Uint8Array,
+  extra: Float32Array,
+  dist: Float64Array,
+  targets: Int32Array,
+  targetCount: number,
+): void {
+  dist.fill(Infinity);
+  h.size = 0;
+  for (let t = 0; t < targetCount; t++) {
+    const c = targets[t]!;
+    if (dist[c] === 0) continue;
+    dist[c] = 0;
+    heapPush(h, 0, c);
+  }
+  while (h.size > 0) {
+    const cost = h.cost[0]!;
+    const cell = h.cell[0]!;
+    heapPop(h);
+    if (cost > dist[cell]!) continue; // a cheaper way to this cell was already found
+    const cx = cell % n;
+    const cz = (cell - cx) / n;
+    for (let k = 0; k < 8; k++) {
+      const dx = FLOW_DX[k]!;
+      const dz = FLOW_DZ[k]!;
+      const nx = cx + dx;
+      const nz = cz + dz;
+      if (nx < 0 || nz < 0 || nx >= n || nz >= n) continue;
+      const next = nz * n + nx;
+      if (cells[next] === 1) continue;
+      // No cutting a corner: both cells beside a diagonal step must be free.
+      if (dx !== 0 && dz !== 0 && (cells[cz * n + nx] !== 0 || cells[nz * n + cx] !== 0)) continue;
+      const total = cost + FLOW_STEP[k]! + extra[next]!;
+      if (total < dist[next]!) {
+        dist[next] = total;
+        heapPush(h, total, next);
+      }
+    }
+  }
+}

@@ -1,8 +1,17 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const __wbg_flowsearch_free: (a: number, b: number) => void;
 export const __wbg_ocean_free: (a: number, b: number) => void;
 export const __wbg_separation_free: (a: number, b: number) => void;
+export const flowsearch_cells_ptr: (a: number) => number;
+export const flowsearch_dist_ptr: (a: number) => number;
+export const flowsearch_extra_ptr: (a: number) => number;
+export const flowsearch_new: () => number;
+export const flowsearch_reserve: (a: number, b: number, c: number) => void;
+export const flowsearch_run: (a: number, b: number, c: number) => void;
+export const flowsearch_run_slices: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: any, j: number, k: number, l: number) => void;
+export const flowsearch_targets_ptr: (a: number) => number;
 export const ocean_batch_reserve: (a: number, b: number) => number;
 export const ocean_flow_at: (a: number, b: number, c: number) => void;
 export const ocean_flow_x: (a: number) => number;

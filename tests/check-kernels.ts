@@ -1,8 +1,8 @@
 // Compares the flat kernels of src/sim/kernels.ts (TypeScript) with their Rust copy bit for bit, and
 // times both on the same data: npm run check:kernels
 import { readFileSync } from 'node:fs';
-import { newSeparationScratch, separate } from '../src/sim/kernels';
-import { Separation, loadSimCoreSync, simCoreMemory } from '../src/wasm/simCore';
+import { flowSearch, newFlowScratch, newSeparationScratch, separate } from '../src/sim/kernels';
+import { FlowSearch, Separation, loadSimCoreSync, simCoreMemory } from '../src/wasm/simCore';
 
 loadSimCoreSync(readFileSync('src/wasm/sim-core/sim_core_bg.wasm'));
 
@@ -44,7 +44,7 @@ console.log(
     REPS +
     ' calls)',
 );
-for (const n of [100, 300, 1000, 3000]) {
+for (const n of [100, 300, 1000, 2000, 5000, 10000]) {
   const c = crowd(n);
 
   // Bit-for-bit: five successive calls, TypeScript against Rust (slices and in-memory).
@@ -108,6 +108,78 @@ for (const n of [100, 300, 1000, 3000]) {
     `${String(n).padStart(6)} ${String(differ).padStart(12)} ${msTs.toFixed(3).padStart(12)} ${msSlices.toFixed(3).padStart(16)} ${msMem.toFixed(3).padStart(19)}`,
   );
 }
+// The flow field search: walls and breakable cells at random, a few targets.
+console.log(
+  '\ngrid     bits differ   ts ms/call   rust slices ms   rust in-memory ms   (a search from 5 targets)',
+);
+for (const n of [80, 160, 320]) {
+  const cells = new Uint8Array(n * n);
+  const extra = new Float32Array(n * n);
+  for (let w = 0; w < n * 2; w++) {
+    // Walls: short runs, some horizontal and some vertical; a few breakable cells with a cost.
+    const horizontal = rnd() < 0.5;
+    const len = 3 + Math.floor(rnd() * 14);
+    const cx = Math.floor(rnd() * n);
+    const cz = Math.floor(rnd() * n);
+    const breakable = rnd() < 0.15;
+    for (let k = 0; k < len; k++) {
+      const x = horizontal ? Math.min(cx + k, n - 1) : cx;
+      const z = horizontal ? cz : Math.min(cz + k, n - 1);
+      cells[z * n + x] = breakable ? 2 : 1;
+      if (breakable) extra[z * n + x] = 3 + Math.floor(rnd() * 8) * 0.5;
+    }
+  }
+  const targets = new Int32Array(5);
+  for (let t = 0; t < 5; t++) {
+    let c = Math.floor(rnd() * n * n);
+    while (cells[c] === 1) c = Math.floor(rnd() * n * n);
+    targets[t] = c;
+  }
+
+  const h = newFlowScratch();
+  const distTs = new Float64Array(n * n);
+  flowSearch(h, n, cells, extra, distTs, targets, 5);
+
+  const fs = new FlowSearch();
+  const distSlices = new Float64Array(n * n);
+  fs.run_slices(n, cells, extra, distSlices, targets, 5);
+
+  const fm = new FlowSearch();
+  fm.reserve(n, 5);
+  const mem = () => simCoreMemory().buffer;
+  const mCells = () => new Uint8Array(mem(), fm.cells_ptr() as unknown as number, n * n);
+  const mExtra = () => new Float32Array(mem(), fm.extra_ptr() as unknown as number, n * n);
+  const mDist = () => new Float64Array(mem(), fm.dist_ptr() as unknown as number, n * n);
+  const mTargets = () => new Int32Array(mem(), fm.targets_ptr() as unknown as number, 5);
+  mCells().set(cells);
+  mExtra().set(extra);
+  mTargets().set(targets);
+  fm.run(n, 5);
+  const differ = sameBits(distTs, distSlices) + sameBits(distTs, mDist());
+  if (differ > 0) failed = true;
+
+  const reps = n >= 320 ? 20 : 100;
+  const best = (run: () => void): number => {
+    let b = Infinity;
+    for (let k = 0; k < 3; k++) {
+      const t0 = performance.now();
+      for (let r = 0; r < reps; r++) run();
+      b = Math.min(b, (performance.now() - t0) / reps);
+    }
+    return b;
+  };
+  const msTs = best(() => flowSearch(h, n, cells, extra, distTs, targets, 5));
+  const msSlices = best(() => fs.run_slices(n, cells, extra, distSlices, targets, 5));
+  // In memory the walls stay uploaded; each search sets the targets and runs, and reads `dist` in place.
+  const msMem = best(() => {
+    mTargets().set(targets);
+    fm.run(n, 5);
+  });
+  console.log(
+    `${(n + 'x' + n).padStart(7)} ${String(differ).padStart(12)} ${msTs.toFixed(3).padStart(12)} ${msSlices.toFixed(3).padStart(16)} ${msMem.toFixed(3).padStart(19)}`,
+  );
+}
+
 console.log(
   failed ? 'FAIL: the Rust kernel differs from the TypeScript' : 'OK: bit for bit identical',
 );
