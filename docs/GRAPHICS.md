@@ -8,14 +8,20 @@ Everything is Three.js with hand-written GLSL. Code: `src/render/environment.ts`
 
 The options live in a registry, `src/graphicsOptions.ts` (label, values, help, and the **cost of each value**: `gpu` and `cpu` from 0 to 5, `vram` in MB), and the settings window (`src/settingsPanel.ts`, nearly full screen, key `O`) is drawn from it: a header with the presets and three bars (GPU, CPU, video memory as a share of every option at its heaviest), the options grouped by page, and a chip beside each option with the cost of the chosen value. The costs are estimates by reasoning, not measurements. Adding an option means adding its row to the registry, its field to `src/settings.ts` (and the presets) and its rule to this file.
 
-| Option              | Values                                                          | What it changes                                                                                                                              |
-| ------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Water               | 0 flat, 1 light, 2 normal, 3 full                               | How much of the map's water look is drawn (section 5). The look itself is the map's; this only holds it back                                 |
-| Sky clouds          | 0 simple puffs, 1 / 2 / 3 volumetric with 3 / 4 / 5 octaves     | Puff meshes or the cloud layer inside the sky shader (section 3)                                                                             |
-| Water reflection    | 0 sky colour only, 1 mirror at half size, 2 mirror at full size | A planar mirror of the whole scene on the ocean (section 5): the scene is drawn a second time. Presets: High 1, Ultra 2, the rest 0          |
-| Filmic tone mapping | on / off                                                        | ACES filmic curve with an exposure that follows the hour (section 6): bright colours roll off instead of clipping to flat white              |
-| Rain on the lens    | 0 off, 1 drops that swell and dry, 2 plus running drops         | Drops of water on the camera (section 12). Copies the finished frame once and draws a full-screen pass. Presets: High 1, Ultra 2, the rest 0 |
-| Rain drops          | on / off                                                        | Streak cylinder, wet ground with rings and ring ripples in the sea, instead of 2500 line drops (section 4)                                   |
+| Option                      | Values                                                                | What it changes                                                                                                                              |
+| --------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Water                       | 0 flat, 1 light, 2 normal, 3 full                                     | How much of the map's water look is drawn (section 5). The look itself is the map's; this only holds it back                                 |
+| Sky clouds                  | 0 simple puffs, 1 / 2 / 3 volumetric with 3 / 4 / 5 octaves           | Puff meshes or the cloud layer inside the sky shader (section 3)                                                                             |
+| Water reflection            | 0 sky colour only, 1 mirror at half size, 2 mirror at full size       | A planar mirror of the whole scene on the ocean (section 5): the scene is drawn a second time. Presets: High 1, Ultra 2, the rest 0          |
+| Filmic tone mapping         | on / off                                                              | ACES filmic curve with an exposure that follows the hour (section 6): bright colours roll off instead of clipping to flat white              |
+| Rain on the lens            | 0 off, 1 drops that swell and dry, 2 plus running drops               | Drops of water on the camera (section 12). Copies the finished frame once and draws a full-screen pass. Presets: High 1, Ultra 2, the rest 0 |
+| Snow on surfaces            | on / off                                                              | The snow layer shader on every material (section 7); off keeps the snowfall particles but nothing settles                                    |
+| Ground detail               | 0 plain painted ground, 1 colour noise and rock, 2 plus cloud shadows | The ground shader of section 6 (`uGroundDetail`; the cloud shadows need level 2 and the volumetric sky)                                      |
+| Fog                         | on / off                                                              | Height fog (section 2): off sets the density to 0                                                                                            |
+| Lightning                   | 0 off, 1 flash only, 2 flash and bolt                                 | Section 4; at 0 no strike happens (and no thunder)                                                                                           |
+| Dynamic lights from the sea | 0, 4, 8                                                               | How many neon orbs also cast real point lights (section 5); the orbs always glow                                                             |
+| Ice detail                  | 0 to 3                                                                | Quality of the ice shader (section 11), never above the Water option                                                                         |
+| Rain drops                  | on / off                                                              | Streak cylinder, wet ground with rings and ring ripples in the sea, instead of 2500 line drops (section 4)                                   |
 
 | Preset  | Water | Sky clouds | Rain drops |
 | ------- | ----- | ---------- | ---------- |
@@ -24,6 +30,14 @@ The options live in a registry, `src/graphicsOptions.ts` (label, values, help, a
 | Medium  | 2     | 1          | on         |
 | High    | 3     | 2          | on         |
 | Ultra   | 3     | 3          | on         |
+
+| Preset  | Snow | Ground detail | Fog | Lightning | Sea lights | Ice |
+| ------- | ---- | ------------- | --- | --------- | ---------- | --- |
+| Toaster | off  | 0             | off | 0         | 0          | 0   |
+| Low     | on   | 1             | on  | 1         | 0          | 1   |
+| Medium  | on   | 2             | on  | 2         | 4          | 2   |
+| High    | on   | 2             | on  | 2         | 8          | 3   |
+| Ultra   | on   | 2             | on  | 2         | 8          | 3   |
 
 ## 2. Sky, sun, moon and night
 

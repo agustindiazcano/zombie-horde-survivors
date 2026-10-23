@@ -27,6 +27,18 @@ export interface Settings {
   reflect: number;
   /** Rain on the camera lens: 0 off, 1 drops that swell and dry, 2 plus running drops (copies the frame once). */
   lens: number;
+  /** Snow settling on every surface that faces the sky. */
+  snow: boolean;
+  /** Ground detail: 0 the plain painted ground, 1 colour noise and rock, 2 plus moving cloud shadows. */
+  groundDetail: number;
+  /** Height fog (weather and the horizon haze). */
+  fog: boolean;
+  /** Lightning: 0 none, 1 the flash only, 2 the flash and the bolt. */
+  lightning: number;
+  /** The most neon orbs of the sea that also cast real light: 0, 4 or 8. */
+  lights: number;
+  /** Detail of ice on a frozen sea: 0 flat colour to 3 cracks and deep bubbles. */
+  ice: number;
   /** Dim lighting with a flashlight per soldier. */
   darkMode: boolean;
   showFps: boolean;
@@ -50,6 +62,12 @@ type GraphicsFields = Pick<
   | 'filmic'
   | 'reflect'
   | 'lens'
+  | 'snow'
+  | 'groundDetail'
+  | 'fog'
+  | 'lightning'
+  | 'lights'
+  | 'ice'
 >;
 
 export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', GraphicsFields> = {
@@ -67,6 +85,12 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     filmic: true,
     reflect: 0,
     lens: 0,
+    snow: false,
+    groundDetail: 0,
+    fog: false,
+    lightning: 0,
+    lights: 0,
+    ice: 0,
   },
   low: {
     shadows: false,
@@ -81,6 +105,12 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     filmic: true,
     reflect: 0,
     lens: 0,
+    snow: true,
+    groundDetail: 1,
+    fog: true,
+    lightning: 1,
+    lights: 0,
+    ice: 1,
   },
   medium: {
     shadows: true,
@@ -95,6 +125,12 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     filmic: true,
     reflect: 0,
     lens: 0,
+    snow: true,
+    groundDetail: 2,
+    fog: true,
+    lightning: 2,
+    lights: 4,
+    ice: 2,
   },
   high: {
     shadows: true,
@@ -109,6 +145,12 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     filmic: true,
     reflect: 1,
     lens: 1,
+    snow: true,
+    groundDetail: 2,
+    fog: true,
+    lightning: 2,
+    lights: 8,
+    ice: 3,
   },
   // For a machine with a real GPU: 4K shadows, drawn at 1.5x and scaled down, the finest parallax and textures.
   ultra: {
@@ -124,6 +166,12 @@ export const PRESETS: Record<'toaster' | 'low' | 'medium' | 'high' | 'ultra', Gr
     filmic: true,
     reflect: 2,
     lens: 2,
+    snow: true,
+    groundDetail: 2,
+    fog: true,
+    lightning: 2,
+    lights: 8,
+    ice: 3,
   },
 };
 
@@ -156,7 +204,13 @@ export function qualityOf(s: GraphicsFields): Quality {
       p.clouds === s.clouds &&
       p.filmic === s.filmic &&
       p.reflect === s.reflect &&
-      p.lens === s.lens
+      p.lens === s.lens &&
+      p.snow === s.snow &&
+      p.groundDetail === s.groundDetail &&
+      p.fog === s.fog &&
+      p.lightning === s.lightning &&
+      p.lights === s.lights &&
+      p.ice === s.ice
     ) {
       return name;
     }
@@ -194,6 +248,12 @@ export function loadSettings(defaults: Settings = DEFAULT_SETTINGS): Settings {
     filmic: bool(raw.filmic, d.filmic),
     reflect: Math.round(clamp(raw.reflect, 0, 2, d.reflect)),
     lens: Math.round(clamp(raw.lens, 0, 2, d.lens)),
+    snow: bool(raw.snow, d.snow),
+    groundDetail: Math.round(clamp(raw.groundDetail, 0, 2, d.groundDetail)),
+    fog: bool(raw.fog, d.fog),
+    lightning: Math.round(clamp(raw.lightning, 0, 2, d.lightning)),
+    lights: [0, 4, 8].includes(raw.lights as number) ? (raw.lights as number) : d.lights,
+    ice: Math.round(clamp(raw.ice, 0, 3, d.ice)),
     darkMode: bool(raw.darkMode, d.darkMode),
     showFps: bool(raw.showFps, d.showFps),
     aimToggle: bool(raw.aimToggle, d.aimToggle),

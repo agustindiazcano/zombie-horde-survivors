@@ -266,6 +266,8 @@ export class GameRenderer {
   /** The planar mirror of the water (High and Ultra), null when the option is off. */
   private reflection: WaterReflection | null = null;
   private lens: LensDrops | null = null;
+  private iceDetail = 3;
+  private lightCap = 8;
   private waterLook: Environment['water'] | null = null;
   private season: Environment['season'] = 'summer';
   private readonly crates = new Map<number, THREE.Mesh>();
@@ -1398,6 +1400,12 @@ export class GameRenderer {
     filmic: boolean;
     reflect: number;
     lens: number;
+    snow: boolean;
+    groundDetail: number;
+    fog: boolean;
+    lightning: number;
+    lights: number;
+    ice: number;
   }): void {
     this.goreEnabled = g.gore;
     this.waterQuality = g.water;
@@ -1406,6 +1414,16 @@ export class GameRenderer {
     this.filmic = g.filmic;
     this.setReflectionQuality(g.reflect);
     this.setLensDrops(g.lens);
+    this.environment.setWeatherFx({
+      snow: g.snow,
+      ground: g.groundDetail,
+      fog: g.fog,
+      lightning: g.lightning,
+    });
+    this.iceDetail = g.ice;
+    this.lightCap = g.lights;
+    this.ocean?.setIceDetail(g.ice);
+    this.ocean?.setLightCap(g.lights);
     this.renderer.toneMapping = g.filmic ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
     // Octaves of the cloud noise: 3, 4 or 5 (0 keeps the puffs).
     this.environment.setCloudSteps(g.clouds === 0 ? 0 : g.clouds + 2);
@@ -1531,6 +1549,8 @@ export class GameRenderer {
     this.arenaGroup.getObjectByName('water')?.removeFromParent();
     this.ocean = new OceanView(arena, level, this.config.ocean);
     this.ocean.setQuality(this.waterQuality);
+    this.ocean.setIceDetail(this.iceDetail);
+    this.ocean.setLightCap(this.lightCap);
     if (this.waterLook) this.ocean.setLook(this.waterLook);
     this.scene.add(this.ocean.object);
   }

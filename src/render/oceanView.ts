@@ -386,6 +386,8 @@ export class OceanView {
   private readonly center = new THREE.Vector2();
   private readonly current = { x: 0, z: 0 };
   private quality = 3;
+  private iceDetail = 3;
+  private lightCap = 8;
   private look: WaterLook | null = null;
 
   constructor(arena: GameConfig['arena'], level: number, params: GameConfig['ocean']) {
@@ -504,6 +506,18 @@ export class OceanView {
     if (this.look) this.setLook(this.look);
   }
 
+  /** Ice detail (graphics option, 0 flat to 3 deepest bubbles), never above the water quality. */
+  setIceDetail(detail: number): void {
+    this.iceDetail = detail;
+    this.material.uniforms.uIceQ!.value = Math.min(this.quality, detail);
+  }
+
+  /** The most neon orbs that also cast real light (graphics option; the orbs are drawn either way). */
+  setLightCap(cap: number): void {
+    this.lightCap = cap;
+    if (this.look) this.setLook(this.look);
+  }
+
   /** The planar mirror of the world (null shows only the sky colour in the reflection). */
   setReflection(texture: THREE.Texture | null, matrix: THREE.Matrix4): void {
     const u = this.material.uniforms;
@@ -525,7 +539,7 @@ export class OceanView {
     };
     const u = this.material.uniforms;
     u.uSimple!.value = q === 0 ? 1 : 0;
-    u.uIceQ!.value = q;
+    u.uIceQ!.value = Math.min(q, this.iceDetail);
     u.uFresnelMode!.value = w.fresnel === 'area' ? 0 : 1;
     u.uSaturationBrake!.value = w.saturationBrake;
     u.uChromaticFriction!.value = w.chromaticFriction;
@@ -540,7 +554,7 @@ export class OceanView {
     if (w.tint) u.uTint!.value.set(w.tint);
     this.orbCount = w.neonOrbs;
     this.orbMeshes.forEach((m, i) => (m.visible = i < w.neonOrbs));
-    this.orbLights.forEach((l, i) => (l.visible = i < w.neonOrbs));
+    this.orbLights.forEach((l, i) => (l.visible = i < Math.min(w.neonOrbs, this.lightCap)));
   }
 
   /** Per frame: the sim clock (s) drives the waves, `sun` is the direction to the sun. */

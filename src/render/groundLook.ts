@@ -13,6 +13,8 @@ export const groundFx = {
   uCloudTime: { value: 0 },
   uCloudWind: { value: 1 },
   uCloudCover: { value: 0 },
+  /** 0 skips the colour noise and the rock (the plain painted ground), 1 draws them. */
+  uGroundDetail: { value: 1 },
 };
 
 /**
@@ -47,6 +49,7 @@ varying vec3 vLookPos;
 varying float vLookUp;
 uniform float uWaterLevel;
 uniform float uCloudShadow;
+uniform float uGroundDetail;
 uniform vec3 uSunDirG;
 uniform float uCloudTime;
 uniform float uCloudWind;
@@ -74,9 +77,11 @@ float shadowFbm(vec2 p) {
         `#include <color_fragment>
         {
           vec2 q = vLookPos.xz;
-          float big = lookNoise(q * 0.09);
-          float mid = lookNoise(q * 0.45 + 7.0);
-          float fine = lookNoise(q * 2.6 + 3.0);
+          float big = 0.5, mid = 0.5, fine = 0.5;
+          if (uGroundDetail > 0.5) {
+          big = lookNoise(q * 0.09);
+          mid = lookNoise(q * 0.45 + 7.0);
+          fine = lookNoise(q * 2.6 + 3.0);
           float grain = lookNoise(q * 11.0 + 5.0);
           float detail = 0.45 * big + 0.3 * mid + 0.17 * fine + 0.08 * grain;
           diffuseColor.rgb *= 0.62 + 0.78 * detail;
@@ -85,6 +90,7 @@ float shadowFbm(vec2 p) {
           float rock = smoothstep(0.9, 0.68, vLookUp);
           vec3 stone = vec3(0.43, 0.41, 0.39) * (0.75 + 0.5 * fine);
           diffuseColor.rgb = mix(diffuseColor.rgb, stone, rock);
+          }
 
           // The shore: wet, darker sand within a metre above the water, bluish ground below it.
           float above = vLookPos.y - uWaterLevel;
@@ -105,6 +111,6 @@ float shadowFbm(vec2 p) {
         }`,
       );
   };
-  material.customProgramCacheKey = () => `${previousKey()}|groundlook2`;
+  material.customProgramCacheKey = () => `${previousKey()}|groundlook3`;
   material.needsUpdate = true;
 }

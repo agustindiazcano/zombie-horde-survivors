@@ -287,7 +287,7 @@ export class EnvironmentView {
 
   /** Lightning: now and then a bolt strikes, the sky and the light flash twice, then fade. */
   private storm(camera: THREE.Vector3, clock: number): void {
-    const strength = this.env.lightning;
+    const strength = this.lightningLevel > 0 ? this.env.lightning : 0;
     if (strength > 0 && this.env.sky && clock >= this.nextStrike) {
       this.strikeAt = clock;
       // Stronger storms strike more often (every 4 to 15 s at full strength, much rarer at a trace).
@@ -300,7 +300,7 @@ export class EnvironmentView {
     const flash = t < 0 || t > 1.4 ? 0 : Math.max(Math.exp(-t * 9), second);
     const power = flash * Math.max(strength, 0.4);
     this.skyUniforms.uFlash.value = power;
-    this.bolt.visible = t >= 0 && t < 0.3 && flash > 0.15;
+    this.bolt.visible = this.lightningLevel >= 2 && t >= 0 && t < 0.3 && flash > 0.15;
     this.hemi.intensity = this.hemiBase + power * 1.8;
     this.sun.intensity = this.sunBase + power * 1.2;
   }
@@ -386,6 +386,21 @@ export class EnvironmentView {
   get rainAmount(): number {
     return this.env.rain;
   }
+
+  /** Graphics options of the weather: snow on surfaces, ground detail (0 off, 1 colour, 2 and cloud shadows), height fog, lightning (0 off, 1 flash only, 2 bolt too). */
+  setWeatherFx(o: { snow: boolean; ground: number; fog: boolean; lightning: number }): void {
+    this.snowOn = o.snow;
+    this.groundDetail = o.ground;
+    this.fogOn = o.fog;
+    this.lightningLevel = o.lightning;
+    groundFx.uGroundDetail.value = o.ground > 0 ? 1 : 0;
+    this.apply();
+  }
+
+  private snowOn = true;
+  private groundDetail = 2;
+  private fogOn = true;
+  private lightningLevel = 2;
 
   /** The rain effects option: streaks around the camera plus ripples on the ground and the sea. */
   setRainFx(on: boolean): void {
@@ -523,7 +538,7 @@ export class EnvironmentView {
     groundFx.uCloudWind.value = 1 + env.wind * 4;
     groundFx.uCloudCover.value = Math.min(env.clouds + env.rain * 0.3, 0.96);
     groundFx.uCloudShadow.value =
-      env.sky && this.cloudSteps > 0
+      env.sky && this.cloudSteps > 0 && this.groundDetail >= 2
         ? 0.5 * Math.min(env.clouds * 1.3, 1) * smooth(0.05, 0.3, elevation) * (1 - 0.5 * murk)
         : 0;
     sky.uTwilight.value = twilight;
@@ -545,7 +560,9 @@ export class EnvironmentView {
 
     // Fog follows the weather; sand tints it.
     const fog = this.scene.fog as THREE.Fog;
-    fog.near = Math.max(env.fog * 0.045, env.sand * 0.04, env.rain * 0.012, env.snow * 0.01);
+    fog.near = this.fogOn
+      ? Math.max(env.fog * 0.045, env.sand * 0.04, env.rain * 0.012, env.snow * 0.01)
+      : 0;
     fog.far = env.fogFalloff * (1 - 0.55 * env.sand);
     fog.color
       .copy(horizon)
@@ -577,11 +594,9 @@ export class EnvironmentView {
       Math.max(this.settled + (this.env.snow > 0 ? this.env.snow / 120 : -1 / 300) * elapsed, 0),
       1,
     );
-    snowFx.uSnowCover.value = Math.max(
-      this.settled,
-      this.env.snowCover,
-      this.env.season === 'winter' ? 0.75 : 0,
-    );
+    snowFx.uSnowCover.value = this.snowOn
+      ? Math.max(this.settled, this.env.snowCover, this.env.season === 'winter' ? 0.75 : 0)
+      : 0;
     this.skyUniforms.uTime.value = clock;
     groundFx.uCloudTime.value = clock;
     rainFxUniforms.uRainTime.value = clock;
