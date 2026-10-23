@@ -146,6 +146,7 @@ Not in git: `node_modules/`, `dist/`, and the two root folders `game-engine/` an
 ## 8. Workflow rules
 
 - A branch per task, small English conventional commits ending with the `Co-Authored-By` line from the session reminder.
+- **Commit when a task is done:** right after finishing a feature task, and also after every fix, commit it (checks passing) on the branch it belongs to: a feature on its feature branch, a fix on the branch of the work it fixes (for example `fix:` for a bug found in `feat/ocean-map-13` goes in that branch). Do not leave finished work uncommitted between tasks; do not commit unrelated files (like a model dropped in the root).
 - **Never push to `main`.** Open a PR only when the user asks ("hace pr"). The user merges it, then says "anda a main y pull": check out `main`, pull, and report what is merged and what is next.
 - Do not branch a new feature from `main` while an earlier PR is unmerged without checking what `main` is missing.
 - **No new tests, no TDD** (the user's decision). Keep the 48 existing tests passing; do not delete them.
