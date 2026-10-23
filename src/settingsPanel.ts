@@ -160,6 +160,9 @@ export class SettingsPanel {
       ],
       (v) => this.change({ clouds: Number(v) }),
     );
+    this.toggle(panel, 'Filmic tone mapping (colours roll off, not clip)', s.filmic, (v) =>
+      this.change({ filmic: v }),
+    );
     this.toggle(panel, 'Rain drops (streaks, ground and water rings)', s.rainFx, (v) =>
       this.change({ rainFx: v }),
     );

@@ -260,6 +260,7 @@ export class GameRenderer {
   /** The wave ocean of the current map (Map 13), or null for flat water. */
   private ocean: OceanView | null = null;
   private waterQuality = 3;
+  private filmic = false;
   private waterLook: Environment['water'] | null = null;
   private season: Environment['season'] = 'summer';
   private readonly crates = new Map<number, THREE.Mesh>();
@@ -545,6 +546,7 @@ export class GameRenderer {
     this.gore.update(dt);
     this.looseParts.update(dt, (x, z) => this.groundAt(x, z));
     this.environment.update(this.camera.position, this.clock);
+    this.renderer.toneMappingExposure = this.filmic ? this.environment.exposure : 1;
     if (this.ocean) {
       this.ocean.setParams(this.config.ocean);
       this.ocean.update(state.time, this.environment.sunDirection);
@@ -1351,11 +1353,14 @@ export class GameRenderer {
     water: number;
     rainFx: boolean;
     clouds: number;
+    filmic: boolean;
   }): void {
     this.goreEnabled = g.gore;
     this.waterQuality = g.water;
     this.ocean?.setQuality(g.water);
     this.environment.setRainFx(g.rainFx);
+    this.filmic = g.filmic;
+    this.renderer.toneMapping = g.filmic ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
     // Octaves of the cloud noise: 3, 4 or 5 (0 keeps the puffs).
     this.environment.setCloudSteps(g.clouds === 0 ? 0 : g.clouds + 2);
     setPomQuality(g.parallax);

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { heightAt, OBSTACLE_HEIGHT, type GameConfig } from '../sim';
 import { terrainData, textureColor } from '../terrainData';
+import { patchGroundLook } from './groundLook';
 import { buildProp, LAMP_LIGHT_HEIGHT } from './neighbourhood';
 
 const WALL_HEIGHT = 1.5;
@@ -100,10 +101,10 @@ function buildGround(arena: GameConfig['arena']): THREE.Mesh {
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
-  const ground = new THREE.Mesh(
-    geometry,
-    new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: !!heights }),
-  );
+  // Smooth normals and a detailed colour in the shader (groundLook.ts) instead of flat facets.
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true });
+  patchGroundLook(material);
+  const ground = new THREE.Mesh(geometry, material);
   ground.receiveShadow = true;
   ground.name = 'ground';
   return ground;

@@ -99,6 +99,8 @@ export class EnvironmentView {
   );
   /** The hour the lights were last computed for (the clock may run by itself). */
   private hourShown = 12;
+  /** Camera exposure for the filmic tone mapping: a little more at night so the dark stays readable. */
+  exposure = 1.05;
   private readonly clouds: { group: THREE.Group; base: THREE.Vector3 }[] = [];
   private readonly cloudMaterial = new THREE.MeshBasicMaterial({
     color: 0xffffff,
@@ -448,6 +450,7 @@ export class EnvironmentView {
     const nightAmbient = DARK_AMBIENT + (NIGHT_AMBIENT - DARK_AMBIENT) * keep;
     this.sunBase = (nightSun + (DAY_SUN - nightSun) * day) * (1 - 0.35 * murk) * this.dim;
     this.sun.intensity = this.sunBase;
+    this.exposure = 1.05 + (1 - day) * 0.25 * (0.4 + 0.6 * keep);
     // The sun's path turns around the map by the heading (the lights and the sky share it).
     const turn = (env.sunAzimuth * Math.PI) / 180;
     const rotate = (v: THREE.Vector3) => {
