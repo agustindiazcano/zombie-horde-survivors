@@ -41,6 +41,8 @@ Built: `crates/sim-core` (Rust, `wasm-bindgen`), the built package committed in 
 
 So, as it stands, Rust does not make the ocean faster. What it gives is the same numbers on every machine (the point of lockstep multiplayer) and a proven pipeline. It is not wired in: `oceanHeight` is called in many places and the swap would change last bits for no visible gain. Next candidates are pieces where Rust may really win (flow field, separation grid): profile first.
 
+Before porting more, shape the data so Rust can win: [PLAN-rust-architecture.md](PLAN-rust-architecture.md) (profile of the sim and of the drawing, flat kernels, bit-identical checks, the order of steps).
+
 ## Rules that stay
 
 - `src/sim` stays pure and deterministic: no `Math.random`, no clock, fixed 1/60 s step.
