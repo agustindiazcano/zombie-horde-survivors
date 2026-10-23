@@ -194,17 +194,17 @@ What each known technique is used for in this engine, so the paper can name its 
 
 The question: do they improve something the game already has, and could they carry new features such as flying vehicles or a ship pulled by gravity? What the code and the benchmarks say today:
 
-| Fact                                                                                                                                                  | Source                                           |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| One scalar gravity (`GameState.gravity`, 20 m/s^2) is read by jumps, climbing, grenades and the lab                                                   | `soldiers.ts`, `grenades.ts`, PHYSICS.md         |
-| Aircraft are arcade: altitude `alt` moves at `climbRate` up to `maxAlt`; no mass, no forces, no falling                                               | `aircraft.ts`, PHYSICS.md 19                     |
-| Vehicles ram with `ramDps` and keep `CRASH_KEEP` of their speed in a crash; pushes are fixed distances                                                | `vehicles.ts`, `melee.ts`                        |
-| Own solver (TypeScript): 100 balls 0.14 ms per step, 300 balls 0.43, 600 balls 1.07, 1000 balls 2.21                                                  | `bench:physics`, GitHub Linux runner, 2026-10-23 |
-| Rapier, same scene: 100 balls 0.45 ms, 300 balls 0.43, 600 balls 0.91, 1000 balls 1.51 (Rapier puts resting bodies to sleep, the own solver does not) | same file                                        |
-| The own solver holds a 91-ball pyramid (2.6 cm in 10 s) and rests a 13-bone ragdoll in 1.9 s with 4.3 % bone stretch                                  | same file                                        |
-| Rapier is a 4.4 MB chunk (1.7 MB gzip) loaded on Map 12 only; the own solver is a few hundred lines                                                   | PHYSICS.md 6                                     |
-| The whole sim step takes 2.7 ms with 1000 zombies; the drawing is the likelier bottleneck                                                             | PENDING.md                                       |
-| Rust matched TypeScript on the ocean but did not make it faster                                                                                       | PLAN-rust-wasm.md                                |
+| Fact                                                                                                                                                                                              | Source                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| One scalar gravity (`GameState.gravity`, 20 m/s^2) is read by jumps, climbing, grenades and the lab                                                                                               | `soldiers.ts`, `grenades.ts`, PHYSICS.md         |
+| Aircraft are arcade: altitude `alt` moves at `climbRate` up to `maxAlt`; no mass, no forces, no falling                                                                                           | `aircraft.ts`, PHYSICS.md 19                     |
+| Vehicles ram with `ramDps` and keep `CRASH_KEEP` of their speed in a crash; pushes are fixed distances                                                                                            | `vehicles.ts`, `melee.ts`                        |
+| Own solver (TypeScript): 100 balls 0.14 ms per step, 300 balls 0.43, 600 balls 1.07, 1000 balls 2.21                                                                                              | `bench:physics`, GitHub Linux runner, 2026-10-23 |
+| Rapier, same scene: 100 balls 0.45 ms, 300 balls 0.43, 600 balls 0.91, 1000 balls 1.51 (Rapier puts resting bodies to sleep, the own solver does not)                                             | same file                                        |
+| The own solver holds a 91-ball pyramid (2.6 cm in 10 s) and rests a 13-bone ragdoll in 1.9 s with 4.3 % bone stretch                                                                              | same file                                        |
+| Rapier is a 4.4 MB chunk (1.7 MB gzip) loaded on Map 12 only; the own solver is a few hundred lines                                                                                               | PHYSICS.md 6                                     |
+| The whole sim step takes about 1.5 to 2.1 ms with 1000 zombies (9% to 13% of a frame) on the GitHub runners; the CPU side of drawing is under 1% and the GPU side is not measurable without a GPU | BENCHMARKS.md, PLAN-rust-architecture.md         |
+| Rust matched TypeScript on the ocean but did not make it faster                                                                                                                                   | PLAN-rust-wasm.md                                |
 
 ### 7.1 Technique 7 (unified Hooke solver)
 
