@@ -8,6 +8,9 @@ const PHI = (1 + Math.sqrt(5)) / 2;
 /** Vertices per metre of the water plane (the waves are 15 m and longer, so 1 per 2 m is plenty). */
 const VERTS_PER_METRE = 0.5;
 const MAX_SEGMENTS = 256;
+/** Each neon orb is also a real point light (candela and reach in metres), so it lights the ground, the trees and the units. */
+const NEON_LIGHT = 450;
+const NEON_RANGE = 60;
 const NEON_COLORS = [
   0x00ffff, 0xff00aa, 0x00ff66, 0xffaa00, 0xaa00ff, 0xff2255, 0x33ccff, 0xccff00,
 ];
@@ -273,6 +276,7 @@ export class OceanView {
   private readonly orbs = new THREE.Group();
   private orbCount = 0;
   private readonly orbMeshes: THREE.Mesh[] = [];
+  private readonly orbLights: THREE.PointLight[] = [];
   private readonly orbPos: THREE.Vector3[] = [];
   private readonly level: number;
   private readonly center = new THREE.Vector2();
@@ -309,6 +313,9 @@ export class OceanView {
         }),
       );
       orb.add(halo);
+      const light = new THREE.PointLight(color, 0, NEON_RANGE, 2);
+      orb.add(light);
+      this.orbLights.push(light);
       orb.visible = false;
       this.orbMeshes.push(orb);
       this.orbs.add(orb);
@@ -426,6 +433,7 @@ export class OceanView {
     if (w.tint) u.uTint!.value.set(w.tint);
     this.orbCount = w.neonOrbs;
     this.orbMeshes.forEach((m, i) => (m.visible = i < w.neonOrbs));
+    this.orbLights.forEach((l, i) => (l.visible = i < w.neonOrbs));
   }
 
   /** Per frame: the sim clock (s) drives the waves, `sun` is the direction to the sun. */
@@ -442,6 +450,10 @@ export class OceanView {
       p.set(this.center.x, this.level + 3.5 + Math.sin(time * 2.2 + i * PHI) * 2, this.center.y);
       this.orbMeshes[i]!.position.copy(p);
     }
+    // The orbs' light is strongest at night and a fifth of that by day.
+    const t = Math.min(Math.max((sun.y - 0.1) / -0.35, 0), 1);
+    const power = NEON_LIGHT * (0.2 + 0.8 * t * t * (3 - 2 * t));
+    for (let i = 0; i < this.orbCount; i++) this.orbLights[i]!.intensity = power;
   }
 
   dispose(): void {
