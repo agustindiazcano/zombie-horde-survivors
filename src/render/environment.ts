@@ -282,6 +282,9 @@ export class EnvironmentView {
   private settled = 0;
   private lastClock = 0;
 
+  /** Called with the distance (m) of each bolt, so the game can play the thunder. */
+  onStrike: ((distance: number) => void) | null = null;
+
   /** Lightning: now and then a bolt strikes, the sky and the light flash twice, then fade. */
   private storm(camera: THREE.Vector3, clock: number): void {
     const strength = this.env.lightning;
@@ -289,7 +292,7 @@ export class EnvironmentView {
       this.strikeAt = clock;
       // Stronger storms strike more often (every 4 to 15 s at full strength, much rarer at a trace).
       this.nextStrike = clock + (4 + Math.random() * 11) / Math.max(strength, 0.05);
-      this.buildBolt(camera);
+      this.onStrike?.(this.buildBolt(camera));
     }
     const t = clock - this.strikeAt;
     // Two pulses: a hard flash, a short dip, then a softer second one.
@@ -302,8 +305,8 @@ export class EnvironmentView {
     this.sun.intensity = this.sunBase + power * 1.2;
   }
 
-  /** A jagged bolt from the clouds to the ground at a random spot some way off, with branches. */
-  private buildBolt(camera: THREE.Vector3): void {
+  /** A jagged bolt from the clouds to the ground at a random spot some way off, with branches. Returns its distance (m). */
+  private buildBolt(camera: THREE.Vector3): number {
     const angle = Math.random() * Math.PI * 2;
     const dist = 70 + Math.random() * 130;
     let x = camera.x + Math.cos(angle) * dist;
@@ -341,6 +344,7 @@ export class EnvironmentView {
     this.bolt.geometry.dispose();
     this.bolt.geometry = new THREE.BufferGeometry();
     this.bolt.geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+    return dist;
   }
 
   /** The hour of the day now: the map's `timeOfDay`, moved on by `dayCycle` hours per real minute. */

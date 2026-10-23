@@ -49,9 +49,10 @@ function buildTable(o: OceanParams): WaveTable {
   // Swell ridges stay tall and spread out in size; the other patterns shrink fast so small waves ride the big ones.
   const ampStep = swell ? 0.82 : (1 / PHI) * 1.18;
   const freqStep = swell ? 1.18 : PHI * 0.88;
-  let amp = o.waveHeight;
+  // Wind raises the waves and speeds them up.
+  let amp = o.waveHeight * (1 + 0.9 * o.wind);
   let freq = o.frequency;
-  let speed = o.speed;
+  let speed = o.speed * (1 + 0.35 * o.wind);
   let pressure = o.pressure;
   for (let i = 0; i < WAVE_COUNT; i++) {
     // Five draws per wave whatever the pattern, so changing one setting never shifts the others.
@@ -79,7 +80,7 @@ function buildTable(o: OceanParams): WaveTable {
     const f = freq * (1 + o.chaos * (r4 - 0.5) * 0.3);
     table.freq[i] = f;
     // Swell follows deep-water dispersion (speed grows with the square root of the frequency).
-    table.speed[i] = swell ? o.speed * Math.sqrt(f / o.frequency) : speed;
+    table.speed[i] = swell ? o.speed * (1 + 0.35 * o.wind) * Math.sqrt(f / o.frequency) : speed;
     table.pressure[i] = pressure;
     table.phase[i] = o.chaos * r5 * Math.PI * 2;
     amp *= ampStep;
@@ -103,6 +104,7 @@ const sameWaves = (a: OceanParams, b: OceanParams): boolean =>
   a.waveHeight === b.waveHeight &&
   a.frequency === b.frequency &&
   a.speed === b.speed &&
+  a.wind === b.wind &&
   a.pressure === b.pressure;
 
 /** The waves of these ocean numbers. Cached: the table is rebuilt only when a number that shapes it changes. */
@@ -112,6 +114,17 @@ export function waveTable(o: OceanParams): WaveTable {
   cachedTable = buildTable(o);
   return cachedTable;
 }
+
+/** Metres per second of current the wind adds at full strength (towards +x, like the sky's wind). */
+const WIND_CURRENT = 3;
+
+/** The steady current (m/s) as (x, z): the map's current plus what the wind pushes. */
+export function currentVector(o: OceanParams, out: { x: number; z: number }): void {
+  out.x = Math.cos(o.currentAngle) * o.currentSpeed + WIND_CURRENT * o.wind;
+  out.z = Math.sin(o.currentAngle) * o.currentSpeed;
+}
+
+const currentScratch = { x: 0, z: 0 };
 
 /** Spiral growth of a whirlpool: `2 ln(phi) / pi` (the golden spiral's pitch). */
 const K_SPIRAL = (2 * Math.log(PHI)) / Math.PI;
@@ -163,8 +176,9 @@ export function oceanHeight(
 ): number {
   const fade = waveFade(o, level, groundY);
   if (fade <= 0) return level;
-  const cx = Math.cos(o.currentAngle) * o.currentSpeed * t * 0.12;
-  const cz = Math.sin(o.currentAngle) * o.currentSpeed * t * 0.12;
+  currentVector(o, currentScratch);
+  const cx = currentScratch.x * t * 0.12;
+  const cz = currentScratch.z * t * 0.12;
   const w = waveTable(o);
   let sum = 0;
   for (let i = 0; i < WAVE_COUNT; i++) {
@@ -180,8 +194,9 @@ export function oceanHeight(
 
 /** The speed of the water (m/s) at a point: the steady current. Written into `out` as (x, z). */
 export function oceanFlow(o: OceanParams, out: { x: number; z: number }): void {
-  out.x = Math.cos(o.currentAngle) * o.currentSpeed * (1 - o.frozen);
-  out.z = Math.sin(o.currentAngle) * o.currentSpeed * (1 - o.frozen);
+  currentVector(o, out);
+  out.x *= 1 - o.frozen;
+  out.z *= 1 - o.frozen;
 }
 
 /**

@@ -757,6 +757,8 @@
     "seed": 7,
     "chaos": 0,
     "frozen": 0,
+    "wind": 0,
+    "geyser": 1,
     "heading": 1.5708,
     "spread": 0.12,
     "sequence": [],

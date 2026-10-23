@@ -115,6 +115,7 @@ async function main(): Promise<void> {
   renderer.setVehicleModel(await loadVehicleModel());
   const input = new InputController(renderer.domElement);
   const sfx = new Sfx();
+  renderer.onThunder = (distance) => sfx.thunder(distance);
   const fps = new FpsCounter(document.body);
 
   // Player options (graphics, lighting, FPS counter, volume), saved in the browser.

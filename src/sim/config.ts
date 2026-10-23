@@ -141,6 +141,10 @@ const oceanFields = {
   chaos: z.number().min(0).max(1),
   /** 0 = open water; 1 = a frozen sea: the waves and whirlpools die away (surface and flow scale by 1 - frozen) and the shader draws ice. */
   frozen: z.number().min(0).max(1).default(0),
+  /** Wind on the sea, 0 to 1: waves grow up to 90% taller and 35% faster, and it adds up to 3 m/s of current towards +x (the way the sky's wind blows). The editor keeps it equal to the map's wind slider. */
+  wind: z.number().min(0).max(1).default(0),
+  /** Strength of the whirlpool geyser, 0 (off) to 2: a body that sinks more than 5 m under the calm level in a whirlpool's core is shot back up. */
+  geyser: z.number().min(0).max(2).default(1),
   /** The way the swell runs (rad from +x towards +z) and how far (rad) its ridges may turn from it. */
   heading: z.number(),
   spread: z.number().min(0).max(1.57),

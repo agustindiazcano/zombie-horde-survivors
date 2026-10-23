@@ -1467,6 +1467,14 @@ export class Editor {
         {
           ...this.current,
           environment: { ...(this.current.environment ?? defaultEnvironment()), ...patch },
+          // The sky's wind also blows on the sea of a wave-ocean map.
+          logic:
+            patch.wind !== undefined && this.current.logic.ocean
+              ? {
+                  ...this.current.logic,
+                  ocean: { ...this.current.logic.ocean, wind: patch.wind },
+                }
+              : this.current.logic,
         },
         record,
       );
@@ -1678,11 +1686,13 @@ export class Editor {
     physics('hooke', 'Sharp crests', 0, 1, 0.05);
     physics('pressure', 'Crest pressure', 0.5, 3, 0.05);
     physics('frozen', 'Frozen sea (ice)', 0, 1, 0.05);
+    physics('wind', 'Wind on the sea (the Weather wind sets it too)', 0, 1, 0.05);
     physics('currentSpeed', 'Current (m/s)', 0, 15, 0.5);
     physics('currentAngle', 'Current direction (rad)', 0, 6.28, 0.05);
     physics('lift', 'Buoyancy (x gravity)', 0.5, 5, 0.05);
     physics('drag', 'Water drag', 0, 10, 0.1);
     physics('swimDrift', 'Water carries swimmers', 0, 1, 0.05);
+    physics('geyser', 'Whirlpool geyser (0 = off)', 0, 2, 0.1);
 
     el(
       'div',

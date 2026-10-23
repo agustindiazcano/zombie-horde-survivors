@@ -1460,6 +1460,11 @@ export class GameRenderer {
     patchGroundRain(m);
   }
 
+  /** Gets the distance (m) of every lightning bolt, to play the thunder. */
+  set onThunder(callback: ((distance: number) => void) | null) {
+    this.environment.onStrike = callback;
+  }
+
   /** The rain-on-the-lens option: 0 off, 1 beads that swell and dry, 2 plus running drops. */
   private setLensDrops(level: number): void {
     if (level <= 0) {

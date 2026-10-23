@@ -1,6 +1,13 @@
 import * as THREE from 'three';
 import { RAIN_RIPPLES_GLSL, rainFxUniforms } from './rainFx';
-import { heightAt, waveTable, WAVE_COUNT, type Environment, type GameConfig } from '../sim';
+import {
+  currentVector,
+  heightAt,
+  waveTable,
+  WAVE_COUNT,
+  type Environment,
+  type GameConfig,
+} from '../sim';
 
 type WaterLook = Environment['water'];
 
@@ -377,6 +384,7 @@ export class OceanView {
   private readonly orbPos: THREE.Vector3[] = [];
   private readonly level: number;
   private readonly center = new THREE.Vector2();
+  private readonly current = { x: 0, z: 0 };
   private quality = 3;
   private look: WaterLook | null = null;
 
@@ -483,10 +491,8 @@ export class OceanView {
     const whirlpools = u.uVortex!.value as THREE.Vector4[];
     o.vortices.forEach((v, i) => whirlpools[i]!.set(v.x, v.z, v.strength, v.radius));
     u.uVortexN!.value = o.vortices.length;
-    u.uCurrent!.value.set(
-      Math.cos(o.currentAngle) * o.currentSpeed,
-      Math.sin(o.currentAngle) * o.currentSpeed,
-    );
+    currentVector(o, this.current);
+    u.uCurrent!.value.set(this.current.x, this.current.z);
   }
 
   /**

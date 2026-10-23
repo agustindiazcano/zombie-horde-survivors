@@ -117,6 +117,40 @@ export class Sfx {
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
+  /**
+   * Thunder of a bolt `distance` metres away: it arrives after `distance / 343` s, a sharp crack
+   * first (a bright noise burst) and then a long rumble whose low-pass sweeps down while the
+   * level rolls up and down. Far bolts are quieter and duller.
+   */
+  thunder(distance: number): void {
+    const { ctx, master, noise } = this;
+    if (!ctx || !master || !noise) return;
+    const loud = Math.min(Math.max(1.15 - distance / 260, 0.25), 1);
+    const t = ctx.currentTime + distance / 343;
+    const length = 2.5 + (1 - loud) * 2.5 + Math.random();
+    const src = ctx.createBufferSource();
+    src.buffer = noise;
+    src.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(900 * loud + 150, t);
+    filter.frequency.exponentialRampToValueAtTime(70, t + length);
+    const gain = ctx.createGain();
+    // A hard start, then rolls: a few random bumps that die away.
+    const points = 24;
+    const curve = new Float32Array(points);
+    for (let i = 0; i < points; i++) {
+      const k = i / (points - 1);
+      curve[i] = Math.max(0.0001, (1 - k) ** 1.6 * (0.55 + 0.45 * Math.random()) * 0.9 * loud);
+    }
+    curve[0] = 0.0001;
+    curve[1] = loud;
+    gain.gain.setValueCurveAtTime(curve, t, length);
+    src.connect(filter).connect(gain).connect(master);
+    src.start(t, Math.random() * 0.5);
+    src.stop(t + length);
+  }
+
   private shot(volume: number): void {
     this.noiseBurst(0.09, 'bandpass', 1800, 0.9 * volume);
     this.tone('sine', 160, 60, 0.1, 0.6 * volume);

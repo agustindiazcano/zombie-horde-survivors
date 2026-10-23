@@ -104,6 +104,13 @@ const FLOAT_OFFSET = 0.35;
 
 let ready: Promise<void> | null = null;
 
+/** Whirlpool geyser: sunk deeper than this under the calm level (m), inside this scaled radius of the core. */
+const GEYSER_DEPTH = 5;
+const GEYSER_CORE = 6;
+/** Launch speed (m/s, plus 8 per unit of whirlpool strength) and sideways kick (m/s). */
+const GEYSER_SPEED = 14;
+const GEYSER_SIDE = 4;
+
 export class RapierWorld {
   static async create(): Promise<RapierWorld> {
     ready ??= RAPIER.init();
@@ -561,6 +568,28 @@ export class RapierWorld {
       const x = this.pos[i * 3]!;
       const y = this.pos[i * 3 + 1]!;
       const z = this.pos[i * 3 + 2]!;
+      // The whirlpool geyser: a body that sank too deep in the core (the funnel leaves the floor bare) is shot out of it.
+      if (o.params.geyser > 0 && y < o.level - GEYSER_DEPTH) {
+        let shot = false;
+        for (const w of o.params.vortices) {
+          const dx = x - w.x;
+          const dz = z - w.z;
+          const d = Math.hypot(dx, dz);
+          if ((d * 14.5) / w.radius > GEYSER_CORE) continue;
+          const v = this.bodies[i]!.linvel();
+          this.bodies[i]!.setLinvel(
+            {
+              x: v.x + (dx / (d + 0.001)) * GEYSER_SIDE * o.params.geyser,
+              y: (GEYSER_SPEED + 8 * w.strength) * o.params.geyser,
+              z: v.z + (dz / (d + 0.001)) * GEYSER_SIDE * o.params.geyser,
+            },
+            true,
+          );
+          shot = true;
+          break;
+        }
+        if (shot) continue;
+      }
       const surface = oceanHeight(o.params, o.level, o.groundAt(x, z), x, z, this.oceanTime);
       const sunk = surface + r * FLOAT_OFFSET - y;
       if (sunk <= 0) continue;
@@ -568,14 +597,12 @@ export class RapierWorld {
       const body = this.bodies[i]!;
       const v = body.linvel();
       const ratio = Math.min(sunk / (r * 2), 1.6);
-      body.setLinvel(
-        {
-          x: v.x + (flow.x - v.x) * pull,
-          y: (v.y + g * o.params.lift * ratio * dt) * damp,
-          z: v.z + (flow.z - v.z) * pull,
-        },
-        true,
-      );
+      const next = {
+        x: v.x + (flow.x - v.x) * pull,
+        y: (v.y + g * o.params.lift * ratio * dt) * damp,
+        z: v.z + (flow.z - v.z) * pull,
+      };
+      body.setLinvel(next, true);
     }
   }
 
