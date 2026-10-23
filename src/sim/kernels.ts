@@ -355,6 +355,29 @@ export function resolveWalls(
   }
 }
 
+const oneX = new Float64Array(1);
+const oneZ = new Float64Array(1);
+const oneR = new Float64Array(1);
+const oneFeet = new Float64Array(1);
+const oneAlive = new Uint8Array([1]);
+
+/** `resolveWalls` for one circle, in place (the scalar `resolveStatic` of collision.ts without dynamic solids). */
+export function resolveWallsOne(
+  o: FlatObstacles,
+  pos: { x: number; z: number },
+  radius: number,
+  feet: number,
+  stepUp: number,
+): void {
+  oneX[0] = pos.x;
+  oneZ[0] = pos.z;
+  oneR[0] = radius;
+  oneFeet[0] = feet;
+  resolveWalls(o, oneX, oneZ, oneR, oneFeet, oneAlive, 1, stepUp);
+  pos.x = oneX[0]!;
+  pos.z = oneZ[0]!;
+}
+
 /**
  * The implementation the game runs the kernels with. By default the TypeScript functions above; once
  * the Rust module has loaded (`src/wasm/rustKernels.ts`) it can take over. Both give the same bits

@@ -1,6 +1,7 @@
 import type { GameConfig, Obstacle } from './config';
 import { OBSTACLE_HEIGHT, STEP_UP } from './constants';
 import { obstaclesNear } from './grid';
+import { flatObstacles, resolveWallsOne } from './kernels';
 import type { Vec2 } from './vec';
 
 /** Distance along a ray (unit `dir`) to a circle, or null if it misses. */
@@ -221,6 +222,37 @@ export function supportHeight(arena: GameConfig['arena'], pos: Vec2, y: number):
  * only stopped by boxes taller than that, so a climber passes over the boxes beneath it.
  */
 export function resolveStatic(pos: Vec2, radius: number, arena: GameConfig['arena'], y = 0): void {
+  // No physics-lab solids (every map but 12): the flat grid does the same, several times faster.
+  if (solidList.length === 0) {
+    resolveWallsOne(flatObstacles(arena), pos, radius, y, STEP_UP);
+    return;
+  }
+  for (const box of obstaclesNear(
+    arena,
+    pos.x - radius,
+    pos.z - radius,
+    pos.x + radius,
+    pos.z + radius,
+  )) {
+    if (topOf(box) <= y + STEP_UP) continue;
+    resolveCircleAabb(pos, radius, box);
+  }
+  for (const s of solidsInReach(pos, radius, y)) resolveCircleSolid(pos, radius, s);
+  const lim = arena.halfSize - radius;
+  pos.x = Math.min(Math.max(pos.x, -lim), lim);
+  pos.z = Math.min(Math.max(pos.z, -lim), lim);
+}
+
+/**
+ * The per-body version of `resolveStatic` over the object grid of grid.ts. It is the reference the flat
+ * kernel is checked against (`npm run check:kernels`); the game calls `resolveStatic`.
+ */
+export function resolveStaticReference(
+  pos: Vec2,
+  radius: number,
+  arena: GameConfig['arena'],
+  y = 0,
+): void {
   for (const box of obstaclesNear(
     arena,
     pos.x - radius,

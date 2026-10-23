@@ -2,7 +2,7 @@
 // times both on the same data: npm run check:kernels
 import { readFileSync } from 'node:fs';
 import map1 from '../data/maps/map-1.json';
-import { arenaOf, parseMap, resolveStatic, type Arena } from '../src/sim';
+import { arenaOf, parseMap, resolveStaticReference, type Arena } from '../src/sim';
 import { STEP_UP } from '../src/sim/constants';
 import {
   flatObstacles,
@@ -236,7 +236,7 @@ for (const [name, arena, bodies] of [
   for (let i = 0; i < bodies; i++) {
     if (pa[i] === 0) continue;
     const pos = { x: ox[i]!, z: oz[i]! };
-    resolveStatic(pos, pr[i]!, arena, pf[i]!);
+    resolveStaticReference(pos, pr[i]!, arena, pf[i]!);
     ox[i] = pos.x;
     oz[i] = pos.z;
   }
@@ -280,7 +280,7 @@ for (const [name, arena, bodies] of [
     for (let i = 0; i < bodies; i++) {
       if (pa[i] === 0) continue;
       const pos = { x: wx[i]!, z: wz[i]! };
-      resolveStatic(pos, pr[i]!, arena, pf[i]!);
+      resolveStaticReference(pos, pr[i]!, arena, pf[i]!);
       wx[i] = pos.x;
       wz[i] = pos.z;
     }
