@@ -123,6 +123,7 @@ The physics, fluid and optics formulas are the author's own work; they are now r
 - [x] Done 2026-10-23: wave patterns (golden, Fibonacci, random, parallel swell, custom angles), `seed` and `chaos` (0 = off), in the editor's Ocean water group and in `ocean` of game.json. Same numbers on CPU and GPU; golden with chaos 0 keeps the old Rapier hash. 🔴 Look at the swell in Map 13 and tell if the foam (big white patches at wave height 0.9) and the ripples on top need toning down. Still to try: a real wave spectrum (Phillips or JONSWAP) as another pattern.
 - [ ] 🟡 **Shaders and Rust (decision for the user):** shaders stay GLSL (WGSL if the engine moves to WebGPU, see PLAN-webgpu-engine.md); Rust/WASM is for the CPU side (waves, buoyancy, the own solver). Do not write them twice: keep one spec (the formula in the docs) and the two copies checked against each other.
 - [ ] ⚪ Thunder sound for lightning; the wind that drives waves, current and clouds.
+- [ ] ⚪ Rust / WebAssembly for the CPU side: plan and open decisions in [docs/PLAN-rust-wasm.md](docs/PLAN-rust-wasm.md) (the toolchain is installed; nothing built; first target proposed: the ocean maths).
 
 ### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
 
