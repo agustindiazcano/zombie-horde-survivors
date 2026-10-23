@@ -6,6 +6,8 @@ Everything is Three.js with hand-written GLSL. Code: `src/render/environment.ts`
 
 ## 1. Graphics options and presets
 
+The options live in a registry, `src/graphicsOptions.ts` (label, values, help, and the **cost of each value**: `gpu` and `cpu` from 0 to 5, `vram` in MB), and the settings window (`src/settingsPanel.ts`, nearly full screen, key `O`) is drawn from it: a header with the presets and three bars (GPU, CPU, video memory as a share of every option at its heaviest), the options grouped by page, and a chip beside each option with the cost of the chosen value. The costs are estimates by reasoning, not measurements. Adding an option means adding its row to the registry, its field to `src/settings.ts` (and the presets) and its rule to this file.
+
 | Option              | Values                                                          | What it changes                                                                                                                              |
 | ------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Water               | 0 flat, 1 light, 2 normal, 3 full                               | How much of the map's water look is drawn (section 5). The look itself is the map's; this only holds it back                                 |

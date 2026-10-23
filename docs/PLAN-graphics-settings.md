@@ -1,6 +1,6 @@
 # Plan: the graphics settings (every effect configurable, with its cost shown)
 
-Status: **a plan, nothing is built** (written 2026-10-23, asked for by the user). Goal in the user's words: everything must be configurable so the game runs on a high-end PC and on a toaster, the **player** decides what looks good or bad, and the settings show **how heavy** each option is and **whether it loads the GPU or the CPU**. The graphics settings become a near-full-screen pop-up.
+Status: **steps 1 to 4 built 2026-10-23** (registry, window, cost bars and chips; see the end of this file for what each later step added). Original plan (written 2026-10-23, asked for by the user). Goal in the user's words: everything must be configurable so the game runs on a high-end PC and on a toaster, the **player** decides what looks good or bad, and the settings show **how heavy** each option is and **whether it loads the GPU or the CPU**. The graphics settings become a near-full-screen pop-up.
 
 ## 1. Where it stands today
 
