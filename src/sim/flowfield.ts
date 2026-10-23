@@ -1,6 +1,7 @@
 import { inShelter } from './shelter';
 import type { Arena, GameConfig, Obstacle } from './config';
 import { topOf } from './collision';
+import { newFlowScratch, runFlowSearch } from './kernels';
 import type { GameState } from './types';
 import { isOccupied } from './vehicles';
 import type { Vec2 } from './vec';
@@ -182,45 +183,6 @@ function lineClear(blocked: Blocked, a: Vec2, b: Vec2): boolean {
   return true;
 }
 
-// Scratch space of the search, reused so a refresh allocates nothing once it has grown.
-const heapCost: number[] = [];
-const heapCell: number[] = [];
-
-function heapPush(cost: number, cell: number): void {
-  let i = heapCost.length;
-  heapCost.push(cost);
-  heapCell.push(cell);
-  while (i > 0) {
-    const parent = (i - 1) >> 1;
-    if (heapCost[parent]! <= cost) break;
-    heapCost[i] = heapCost[parent]!;
-    heapCell[i] = heapCell[parent]!;
-    i = parent;
-  }
-  heapCost[i] = cost;
-  heapCell[i] = cell;
-}
-
-/** Removes the cheapest entry; the caller reads it from `popped` first. */
-function heapPop(): void {
-  const lastCost = heapCost.pop()!;
-  const lastCell = heapCell.pop()!;
-  const size = heapCost.length;
-  if (size === 0) return;
-  let i = 0;
-  for (;;) {
-    let child = 2 * i + 1;
-    if (child >= size) break;
-    if (child + 1 < size && heapCost[child + 1]! < heapCost[child]!) child++;
-    if (heapCost[child]! >= lastCost) break;
-    heapCost[i] = heapCost[child]!;
-    heapCell[i] = heapCell[child]!;
-    i = child;
-  }
-  heapCost[i] = lastCost;
-  heapCell[i] = lastCell;
-}
-
 /** True if nothing blocks the straight way from `a` to `b` (an obstacle a climber crosses does not count). */
 export function canSee(config: GameConfig, a: Vec2, b: Vec2, climbHeight = 0): boolean {
   const obstacles = config.arena.obstacles;
@@ -233,44 +195,28 @@ export function canSee(config: GameConfig, a: Vec2, b: Vec2, climbHeight = 0): b
   );
 }
 
-/** Fills `dist` with the walking distance from every free cell to the nearest of `targets`. */
+/** Fills `dist` with the walking distance from every free cell to the nearest of `targets` (kernel `flowSearch`). */
 function search(blocked: Blocked, dist: Float64Array, targets: Vec2[]): void {
   const { n, cells, extra } = blocked;
-  dist.fill(Infinity);
-  heapCost.length = 0;
-  heapCell.length = 0;
-  for (const t of targets) {
-    const c = cellIndex(blocked, t.z) * n + cellIndex(blocked, t.x);
-    if (dist[c] === 0) continue;
-    dist[c] = 0;
-    heapPush(0, c);
+  if (targetCells.length < targets.length) targetCells = new Int32Array(targets.length * 2);
+  for (let i = 0; i < targets.length; i++) {
+    const t = targets[i]!;
+    targetCells[i] = cellIndex(blocked, t.z) * n + cellIndex(blocked, t.x);
   }
-  while (heapCost.length > 0) {
-    const cost = heapCost[0]!;
-    const cell = heapCell[0]!;
-    heapPop();
-    if (cost > dist[cell]!) continue; // a cheaper way to this cell was already found
-    const cx = cell % n;
-    const cz = (cell - cx) / n;
-    for (let k = 0; k < 8; k++) {
-      const dx = NEIGHBOURS[k]![0];
-      const dz = NEIGHBOURS[k]![1];
-      const step = NEIGHBOURS[k]![2];
-      const nx = cx + dx;
-      const nz = cz + dz;
-      if (nx < 0 || nz < 0 || nx >= n || nz >= n) continue;
-      const next = nz * n + nx;
-      if (cells[next] === 1) continue;
-      // No cutting a corner: both cells beside a diagonal step must be free.
-      if (dx !== 0 && dz !== 0 && (cells[cz * n + nx] || cells[nz * n + cx])) continue;
-      const total = cost + step + extra[next]!;
-      if (total < dist[next]!) {
-        dist[next] = total;
-        heapPush(total, next);
-      }
-    }
-  }
+  runFlowSearch(
+    flowScratch,
+    n,
+    cells,
+    extra,
+    dist,
+    targetCells.subarray(0, targets.length),
+    targets.length,
+  );
 }
+
+// Scratch space of the search, reused so a refresh allocates nothing once it has grown.
+const flowScratch = newFlowScratch();
+let targetCells = new Int32Array(16);
 
 /** The field for this moment of the game, searched again when it is older than `REFRESH`. */
 function fieldOf(state: GameState, config: GameConfig): Field {

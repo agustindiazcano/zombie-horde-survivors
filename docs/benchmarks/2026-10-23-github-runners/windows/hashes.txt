@@ -1,0 +1,19 @@
+== npm run check:sim-hash
+
+> zombie-horde-survivors@0.0.0 check:sim-hash
+> node scripts/check-sim-hash.mjs
+
+  100 zombies after 240 steps: 90 alive, hash 1d27d684
+  300 zombies after 240 steps: 294 alive, hash 6b36a854
+ 1000 zombies after 240 steps: 997 alive, hash e096dbfe
+SIM HASH 02a0a498
+== npm run check:rapier
+
+> zombie-horde-survivors@0.0.0 check:rapier
+> node scripts/check-rapier.mjs
+
+variant: deterministic, Rapier 0.21.0
+calm pyramid: 21 boxes, top box moved 0.0296 m in 10 s
+run 1 hash 65505486, run 2 hash 65505486, run 3 hash 65505486: IDENTICAL
+141 bodies, 0 asleep after 10 s, pyramid top drift 4.246 m, 0.745 ms/step
+HASH 65505486

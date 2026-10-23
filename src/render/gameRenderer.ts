@@ -4,6 +4,7 @@ import {
   getSoldier,
   heightAt,
   localPlayer,
+  oceanHeight,
   type AimLine,
   type GameConfig,
   type Environment,
@@ -21,6 +22,10 @@ import { SkyLightViews } from './skyLights';
 import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
+import { OceanView } from './oceanView';
+import { WaterReflection } from './waterReflection';
+import { patchGroundRain } from './rainFx';
+import { LensDrops } from './lensDrops';
 import { setPomQuality, setTextureQuality } from './pom';
 import { Sirens } from './sirens';
 import { GroundItemViews } from './groundItems';
@@ -32,6 +37,7 @@ import { SelectionMarkers } from './markers';
 import { ViewModel } from './viewModel';
 import { StructureViews, type BuildGhost } from './structures';
 import { FireViews, ObjectViews } from './objects';
+import { ResolutionLayers, type LayerName } from './resolutionLayers';
 
 /** Default camera: above and behind the focus point (towards +z), at zoom 1. */
 const BASE_DISTANCE = Math.hypot(13, 9);
@@ -182,14 +188,35 @@ const HELI_BANK_PER_TURN = 6;
 /** Rotor radians per frame at full speed. */
 const HELI_ROTOR_STEP = 0.7;
 
+/** What each season does to the ground: a colour that multiplies the paint and a glow that lightens it (snow). */
+const SEASONS: Record<Environment['season'], { tint: number; glow: number }> = {
+  spring: { tint: 0xd9ffcc, glow: 0 },
+  summer: { tint: 0xffffff, glow: 0 },
+  autumn: { tint: 0xffc78c, glow: 0 },
+  winter: { tint: 0xc4d2e6, glow: 0xdfe8f5 },
+};
+
+let rendererAntialias = true;
+
+/** Anti-aliasing is fixed when the WebGL context is created: call this before `new GameRenderer`. */
+export function setRendererAntialias(on: boolean): void {
+  rendererAntialias = on;
+}
+
+/** Camera far plane for each draw distance (the sky dome is 450 m, so it never goes below that). */
+const FAR_PLANES = [480, 600, 1000];
+
 export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
   get domElement(): HTMLCanvasElement {
     return this.renderer.domElement;
   }
   readonly scene = new THREE.Scene();
-  private readonly renderer = new THREE.WebGLRenderer({ antialias: true });
+  private readonly renderer = new THREE.WebGLRenderer({ antialias: rendererAntialias });
   private readonly soldiers = new Map<number, CharacterView>();
+  /** Per-part render resolutions (enemies, other characters, water); 1 = the game's own. */
+  private readonly layerScales: Record<LayerName, number> = { enemies: 1, allies: 1, water: 1 };
+  private layers: ResolutionLayers | null = null;
   private readonly vehicles = new Map<number, VehicleView>();
   /** One flashlight per soldier: a group (moved and turned with the unit) holding a spotlight. */
   private readonly flashlights = new Map<number, { group: THREE.Group; light: THREE.SpotLight }>();
@@ -246,6 +273,18 @@ export class GameRenderer {
   /** Remaining hit-flash time per enemy id. */
   private readonly flash = new Map<number, number>();
   private readonly config: GameConfig;
+  /** The wave ocean of the current map (Map 13), or null for flat water. */
+  private ocean: OceanView | null = null;
+  private waterQuality = 3;
+  private filmic = false;
+  /** The planar mirror of the water (High and Ultra), null when the option is off. */
+  private reflection: WaterReflection | null = null;
+  private lens: LensDrops | null = null;
+  private iceDetail = 3;
+  private lightCap = 8;
+  private fovScale = 1;
+  private waterLook: Environment['water'] | null = null;
+  private season: Environment['season'] = 'summer';
   private readonly crates = new Map<number, THREE.Mesh>();
   private readonly crateGeometry = new THREE.BoxGeometry(0.8, 0.5, 0.6);
   private readonly crateMaterial = new THREE.MeshStandardMaterial({
@@ -289,6 +328,7 @@ export class GameRenderer {
     this.scene.environment = buildReflectionMap(this.renderer);
 
     this.config = config;
+    this.syncOcean(config.arena);
     this.halfSize = config.arena.halfSize;
     this.droneHeight = config.drone.height;
     this.objectViews = new ObjectViews(config, (x, z) => this.groundAt(x, z));
@@ -484,6 +524,8 @@ export class GameRenderer {
     this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
     this.sirens.set(this.arenaGroup.userData.sirens ?? []);
     this.scene.add(this.arenaGroup);
+    this.applySeason();
+    this.syncOcean(arena);
     this.halfSize = arena.halfSize;
     const cam = this.sun.shadow.camera;
     const reach = arena.halfSize * 1.5;
@@ -526,14 +568,21 @@ export class GameRenderer {
     this.gore.update(dt);
     this.looseParts.update(dt, (x, z) => this.groundAt(x, z));
     this.environment.update(this.camera.position, this.clock);
+    this.renderer.toneMappingExposure = this.filmic ? this.environment.exposure : 1;
+    if (this.ocean) {
+      this.ocean.setParams(this.config.ocean);
+      this.ocean.update(state.time, this.environment.sunDirection);
+    }
     for (const fire of this.fireMarkers?.children ?? []) {
       for (const flame of fire.children) {
         if (flame.userData.phase === undefined) continue;
         flame.scale.y = 0.8 + 0.35 * Math.sin(this.clock * 9 + (flame.userData.phase as number));
       }
     }
-    this.renderer.render(this.scene, this.camera);
+    this.drawWaterMirror();
+    this.drawScene();
     if (this.viewMode === 'first') this.viewModel.render(this.renderer);
+    this.lens?.render(this.renderer, this.environment.rainAmount, this.clock);
   }
 
   /** Moves the RTS camera, keeping the focus inside the arena. */
@@ -575,7 +624,8 @@ export class GameRenderer {
       this.yaw = facing - Math.PI;
       this.lookPitch = mode === 'third' ? THIRD_PITCH : 0;
     }
-    this.camera.fov = mode === 'first' ? FOV_FIRST : mode === 'third' ? FOV_THIRD : FOV_TOP;
+    this.camera.fov =
+      (mode === 'first' ? FOV_FIRST : mode === 'third' ? FOV_THIRD : FOV_TOP) * this.fovScale;
     this.camera.updateProjectionMatrix();
   }
 
@@ -589,7 +639,7 @@ export class GameRenderer {
     this.aimZoom += (target - this.aimZoom) * Math.min(1, AIM_ZOOM_RATE * dt);
     const base =
       this.viewMode === 'first' ? FOV_FIRST : this.viewMode === 'third' ? FOV_THIRD : FOV_TOP;
-    const fov = base * this.aimZoom;
+    const fov = base * this.aimZoom * this.fovScale;
     if (Math.abs(this.camera.fov - fov) > 0.01) {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();
@@ -837,6 +887,37 @@ export class GameRenderer {
     this.environment.setDim(power === 0 ? this.config.skyShow.blackoutLight : 1);
   }
 
+  /**
+   * Puts a boat on the real waves: it rises with the surface under it and tilts with its slope along
+   * and across (sampled at the bow, stern and both sides). Big ships follow only a third as much.
+   */
+  private rideWaves(
+    object: THREE.Object3D,
+    def: GameConfig['vehicles'][string],
+    x: number,
+    z: number,
+    yaw: number,
+    time: number,
+  ): void {
+    const level = this.config.arena.terrain.water;
+    if (level === null) return;
+    const half = def.radius * 0.8;
+    const fx = Math.sin(yaw);
+    const fz = Math.cos(yaw);
+    const at = (dx: number, dz: number) =>
+      oceanHeight(this.config.ocean, level, this.groundAt(x + dx, z + dz), x + dx, z + dz, time);
+    const centre = at(0, 0);
+    const bow = at(fx * half, fz * half);
+    const stern = at(-fx * half, -fz * half);
+    // The model faces +z with +x on its left.
+    const left = at(fz * half, -fx * half);
+    const right = at(-fz * half, fx * half);
+    const k = def.ship ? 0.35 : 1;
+    object.position.y = (centre + (bow + stern + left + right) / 4) / 2 - 0.05;
+    object.rotation.x = -Math.atan2(bow - stern, 2 * half) * k;
+    object.rotation.z = Math.atan2(left - right, 2 * half) * k;
+  }
+
   /** Draws the vehicles of the state: a jeep for every ground type, the procedural helicopter for aircraft. */
   private syncVehicles(state: GameState, alpha: number): void {
     const live = new Set<number>();
@@ -873,7 +954,11 @@ export class GameRenderer {
       entry.object.rotation.z = swell * 0.02;
       entry.object.rotation.x = def.water ? Math.cos(state.time * 1.3 + v.id) * 0.015 : 0;
       const turn = Math.atan2(Math.sin(v.facing - v.prevFacing), Math.cos(v.facing - v.prevFacing));
-      entry.object.rotation.y = v.prevFacing + turn * alpha;
+      const yaw = v.prevFacing + turn * alpha;
+      entry.object.rotation.order = 'YXZ';
+      entry.object.rotation.y = yaw;
+      if (this.ocean && def.water && !v.air)
+        this.rideWaves(entry.object, def, x, z, yaw, state.time);
       for (const wheel of entry.wheels) wheel.rotation.x += v.speed * 0.02;
       if (v.air && entry.heli) {
         // Nose down with speed, banked into the turn; both ease so the machine does not snap.
@@ -1002,7 +1087,12 @@ export class GameRenderer {
       const level = this.config.arena.terrain.water;
       if (s.swimming && level !== null) {
         // A swimmer floats on the surface or sinks with its depth, never below the sea floor.
-        view.object.position.y = Math.max(ground, level - SWIM_FLOAT - s.depth);
+        const x = view.object.position.x;
+        const z = view.object.position.z;
+        const surface = this.ocean
+          ? oceanHeight(this.config.ocean, level, ground, x, z, state.time)
+          : level;
+        view.object.position.y = Math.max(ground, surface - SWIM_FLOAT - s.depth);
       }
       if (drone) continue;
       let vis = this.stanceVisual.get(s.id);
@@ -1317,13 +1407,58 @@ export class GameRenderer {
     shadows: boolean;
     shadowMapSize: number;
     resolutionScale: number;
+    resolutionNpc: number;
+    resolutionEnemies: number;
+    resolutionWater: number;
     gore: boolean;
     parallax: number;
     textures: number;
+    water: number;
+    rainFx: boolean;
+    clouds: number;
+    filmic: boolean;
+    reflect: number;
+    lens: number;
+    snow: boolean;
+    groundDetail: number;
+    fog: boolean;
+    lightning: number;
+    lights: number;
+    ice: number;
+    drawDistance: number;
+    particles: number;
+    fov: number;
   }): void {
     this.goreEnabled = g.gore;
+    this.waterQuality = g.water;
+    this.ocean?.setQuality(g.water);
+    this.environment.setRainFx(g.rainFx);
+    this.filmic = g.filmic;
+    this.setReflectionQuality(g.reflect);
+    this.setLensDrops(g.lens);
+    this.environment.setWeatherFx({
+      snow: g.snow,
+      ground: g.groundDetail,
+      fog: g.fog,
+      lightning: g.lightning,
+    });
+    this.environment.setParticleScale(g.particles);
+    this.camera.far = FAR_PLANES[g.drawDistance] ?? 600;
+    this.fovScale = g.fov;
+    this.camera.updateProjectionMatrix();
+    this.iceDetail = g.ice;
+    this.lightCap = g.lights;
+    this.ocean?.setIceDetail(g.ice);
+    this.ocean?.setLightCap(g.lights);
+    this.renderer.toneMapping = g.filmic ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+    // Octaves of the cloud noise: 3, 4 or 5 (0 keeps the puffs).
+    this.environment.setCloudSteps(g.clouds === 0 ? 0 : g.clouds + 2);
     setPomQuality(g.parallax);
     setTextureQuality(g.textures);
+    // Enemies are characters too, so they take the lower of the two sliders.
+    this.layerScales.enemies = Math.min(g.resolutionNpc, g.resolutionEnemies);
+    this.layerScales.allies = g.resolutionNpc;
+    this.layerScales.water = g.resolutionWater;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * g.resolutionScale);
     // Below half resolution the picture is drawn in plain blocks instead of blurred.
     this.renderer.domElement.style.imageRendering = g.resolutionScale < 0.5 ? 'pixelated' : 'auto';
@@ -1335,6 +1470,26 @@ export class GameRenderer {
       this.sun.shadow.map?.dispose();
       this.sun.shadow.map = null;
     }
+  }
+
+  /** Draws the scene to the screen; parts with their own lower resolution go through ResolutionLayers. */
+  private drawScene(): void {
+    if (!ResolutionLayers.isActive(this.layerScales)) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+    this.layers ??= new ResolutionLayers(rendererAntialias ? 4 : 0);
+    const objects = (views: Iterable<CharacterView>): THREE.Object3D[] => {
+      const out: THREE.Object3D[] = [];
+      for (const v of views) out.push(v.object);
+      return out;
+    };
+    this.layers.render(this.renderer, this.scene, this.camera, {
+      scales: this.layerScales,
+      enemies: objects([...this.zombies.values()].map((e) => e.view)),
+      allies: objects([...this.soldiers.values(), ...this.animals.values()]),
+      water: this.ocean?.object ?? null,
+    });
   }
 
   get isDark(): boolean {
@@ -1355,6 +1510,114 @@ export class GameRenderer {
 
   setEnvironment(env: Environment): void {
     this.environment.set(env);
+    this.waterLook = env.water;
+    this.ocean?.setLook(env.water);
+    this.season = env.season;
+    this.applySeason();
+  }
+
+  /** Tints the ground for the season: green spring, plain summer, orange autumn, white-blue winter snow. */
+  private applySeason(): void {
+    const ground = this.arenaGroup.getObjectByName('ground');
+    if (!(ground instanceof THREE.Mesh)) return;
+    const look = SEASONS[this.season];
+    const m = ground.material as THREE.MeshStandardMaterial;
+    m.color.setHex(look.tint);
+    m.emissive.setHex(look.glow);
+    m.emissiveIntensity = look.glow === 0 ? 0 : 0.35;
+    patchGroundRain(m);
+  }
+
+  /**
+   * Draws the scene as it stands once and times it, for "Measure my machine": `cpu` is the time of
+   * the calls that submit the frame, `total` the time until the graphics card finished (gl.finish).
+   */
+  timeFrame(): { cpu: number; total: number } {
+    const gl = this.renderer.getContext();
+    const t0 = performance.now();
+    this.drawWaterMirror();
+    this.drawScene();
+    this.lens?.render(this.renderer, this.environment.rainAmount, this.clock);
+    const t1 = performance.now();
+    gl.finish();
+    return { cpu: t1 - t0, total: performance.now() - t0 };
+  }
+
+  /** Gets the distance (m) of every lightning bolt, to play the thunder. */
+  set onThunder(callback: ((distance: number) => void) | null) {
+    this.environment.onStrike = callback;
+  }
+
+  /** The rain-on-the-lens option: 0 off, 1 beads that swell and dry, 2 plus running drops. */
+  private setLensDrops(level: number): void {
+    if (level <= 0) {
+      this.lens?.dispose();
+      this.lens = null;
+      return;
+    }
+    this.lens ??= new LensDrops();
+    this.lens.setDetail(level);
+  }
+
+  /** The water reflection option: 0 off, 3 a quarter-size mirror, 1 half size, 2 full size. */
+  private setReflectionQuality(q: number): void {
+    const scale = q === 0 ? 0 : q === 3 ? 0.25 : q === 1 ? 0.5 : 1;
+    if (!scale) {
+      this.reflection?.dispose();
+      this.reflection = null;
+      return;
+    }
+    if (this.reflection && this.reflectionScale === scale) return;
+    this.reflection?.dispose();
+    this.reflectionScale = scale;
+    this.reflection = new WaterReflection(scale);
+    this.resizeReflection();
+  }
+
+  private reflectionScale = 0;
+
+  private resizeReflection(): void {
+    if (!this.reflection) return;
+    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    this.reflection.resize(size.x, size.y);
+  }
+
+  /** Draws the mirror of the world for the ocean, when there is an ocean and the option is on. */
+  private drawWaterMirror(): void {
+    const ocean = this.ocean;
+    if (!ocean) return;
+    const level = this.config.arena.terrain.water;
+    if (!this.reflection || level === null || this.waterQuality === 0) {
+      ocean.setReflection(null, new THREE.Matrix4());
+      return;
+    }
+    this.camera.updateMatrixWorld();
+    const drawn = this.reflection.render(
+      this.renderer,
+      this.scene,
+      this.camera,
+      level,
+      ocean.object,
+    );
+    ocean.setReflection(drawn ? this.reflection.target.texture : null, this.reflection.matrix);
+  }
+
+  /** Swaps the flat water plane for the wave ocean when the map has the `ocean` rule (or back). */
+  private syncOcean(arena: GameConfig['arena']): void {
+    if (this.ocean) {
+      this.scene.remove(this.ocean.object);
+      this.ocean.dispose();
+      this.ocean = null;
+    }
+    const level = arena.terrain.water;
+    if (!this.config.oceanOn || level === null || !arena.terrain.heights) return;
+    this.arenaGroup.getObjectByName('water')?.removeFromParent();
+    this.ocean = new OceanView(arena, level, this.config.ocean);
+    this.ocean.setQuality(this.waterQuality);
+    this.ocean.setIceDetail(this.iceDetail);
+    this.ocean.setLightCap(this.lightCap);
+    if (this.waterLook) this.ocean.setLook(this.waterLook);
+    this.scene.add(this.ocean.object);
   }
 
   /** A warm spotlight held at chest height, pointing at the ground ahead of the soldier. */
@@ -1409,6 +1672,7 @@ export class GameRenderer {
     const w = this.container.clientWidth || window.innerWidth;
     const h = this.container.clientHeight || window.innerHeight;
     this.renderer.setSize(w, h);
+    this.resizeReflection();
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.viewModel.resize(w / h);

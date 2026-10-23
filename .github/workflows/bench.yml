@@ -1,0 +1,75 @@
+name: Benchmarks
+
+# Runs every benchmark and determinism check of the repo on GitHub's machines (Linux and Windows)
+# so the numbers can be compared away from the author's busy PC. It runs on pushes to `bench/**`
+# branches only, never on main, and publishes the outputs as an artifact and a job summary.
+on:
+  push:
+    branches: ['bench/**']
+  workflow_dispatch:
+
+jobs:
+  bench:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Machine
+        run: |
+          mkdir -p bench-results
+          {
+            echo "os: ${{ matrix.os }}"
+            node -e "const os=require('os');console.log('cpu:',os.cpus()[0].model,'x',os.cpus().length);console.log('memory GB:',(os.totalmem()/2**30).toFixed(1));console.log('node:',process.version)"
+            git rev-parse HEAD
+          } | tee bench-results/machine.txt
+      - name: Determinism checks (hashes)
+        run: |
+          for c in check:sim-hash check:rapier; do
+            echo "== npm run $c"; npm run $c 2>&1 | tail -25
+          done | tee bench-results/hashes.txt
+      - name: Simulation benchmark, TypeScript kernels (3 runs)
+        run: |
+          for i in 1 2 3; do echo "== run $i"; npm run bench:sim 2>&1 | grep -E "zombies:|balls:|boxes:"; done | tee bench-results/bench-sim.txt
+      - name: Simulation benchmark, Rust kernels (3 runs)
+        env:
+          KERNELS: rust
+        run: |
+          for i in 1 2 3; do echo "== run $i"; npm run bench:sim 2>&1 | grep -E "kernels:|zombies:"; done | tee bench-results/bench-sim-rust.txt
+      - name: Physics benchmark
+        run: npm run bench:physics 2>&1 | tee bench-results/bench-physics.txt
+      - name: Ragdoll and ocean checks
+        run: |
+          for c in check:ragdoll check:ocean; do
+            echo "== npm run $c"; npm run $c 2>&1 | tail -25
+          done | tee bench-results/ragdoll-ocean.txt
+      - name: Rust against TypeScript, kernels (3 runs)
+        run: |
+          for i in 1 2 3; do echo "== run $i"; npm run check:kernels 2>&1 | tail -20; done | tee bench-results/kernels.txt
+      - name: Rust against TypeScript, ocean (3 runs)
+        run: |
+          for i in 1 2 3; do echo "== run $i"; npm run check:ocean-wasm 2>&1 | tail -14; done | tee bench-results/ocean-wasm.txt
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Benchmarks on ${{ matrix.os }}"
+            for f in machine hashes bench-sim bench-sim-rust bench-physics ragdoll-ocean kernels ocean-wasm; do
+              echo; echo "### $f"; echo '```'; cat bench-results/$f.txt 2>/dev/null; echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench-${{ matrix.os }}
+          path: bench-results

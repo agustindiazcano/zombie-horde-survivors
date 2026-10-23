@@ -10,11 +10,18 @@ const MAX_FRAME = 0.25;
 export function startLoop(
   update: (dt: number) => void,
   render: (alpha: number, frameDt: number) => void,
+  frameCap: () => number = () => 0,
 ): void {
   let last = performance.now();
   let accumulator = 0;
 
   const frame = (now: number) => {
+    // A frame-rate limit (frames per second, 0 = none): skip the frame, time keeps adding up.
+    const cap = frameCap();
+    if (cap > 0 && now - last < 1000 / cap - 2) {
+      requestAnimationFrame(frame);
+      return;
+    }
     const frameDt = Math.min((now - last) / 1000, MAX_FRAME);
     last = now;
     accumulator += frameDt;

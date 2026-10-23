@@ -3,8 +3,8 @@ import { resolveStatic, supportHeight } from './collision';
 import { STEP_UP } from './constants';
 import type { GameConfig, Loadout } from './config';
 import { ageFlow, steerTarget } from './flowfield';
-import { CELL, PointGrid } from './grid';
 import { maybeDropCrate } from './inventory';
+import { newSeparationScratch, runSeparate } from './kernels';
 import { dropLoot, rewardOf } from './loot';
 import { hasLimbs, severLimb, woundLimb } from './dismember';
 import { firstPlayerOf } from './players';
@@ -339,48 +339,44 @@ function hop(
 }
 
 /**
- * Pushes overlapping living zombies apart so a horde doesn't collapse into one stack.
- * Plain O(n^2) pair check: cheap enough for the intended few-hundred zombie cap.
+ * Pushes overlapping living zombies apart so a horde doesn't collapse into one stack. The pair
+ * pushes are the flat kernel `separate` (kernels.ts); this gathers the numbers, runs it and writes
+ * the positions back, then walls push the zombies out of the obstacles.
  */
 function separateZombies(state: GameState, config: GameConfig): void {
   const zombies = state.zombies;
-  const arena = config.arena;
+  const count = zombies.length;
+  if (sepX.length < count) {
+    sepX = new Float64Array(count * 2);
+    sepZ = new Float64Array(count * 2);
+    sepR = new Float64Array(count * 2);
+    sepAlive = new Uint8Array(count * 2);
+  }
   let widest = 0;
-  for (const z of zombies) if (z.state !== 'death' && z.radius > widest) widest = z.radius;
-  zombiePoints.rebuild(
-    arena,
-    zombies.length,
-    (i) => zombies[i]!.pos.x,
-    (i) => zombies[i]!.pos.z,
-    (i) => zombies[i]!.state === 'death',
+  for (let i = 0; i < count; i++) {
+    const z = zombies[i]!;
+    const alive = z.state !== 'death';
+    sepAlive[i] = alive ? 1 : 0;
+    sepX[i] = z.pos.x;
+    sepZ[i] = z.pos.z;
+    sepR[i] = z.radius;
+    if (alive && z.radius > widest) widest = z.radius;
+  }
+  runSeparate(
+    sepScratch,
+    sepX.subarray(0, count),
+    sepZ.subarray(0, count),
+    sepR.subarray(0, count),
+    sepAlive.subarray(0, count),
+    count,
+    config.arena.halfSize,
+    widest,
   );
-  for (let i = 0; i < zombies.length; i++) {
-    const a = zombies[i]!;
-    if (a.state === 'death') continue;
-    // Only the zombies in the nearby cells can touch this one.
-    const range = Math.ceil((a.radius + widest) / CELL);
-    zombiePoints.forEachAfter(arena, a.pos.x, a.pos.z, range, i, (j) => {
-      const b = zombies[j]!;
-      const minDist = a.radius + b.radius;
-      let dx = b.pos.x - a.pos.x;
-      let dz = b.pos.z - a.pos.z;
-      const d2 = dx * dx + dz * dz;
-      if (d2 >= minDist * minDist) return;
-      let d = Math.sqrt(d2);
-      if (d < 1e-6) {
-        // Exactly stacked: separate along +x so the result stays deterministic.
-        dx = 1;
-        dz = 0;
-        d = 1;
-      }
-      const push = (minDist - Math.sqrt(d2)) / 2;
-      const nx = dx / d;
-      const nz = dz / d;
-      a.pos.x -= nx * push;
-      a.pos.z -= nz * push;
-      b.pos.x += nx * push;
-      b.pos.z += nz * push;
-    });
+  for (let i = 0; i < count; i++) {
+    if (sepAlive[i] === 0) continue;
+    const z = zombies[i]!;
+    z.pos.x = sepX[i]!;
+    z.pos.z = sepZ[i]!;
   }
   for (const z of zombies) {
     if (z.state === 'death') continue;
@@ -395,7 +391,12 @@ const CLIMB_EASE = 10;
 /** The feet height at which a climber of this reach is no longer stopped by its obstacles. */
 const climbFeet = (climbHeight: number): number => (climbHeight > 0 ? climbHeight - STEP_UP : 0);
 
-const zombiePoints = new PointGrid();
+/** Buffers of `separateZombies`, grown with the horde. */
+const sepScratch = newSeparationScratch();
+let sepX = new Float64Array(0);
+let sepZ = new Float64Array(0);
+let sepR = new Float64Array(0);
+let sepAlive = new Uint8Array(0);
 /**
  * The closest thing a zombie goes for: a soldier on foot (a downed one counts as farther away, so
  * standing soldiers come first) or a vehicle with someone in it. Soldiers inside a vehicle

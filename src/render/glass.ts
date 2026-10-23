@@ -76,8 +76,87 @@ function crackedMap(): THREE.CanvasTexture {
   return tex;
 }
 
-const tint = (color: number, opacity: number, roughness = 0.05): THREE.MeshStandardMaterial =>
-  new THREE.MeshStandardMaterial({
+/** Metres of glass one tile of the dirt map covers; the pane's UVs are scaled to match. */
+const DIRT_TILE = 1.2;
+
+/**
+ * Roughness map of a used pane (the green channel is the roughness, 0.05 clean to about 0.65):
+ * blotchy smudges from value noise, a few fingerprints (broken elliptical ridges) and fine dust.
+ * Seeded, so every pane looks the same from one run to the next. Tiles without a seam.
+ */
+function dirtMap(): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  let seed = 11;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  // Value noise on a periodic lattice (so the tile repeats), smoothed with a smoothstep.
+  const lattice = (n: number) => Array.from({ length: n * n }, () => rnd());
+  const grids = [lattice(4), lattice(9), lattice(24)];
+  const sample = (g: number[], n: number, u: number, v: number) => {
+    const x = u * n;
+    const y = v * n;
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    const fx = x - x0;
+    const fy = y - y0;
+    const sx = fx * fx * (3 - 2 * fx);
+    const sy = fy * fy * (3 - 2 * fy);
+    const at = (i: number, j: number) => g[(j % n) * n + (i % n)]!;
+    const a = at(x0, y0) + (at(x0 + 1, y0) - at(x0, y0)) * sx;
+    const b = at(x0, y0 + 1) + (at(x0 + 1, y0 + 1) - at(x0, y0 + 1)) * sx;
+    return a + (b - a) * sy;
+  };
+  const image = ctx.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size;
+      const v = y / size;
+      const smudge = sample(grids[0]!, 4, u, v) * 0.6 + sample(grids[1]!, 9, u, v) * 0.4;
+      const dust = sample(grids[2]!, 24, u, v);
+      // Smudges only where the noise is high; dust adds a fine grain on top.
+      const dirt = Math.max(0, smudge - 0.45) * 1.5 + Math.max(0, dust - 0.6) * 0.35;
+      const rough = Math.min(0.05 + dirt * 0.9, 0.65);
+      const i = (y * size + x) * 4;
+      image.data[i] = image.data[i + 1] = image.data[i + 2] = Math.round(rough * 255);
+      image.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  // Fingerprints: concentric elliptical ridges with gaps, drawn lighter (rougher) than the glass.
+  ctx.lineCap = 'round';
+  for (let p = 0; p < 4; p++) {
+    const cx = 30 + rnd() * (size - 60);
+    const cy = 30 + rnd() * (size - 60);
+    const tilt = rnd() * Math.PI;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(tilt);
+    ctx.strokeStyle = `rgba(190,190,190,${0.35 + rnd() * 0.25})`;
+    ctx.lineWidth = 1.1;
+    for (let r = 3; r < 20; r += 1.9) {
+      const start = rnd() * Math.PI * 2;
+      const span = Math.PI * (1.2 + rnd() * 0.7);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 0.75, r * 1.05, 0, start, start + span);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+let dirt: THREE.CanvasTexture | undefined;
+
+/** Clear glass is the map's smooth part: the dirt map carries the roughness (roughness 1 x map). */
+const tint = (color: number, opacity: number, roughness = 0.05): THREE.MeshStandardMaterial => {
+  const material = new THREE.MeshStandardMaterial({
     color,
     opacity,
     roughness,
@@ -86,6 +165,13 @@ const tint = (color: number, opacity: number, roughness = 0.05): THREE.MeshStand
     depthWrite: false,
     side: THREE.DoubleSide,
   });
+  // The frosted pane is already rough everywhere; the rest get the smudges and fingerprints.
+  if (roughness < 0.5) {
+    material.roughness = 1;
+    material.roughnessMap = dirt ??= dirtMap();
+  }
+  return material;
+};
 
 const paneMaterials = new Map<GlassKind, THREE.Material>();
 
@@ -125,10 +211,13 @@ export function buildGlass(kind: GlassKind, o: Obstacle): THREE.Group {
   const alongX = o.halfW >= o.halfD;
   const length = Math.max(o.halfW, o.halfD) * 2;
   const height = o.height ?? 2.6;
-  const pane = new THREE.Mesh(
-    new THREE.BoxGeometry(length - FRAME, height - FRAME, PANE_THICKNESS),
-    paneMaterial(kind),
-  );
+  const paneGeometry = new THREE.BoxGeometry(length - FRAME, height - FRAME, PANE_THICKNESS);
+  // Scale the UVs so one tile of the dirt map is DIRT_TILE metres whatever the pane's size.
+  const uv = paneGeometry.attributes.uv!;
+  for (let i = 0; i < uv.count; i++) {
+    uv.setXY(i, (uv.getX(i) * length) / DIRT_TILE, (uv.getY(i) * height) / DIRT_TILE);
+  }
+  const pane = new THREE.Mesh(paneGeometry, paneMaterial(kind));
   pane.position.y = height / 2;
   pane.renderOrder = 2;
   group.add(pane);

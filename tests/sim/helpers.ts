@@ -29,6 +29,7 @@ type Patch = {
       | 'swim'
       | 'timeControl'
       | 'physicsLab'
+      | 'oceanOn'
       | 'gravity'
       | 'startOrbs'
       | 'skyShowOn'
@@ -54,6 +55,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     enemies: {},
     stance: { ...base.stance },
     swimming: { ...base.swimming },
+    ocean: { ...base.ocean },
     loot: { ...base.loot },
     progress: { ...base.progress },
     downed: { ...base.downed },

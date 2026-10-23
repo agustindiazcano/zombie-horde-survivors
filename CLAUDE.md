@@ -47,25 +47,29 @@ All controls live in [docs/CONTROLS.md](docs/CONTROLS.md): direct control, views
 
 ## 5. Commands
 
-| Command                                                       | What it does                                                                                              |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `npm run dev -- --host 127.0.0.1 --port 5173`                 | Dev server, http://127.0.0.1:5173/ (usually already running in the background; do not start a second one) |
-| `npm run lint` · `npm run format:check` · `npm run typecheck` | The static checks CI runs                                                                                 |
-| `npm test`                                                    | The 48 existing sim tests (Vitest)                                                                        |
-| `npm run bench:sim`                                           | Stress benchmark of the sim step with 100 to 1000 zombies (ms per step); not a test, prints numbers       |
-| `npm run bench:physics` · `check:rapier` · `check:ragdoll`    | Map 12 physics: timings, determinism hashes, Rapier checks, the ragdoll rig on the real model (not tests) |
-| `npm run build`                                               | `tsc --noEmit` + Vite build into `dist/`                                                                  |
-| `npm run check:assets`                                        | Fails if an asset in `assets.toml` has a license other than CC0-1.0, CC-BY-3.0 or CC-BY-4.0               |
-| `npm run credits`                                             | Regenerates the README credits block from `assets.toml`                                                   |
+| Command                                                         | What it does                                                                                                                                                                     |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev -- --host 127.0.0.1 --port 5173`                   | Dev server, http://127.0.0.1:5173/ (usually already running in the background; do not start a second one)                                                                        |
+| `npm run lint` · `npm run format:check` · `npm run typecheck`   | The static checks CI runs                                                                                                                                                        |
+| `npm test`                                                      | The 51 existing sim tests (Vitest)                                                                                                                                               |
+| `npm run bench:sim`                                             | Stress benchmark of the sim step with 100 to 1000 zombies (ms per step); not a test, prints numbers                                                                              |
+| `npm run bench:physics` · `check:rapier` · `check:ragdoll`      | Map 12 physics: timings, determinism hashes, Rapier checks, the ragdoll rig on the real model (not tests)                                                                        |
+| `npm run check:sim-hash` · `check:kernels` · `check:ocean-wasm` | Hash of a fixed sim scenario run with TypeScript and Rust kernels (must match); Rust against TypeScript kernels bit for bit and timed; Rust ocean against TypeScript (not tests) |
+| `npm run build:wasm`                                            | Rebuilds `src/wasm/sim-core` from `crates/sim-core` (the built files are committed)                                                                                              |
+| `npm run build`                                                 | `tsc --noEmit` + Vite build into `dist/`                                                                                                                                         |
+| `npm run check:assets`                                          | Fails if an asset in `assets.toml` has a license other than CC0-1.0, CC-BY-3.0 or CC-BY-4.0                                                                                      |
+| `npm run credits`                                               | Regenerates the README credits block from `assets.toml`                                                                                                                          |
 
 Before every commit run lint, format check, typecheck, tests, build and check:assets, and **read the test result** (a chained command that ends in `grep` once hid failing tests).
 
 ## 6. Architecture rules
 
 - **`src/sim`** is the pure simulation: no Three.js, no DOM. ESLint (`no-restricted-imports`) and a test enforce it. Fixed 60 Hz step (`FIXED_DT`); the render interpolates with `prev` fields and `alpha`.
+- **Kernels:** the hot loops (zombie separation, flow field search) are flat functions in `src/sim/kernels.ts` with a Rust copy in `crates/sim-core`, bit-identical (`check:sim-hash`, `check:kernels`). The game loads the Rust ones at start (`src/wasm/rustKernels.ts`; TypeScript is the fallback and the reference). Change a kernel in both languages, run `npm run build:wasm`, and keep the hash. Plan and numbers: [docs/PLAN-rust-architecture.md](docs/PLAN-rust-architecture.md), [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 - **`src/render`** is Three.js only (arena, characters, effects, cameras, lighting). Game code talks to characters through the `CharacterView` interface.
 - **`src/*.ts`** are input, HUD, audio and the DOM screens (main menu, pause panel, squad screen, shop and perk picker, settings, radar). `src/main.ts` wires everything and owns the pause and modal logic.
-- **Physics** is documented in [docs/PHYSICS.md](docs/PHYSICS.md): update it in the same commit whenever a physics rule or formula changes.
+- **Physics** is documented in [docs/PHYSICS.md](docs/PHYSICS.md): update it in the same commit whenever a physics rule or formula changes. The same goes for [docs/GRAPHICS.md](docs/GRAPHICS.md) (sky, light, weather, water).
+- **The physics, fluid and optics techniques are the user's own work** (he calls them "Diaz-Cano" formulas). Keep them registered in [docs/TECHNIQUES.md](docs/TECHNIQUES.md) under his names, name the standard technique next to each, and never call them standard. Do not write "invented" or "novel" in public text: the literature has not been checked (a paper is planned, PENDING 2q).
 - **Data-driven:** every gameplay number lives in `data/game.json`, validated by a strict zod schema in `src/sim/config.ts` (a typo fails loudly). Models and animation clips are mapped in `data/characters.json` (`src/render/characterConfig.ts`).
 - Adding a perk, shop item, weapon, enemy or boss rule means editing the JSON (and the schema if a field is new), not the code. The shared test config in `tests/sim/helpers.ts` builds a config by hand: add any new required section there too.
 - Player options (graphics, lighting, FPS counter, volume) live in `src/settings.ts` and localStorage; they are not part of the sim.
@@ -81,6 +85,8 @@ test-game/
 ├── README.md                  player-facing reference and credits
 ├── docs/CONTROLS.md           every key and mouse action (the only list of controls)
 ├── docs/PHYSICS.md            every physics rule and formula (the only place that explains them)
+├── docs/GRAPHICS.md           every sky, light, weather and water rule and formula
+├── docs/TECHNIQUES.md         register of the author's own techniques (his names, where they live) and the paper plan
 ├── assets.toml                every third-party asset: author, source, license, path
 ├── index.html                 page shell, SEO meta tags, structured data
 ├── package.json / package-lock.json
@@ -135,7 +141,7 @@ test-game/
 │   └── radar.ts                                   motion-tracker minimap
 └── tests/
     ├── scaffold.test.ts
-    └── sim/                   the 48 sim tests and their shared helpers.ts
+    └── sim/                   the 51 sim tests and their shared helpers.ts
 ```
 
 Not in git: `node_modules/`, `dist/`, and the two root folders `game-engine/` and `models/` (in `.gitignore`): they are where the user drops things to try out or add to the game (engine experiments, new models). Look there when the user says they put something to test; never commit them. A model that is accepted goes through section 9 (copy to `public/models/`, `assets.toml`, `characters.json`).
@@ -143,9 +149,10 @@ Not in git: `node_modules/`, `dist/`, and the two root folders `game-engine/` an
 ## 8. Workflow rules
 
 - A branch per task, small English conventional commits ending with the `Co-Authored-By` line from the session reminder.
+- **Commit when a task is done:** right after finishing a feature task, and also after every fix, commit it (checks passing) on the branch it belongs to: a feature on its feature branch, a fix on the branch of the work it fixes (for example `fix:` for a bug found in `feat/ocean-map-13` goes in that branch). Do not leave finished work uncommitted between tasks; do not commit unrelated files (like a model dropped in the root).
 - **Never push to `main`.** Open a PR only when the user asks ("hace pr"). The user merges it, then says "anda a main y pull": check out `main`, pull, and report what is merged and what is next.
 - Do not branch a new feature from `main` while an earlier PR is unmerged without checking what `main` is missing.
-- **No new tests, no TDD** (the user's decision). Keep the 48 existing tests passing; do not delete them.
+- **No new tests, no TDD** (the user's decision). Keep the 51 existing tests passing; do not delete them.
 - Keep working without stopping for approval between tasks; ask only when a decision is really the user's.
 - Reply in Spanish, with tables for options and status; numbered priorities with traffic lights 🔴 🟡 🟢 ⚪ (the user's global CLAUDE.md).
 - Keep docs/CONTROLS.md (every key and mouse action), README, LASTCONTEXT.md and PENDING.md up to date: when an item is done, move it to `docs/worklog/` and take it out.

@@ -1,0 +1,122 @@
+# Plan: shaping the simulation so Rust wins (before porting more to Rust)
+
+Status: **a plan, nothing in the game is changed yet** (written 2026-10-23, asked for by the user: "prepare the whole architecture plan so Rust wins before moving to Rust, and when it is ready we start moving"). It follows [PLAN-rust-wasm.md](PLAN-rust-wasm.md), whose piece 1 (the ocean) showed that porting a formula as it is does not make it faster: the Rust copy was about 1.5x _slower_ because the work is `sin` / `pow`, which V8 does natively. This plan is about choosing **what** to port and **how the data must look** so that the port wins, and about proving it with numbers at every step.
+
+## 1. What the measurements say
+
+Profile of the headless simulation (`bench:sim` under `node --cpu-prof`, 100 to 1000 zombies, balls and boxes), self time of the game's own code:
+
+| Function                                           | Share | What it does                                      | Maths inside                                      |
+| -------------------------------------------------- | ----- | ------------------------------------------------- | ------------------------------------------------- |
+| `separateZombies` (`zombies.ts`)                   | 13.6% | pushes overlapping zombies apart through a grid   | `+ - * /` and `sqrt` only, closures per neighbour |
+| `updateZombies` (`zombies.ts`)                     | 10.4% | AI and movement of each zombie                    | `hypot`, a few `atan2`, steering                  |
+| `obstaclesNear` (`grid.ts`)                        | 6.1%  | which obstacles touch a rectangle                 | `Map` lookups, `Obstacle[][]` cells               |
+| `nearestTarget` (`zombies.ts`)                     | 5.0%  | nearest soldier, walks the whole squad per zombie | squared distances                                 |
+| `resolveStatic` (`collision.ts`)                   | 3.6%  | pushes a circle out of walls                      | `sqrt`, comparisons                               |
+| flow field (`search`, `nextWaypoint`, `lineClear`) | 7.0%  | Dijkstra over a 1 m grid, a shared field per step | integers, `Float64Array` distances, a binary heap |
+
+One step with 1000 zombies costs 2.3 ms, 14% of a 60 FPS frame (16.7 ms). The rest of this section is filled from the Chrome profile of the drawing (see section 2).
+
+Two facts decide the plan:
+
+1. **Kernels without `sin` / `pow` / `exp` can be bit-identical in Rust and TypeScript.** `+ - * /` and `sqrt` are correctly rounded by the IEEE standard in both, so separation, collision, nearest-target and the flow field can keep the golden hash of the sim (section 5). The ocean could not (2e-13 m of difference).
+2. **Copying a few arrays in and out of WASM once per step is cheap.** 1000 zombies x 3 numbers is a few microseconds; the kernels cost hundreds. So Rust does **not** need the whole state to be flat to win; it needs the _kernel_ to take flat arrays. What a flat layout buys beyond that is no copy at all, SIMD and threads.
+
+## 2. The drawing (Chrome profile)
+
+Method: headless Chrome driven over the DevTools protocol (a script, not in the repo), Map 1 waves, a JS CPU profile (`Profiler.start`), a wrapper on `requestAnimationFrame` for the JS time of each frame, and a wrapper on the WebGL draw calls. Software rendering (SwiftShader), because the PC has no GPU.
+
+| Measure (Map 1, 480x270 window, resolution 25%, shadows / reflection / clouds / parallax / water off)   | Result                                                       |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Frame rate in this headless Chrome with a trivial WebGL page                                            | 60 per second (so the limit is the game's frame, not Chrome) |
+| Frame rate of the game                                                                                  | 0.3 to 0.7 per second: each frame takes 1.5 to 3.6 s         |
+| Main thread idle (waiting for the GPU process)                                                          | **94.5%** of the sampled time                                |
+| JS per frame (callback of `requestAnimationFrame`: up to 15 sim steps of catch-up plus the draw submit) | 5 to 20 ms                                                   |
+| three.js plus the game's render code, whole run                                                         | under 100 ms of 42 s (0.2%)                                  |
+| Simulation, whole run (few enemies: the run reached only the first waves)                               | about 106 ms of 42 s (0.3%)                                  |
+| Draw calls per frame                                                                                    | 16 to 59                                                     |
+
+What this does and does not prove:
+
+- **The CPU side of drawing is small**: 16 to 59 draw calls and a few milliseconds of JS per frame. Nothing in the render code is a bottleneck that Rust could remove, and the draw-call count is low enough that batching is not urgent.
+- **The GPU side cannot be measured here.** SwiftShader draws on the CPU in another process, so the 1.5 to 3.6 s per frame is software rasterisation, not a figure for any real graphics card. It is also not a figure for the user's PC if that PC has no GPU: there the same software path applies and the cost is fill rate and shaders (resolution, shadows, water, clouds, mirror), which is GLSL, not Rust.
+- Because the frame is so slow, game time advances only 0.25 s per frame (the loop's `MAX_FRAME`), so the run never reached a big horde. The sim figures come from `bench:sim` (section 1), not from this run.
+- The honest conclusion: **on a machine without a GPU the frame is limited by the graphics options** (that is what the settings window and "Measure my machine" are for), and on a machine with one it is probably limited by neither. To know, run "Measure my machine" and F3 on the user's real PC with Map 1 at wave 6 or more, and on the Map 13 storm.
+
+## 3. The target architecture
+
+Three layers, from cheapest to most ambitious. Each layer is worth doing on its own in TypeScript; Rust comes after, and only where a layer's measurement shows room.
+
+| Layer | Name                              | What changes                                                                                                                                                                                                     | Who benefits                                                                             |
+| ----- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| A     | Flat kernels                      | Hot loops become pure functions over typed arrays (`Float64Array` / `Int32Array`): no objects, no closures, no `Map`, no allocation. The game gathers the inputs and scatters the results once per step          | Separation, nearest target, obstacle queries, flow field                                 |
+| B     | Flat world data                   | Static data is flat too: obstacles as parallel arrays (`x, z, halfW, halfD, height, flags`), the cell lists as CSR (`cellStart[]` + `cellItems[]`), visit stamps as a `Uint32Array` instead of a `Map`           | Collision, line of sight, bullets, every future AI query                                 |
+| C     | Hot state of units in flat arrays | Zombie hot fields (`x, z, prevX, prevZ, radius, speed, state, flags`) live in struct-of-arrays slots with a free list; the `Zombie` object keeps the cold data (loot, parts, strings). Renderer reads the arrays | No copy at all, SIMD, optional threads, a stable memory layout for multiplayer snapshots |
+
+The order is A, then B, then C: A is local to a few functions, B changes how `Arena` is built, C touches the renderer, HUD and 45 places that read `state.zombies` and is only worth it if A and B leave measurable time on the table.
+
+### Layer A: the kernels (one function = one change)
+
+| #   | Prio | Kernel                                            | Today                                                                     | Becomes                                                                                                                 |
+| --- | ---- | ------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| A1  | 🟡   | `separateZombies`: grid build + pair pushes       | `PointGrid` with callbacks and `Zombie` objects                           | `separate(x, z, radius, alive, count, out)` with a CSR grid built in the same call; walls stay in `resolveStatic`       |
+| A2  | 🟡   | `nearestTarget`                                   | a loop over soldiers per zombie, objects                                  | `nearest(zx, zz, tx, tz, tAlive, tPriority, out)`; the squad is 5 units, so the win is in doing all zombies in one call |
+| A3  | 🟡   | Flow field `search` + `nextWaypoint`              | already flat (`Uint8Array`, `Float64Array`, heap), takes `Vec2[]` targets | the same arrays handed to Rust as they are; a first Rust candidate with no layout change                                |
+| A4  | 🟢   | `obstaclesNear` + `resolveStatic` (needs layer B) | `Map` stamps, `Obstacle[][]`                                              | CSR cells and a `Uint32Array` of stamps, then `resolveCircles(x, z, radius, count)` for a whole batch                   |
+| A5  | 🟢   | Bullets and sight: `rayAabb` over the cells       | one ray at a time                                                         | a batch of rays through the same CSR grid                                                                               |
+
+### Rules for every kernel (so Rust can match it exactly)
+
+- Same order of iteration and of pair pushes as the TypeScript (the sim is order-dependent: separation pushes both bodies in place).
+- Only `+ - * /`, `sqrt`, `min`, `max`, `floor`, `abs` in the kernel. No `sin` / `cos` / `atan2` / `pow` / `exp` inside; if the AI needs an angle it is computed outside and passed in.
+- `f64` everywhere the TypeScript uses numbers (not `f32`): bit-identical results need the same width. A later `f32` + SIMD version is a separate decision with its own hash.
+- No allocation inside the step; buffers are created once and grow only when the zombie cap grows.
+- The seeded generator stays in TypeScript (integer maths, already portable); kernels do not draw random numbers.
+
+## 4. The path to Rust (after each layer is measured)
+
+| Step | Work                                                                                                                                                              | Done when                                                               |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| R0   | A sim golden hash and a kernel benchmark exist (section 5) and pass on the current code                                                                           | `npm run check:sim-hash` prints a hash that does not change on a re-run |
+| R1   | Layer A in TypeScript, one kernel per commit, each with its before / after `bench:sim` numbers                                                                    | Hash unchanged, ms per step not worse                                   |
+| R2   | The same kernel signatures in `crates/sim-core` (`separate`, `nearest`, flow field `search`); the TypeScript stays as the reference and the fallback              | `check:kernels` compares Rust with TypeScript **bit for bit**           |
+| R3   | Wire a kernel to Rust only if it is faster in `bench:sim` on the real step (not on the micro-benchmark) and the hash is unchanged; otherwise leave the TypeScript | The wiring commit lists the measured gain                               |
+| R4   | Layer B, then C, only for the kernels that won in R3                                                                                                              | Same hash, same or better ms                                            |
+| R5   | SIMD (`simd128`) and threads (needs `SharedArrayBuffer`, so COOP / COEP headers, which GitHub Pages cannot send: a service-worker shim, or the Steam wrapper)     | A separate plan and decision                                            |
+
+## 5. How we prove it (tools to build first, R0)
+
+No new Vitest tests (the user's rule); scripts like `bench:*` and `check:*`.
+
+| Tool                 | What it does                                                                                                                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `check:sim-hash`     | Runs a fixed scenario (seeded, passive squad, 600 steps, 300 zombies, then 1000) and prints a hash of every unit's position, health and state. The golden number goes in this file; any layer must keep it |
+| `bench:kernels`      | Times each kernel alone with its flat inputs (TypeScript and, when it exists, Rust) over the same data, and prints ms and the speed-up                                                                     |
+| `check:kernels`      | Runs TypeScript and Rust kernels on the same inputs and demands identical bits (not a tolerance), as `check:rapier` does with its hash                                                                     |
+| `bench:sim` (exists) | The end-to-end ms per step; the final judge of R3                                                                                                                                                          |
+
+## 6. Decisions for the user
+
+| Question                                                                                           | Recommendation                                                      |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Start with R0 (hash and kernel benchmark) and layer A1 (`separateZombies`) now?                    | Yes: smallest change, biggest profile share, no layout change       |
+| Is `f64` bit-identical the rule, or may a later Rust version use `f32` and SIMD with its own hash? | `f64` identical first; `f32` + SIMD is a later, separate decision   |
+| Is the Steam wrapper Tauri (Rust runs natively, threads and SIMD for free) or Electron?            | Undecided; it changes whether R5 needs the `SharedArrayBuffer` shim |
+
+## 7. Results so far (2026-10-23)
+
+| Step                                    | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0 `check:sim-hash`                     | Built. Golden hash `02a0a498` (100, 300 and 1000 zombies, 240 steps), the same on every run                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| R1 A1 `separate` kernel in TypeScript   | Built (`src/sim/kernels.ts`), hash unchanged. **No speed-up**: `bench:sim` 1000 zombies 2.3 to 2.6 ms before and after (noise). V8 already optimised the old loop, so flat arrays alone do not win                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| R2 A1 `separate` in Rust (`kernels.rs`) | Built, **bit for bit identical** to the TypeScript (`npm run check:kernels`, 5 successive calls, 100 to 3000 bodies). Unchecked indexing in the inner loop (guarded by an `assert!` on the lengths)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| R3 speed of the Rust kernel             | Dense crowd, one call: 1000 bodies 1.0 ms Rust (in module memory) against 1.4 ms TypeScript; 3000 bodies 3.3 against 5.2 ms. About 1.3x to 1.6x, with run-to-run noise of 20%                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Wired into the game?                    | **Yes (2026-10-23, the user's rule: whatever is equal or better in Rust on the GitHub runners moves to Rust).** `separate` and `flowSearch` are 1.2x to 2.4x faster there and bit-identical, so `installRustKernels()` (`src/wasm/rustKernels.ts`, called from `main.ts`) switches them on once the `.wasm` loads; TypeScript stays as the fallback (`?js-kernels` in the address keeps it, and a Rust error falls back by itself). `check:sim-hash` now runs the scenario with both and demands the same hash; on the full step the two are level (1000 zombies 2.65 ms against 2.66 ms), as the profile predicted. The ocean stays in TypeScript: level at best, 6% to 8% slower with whirlpools on both systems, and not bit-identical |
+
+### Does Rust win more as the problem grows? (the user's hypothesis, measured 2026-10-23)
+
+Measured twice. On the author's noisy PC it looked as if the flow field ratio grew from 1.3x to 1.6x with the grid; on quiet GitHub runners (Linux and Windows, 3 runs each, [BENCHMARKS.md](BENCHMARKS.md) section 3) it does **not**: separation goes from 1.5x to 2.4x at a few hundred bodies down to 1.2x to 1.3x at 10 000, and the flow field stays at 1.3x to 1.6x from 80 x 80 to 320 x 320 cells. Both kernels are bit for bit identical to the TypeScript at every size.
+
+Mathematically that is expected: both versions do the same operations, so their time is the same function of the size times a constant; the ratio only moves when memory behaviour changes (past a point the data leaves the cache and both wait for memory, so the ratio falls). What grows with scale is the absolute saving (10 000 bodies: 1.8 ms of 9.3 ms; a 320 x 320 grid: 4 ms of 14.5 ms). To get more than a constant factor the kernel has to change: SIMD (`simd128`), threads, or a better algorithm (a coarser flow field, hierarchical search).
+
+What this teaches: for the sim as it is, Rust gives 1.3x to 1.6x on a pure-arithmetic kernel and nothing on the rest; the whole sim step is 14% of a frame. Porting more kernels one by one adds little. The larger gains are in layers B and C (no gather / scatter, SIMD, threads), and those only pay if a game with thousands of enemies is the goal.

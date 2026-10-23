@@ -98,6 +98,44 @@ Carrier you can walk on, frigate, island with beach and houses, drivable speedbo
 - [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 10. Walk into the sea, **C** dives, **Space** surfaces, **Shift** swims fast, watch the OXYGEN bar and the drowning. Tune `swimming` in `game.json` and `SWIM_*` in `gameRenderer.ts` ([worklog](docs/worklog/2026-10-21-swimming-map-10.md)).
 - [ ] 🟢 Next: swim animation, splash and bubbles, underwater tint, sound, AI that dives.
 
+### 2p — 🔴 Ocean, Map 13 and water look per map (built 2026-10-23, branch `feat/ocean-map-13`)
+
+Wave ocean ported from the user's `game-engine/ai_studio_code (4).html` demo: the surface (`src/sim/ocean.ts`), bodies of the Rapier lab floating on it, the water shader (`src/render/oceanView.ts`), Map 13, the Season and Ocean water groups in the editor ([worklog](docs/worklog/2026-10-23-ocean-map-13.md), [PHYSICS.md section 7](docs/PHYSICS.md)). The shader was checked in headless Chrome (compiles, renders waves, foam and neon); the game was not opened.
+
+- [x] Done 2026-10-23: filmic tone mapping (option) with an exposure by hour, a smooth ground with colour noise and rock on slopes ([GRAPHICS.md section 6](docs/GRAPHICS.md)). Also done: ambient occlusion by height, moving cloud shadows, a wet shore (lamps already light the ground). The neon orbs are now real point lights (they light the terrain, trees and units). Next for the ground: snow piling up, then PBR textures with depth (2i).
+- [x] Done 2026-10-23, from the user's notes on effects: the snow layer (a shader on every standard material, patchy at low cover, fake subsurface glow) and the wet ground (low roughness, ripple normals) ([GRAPHICS.md sections 7 and 8](docs/GRAPHICS.md)).
+- [ ] 🟡 Still from those notes: (glass dirt, the frozen sea and rain on the lens are done, 2026-10-23) (post pass or overlay, as a graphics option), snow relief with parallax.
+- [ ] 🔴 Look at the sky work too ([worklog](docs/worklog/2026-10-23-sky-storm-rain.md)): Map 13, Editor > Environment: Night light, Storm button (lightning, rain, volumetric clouds), Sun heading; Settings: Water, Sky clouds, Rain drops. Tell what looks wrong. Done after that: height fog, wind (particles and clouds) and denser sand and snow storms. Still open from that list: neon spheres lighting the clouds.
+- [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 13. Drop balls, boxes and ragdolls from the Map 12 panel into the sea; swim; press **,** / **.** for dusk and night (neon orbs, moon glints). Editor > Environment: season buttons and the Ocean water sliders. Tell what looks wrong.
+- [ ] 🟡 Weather: rain, snow, sandstorm, fog and clouds exist as sliders already; still to do: storms (waves and rain together), clouds from the demo's golden noise instead of the cloud puffs.
+- [ ] 🟡 Seasons only tint the ground today: trees, snow on roofs, foliage colour, season-dependent weather and an automatic cycle are still to do.
+- [x] Done 2026-10-23: the water mirror (planar reflection with an oblique clip plane) as the Water reflection graphics option, High and Ultra ([GRAPHICS.md section 5](docs/GRAPHICS.md)). 🔴 Look at it in Map 13 with Settings > Water reflection, and check the FPS (F3): it draws the scene twice.
+- [ ] 🟡 Swimming and boats on the waves (`swim.ts`, `naval.ts`); splashes when something falls in.
+
+### 2q — 🟡 The author's techniques, a paper, wave randomness and the Rust question (noted 2026-10-23)
+
+The physics, fluid and optics formulas are the author's own work; they are now registered in [docs/TECHNIQUES.md](docs/TECHNIQUES.md) (his names, where they live, the standard technique next to each) and the visual rules in [docs/GRAPHICS.md](docs/GRAPHICS.md).
+
+- [ ] 🟡 **Paper of the author's techniques** (plan in [TECHNIQUES.md](docs/TECHNIQUES.md) section 8): the literature check of each row is **done 2026-10-23** (two AI-assisted reviews, sections 3 to 6: most rows are re-parameterisations or known techniques, only row 2 is "possibly new"; no patent search yet). Still open: choose the scope, read the sources reachable only by browser, a real patent search, write the formulas, measure against the baselines (experiments in section 8), make figures. Wording rule stays: never write "invented" or "novel".
+- [ ] 🟡 **Keep the register current:** whenever a formula of the author is ported or changed, add or edit its row in TECHNIQUES.md and its rule in PHYSICS.md or GRAPHICS.md in the same commit.
+- [x] Done 2026-10-23: whirlpools and "Law 3" (TECHNIQUES 9) with their pull on bodies and swimmers, swimmers that follow the wave height, boats that ride the real waves in the render ([PHYSICS.md section 7](docs/PHYSICS.md)). 🔴 Look at it: Map 13, Editor > Environment > Ocean water > Whirlpools 1 to 3, then swim near one and drop balls in it.
+- [ ] 🟡 **Rows still to port from his demos** (all in `game-engine/`): the unified-solver features not in Rapier, neon orbs lighting clouds.
+- [x] Done 2026-10-23: wave patterns (golden, Fibonacci, random, parallel swell, custom angles), `seed` and `chaos` (0 = off), in the editor's Ocean water group and in `ocean` of game.json. Same numbers on CPU and GPU; golden with chaos 0 keeps the old Rapier hash. 🔴 Look at the swell in Map 13 and tell if the foam (big white patches at wave height 0.9) and the ripples on top need toning down. Done too: a JONSWAP spectrum pattern (8 components, editor button "JONSWAP spectrum").
+- [ ] 🟡 **Shaders and Rust (decision for the user):** shaders stay GLSL (WGSL if the engine moves to WebGPU, see PLAN-webgpu-engine.md); Rust/WASM is for the CPU side (waves, buoyancy, the own solver). Do not write them twice: keep one spec (the formula in the docs) and the two copies checked against each other.
+- [x] Done 2026-10-23: thunder (synthesised, delayed by distance), the whirlpool geyser and the sea wind (waves and current; `ocean.wind`, tied to the Weather wind slider). Look at them in Map 13.
+- [ ] 🟡 Rust architecture plan written 2026-10-23 ([docs/PLAN-rust-architecture.md](docs/PLAN-rust-architecture.md)): R0 `check:sim-hash`, flat kernels, Rust only where equal or better on the GitHub runners (the user's rule). All the benchmark tables (GitHub runners, Linux and Windows) are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md); R0, A1 and the flow field kernel are built (section 7 of the plan): the Rust `separate` is bit-identical and 1.3x to 1.6x faster as a kernel, but not wired (it saves about 0.1 ms of a 2.3 ms step).
+- [ ] 🟡 Rust / WebAssembly for the CPU side ([docs/PLAN-rust-wasm.md](docs/PLAN-rust-wasm.md), numbers in [docs/BENCHMARKS.md](docs/BENCHMARKS.md)): the ocean maths are in `crates/sim-core` and match the TypeScript to 2e-13 m, level in speed on the GitHub runners (6% to 8% slower with whirlpools), so they stay **not wired**. The separation and flow field kernels **are wired** (bit-identical, 1.2x to 2.4x faster alone, level on the full step). Next, if wanted: the per-zombie waypoint kernel; bigger gains need layers B / C, SIMD or threads (the Steam wrapper decision).
+
+### 2r — 🔴 Graphics settings window with a cost indicator (built 2026-10-23)
+
+Plan: [docs/PLAN-graphics-settings.md](docs/PLAN-graphics-settings.md); rules in [docs/GRAPHICS.md](docs/GRAPHICS.md) sections 1 and 13. The settings (key `O`) are a near-full-screen window drawn from the option registry `src/graphicsOptions.ts`, with GPU / CPU / VRAM bars, a cost chip on every option, 18 graphics options (11 new: snow, ground detail, fog, lightning, sea lights, ice detail, anti-aliasing, draw distance, weather particles, field of view, frame limit, plus a quarter-size mirror) and a "Measure my machine" button with a "Recommend for 60 fps" preset.
+
+- [ ] 🔴 **Nothing of the 2026-10-23 graphics work has been tested in the real game yet (user's note, 2026-10-23):** the settings window, Measure my machine, antialiasing + Reload now, every new switch and slider, the per-part resolution, the map 13 look (sky, ice, geyser, wind, thunder, lens drops, dirty glass) and the water mirror. Test all of it in the browser and report; fixes go first, one commit each.
+- [ ] 🔴 Look at it in the browser: press `O`, walk the pages, change presets, press Measure my machine on a map with the effects you care about visible (a storm, a frozen sea) and check the numbers make sense. Tell what is confusing or wrong.
+- [ ] 🟡 Check that the anti-aliasing change + Reload now works, and that each new switch really turns its effect off (snow, ground detail, fog, lightning, sea lights, ice, particles).
+- [ ] 🟡 The estimated costs (`graphicsOptions.ts`) are guesses: compare them with the measured ones and fix the table.
+- [ ] 🟢 Timer queries (`EXT_disjoint_timer_query_webgl2`) for a true GPU time; a benchmark scene that forces rain, snow and ice so every option measures its real cost; a preview of the scene inside the window; a menu entry to open the settings from the title screen if it is not there yet.
+
 ### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
 
 Plan: [docs/PLAN-physics-lab.md](docs/PLAN-physics-lab.md). Map 12 now runs Rapier (deterministic build): balls, boxes with rotation, a box pyramid and marine-zombie ragdolls with hinge joints ([worklog](docs/worklog/2026-10-21-rapier-lab.md), [PHYSICS.md section 6](docs/PHYSICS.md)). The own sphere solver is kept for the Rust/WASM port. Measured headless only (`npm run check:rapier`, `bench:physics`, `check:ragdoll`).
@@ -215,7 +253,7 @@ Plan agreed with the user: a polished one-map, one-mission demo plus waves, prom
 - [ ] 🟢 The radar ignores obstacles and the squad screen does not refresh while the game runs (it only opens while paused); fine today, revisit if either changes.
 - [ ] 🟢 Old merged branches (about 30) remain on the remote and locally; delete them once the user agrees.
 - [ ] 🟢 Docs: the README is the player reference; docs/CONTROLS.md lists every key, so update it whenever a key changes.
-- [ ] ⚪ Tests: the user dropped new tests for the prototype; the 48 sim tests stay green. If the project grows beyond a prototype, revisit (settings load/save, `moveItem`, boss stats are the least covered).
+- [ ] ⚪ Tests: the user dropped new tests for the prototype; the 51 sim tests stay green. If the project grows beyond a prototype, revisit (settings load/save, `moveItem`, boss stats are the least covered).
 
 ### 6 — ⚪ Content ideas (not requested yet)
 

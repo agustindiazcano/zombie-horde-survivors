@@ -17,7 +17,7 @@ import { startLoop } from './loop';
 import { GltfAssetLoader } from './render/assetLoader';
 import { loadVehicleModel } from './render/vehicles';
 import { parseCharactersConfig } from './render/characterConfig';
-import { GameRenderer, type ViewMode } from './render/gameRenderer';
+import { GameRenderer, setRendererAntialias, type ViewMode } from './render/gameRenderer';
 import { RtsController } from './rts';
 import {
   controlSoldier,
@@ -63,6 +63,7 @@ import { Radar } from './radar';
 import { BuildUi } from './buildUi';
 import { PhysicsLab } from './physicsLab';
 import { PerkPicker, Shop } from './upgradesUi';
+import { installRustKernels } from './wasm/rustKernels';
 
 /** Mobile: enemies within this distance (world units) are shot at automatically. */
 const MOBILE_AIM_RANGE = 22;
@@ -80,6 +81,8 @@ const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
 async function main(): Promise<void> {
+  // The Rust copies of the hot kernels (bit-identical to TypeScript, faster); `?js-kernels` keeps TypeScript to compare.
+  if (!new URLSearchParams(location.search).has('js-kernels')) void installRustKernels();
   const config = parseConfig(data, parseMap(map1), units, items);
   /** The rules of game.json before any map overrides them. */
   const globalRules = {
@@ -87,10 +90,17 @@ async function main(): Promise<void> {
     boss: config.boss,
     enemies: config.enemies,
     difficulty: config.difficulty,
+    ocean: config.ocean,
   };
   const factories = await new GltfAssetLoader().loadCharacters(parseCharactersConfig(characters));
 
   let state = createGame(config, Date.now());
+  // Player options (graphics, lighting, FPS counter, volume), saved in the browser.
+  const mobile = isMobile();
+  let settings = loadSettings(
+    mobile ? { ...DEFAULT_SETTINGS, ...PRESETS.low, quality: 'low' } : DEFAULT_SETTINGS,
+  );
+  setRendererAntialias(settings.antialias);
   let paused = false;
   const renderer = new GameRenderer(document.body, config, factories);
   // The physics lab (Map 12): drops balls and zombie ragdolls in front of the leader.
@@ -114,13 +124,9 @@ async function main(): Promise<void> {
   renderer.setVehicleModel(await loadVehicleModel());
   const input = new InputController(renderer.domElement);
   const sfx = new Sfx();
+  renderer.onThunder = (distance) => sfx.thunder(distance);
   const fps = new FpsCounter(document.body);
 
-  // Player options (graphics, lighting, FPS counter, volume), saved in the browser.
-  const mobile = isMobile();
-  let settings = loadSettings(
-    mobile ? { ...DEFAULT_SETTINGS, ...PRESETS.low, quality: 'low' } : DEFAULT_SETTINGS,
-  );
   const commitSettings = (next: Settings) => {
     settings = next;
     saveSettings(settings);
@@ -130,7 +136,13 @@ async function main(): Promise<void> {
     sfx.setVolume(settings.volume);
   };
   commitSettings(settings);
-  const settingsPanel = new SettingsPanel(document.body, () => settings, commitSettings);
+  const settingsPanel = new SettingsPanel(
+    document.body,
+    () => settings,
+    commitSettings,
+    // "Measure my machine": apply each setting to the renderer and time a frame.
+    { apply: (s) => renderer.applyGraphics(s), time: () => renderer.timeFrame() },
+  );
   let resumeAfterSettings = false;
   const openSettings = () => {
     if (settingsPanel.isOpen) return;
@@ -789,6 +801,7 @@ async function main(): Promise<void> {
       );
       squad.update(state, rts.selected, maxHealthOf(state, config));
     },
+    () => settings.fpsCap,
   );
 }
 

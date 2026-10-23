@@ -1467,6 +1467,14 @@ export class Editor {
         {
           ...this.current,
           environment: { ...(this.current.environment ?? defaultEnvironment()), ...patch },
+          // The sky's wind also blows on the sea of a wave-ocean map.
+          logic:
+            patch.wind !== undefined && this.current.logic.ocean
+              ? {
+                  ...this.current.logic,
+                  ocean: { ...this.current.logic.ocean, wind: patch.wind },
+                }
+              : this.current.logic,
         },
         record,
       );
@@ -1495,6 +1503,15 @@ export class Editor {
         this.setTab('sky');
       });
     }
+    this.rangeRow(skyBody, 'Sun heading (deg)', env.sunAzimuth, 0, 360, 5, (v) =>
+      set({ sunAzimuth: v }, !this.sliding),
+    );
+    this.rangeRow(skyBody, 'Sun and moon halo', env.sunGlow, 0, 2, 0.05, (v) =>
+      set({ sunGlow: v }, !this.sliding),
+    );
+    this.rangeRow(skyBody, 'Auto day (hours per minute, 0 = off)', env.dayCycle, 0, 12, 0.25, (v) =>
+      set({ dayCycle: v }, !this.sliding),
+    );
     const colorRow = el('label', 'editor__row', skyBody, 'Light colour');
     const color = el('input', 'editor__color', colorRow);
     color.type = 'color';
@@ -1519,6 +1536,26 @@ export class Editor {
       true,
     );
 
+    this.rangeRow(
+      skyBody,
+      'Night light (0 = pitch dark)',
+      env.nightLight,
+      0,
+      1,
+      0.05,
+      (v) => set({ nightLight: v }, !this.sliding),
+      true,
+    );
+    this.rangeRow(
+      skyBody,
+      'Cloud thickness (volumetric clouds)',
+      env.cloudDensity,
+      0.2,
+      2.5,
+      0.05,
+      (v) => set({ cloudDensity: v }, !this.sliding),
+    );
+
     const weather = el('details', 'editor__group', this.body);
     weather.open = true;
     el('summary', 'editor__summary', weather, 'Weather');
@@ -1528,6 +1565,8 @@ export class Editor {
       ['snow', 'Snow'],
       ['sand', 'Sandstorm'],
       ['fog', 'Fog'],
+      ['wind', 'Wind'],
+      ['lightning', 'Lightning'],
     ] as const) {
       this.rangeRow(
         weatherBody,
@@ -1540,9 +1579,271 @@ export class Editor {
         true,
       );
     }
+    this.rangeRow(
+      weatherBody,
+      'Fog height falloff (low = tall bank)',
+      env.fogFalloff,
+      0.005,
+      0.2,
+      0.005,
+      (v) => set({ fogFalloff: v }, !this.sliding),
+    );
+    this.rangeRow(weatherBody, 'Snow on the ground (0 = none)', env.snowCover, 0, 1, 0.05, (v) =>
+      set({ snowCover: v }, !this.sliding),
+    );
+    const presets = el('div', 'editor__row', weatherBody);
+    for (const [name, patch] of [
+      ['Clear', { rain: 0, snow: 0, sand: 0, fog: 0, wind: 0, lightning: 0, clouds: 0 }],
+      [
+        'Storm',
+        { rain: 0.85, snow: 0, sand: 0, fog: 0.2, wind: 0.6, lightning: 0.8, clouds: 0.85 },
+      ],
+      ['Blizzard', { rain: 0, snow: 1, sand: 0, fog: 0.5, wind: 0.8, lightning: 0, clouds: 0.8 }],
+      ['Sandstorm', { rain: 0, snow: 0, sand: 1, fog: 0.3, wind: 0.9, lightning: 0, clouds: 0.3 }],
+      ['Fog', { rain: 0, snow: 0, sand: 0, fog: 0.9, wind: 0, lightning: 0, clouds: 0.4 }],
+    ] as const) {
+      el('button', 'editor__btn', presets, name).addEventListener('click', () => {
+        set(patch);
+        this.setTab('sky');
+      });
+    }
+    this.seasonGroup(env, set);
+    this.waterGroup(env, set);
+
     const reset = el('button', 'editor__item', this.body, 'Back to noon, clear weather');
     reset.addEventListener('click', () => {
       this.edit({ ...this.current, environment: undefined });
+      this.setTab('sky');
+    });
+  }
+
+  /** The season of the map: tints the ground (winter is snow). */
+  private seasonGroup(
+    env: Environment,
+    set: (patch: Partial<Environment>, record?: boolean) => void,
+  ): void {
+    const group = el('details', 'editor__group', this.body);
+    group.open = true;
+    el('summary', 'editor__summary', group, 'Season');
+    const body = el('div', 'editor__items', group);
+    const row = el('div', 'editor__row', body);
+    for (const [id, name] of [
+      ['spring', 'Spring'],
+      ['summer', 'Summer'],
+      ['autumn', 'Autumn'],
+      ['winter', 'Winter'],
+    ] as const) {
+      const b = el('button', 'editor__btn', row, env.season === id ? `[${name}]` : name);
+      b.addEventListener('click', () => {
+        set({ season: id });
+        this.setTab('sky');
+      });
+    }
+  }
+
+  /**
+   * The wave ocean: the switch (the `ocean` rule), the numbers of the waves and current (they replace
+   * game.json's for this map) and the look of the water (`environment.water`: optics, ripples, neon).
+   */
+  private waterGroup(
+    env: Environment,
+    set: (patch: Partial<Environment>, record?: boolean) => void,
+  ): void {
+    const group = el('details', 'editor__group', this.body);
+    group.open = this.current.logic.ocean !== undefined;
+    el('summary', 'editor__summary', group, 'Ocean water');
+    const body = el('div', 'editor__items', group);
+    const on = this.current.logic.ocean !== undefined;
+    this.checkRow(body, 'Wave ocean (needs a water level in Terrain)', on, (checked) => {
+      this.edit({
+        ...this.current,
+        logic: { ...this.current.logic, ocean: checked ? {} : undefined },
+      });
+      this.setTab('sky');
+    });
+    if (!on) return;
+    const ocean = { ...gameData.ocean, ...this.current.logic.ocean };
+    const physics = (
+      key: Exclude<keyof typeof gameData.ocean, 'pattern' | 'sequence' | 'vortices'>,
+      label: string,
+      min: number,
+      max: number,
+      step: number,
+    ) =>
+      this.rangeRow(body, label, ocean[key], min, max, step, (v) =>
+        this.edit(
+          {
+            ...this.current,
+            logic: { ...this.current.logic, ocean: { ...this.current.logic.ocean, [key]: v } },
+          },
+          !this.sliding,
+        ),
+      );
+    el('div', 'editor__empty', body, 'Waves and current (they change how things float too)');
+    physics('waveHeight', 'Wave height (m)', 0.05, 2.5, 0.05);
+    physics('frequency', 'Wave frequency', 0.02, 0.2, 0.005);
+    physics('speed', 'Wave speed', 0.2, 5, 0.1);
+    physics('hooke', 'Sharp crests', 0, 1, 0.05);
+    physics('pressure', 'Crest pressure', 0.5, 3, 0.05);
+    physics('frozen', 'Frozen sea (ice)', 0, 1, 0.05);
+    physics('wind', 'Wind on the sea (the Weather wind sets it too)', 0, 1, 0.05);
+    physics('currentSpeed', 'Current (m/s)', 0, 15, 0.5);
+    physics('currentAngle', 'Current direction (rad)', 0, 6.28, 0.05);
+    physics('lift', 'Buoyancy (x gravity)', 0.5, 5, 0.05);
+    physics('drag', 'Water drag', 0, 10, 0.1);
+    physics('swimDrift', 'Water carries swimmers', 0, 1, 0.05);
+    physics('geyser', 'Whirlpool geyser (0 = off)', 0, 2, 0.1);
+
+    el(
+      'div',
+      'editor__empty',
+      body,
+      'Whirlpools (funnel, spiral wave and a pull on everything in the water)',
+    );
+    const whirlpools = ocean.vortices;
+    const setWhirlpools = (list: typeof whirlpools, record = true) => {
+      this.edit(
+        {
+          ...this.current,
+          logic: { ...this.current.logic, ocean: { ...this.current.logic.ocean, vortices: list } },
+        },
+        record,
+      );
+    };
+    const spots = el('div', 'editor__row', body);
+    for (const n of [0, 1, 2, 3]) {
+      el(
+        'button',
+        'editor__btn',
+        spots,
+        whirlpools.length === n ? `[${n}]` : String(n),
+      ).addEventListener('click', () => {
+        // New ones sit on the sea side of the map, spread like the demo's three.
+        const half = this.current.meta.size.width / 2;
+        const places: [number, number][] = [
+          [0, -half * 0.3],
+          [-half * 0.5, -half * 0.18],
+          [half * 0.5, -half * 0.18],
+        ];
+        const strength = whirlpools[0]?.strength ?? 1;
+        const radius = whirlpools[0]?.radius ?? 14.5;
+        setWhirlpools(
+          places.slice(0, n).map(([x, z], i) => whirlpools[i] ?? { x, z, strength, radius }),
+        );
+        this.setTab('sky');
+      });
+    }
+    if (whirlpools.length > 0) {
+      this.rangeRow(body, 'Whirlpool strength', whirlpools[0]!.strength, 0, 2, 0.05, (v) =>
+        setWhirlpools(
+          whirlpools.map((w) => ({ ...w, strength: v })),
+          !this.sliding,
+        ),
+      );
+      this.rangeRow(body, 'Whirlpool width (m)', whirlpools[0]!.radius, 4, 60, 1, (v) =>
+        setWhirlpools(
+          whirlpools.map((w) => ({ ...w, radius: v })),
+          !this.sliding,
+        ),
+      );
+    }
+
+    el('div', 'editor__empty', body, 'Wave pattern (chaos 0 = exactly the pattern, no randomness)');
+    const patterns = el('div', 'editor__row', body);
+    for (const [id, name] of [
+      ['golden', 'Golden'],
+      ['fibonacci', 'Fibonacci'],
+      ['random', 'Random'],
+      ['swell', 'Parallel swell'],
+      ['jonswap', 'JONSWAP spectrum'],
+      ['custom', 'Custom'],
+    ] as const) {
+      el(
+        'button',
+        'editor__btn',
+        patterns,
+        ocean.pattern === id ? `[${name}]` : name,
+      ).addEventListener('click', () => {
+        this.edit({
+          ...this.current,
+          logic: { ...this.current.logic, ocean: { ...this.current.logic.ocean, pattern: id } },
+        });
+        this.setTab('sky');
+      });
+    }
+    physics('seed', 'Seed', 0, 999, 1);
+    physics('chaos', 'Chaos (randomness)', 0, 1, 0.05);
+    if (ocean.pattern === 'swell' || ocean.pattern === 'jonswap') {
+      physics('heading', 'Swell / wind direction (rad)', 0, 6.28, 0.05);
+      physics('spread', 'Swell spread (rad)', 0, 1.57, 0.02);
+    }
+    if (ocean.pattern === 'custom') {
+      const row = el('label', 'editor__row', body, 'Wave angles (deg, up to 8)');
+      const input = el('input', 'editor__text', row);
+      input.type = 'text';
+      input.value = ocean.sequence.join(', ');
+      input.addEventListener('change', () => {
+        const numbers = input.value
+          .split(/[\s,;]+/)
+          .map(Number)
+          .filter((n) => Number.isFinite(n))
+          .slice(0, 8);
+        this.edit({
+          ...this.current,
+          logic: {
+            ...this.current.logic,
+            ocean: { ...this.current.logic.ocean, sequence: numbers },
+          },
+        });
+        this.setTab('sky');
+      });
+    }
+
+    const w = env.water;
+    const look = (patch: Partial<Environment['water']>, record = true) =>
+      set({ water: { ...w, ...patch } }, record);
+    const lookRange = (
+      key: Exclude<keyof Environment['water'], 'fresnel' | 'tint'>,
+      label: string,
+      min: number,
+      max: number,
+      step: number,
+    ) =>
+      this.rangeRow(body, label, w[key], min, max, step, (v) => look({ [key]: v }, !this.sliding));
+    el('div', 'editor__empty', body, 'Look of the water');
+    const fres = el('div', 'editor__row', body);
+    for (const [id, name] of [
+      ['area', 'Fresnel: area'],
+      ['sapito', 'Fresnel: sapito'],
+    ] as const) {
+      el('button', 'editor__btn', fres, w.fresnel === id ? `[${name}]` : name).addEventListener(
+        'click',
+        () => {
+          look({ fresnel: id });
+          this.setTab('sky');
+        },
+      );
+    }
+    lookRange('saturationBrake', 'Light brake with depth', 0.1, 2.5, 0.05);
+    lookRange('chromaticFriction', 'Red absorbed more than blue', 0, 2, 0.05);
+    lookRange('impedance', 'Surface reflectivity (R0)', 0.08, 0.245, 0.005);
+    lookRange('reflection', 'Reflection', 0, 1.5, 0.05);
+    lookRange('normalDistortion', 'Ripple shear', 0, 1.2, 0.02);
+    lookRange('caustics', 'Caustics', 0, 1.5, 0.05);
+    lookRange('pomSteps', 'Parallax steps', 0, 20, 1);
+    lookRange('pomDepth', 'Parallax depth', 0, 1.2, 0.05);
+    lookRange('neonOrbs', 'Neon orbs', 0, 8, 1);
+    const tintRow = el('label', 'editor__row', body, 'Water tint');
+    const tint = el('input', 'editor__color', tintRow);
+    tint.type = 'color';
+    tint.value = w.tint ?? '#2a9fd6';
+    tint.addEventListener('input', () => {
+      look({ tint: tint.value }, !this.sliding);
+      this.sliding = true;
+    });
+    tint.addEventListener('change', () => (this.sliding = false));
+    el('button', 'editor__btn', tintRow, 'Natural').addEventListener('click', () => {
+      look({ tint: null });
       this.setTab('sky');
     });
   }

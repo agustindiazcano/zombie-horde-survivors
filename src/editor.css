@@ -316,3 +316,12 @@ body.editing .radar {
   text-transform: uppercase;
   opacity: 0.6;
 }
+
+.editor__text {
+  width: 8rem;
+  background: #12161c;
+  color: inherit;
+  border: 1px solid #3a4250;
+  border-radius: 3px;
+  padding: 2px 4px;
+}

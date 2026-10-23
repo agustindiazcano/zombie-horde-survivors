@@ -254,6 +254,17 @@ export class PhysicsLab {
     if (this.paused && !this.stepOnce) return;
     this.stepOnce = false;
     w.params.gravity = this.gravity.get();
+    // The Map 13 ocean: bodies float on the same waves the water shader draws.
+    const sea = arena.terrain.water;
+    w.ocean =
+      config.oceanOn && sea !== null
+        ? {
+            params: config.ocean,
+            level: sea,
+            groundAt: (x, z) => heightAt(arena.terrain.heights, arena.halfSize, x, z),
+          }
+        : null;
+    w.oceanTime = state.time;
     this.hands.control(w, state, config, arena);
     const t0 = performance.now();
     w.step();

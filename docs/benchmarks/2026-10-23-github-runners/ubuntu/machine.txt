@@ -1,0 +1,5 @@
+os: ubuntu-latest
+cpu: AMD EPYC 9V74 80-Core Processor x 4
+memory GB: 15.6
+node: v22.23.3
+cbf5b1ecea731c295730e3451dde78dedc51c68b

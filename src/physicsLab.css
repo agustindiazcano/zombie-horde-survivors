@@ -95,3 +95,11 @@
   margin-top: 6px;
   color: #fc0;
 }
+
+/* While the map editor is open its own panel takes the right side: the lab moves to the left, under the stop bar. */
+body.editing #physics-lab {
+  right: auto;
+  left: 8px;
+  top: 56px;
+  max-height: calc(100vh - 64px);
+}

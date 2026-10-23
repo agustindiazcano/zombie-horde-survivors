@@ -1,0 +1,186 @@
+// Compares the flat kernels of src/sim/kernels.ts (TypeScript) with their Rust copy bit for bit, and
+// times both on the same data: npm run check:kernels
+import { readFileSync } from 'node:fs';
+import { flowSearch, newFlowScratch, newSeparationScratch, separate } from '../src/sim/kernels';
+import { FlowSearch, Separation, loadSimCoreSync, simCoreMemory } from '../src/wasm/simCore';
+
+loadSimCoreSync(readFileSync('src/wasm/sim-core/sim_core_bg.wasm'));
+
+const HALF = 40;
+const REPS = 200;
+
+let seed = 987654321;
+const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+
+/** A crowd packed round the middle, with a few sizes and some dead bodies (alive = 0). */
+function crowd(n: number) {
+  const x = new Float64Array(n);
+  const z = new Float64Array(n);
+  const r = new Float64Array(n);
+  const alive = new Uint8Array(n);
+  const spread = Math.sqrt(n) * 0.55;
+  let widest = 0;
+  for (let i = 0; i < n; i++) {
+    const a = rnd() * Math.PI * 2;
+    const d = Math.sqrt(rnd()) * spread;
+    x[i] = Math.cos(a) * d;
+    z[i] = Math.sin(a) * d;
+    r[i] = 0.4 + (i % 7 === 0 ? 0.35 : 0) + (i % 31 === 0 ? 0.9 : 0);
+    alive[i] = i % 13 === 5 ? 0 : 1;
+    if (alive[i] === 1 && r[i]! > widest) widest = r[i]!;
+  }
+  return { x, z, r, alive, widest };
+}
+
+const sameBits = (a: Float64Array, b: Float64Array): number => {
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) if (!Object.is(a[i], b[i])) diff++;
+  return diff;
+};
+
+let failed = false;
+console.log(
+  'bodies   bits differ   ts ms/call   rust slices ms   rust in-memory ms   (best of 3 runs of ' +
+    REPS +
+    ' calls)',
+);
+for (const n of [100, 300, 1000, 2000, 5000, 10000]) {
+  const c = crowd(n);
+
+  // Bit-for-bit: five successive calls, TypeScript against Rust (slices and in-memory).
+  const tx = c.x.slice();
+  const tz = c.z.slice();
+  const scratch = newSeparationScratch();
+  const rs = new Separation();
+  const sx = c.x.slice();
+  const sz = c.z.slice();
+  const ms = new Separation();
+  ms.reserve(n);
+  const view = () => ({
+    x: new Float64Array(simCoreMemory().buffer, ms.x_ptr() as unknown as number, n),
+    z: new Float64Array(simCoreMemory().buffer, ms.z_ptr() as unknown as number, n),
+    r: new Float64Array(simCoreMemory().buffer, ms.radius_ptr() as unknown as number, n),
+    alive: new Uint8Array(simCoreMemory().buffer, ms.alive_ptr() as unknown as number, n),
+  });
+  let v = view();
+  v.x.set(c.x);
+  v.z.set(c.z);
+  v.r.set(c.r);
+  v.alive.set(c.alive);
+  for (let k = 0; k < 5; k++) {
+    separate(scratch, tx, tz, c.r, c.alive, n, HALF, c.widest);
+    rs.run_slices(sx, sz, c.r, c.alive, n, HALF, c.widest);
+    ms.run(n, HALF, c.widest);
+  }
+  v = view();
+  const differ = sameBits(tx, sx) + sameBits(tz, sz) + sameBits(tx, v.x) + sameBits(tz, v.z);
+  if (differ > 0) failed = true;
+
+  // Timing: restore the positions, then one call, REPS times; best of three runs.
+  const best = (run: () => void): number => {
+    let b = Infinity;
+    for (let k = 0; k < 3; k++) {
+      const t0 = performance.now();
+      for (let r = 0; r < REPS; r++) run();
+      b = Math.min(b, (performance.now() - t0) / REPS);
+    }
+    return b;
+  };
+  const wx = c.x.slice();
+  const wz = c.z.slice();
+  const msTs = best(() => {
+    wx.set(c.x);
+    wz.set(c.z);
+    separate(scratch, wx, wz, c.r, c.alive, n, HALF, c.widest);
+  });
+  const msSlices = best(() => {
+    sx.set(c.x);
+    sz.set(c.z);
+    rs.run_slices(sx, sz, c.r, c.alive, n, HALF, c.widest);
+  });
+  const msMem = best(() => {
+    const w = view();
+    w.x.set(c.x);
+    w.z.set(c.z);
+    ms.run(n, HALF, c.widest);
+  });
+  console.log(
+    `${String(n).padStart(6)} ${String(differ).padStart(12)} ${msTs.toFixed(3).padStart(12)} ${msSlices.toFixed(3).padStart(16)} ${msMem.toFixed(3).padStart(19)}`,
+  );
+}
+// The flow field search: walls and breakable cells at random, a few targets.
+console.log(
+  '\ngrid     bits differ   ts ms/call   rust slices ms   rust in-memory ms   (a search from 5 targets)',
+);
+for (const n of [80, 160, 320]) {
+  const cells = new Uint8Array(n * n);
+  const extra = new Float32Array(n * n);
+  for (let w = 0; w < n * 2; w++) {
+    // Walls: short runs, some horizontal and some vertical; a few breakable cells with a cost.
+    const horizontal = rnd() < 0.5;
+    const len = 3 + Math.floor(rnd() * 14);
+    const cx = Math.floor(rnd() * n);
+    const cz = Math.floor(rnd() * n);
+    const breakable = rnd() < 0.15;
+    for (let k = 0; k < len; k++) {
+      const x = horizontal ? Math.min(cx + k, n - 1) : cx;
+      const z = horizontal ? cz : Math.min(cz + k, n - 1);
+      cells[z * n + x] = breakable ? 2 : 1;
+      if (breakable) extra[z * n + x] = 3 + Math.floor(rnd() * 8) * 0.5;
+    }
+  }
+  const targets = new Int32Array(5);
+  for (let t = 0; t < 5; t++) {
+    let c = Math.floor(rnd() * n * n);
+    while (cells[c] === 1) c = Math.floor(rnd() * n * n);
+    targets[t] = c;
+  }
+
+  const h = newFlowScratch();
+  const distTs = new Float64Array(n * n);
+  flowSearch(h, n, cells, extra, distTs, targets, 5);
+
+  const fs = new FlowSearch();
+  const distSlices = new Float64Array(n * n);
+  fs.run_slices(n, cells, extra, distSlices, targets, 5);
+
+  const fm = new FlowSearch();
+  fm.reserve(n, 5);
+  const mem = () => simCoreMemory().buffer;
+  const mCells = () => new Uint8Array(mem(), fm.cells_ptr() as unknown as number, n * n);
+  const mExtra = () => new Float32Array(mem(), fm.extra_ptr() as unknown as number, n * n);
+  const mDist = () => new Float64Array(mem(), fm.dist_ptr() as unknown as number, n * n);
+  const mTargets = () => new Int32Array(mem(), fm.targets_ptr() as unknown as number, 5);
+  mCells().set(cells);
+  mExtra().set(extra);
+  mTargets().set(targets);
+  fm.run(n, 5);
+  const differ = sameBits(distTs, distSlices) + sameBits(distTs, mDist());
+  if (differ > 0) failed = true;
+
+  const reps = n >= 320 ? 20 : 100;
+  const best = (run: () => void): number => {
+    let b = Infinity;
+    for (let k = 0; k < 3; k++) {
+      const t0 = performance.now();
+      for (let r = 0; r < reps; r++) run();
+      b = Math.min(b, (performance.now() - t0) / reps);
+    }
+    return b;
+  };
+  const msTs = best(() => flowSearch(h, n, cells, extra, distTs, targets, 5));
+  const msSlices = best(() => fs.run_slices(n, cells, extra, distSlices, targets, 5));
+  // In memory the walls stay uploaded; each search sets the targets and runs, and reads `dist` in place.
+  const msMem = best(() => {
+    mTargets().set(targets);
+    fm.run(n, 5);
+  });
+  console.log(
+    `${(n + 'x' + n).padStart(7)} ${String(differ).padStart(12)} ${msTs.toFixed(3).padStart(12)} ${msSlices.toFixed(3).padStart(16)} ${msMem.toFixed(3).padStart(19)}`,
+  );
+}
+
+console.log(
+  failed ? 'FAIL: the Rust kernel differs from the TypeScript' : 'OK: bit for bit identical',
+);
+if (failed) process.exitCode = 1;

@@ -1,0 +1,47 @@
+
+> zombie-horde-survivors@0.0.0 bench:physics
+> node scripts/bench-physics.mjs
+
+== Time per step (1/60 s, 3 sub-steps x 2 passes), balls falling as a Vogel spiral
+  100 balls: 0.14 ms/step avg, 1.38 worst, 6 contacts, 0 under the floor
+  300 balls: 0.43 ms/step avg, 1.43 worst, 255 contacts, 0 under the floor
+  600 balls: 1.07 ms/step avg, 2.04 worst, 1608 contacts, 0 under the floor
+ 1000 balls: 2.21 ms/step avg, 3.12 worst, 3420 contacts, 0 under the floor
+
+== Determinism: the same run twice
+hash 1 131015085, hash 2 131015085: IDENTICAL
+
+== Ball pyramid (base 6, 91 balls): does it hold for 10 s?
+top ball moved 0.026 m in 10 s (4.05 m -> 4.02 m), fastest ball 0.000 m/s
+
+== Ragdoll dropped from 3 m: when does it rest, and how far does a bone stretch?
+11 joints, 13 bones: rested after 1.90 s, worst bone length error 4.3 %
+
+
+######## RAPIER (same checks, same machine) ########
+
+== Heightfield orientation: ray down onto a lopsided terrain vs heightAt
+worst difference between the ray hit and heightAt: 0.0000 m
+
+== Rapier time per step: balls and boxes falling as a Vogel spiral
+  100 balls: 0.45 ms/step avg, 4.57 worst, 100 asleep, 0 under the floor
+  300 balls: 0.43 ms/step avg, 2.19 worst, 300 asleep, 0 under the floor
+  600 balls: 0.91 ms/step avg, 3.04 worst, 600 asleep, 0 under the floor
+ 1000 balls: 1.51 ms/step avg, 8.31 worst, 1000 asleep, 0 under the floor
+  100 boxes: 0.42 ms/step avg, 1.26 worst, 100 asleep, 0 under the floor
+  300 boxes: 1.53 ms/step avg, 4.52 worst, 300 asleep, 0 under the floor
+  600 boxes: 3.35 ms/step avg, 8.14 worst, 600 asleep, 0 under the floor
+ 1000 boxes: 6.43 ms/step avg, 15.92 worst, 999 asleep, 0 under the floor
+
+== Rapier determinism: balls, boxes, ragdolls and a blast, the same run twice
+hash 1 137794019, hash 2 137794019: IDENTICAL
+
+== Rapier box pyramid (base 6, 91 boxes): does it hold for 10 s?
+top box moved 0.029 m in 10 s (5.53 m -> 5.50 m), 91 of 91 asleep
+
+== Rapier ball rolling and box on a ramp (slope 0.2, friction 0.8)
+ball from x 10 to x -7.15 (turned 2.67 rad); box from x 14 to x 13.85
+
+== Rapier ragdoll dropped from 3 m: when does it sleep, are the knees sane?
+head moved 0.000 m in the last 2 s (10 of 10 bodies asleep)
+10 bodies asleep after 8.53 s, lowest joint 0.01 m, most negative knee angle -4.5 deg
