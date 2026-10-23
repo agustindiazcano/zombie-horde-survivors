@@ -51,7 +51,7 @@ All controls live in [docs/CONTROLS.md](docs/CONTROLS.md): direct control, views
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `npm run dev -- --host 127.0.0.1 --port 5173`                 | Dev server, http://127.0.0.1:5173/ (usually already running in the background; do not start a second one) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` | The static checks CI runs                                                                                 |
-| `npm test`                                                    | The 48 existing sim tests (Vitest)                                                                        |
+| `npm test`                                                    | The 51 existing sim tests (Vitest)                                                                        |
 | `npm run bench:sim`                                           | Stress benchmark of the sim step with 100 to 1000 zombies (ms per step); not a test, prints numbers       |
 | `npm run bench:physics` · `check:rapier` · `check:ragdoll`    | Map 12 physics: timings, determinism hashes, Rapier checks, the ragdoll rig on the real model (not tests) |
 | `npm run build`                                               | `tsc --noEmit` + Vite build into `dist/`                                                                  |
@@ -138,7 +138,7 @@ test-game/
 │   └── radar.ts                                   motion-tracker minimap
 └── tests/
     ├── scaffold.test.ts
-    └── sim/                   the 48 sim tests and their shared helpers.ts
+    └── sim/                   the 51 sim tests and their shared helpers.ts
 ```
 
 Not in git: `node_modules/`, `dist/`, and the two root folders `game-engine/` and `models/` (in `.gitignore`): they are where the user drops things to try out or add to the game (engine experiments, new models). Look there when the user says they put something to test; never commit them. A model that is accepted goes through section 9 (copy to `public/models/`, `assets.toml`, `characters.json`).
@@ -149,7 +149,7 @@ Not in git: `node_modules/`, `dist/`, and the two root folders `game-engine/` an
 - **Commit when a task is done:** right after finishing a feature task, and also after every fix, commit it (checks passing) on the branch it belongs to: a feature on its feature branch, a fix on the branch of the work it fixes (for example `fix:` for a bug found in `feat/ocean-map-13` goes in that branch). Do not leave finished work uncommitted between tasks; do not commit unrelated files (like a model dropped in the root).
 - **Never push to `main`.** Open a PR only when the user asks ("hace pr"). The user merges it, then says "anda a main y pull": check out `main`, pull, and report what is merged and what is next.
 - Do not branch a new feature from `main` while an earlier PR is unmerged without checking what `main` is missing.
-- **No new tests, no TDD** (the user's decision). Keep the 48 existing tests passing; do not delete them.
+- **No new tests, no TDD** (the user's decision). Keep the 51 existing tests passing; do not delete them.
 - Keep working without stopping for approval between tasks; ask only when a decision is really the user's.
 - Reply in Spanish, with tables for options and status; numbered priorities with traffic lights 🔴 🟡 🟢 ⚪ (the user's global CLAUDE.md).
 - Keep docs/CONTROLS.md (every key and mouse action), README, LASTCONTEXT.md and PENDING.md up to date: when an item is done, move it to `docs/worklog/` and take it out.

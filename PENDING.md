@@ -125,6 +125,15 @@ The physics, fluid and optics formulas are the author's own work; they are now r
 - [x] Done 2026-10-23: thunder (synthesised, delayed by distance), the whirlpool geyser and the sea wind (waves and current; `ocean.wind`, tied to the Weather wind slider). Look at them in Map 13.
 - [ ] ⚪ Rust / WebAssembly for the CPU side: plan and open decisions in [docs/PLAN-rust-wasm.md](docs/PLAN-rust-wasm.md) (the toolchain is installed; nothing built; first target proposed: the ocean maths).
 
+### 2r — 🟡 Graphics settings window with a cost indicator (planned 2026-10-23, nothing built)
+
+Plan: [docs/PLAN-graphics-settings.md](docs/PLAN-graphics-settings.md). Every effect gets its own switch, the settings become a near-full-screen window, and each option shows how heavy it is and whether it loads the GPU, the CPU or the VRAM (estimated first, measured later).
+
+- [ ] 🟡 Answer section 6 of the plan (pause or live, static numbers first, a recommend button, antialiasing restart).
+- [ ] 🟡 Step 1 and 2: the option registry with a cost record per value; presets and load / save built from it.
+- [ ] 🟡 Step 3 and 4: the new window and the cost bars and chips.
+- [ ] 🟢 Step 5: the missing switches (snow, ground detail, fog, lightning, lights, antialiasing, draw distance, particles, FOV, frame cap). Step 6: the benchmark with timer queries.
+
 ### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
 
 Plan: [docs/PLAN-physics-lab.md](docs/PLAN-physics-lab.md). Map 12 now runs Rapier (deterministic build): balls, boxes with rotation, a box pyramid and marine-zombie ragdolls with hinge joints ([worklog](docs/worklog/2026-10-21-rapier-lab.md), [PHYSICS.md section 6](docs/PHYSICS.md)). The own sphere solver is kept for the Rust/WASM port. Measured headless only (`npm run check:rapier`, `bench:physics`, `check:ragdoll`).
@@ -242,7 +251,7 @@ Plan agreed with the user: a polished one-map, one-mission demo plus waves, prom
 - [ ] 🟢 The radar ignores obstacles and the squad screen does not refresh while the game runs (it only opens while paused); fine today, revisit if either changes.
 - [ ] 🟢 Old merged branches (about 30) remain on the remote and locally; delete them once the user agrees.
 - [ ] 🟢 Docs: the README is the player reference; docs/CONTROLS.md lists every key, so update it whenever a key changes.
-- [ ] ⚪ Tests: the user dropped new tests for the prototype; the 48 sim tests stay green. If the project grows beyond a prototype, revisit (settings load/save, `moveItem`, boss stats are the least covered).
+- [ ] ⚪ Tests: the user dropped new tests for the prototype; the 51 sim tests stay green. If the project grows beyond a prototype, revisit (settings load/save, `moveItem`, boss stats are the least covered).
 
 ### 6 — ⚪ Content ideas (not requested yet)
 
