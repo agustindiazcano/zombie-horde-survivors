@@ -6,11 +6,12 @@ Everything is Three.js with hand-written GLSL. Code: `src/render/environment.ts`
 
 ## 1. Graphics options and presets
 
-| Option     | Values                                                      | What it changes                                                                                              |
-| ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Water      | 0 flat, 1 light, 2 normal, 3 full                           | How much of the map's water look is drawn (section 5). The look itself is the map's; this only holds it back |
-| Sky clouds | 0 simple puffs, 1 / 2 / 3 volumetric with 3 / 4 / 5 octaves | Puff meshes or the cloud layer inside the sky shader (section 3)                                             |
-| Rain drops | on / off                                                    | Streak cylinder, wet ground with rings and ring ripples in the sea, instead of 2500 line drops (section 4)   |
+| Option              | Values                                                      | What it changes                                                                                                                 |
+| ------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Water               | 0 flat, 1 light, 2 normal, 3 full                           | How much of the map's water look is drawn (section 5). The look itself is the map's; this only holds it back                    |
+| Sky clouds          | 0 simple puffs, 1 / 2 / 3 volumetric with 3 / 4 / 5 octaves | Puff meshes or the cloud layer inside the sky shader (section 3)                                                                |
+| Filmic tone mapping | on / off                                                    | ACES filmic curve with an exposure that follows the hour (section 6): bright colours roll off instead of clipping to flat white |
+| Rain drops          | on / off                                                    | Streak cylinder, wet ground with rings and ring ripples in the sea, instead of 2500 line drops (section 4)                      |
 
 | Preset  | Water | Sky clouds | Rain drops |
 | ------- | ----- | ---------- | ---------- |
@@ -75,6 +76,15 @@ Code: `src/render/oceanView.ts`. The waves themselves are in PHYSICS.md section 
 | Neon orbs     | Up to 8 coloured lights on a golden-angle spiral (`radius = 14 + 15 sqrt(i + 1)`, angle `(i + 1) * 2.3999632 + ...`) that light the water with a glint and a halo                                                                               |
 | Water quality | 0: no ripple lookups, caustics or orbs (the big waves' normal only). 1: ripples. 2: parallax capped at 6 steps, caustics, up to 3 orbs. 3: as the map says                                                                                      |
 
-## 6. Not done
+## 6. Ground and tone mapping
 
-Thunder sound; neon orbs lighting the clouds; snow piling up on the ground; the screen-space reflection (needs a clip plane); wind that drives the waves and the current (today it moves only particles and clouds). See PENDING.md.
+| Rule         | Detail                                                                                                                                                                                                                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ground       | One vertex per metre, painted by vertex colour, **smooth** normals (it used to be flat-shaded). `src/render/groundLook.ts` adds the detail in the fragment shader, with no textures                                                                                                    |
+| Colour noise | `detail = 0.45 big + 0.3 mid + 0.17 fine + 0.08 grain`, value noise at 0.09, 0.45, 2.6 and 11 cycles per metre; the colour is multiplied by `0.62 + 0.78 detail` and by a slight warm-to-cool shift, so painted colours stay but no patch of ground is one flat colour                 |
+| Rock         | `rock = smoothstep(0.9, 0.68, normal.y)`: steep slopes blend to grey stone `(0.43, 0.41, 0.39) * (0.75 + 0.5 fine)`                                                                                                                                                                    |
+| Tone mapping | `THREE.ACESFilmicToneMapping` (option Filmic tone mapping). Exposure `1.05 + (1 - day) * 0.25 * (0.4 + 0.6 nightLight)`: a little brighter at night so the dark stays readable (it never lifts a pitch-dark night). The sky and the water shaders write their own colour and ignore it |
+
+## 7. Not done
+
+Ground: ambient occlusion by height, cloud shadows, a wet shore, lamps and neon lighting the ground, snow piling up (see PENDING). Thunder sound; neon orbs lighting the clouds; the screen-space reflection (needs a clip plane); wind that drives the waves and the current (today it moves only particles and clouds). See PENDING.md.
