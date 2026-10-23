@@ -2,6 +2,7 @@ import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import type { Arena } from '../config';
 import { OBSTACLE_HEIGHT } from '../constants';
 import { nextFloat, type Rng } from '../rng';
+import { oceanFlow, oceanHeight, type OceanParams } from '../ocean';
 import {
   BALL_MASS,
   BALL_RADIUS,
@@ -91,6 +92,16 @@ function rotate(q: Quat, vx: number, vy: number, vz: number): [number, number, n
   ];
 }
 
+/** Water the free bodies float in (the Map 13 ocean): the calm level, the ground under a point and the wave numbers. */
+export interface RapierOcean {
+  params: OceanParams;
+  level: number;
+  groundAt: (x: number, z: number) => number;
+}
+
+/** A body sinks this fraction of its radius before the water starts to lift it. */
+const FLOAT_OFFSET = 0.35;
+
 let ready: Promise<void> | null = null;
 
 export class RapierWorld {
@@ -114,6 +125,9 @@ export class RapierWorld {
   /** The ragdoll of a limb, or -1. */
   readonly group = new Int32Array(BODY_CAPACITY).fill(-1);
   count = 0;
+  /** The water the bodies float in, or null for none; `oceanTime` (s) is the sim clock the waves run on. */
+  ocean: RapierOcean | null = null;
+  oceanTime = 0;
   /** The limb bodies per ragdoll: how many ragdolls were made. */
   nextGroup = 0;
   /** Bodies that are asleep (a number to watch). */
@@ -527,9 +541,48 @@ export class RapierWorld {
     this.bodies[id]!.applyImpulseAtPoint({ x: ix, y: iy, z: iz }, { x: px, y: py, z: pz }, true);
   }
 
+  /**
+   * Archimedes for the free bodies: under the wave surface a body gets an upward acceleration of
+   * `lift * gravity` times how deep it is (in body diameters, at most 1.6), its vertical speed is
+   * damped and its horizontal speed is pulled towards the current. Positions are those of the last step.
+   */
+  private floatBodies(): void {
+    const o = this.ocean;
+    if (!o) return;
+    const dt = this.world.timestep;
+    const g = this.params.gravity;
+    const flow = { x: 0, z: 0 };
+    oceanFlow(o.params, flow);
+    const pull = Math.min(1, o.params.drag * dt);
+    const damp = Math.max(0, 1 - o.params.damping * dt);
+    for (let i = 0; i < this.count; i++) {
+      const kind = this.kind[i]!;
+      const s0 = this.size[i * 3]!;
+      const r = kind === KIND_BOX ? (s0 + this.size[i * 3 + 1]! + this.size[i * 3 + 2]!) / 3 : s0;
+      const x = this.pos[i * 3]!;
+      const y = this.pos[i * 3 + 1]!;
+      const z = this.pos[i * 3 + 2]!;
+      const surface = oceanHeight(o.params, o.level, o.groundAt(x, z), x, z, this.oceanTime);
+      const sunk = surface + r * FLOAT_OFFSET - y;
+      if (sunk <= 0) continue;
+      const body = this.bodies[i]!;
+      const v = body.linvel();
+      const ratio = Math.min(sunk / (r * 2), 1.6);
+      body.setLinvel(
+        {
+          x: v.x + (flow.x - v.x) * pull,
+          y: (v.y + g * o.params.lift * ratio * dt) * damp,
+          z: v.z + (flow.z - v.z) * pull,
+        },
+        true,
+      );
+    }
+  }
+
   /** One fixed 1/60 s step, then the flat arrays are refreshed. */
   step(): void {
     this.applyParams();
+    this.floatBodies();
     this.world.step(undefined, this.hooks);
     this.sleeping = 0;
     for (let i = 0; i < this.count; i++) {

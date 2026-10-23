@@ -105,6 +105,7 @@ function buildGround(arena: GameConfig['arena']): THREE.Mesh {
     new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: !!heights }),
   );
   ground.receiveShadow = true;
+  ground.name = 'ground';
   return ground;
 }
 
@@ -118,6 +119,7 @@ function buildWater(size: number, level: number): THREE.Mesh {
       depthWrite: false,
     }),
   );
+  water.name = 'water';
   water.rotation.x = -Math.PI / 2;
   water.position.y = level;
   return water;

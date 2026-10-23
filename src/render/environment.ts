@@ -189,6 +189,11 @@ export class EnvironmentView {
     this.apply();
   }
 
+  /** The unit direction from the world to the sun (below the horizon at night). */
+  get sunDirection(): THREE.Vector3 {
+    return this.sunDir;
+  }
+
   /** True while the light is moonlight: the game turns the flashlights on. */
   get isNight(): boolean {
     return this.dark || this.night;

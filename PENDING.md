@@ -98,6 +98,16 @@ Carrier you can walk on, frigate, island with beach and houses, drivable speedbo
 - [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 10. Walk into the sea, **C** dives, **Space** surfaces, **Shift** swims fast, watch the OXYGEN bar and the drowning. Tune `swimming` in `game.json` and `SWIM_*` in `gameRenderer.ts` ([worklog](docs/worklog/2026-10-21-swimming-map-10.md)).
 - [ ] 🟢 Next: swim animation, splash and bubbles, underwater tint, sound, AI that dives.
 
+### 2p — 🔴 Ocean, Map 13 and water look per map (built 2026-10-23, branch `feat/ocean-map-13`)
+
+Wave ocean ported from the user's `game-engine/ai_studio_code (4).html` demo: the surface (`src/sim/ocean.ts`), bodies of the Rapier lab floating on it, the water shader (`src/render/oceanView.ts`), Map 13, the Season and Ocean water groups in the editor ([worklog](docs/worklog/2026-10-23-ocean-map-13.md), [PHYSICS.md section 7](docs/PHYSICS.md)). The shader was checked in headless Chrome (compiles, renders waves, foam and neon); the game was not opened.
+
+- [ ] 🔴 Look at it in the browser: Start > Single Player > Waves > Map 13. Drop balls, boxes and ragdolls from the Map 12 panel into the sea; swim; press **,** / **.** for dusk and night (neon orbs, moon glints). Editor > Environment: season buttons and the Ocean water sliders. Tell what looks wrong.
+- [ ] 🟡 Weather: rain, snow, sandstorm, fog and clouds exist as sliders already; still to do: wind (drives the waves, current and clouds), storms (waves and rain together), clouds from the demo's golden noise instead of the cloud puffs.
+- [ ] 🟡 Seasons only tint the ground today: trees, snow on roofs, foliage colour, season-dependent weather and an automatic cycle are still to do.
+- [ ] 🟡 The demo's screen-space reflection (second render pass, needs a clip plane) as a High/Ultra graphics option; whirlpools (vortices) with their pull on bodies.
+- [ ] 🟡 Swimming and boats on the waves (`swim.ts`, `naval.ts`); splashes when something falls in.
+
 ### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
 
 Plan: [docs/PLAN-physics-lab.md](docs/PLAN-physics-lab.md). Map 12 now runs Rapier (deterministic build): balls, boxes with rotation, a box pyramid and marine-zombie ragdolls with hinge joints ([worklog](docs/worklog/2026-10-21-rapier-lab.md), [PHYSICS.md section 6](docs/PHYSICS.md)). The own sphere solver is kept for the Rust/WASM port. Measured headless only (`npm run check:rapier`, `bench:physics`, `check:ragdoll`).

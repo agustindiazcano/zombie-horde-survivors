@@ -4,6 +4,7 @@ import {
   getSoldier,
   heightAt,
   localPlayer,
+  oceanHeight,
   type AimLine,
   type GameConfig,
   type Environment,
@@ -21,6 +22,7 @@ import { SkyLightViews } from './skyLights';
 import { LooseParts } from './looseParts';
 import { HealthBars } from './healthBars';
 import { EnvironmentView } from './environment';
+import { OceanView } from './oceanView';
 import { setPomQuality, setTextureQuality } from './pom';
 import { Sirens } from './sirens';
 import { GroundItemViews } from './groundItems';
@@ -182,6 +184,14 @@ const HELI_BANK_PER_TURN = 6;
 /** Rotor radians per frame at full speed. */
 const HELI_ROTOR_STEP = 0.7;
 
+/** What each season does to the ground: a colour that multiplies the paint and a glow that lightens it (snow). */
+const SEASONS: Record<Environment['season'], { tint: number; glow: number }> = {
+  spring: { tint: 0xd9ffcc, glow: 0 },
+  summer: { tint: 0xffffff, glow: 0 },
+  autumn: { tint: 0xffc78c, glow: 0 },
+  winter: { tint: 0xc4d2e6, glow: 0xdfe8f5 },
+};
+
 export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(50, 1, 0.1, 600);
   get domElement(): HTMLCanvasElement {
@@ -246,6 +256,10 @@ export class GameRenderer {
   /** Remaining hit-flash time per enemy id. */
   private readonly flash = new Map<number, number>();
   private readonly config: GameConfig;
+  /** The wave ocean of the current map (Map 13), or null for flat water. */
+  private ocean: OceanView | null = null;
+  private waterLook: Environment['water'] | null = null;
+  private season: Environment['season'] = 'summer';
   private readonly crates = new Map<number, THREE.Mesh>();
   private readonly crateGeometry = new THREE.BoxGeometry(0.8, 0.5, 0.6);
   private readonly crateMaterial = new THREE.MeshStandardMaterial({
@@ -289,6 +303,7 @@ export class GameRenderer {
     this.scene.environment = buildReflectionMap(this.renderer);
 
     this.config = config;
+    this.syncOcean(config.arena);
     this.halfSize = config.arena.halfSize;
     this.droneHeight = config.drone.height;
     this.objectViews = new ObjectViews(config, (x, z) => this.groundAt(x, z));
@@ -484,6 +499,8 @@ export class GameRenderer {
     this.streetLights.set(this.arenaGroup.userData.lamps ?? []);
     this.sirens.set(this.arenaGroup.userData.sirens ?? []);
     this.scene.add(this.arenaGroup);
+    this.applySeason();
+    this.syncOcean(arena);
     this.halfSize = arena.halfSize;
     const cam = this.sun.shadow.camera;
     const reach = arena.halfSize * 1.5;
@@ -526,6 +543,10 @@ export class GameRenderer {
     this.gore.update(dt);
     this.looseParts.update(dt, (x, z) => this.groundAt(x, z));
     this.environment.update(this.camera.position, this.clock);
+    if (this.ocean) {
+      this.ocean.setParams(this.config.ocean);
+      this.ocean.update(state.time, this.environment.sunDirection);
+    }
     for (const fire of this.fireMarkers?.children ?? []) {
       for (const flame of fire.children) {
         if (flame.userData.phase === undefined) continue;
@@ -1002,7 +1023,12 @@ export class GameRenderer {
       const level = this.config.arena.terrain.water;
       if (s.swimming && level !== null) {
         // A swimmer floats on the surface or sinks with its depth, never below the sea floor.
-        view.object.position.y = Math.max(ground, level - SWIM_FLOAT - s.depth);
+        const x = view.object.position.x;
+        const z = view.object.position.z;
+        const surface = this.ocean
+          ? oceanHeight(this.config.ocean, level, ground, x, z, state.time)
+          : level;
+        view.object.position.y = Math.max(ground, surface - SWIM_FLOAT - s.depth);
       }
       if (drone) continue;
       let vis = this.stanceVisual.get(s.id);
@@ -1355,6 +1381,36 @@ export class GameRenderer {
 
   setEnvironment(env: Environment): void {
     this.environment.set(env);
+    this.waterLook = env.water;
+    this.ocean?.setLook(env.water);
+    this.season = env.season;
+    this.applySeason();
+  }
+
+  /** Tints the ground for the season: green spring, plain summer, orange autumn, white-blue winter snow. */
+  private applySeason(): void {
+    const ground = this.arenaGroup.getObjectByName('ground');
+    if (!(ground instanceof THREE.Mesh)) return;
+    const look = SEASONS[this.season];
+    const m = ground.material as THREE.MeshStandardMaterial;
+    m.color.setHex(look.tint);
+    m.emissive.setHex(look.glow);
+    m.emissiveIntensity = look.glow === 0 ? 0 : 0.35;
+  }
+
+  /** Swaps the flat water plane for the wave ocean when the map has the `ocean` rule (or back). */
+  private syncOcean(arena: GameConfig['arena']): void {
+    if (this.ocean) {
+      this.scene.remove(this.ocean.object);
+      this.ocean.dispose();
+      this.ocean = null;
+    }
+    const level = arena.terrain.water;
+    if (!this.config.oceanOn || level === null || !arena.terrain.heights) return;
+    this.arenaGroup.getObjectByName('water')?.removeFromParent();
+    this.ocean = new OceanView(arena, level, this.config.ocean);
+    if (this.waterLook) this.ocean.setLook(this.waterLook);
+    this.scene.add(this.ocean.object);
   }
 
   /** A warm spotlight held at chest height, pointing at the ground ahead of the soldier. */

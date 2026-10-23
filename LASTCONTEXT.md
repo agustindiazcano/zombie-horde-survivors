@@ -40,6 +40,10 @@ Known limits: the AI does not use posts, doors or keys; zombies ignore the crew 
 
 Map 12 runs `@dimforge/rapier3d-deterministic-compat` (balls, boxes, ragdolls); the own sphere solver stays as the Rust/WASM reference ([worklog](docs/worklog/2026-10-21-rapier-lab.md), PENDING §2o). Never seen in a browser. Decided by the user: Rapier instead of the own solver, ragdoll bones as Rapier joints. **Open:** how the 2D units meet Rapier bodies; then shots as impulses, ragdoll on death, grab and throw, loose limbs. `npm run check:rapier` and `bench:physics` print the determinism hash.
 
+## Ocean and Map 13 (2026-10-23, branch `feat/ocean-map-13`, not pushed, no PR)
+
+Wave ocean from the user's HTML demo: `src/sim/ocean.ts`, buoyancy in the Rapier lab, the water shader `src/render/oceanView.ts`, Map 13 "Ocean test" (swim, lab panel, time keys), the water look in `environment.water` and a season in `environment.season`, both editable in the editor's Environment tab together with the wave numbers (`logic.ocean`). Decided by the user: option A (keep Rapier, add buoyancy forces), a playable Map 13, the water look customisable per map, weather and seasons controls. The shader was checked in headless Chrome only; nothing was seen in the game. [Worklog](docs/worklog/2026-10-23-ocean-map-13.md), PENDING 2p.
+
 ## Decisions the user has made (do not re-litigate)
 
 - **Steam is the target and download size is not a constraint** (2026-10-21): do not shrink assets to save weight. Graphics options must also serve people with a real GPU (Ultra preset); the user's own PC has none, so its FPS does not matter.

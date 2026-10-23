@@ -18,6 +18,7 @@
     "bench:physics": "node scripts/bench-physics.mjs",
     "check:ragdoll": "node scripts/check-ragdoll.mjs",
     "check:rapier": "node scripts/check-rapier.mjs",
+    "check:ocean": "node scripts/check-ocean.mjs",
     "check:assets": "node scripts/check-assets.mjs",
     "credits": "node scripts/generate-credits.mjs && prettier --write README.md"
   },

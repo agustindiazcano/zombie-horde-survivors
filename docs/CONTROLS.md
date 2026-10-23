@@ -155,3 +155,7 @@ On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the
 ## Physics lab (Map 12)
 
 Start → Single Player → Waves → Map 12 "Physics lab". The panel on the right drops things 10 m in front of the soldier: balls (100 or 1000), a pyramid, a marine-zombie ragdoll, joints-only ragdoll, a blast, five zombies and a blast. Sliders turn gravity, bounce, friction, contact stiffness, sub-steps, passes, bone damping and blast power; Pause, One step and Reset control the run; "Ver juntas y huesos" shows the joints. In first or third person the mouse is locked: press Esc to free it (the view returns to top-down). The four marines start with 8 frag grenades each here (Q throws, G aims in RTS): a grenade thrown into the pile pushes the bodies too.
+
+## Ocean (Map 13)
+
+Start → Single Player → Waves → Map 13 "Ocean test". A beach in the south, open sea with a sandbar and an island. The squad walks, swims (**C** dives, **Space** surfaces, **Shift** swims fast) and the Map 12 panel drops balls, boxes and ragdolls that float on the waves (they also ride the current). **,** and **.** turn the time of day. In the editor, the Environment tab holds the **Season** (spring to winter ground tint), the weather and the **Ocean water** group: the switch, the waves and current, buoyancy and every optic of the water (light brake with depth, reddening, reflectivity, reflection, ripple shear, caustics, parallax, neon orbs, tint).

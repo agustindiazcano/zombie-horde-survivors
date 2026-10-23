@@ -1540,9 +1540,134 @@ export class Editor {
         true,
       );
     }
+    this.seasonGroup(env, set);
+    this.waterGroup(env, set);
+
     const reset = el('button', 'editor__item', this.body, 'Back to noon, clear weather');
     reset.addEventListener('click', () => {
       this.edit({ ...this.current, environment: undefined });
+      this.setTab('sky');
+    });
+  }
+
+  /** The season of the map: tints the ground (winter is snow). */
+  private seasonGroup(
+    env: Environment,
+    set: (patch: Partial<Environment>, record?: boolean) => void,
+  ): void {
+    const group = el('details', 'editor__group', this.body);
+    group.open = true;
+    el('summary', 'editor__summary', group, 'Season');
+    const body = el('div', 'editor__items', group);
+    const row = el('div', 'editor__row', body);
+    for (const [id, name] of [
+      ['spring', 'Spring'],
+      ['summer', 'Summer'],
+      ['autumn', 'Autumn'],
+      ['winter', 'Winter'],
+    ] as const) {
+      const b = el('button', 'editor__btn', row, env.season === id ? `[${name}]` : name);
+      b.addEventListener('click', () => {
+        set({ season: id });
+        this.setTab('sky');
+      });
+    }
+  }
+
+  /**
+   * The wave ocean: the switch (the `ocean` rule), the numbers of the waves and current (they replace
+   * game.json's for this map) and the look of the water (`environment.water`: optics, ripples, neon).
+   */
+  private waterGroup(
+    env: Environment,
+    set: (patch: Partial<Environment>, record?: boolean) => void,
+  ): void {
+    const group = el('details', 'editor__group', this.body);
+    group.open = this.current.logic.ocean !== undefined;
+    el('summary', 'editor__summary', group, 'Ocean water');
+    const body = el('div', 'editor__items', group);
+    const on = this.current.logic.ocean !== undefined;
+    this.checkRow(body, 'Wave ocean (needs a water level in Terrain)', on, (checked) => {
+      this.edit({
+        ...this.current,
+        logic: { ...this.current.logic, ocean: checked ? {} : undefined },
+      });
+      this.setTab('sky');
+    });
+    if (!on) return;
+    const ocean = { ...gameData.ocean, ...this.current.logic.ocean };
+    const physics = (
+      key: keyof typeof gameData.ocean,
+      label: string,
+      min: number,
+      max: number,
+      step: number,
+    ) =>
+      this.rangeRow(body, label, ocean[key], min, max, step, (v) =>
+        this.edit(
+          {
+            ...this.current,
+            logic: { ...this.current.logic, ocean: { ...this.current.logic.ocean, [key]: v } },
+          },
+          !this.sliding,
+        ),
+      );
+    el('div', 'editor__empty', body, 'Waves and current (they change how things float too)');
+    physics('waveHeight', 'Wave height (m)', 0.05, 2.5, 0.05);
+    physics('frequency', 'Wave frequency', 0.02, 0.2, 0.005);
+    physics('speed', 'Wave speed', 0.2, 5, 0.1);
+    physics('hooke', 'Sharp crests', 0, 1, 0.05);
+    physics('pressure', 'Crest pressure', 0.5, 3, 0.05);
+    physics('currentSpeed', 'Current (m/s)', 0, 15, 0.5);
+    physics('currentAngle', 'Current direction (rad)', 0, 6.28, 0.05);
+    physics('lift', 'Buoyancy (x gravity)', 0.5, 5, 0.05);
+    physics('drag', 'Water drag', 0, 10, 0.1);
+
+    const w = env.water;
+    const look = (patch: Partial<Environment['water']>, record = true) =>
+      set({ water: { ...w, ...patch } }, record);
+    const lookRange = (
+      key: Exclude<keyof Environment['water'], 'fresnel' | 'tint'>,
+      label: string,
+      min: number,
+      max: number,
+      step: number,
+    ) =>
+      this.rangeRow(body, label, w[key], min, max, step, (v) => look({ [key]: v }, !this.sliding));
+    el('div', 'editor__empty', body, 'Look of the water');
+    const fres = el('div', 'editor__row', body);
+    for (const [id, name] of [
+      ['area', 'Fresnel: area'],
+      ['sapito', 'Fresnel: sapito'],
+    ] as const) {
+      el('button', 'editor__btn', fres, w.fresnel === id ? `[${name}]` : name).addEventListener(
+        'click',
+        () => {
+          look({ fresnel: id });
+          this.setTab('sky');
+        },
+      );
+    }
+    lookRange('saturationBrake', 'Light brake with depth', 0.1, 2.5, 0.05);
+    lookRange('chromaticFriction', 'Red absorbed more than blue', 0, 2, 0.05);
+    lookRange('impedance', 'Surface reflectivity (R0)', 0.08, 0.245, 0.005);
+    lookRange('reflection', 'Reflection', 0, 1.5, 0.05);
+    lookRange('normalDistortion', 'Ripple shear', 0, 1.2, 0.02);
+    lookRange('caustics', 'Caustics', 0, 1.5, 0.05);
+    lookRange('pomSteps', 'Parallax steps', 0, 20, 1);
+    lookRange('pomDepth', 'Parallax depth', 0, 1.2, 0.05);
+    lookRange('neonOrbs', 'Neon orbs', 0, 8, 1);
+    const tintRow = el('label', 'editor__row', body, 'Water tint');
+    const tint = el('input', 'editor__color', tintRow);
+    tint.type = 'color';
+    tint.value = w.tint ?? '#2a9fd6';
+    tint.addEventListener('input', () => {
+      look({ tint: tint.value }, !this.sliding);
+      this.sliding = true;
+    });
+    tint.addEventListener('change', () => (this.sliding = false));
+    el('button', 'editor__btn', tintRow, 'Natural').addEventListener('click', () => {
+      look({ tint: null });
       this.setTab('sky');
     });
   }

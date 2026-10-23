@@ -112,6 +112,31 @@ export type Objective = z.infer<typeof objective>;
  * Per-map rules. Everything but `mode` is optional: a field that is present replaces the global
  * value of data/game.json for this map, a missing one keeps it.
  */
+/** The numbers of the wave ocean: game.json holds the defaults and a map's `logic.ocean` overrides any of them. */
+const oceanFields = {
+  /** Height (m) of the biggest wave, its spatial frequency (rad/m) and speed (rad/s); each of the 8 waves shrinks, tightens and speeds up. */
+  waveHeight: positive,
+  frequency: positive,
+  speed: positive,
+  /** Crest sharpness exponent of the first wave (grows 8% per wave). */
+  pressure: positive,
+  /** 0 = plain sine waves, 1 = sharp crests (1 - |sin|)^pressure. */
+  hooke: z.number().min(0).max(1),
+  /** Extra second harmonic that rounds the troughs. */
+  silk: nonNegative,
+  /** Waves fade to nothing where the ground is within this many metres of the water level. */
+  shoreFade: positive,
+  /** The steady current (m/s) and its direction (rad from +x towards +z). */
+  currentSpeed: nonNegative,
+  currentAngle: z.number(),
+  /** Buoyancy: upward acceleration when fully under, as a multiple of gravity. */
+  lift: positive,
+  /** How fast a floating body takes the speed of the water (1/s). */
+  drag: nonNegative,
+  /** Extra damping of the vertical speed in the water (1/s). */
+  damping: nonNegative,
+};
+
 const mapLogic = z
   .object({
     mode: z.enum(['waves', 'story']),
@@ -165,6 +190,8 @@ const mapLogic = z
     timeControl: z.boolean().optional(),
     /** The physics lab (Map 12): the panel to drop balls and ragdolls and set off blasts, see src/sim/physics. */
     physicsLab: z.boolean().optional(),
+    /** The water of the map is a wave ocean: animated surface, bodies float on it. Any number of `ocean` in game.json can be overridden here ({} keeps them all). */
+    ocean: z.object(oceanFields).partial().strict().optional(),
     /** Runs the sky show of `skyShow` in game.json: blue lights that wander, fly and come down over the houses. */
     skyShow: z.boolean().optional(),
     /** The camera the run starts in, and how far up (radians) a first-person view looks. */
@@ -245,6 +272,37 @@ export type MapLogic = z.infer<typeof mapLogic>;
 
 const unit01 = z.number().min(0).max(1);
 
+/** How the wave ocean looks: every field has a default, so a map names only what it changes. */
+const WaterLookSchema = z
+  .object({
+    /** Bounce curve of the surface: 'area' = (1 - cos)^phi^2, 'sapito' = phi^(-(pi/2)/theta). */
+    fresnel: z.enum(['area', 'sapito']).default('area'),
+    /** Light slows down with depth: 0.1 clear water to 2.5 murky (multiplies the saturation S / 0.25). */
+    saturationBrake: z.number().min(0.1).max(2.5).default(1),
+    /** How much more the red light is absorbed than the blue (0 = same, 2 = a lot). */
+    chromaticFriction: z.number().min(0).max(2).default(1),
+    /** Saturation of the water wall for the surface reflectivity R0 (0.08 to 0.245). */
+    impedance: z.number().min(0.08).max(0.245).default(0.145),
+    /** Mirror strength of the sky and the scene, 0 off to 1.5. */
+    reflection: z.number().min(0).max(1.5).default(0.95),
+    /** How much the micro waves bend the normal (reflection shear), 0 to 1.2. */
+    normalDistortion: z.number().min(0).max(1.2).default(0.42),
+    /** Light patterns on the sea floor, 0 to 1.5. */
+    caustics: z.number().min(0).max(1.5).default(0.85),
+    /** Parallax of the micro waves: steps (0 off, 20 finest) and depth. */
+    pomSteps: z.number().int().min(0).max(20).default(12),
+    pomDepth: z.number().min(0).max(1.2).default(0.45),
+    /** Flying neon orbs that light the water at night (0 to 8). */
+    neonOrbs: z.number().int().min(0).max(8).default(0),
+    /** A "#rrggbb" tint mixed into the water colour, or null for the natural one. */
+    tint: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .nullable()
+      .default(null),
+  })
+  .strict();
+
 /**
  * How the map looks: sky, time of day, light colour and weather. Every field has a default, and a
  * map without this section looks like noon with clear weather. Nothing here changes the rules.
@@ -270,6 +328,10 @@ export const EnvironmentSchema = z
     snow: unit01.default(0),
     sand: unit01.default(0),
     fog: unit01.default(0),
+    /** The season tints the ground (winter turns it to snow); it never changes the rules. */
+    season: z.enum(['spring', 'summer', 'autumn', 'winter']).default('summer'),
+    /** How the wave ocean looks (only maps with the `ocean` rule draw it). */
+    water: WaterLookSchema.default(() => WaterLookSchema.parse({})),
   })
   .strict();
 
@@ -1422,6 +1484,8 @@ export const GameConfigSchema = z
         drownDamage: nonNegative,
       })
       .strict(),
+    /** The wave ocean of maps with the `ocean` rule: the surface height, the current and how bodies float (docs/PHYSICS.md). */
+    ocean: z.object(oceanFields).strict(),
     /** Squad stances (set by the controlled player) and the controlled soldier's jump. */
     stance: z
       .object({
@@ -1692,6 +1756,8 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   timeControl: boolean;
   /** The physics lab panel is on (Map 12). */
   physicsLab: boolean;
+  /** The water is a wave ocean (Map 13). */
+  oceanOn: boolean;
   /** Orbs that wake up during the run. */
   startOrbs: NonNullable<MapLogic['orbs']>;
   /** The sky show is on, the camera the run starts in, its first-person pitch and the subtitles. */
@@ -1753,11 +1819,12 @@ function checkMapRefs(
 
 type GlobalRules = Pick<
   z.infer<typeof GameConfigSchema>,
-  'waves' | 'boss' | 'enemies' | 'difficulty'
+  'waves' | 'boss' | 'enemies' | 'difficulty' | 'ocean'
 >;
 type MapRules = Pick<
   GameConfig,
   | 'waves'
+  | 'ocean'
   | 'boss'
   | 'enemies'
   | 'level'
@@ -1771,6 +1838,7 @@ type MapRules = Pick<
   | 'swim'
   | 'timeControl'
   | 'physicsLab'
+  | 'oceanOn'
   | 'startOrbs'
   | 'skyShowOn'
   | 'startView'
@@ -1811,6 +1879,7 @@ export function mapRules(
     },
     boss,
     enemies,
+    ocean: { ...global.ocean, ...logic.ocean },
     level: global.difficulty[logic.difficulty ?? 'normal'],
     spawnPoints: [
       ...(logic.spawnPoints ?? []),
@@ -1829,6 +1898,7 @@ export function mapRules(
     swim: logic.swim ?? false,
     timeControl: logic.timeControl ?? false,
     physicsLab: logic.physicsLab ?? false,
+    oceanOn: logic.ocean !== undefined,
     startOrbs: logic.orbs ?? [],
     skyShowOn: logic.skyShow ?? false,
     startView: logic.startView,

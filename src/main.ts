@@ -87,6 +87,7 @@ async function main(): Promise<void> {
     boss: config.boss,
     enemies: config.enemies,
     difficulty: config.difficulty,
+    ocean: config.ocean,
   };
   const factories = await new GltfAssetLoader().loadCharacters(parseCharactersConfig(characters));
 
