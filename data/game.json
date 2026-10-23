@@ -753,6 +753,12 @@
     "shoreFade": 0.5,
     "currentSpeed": 2,
     "currentAngle": 0,
+    "pattern": "golden",
+    "seed": 7,
+    "chaos": 0,
+    "heading": 1.5708,
+    "spread": 0.12,
+    "sequence": [],
     "lift": 2.35,
     "drag": 3.8,
     "damping": 2.6

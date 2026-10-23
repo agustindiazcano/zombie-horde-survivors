@@ -1640,7 +1640,7 @@ export class Editor {
     if (!on) return;
     const ocean = { ...gameData.ocean, ...this.current.logic.ocean };
     const physics = (
-      key: keyof typeof gameData.ocean,
+      key: Exclude<keyof typeof gameData.ocean, 'pattern' | 'sequence'>,
       label: string,
       min: number,
       max: number,
@@ -1665,6 +1665,56 @@ export class Editor {
     physics('currentAngle', 'Current direction (rad)', 0, 6.28, 0.05);
     physics('lift', 'Buoyancy (x gravity)', 0.5, 5, 0.05);
     physics('drag', 'Water drag', 0, 10, 0.1);
+
+    el('div', 'editor__empty', body, 'Wave pattern (chaos 0 = exactly the pattern, no randomness)');
+    const patterns = el('div', 'editor__row', body);
+    for (const [id, name] of [
+      ['golden', 'Golden'],
+      ['fibonacci', 'Fibonacci'],
+      ['random', 'Random'],
+      ['swell', 'Parallel swell'],
+      ['custom', 'Custom'],
+    ] as const) {
+      el(
+        'button',
+        'editor__btn',
+        patterns,
+        ocean.pattern === id ? `[${name}]` : name,
+      ).addEventListener('click', () => {
+        this.edit({
+          ...this.current,
+          logic: { ...this.current.logic, ocean: { ...this.current.logic.ocean, pattern: id } },
+        });
+        this.setTab('sky');
+      });
+    }
+    physics('seed', 'Seed', 0, 999, 1);
+    physics('chaos', 'Chaos (randomness)', 0, 1, 0.05);
+    if (ocean.pattern === 'swell') {
+      physics('heading', 'Swell direction (rad)', 0, 6.28, 0.05);
+      physics('spread', 'Swell spread (rad)', 0, 1.57, 0.02);
+    }
+    if (ocean.pattern === 'custom') {
+      const row = el('label', 'editor__row', body, 'Wave angles (deg, up to 8)');
+      const input = el('input', 'editor__text', row);
+      input.type = 'text';
+      input.value = ocean.sequence.join(', ');
+      input.addEventListener('change', () => {
+        const numbers = input.value
+          .split(/[\s,;]+/)
+          .map(Number)
+          .filter((n) => Number.isFinite(n))
+          .slice(0, 8);
+        this.edit({
+          ...this.current,
+          logic: {
+            ...this.current.logic,
+            ocean: { ...this.current.logic.ocean, sequence: numbers },
+          },
+        });
+        this.setTab('sky');
+      });
+    }
 
     const w = env.water;
     const look = (patch: Partial<Environment['water']>, record = true) =>

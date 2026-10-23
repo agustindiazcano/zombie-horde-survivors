@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RAIN_RIPPLES_GLSL, rainFxUniforms } from './rainFx';
-import { heightAt, WAVE_COUNT, WAVE_DIRS, type Environment, type GameConfig } from '../sim';
+import { heightAt, waveTable, WAVE_COUNT, type Environment, type GameConfig } from '../sim';
 
 type WaterLook = Environment['water'];
 
@@ -17,7 +17,8 @@ const float PHI = ${PHI.toFixed(10)};
 const float PHI_SQ = ${(PHI * PHI).toFixed(10)};
 const int WAVES = ${WAVE_COUNT};
 uniform vec2 uDirs[${WAVE_COUNT}];
-uniform vec4 uWave;     // height, frequency, speed, pressure
+uniform vec4 uWaveP[${WAVE_COUNT}];  // height, frequency, speed, pressure of each wave
+uniform float uPhase[${WAVE_COUNT}];
 uniform vec3 uShape;    // hooke, silk, shoreFade
 uniform vec2 uCurrent;  // m/s
 uniform float uLevel;
@@ -29,17 +30,14 @@ float oceanH(vec2 p, float groundY) {
   if (fade <= 0.0) return 0.0;
   vec2 off = uCurrent * uTime * 0.12;
   float sum = 0.0;
-  float amp = uWave.x, freq = uWave.y, speed = uWave.z, pressure = uWave.w;
   for (int i = 0; i < WAVES; i++) {
-    float phase = dot(p - off, uDirs[i]) * freq + uTime * speed;
+    vec4 w = uWaveP[i];
+    float amp = w.x, pressure = w.w;
+    float phase = dot(p - off, uDirs[i]) * w.y + uTime * w.z + uPhase[i];
     float s = sin(phase);
     float smoothW = s + uShape.y * 0.8 * cos(phase * 2.0);
     float sharpW = (pow(1.0 - abs(s), pressure) - 0.45) * 2.15;
     sum += mix(smoothW, sharpW, uShape.x) * amp;
-    amp *= (1.0 / PHI) * 1.18;
-    freq *= PHI * 0.88;
-    speed *= 1.12;
-    pressure *= 1.08;
   }
   return sum * fade;
 }
@@ -286,8 +284,9 @@ export class OceanView {
       uniforms: {
         uTime: { value: 0 },
         uLevel: { value: level },
-        uDirs: { value: WAVE_DIRS.map((d) => new THREE.Vector2(d[0], d[1])) },
-        uWave: { value: new THREE.Vector4() },
+        uDirs: { value: Array.from({ length: WAVE_COUNT }, () => new THREE.Vector2()) },
+        uWaveP: { value: Array.from({ length: WAVE_COUNT }, () => new THREE.Vector4()) },
+        uPhase: { value: new Array<number>(WAVE_COUNT).fill(0) },
         uShape: { value: new THREE.Vector3() },
         uCurrent: { value: new THREE.Vector2() },
         uSunDir: { value: new THREE.Vector3(0, 1, 0) },
@@ -320,7 +319,17 @@ export class OceanView {
   /** The wave numbers (the map's `ocean` over game.json's). */
   setParams(o: GameConfig['ocean']): void {
     const u = this.material.uniforms;
-    u.uWave!.value.set(o.waveHeight, o.frequency, o.speed, o.pressure);
+    const table = waveTable(o);
+    for (let i = 0; i < WAVE_COUNT; i++) {
+      (u.uDirs!.value as THREE.Vector2[])[i]!.set(table.dx[i]!, table.dz[i]!);
+      (u.uWaveP!.value as THREE.Vector4[])[i]!.set(
+        table.amp[i]!,
+        table.freq[i]!,
+        table.speed[i]!,
+        table.pressure[i]!,
+      );
+      (u.uPhase!.value as number[])[i] = table.phase[i]!;
+    }
     u.uShape!.value.set(o.hooke, o.silk, o.shoreFade);
     u.uCurrent!.value.set(
       Math.cos(o.currentAngle) * o.currentSpeed,

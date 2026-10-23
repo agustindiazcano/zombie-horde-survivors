@@ -129,6 +129,21 @@ const oceanFields = {
   /** The steady current (m/s) and its direction (rad from +x towards +z). */
   currentSpeed: nonNegative,
   currentAngle: z.number(),
+  /**
+   * How the 8 waves are laid out. golden: directions on a golden-angle spiral; fibonacci: Fibonacci
+   * multiples of that angle; random: seeded random directions; swell: parallel ridges that all run
+   * towards `heading` (long, slow, deep-water speeds); custom: the angles (degrees) of `sequence`.
+   */
+  pattern: z.enum(['golden', 'fibonacci', 'random', 'swell', 'custom']),
+  /** Seed of the random numbers (pattern random and swell, and everything `chaos` adds). */
+  seed: z.number().int().min(0).max(99999),
+  /** 0 = the pattern as it is; 1 = every wave's direction, height, frequency and phase shaken up. */
+  chaos: z.number().min(0).max(1),
+  /** The way the swell runs (rad from +x towards +z) and how far (rad) its ridges may turn from it. */
+  heading: z.number(),
+  spread: z.number().min(0).max(1.57),
+  /** Pattern custom: up to 8 wave angles in degrees (repeated if fewer). */
+  sequence: z.array(z.number()).max(8),
   /** Buoyancy: upward acceleration when fully under, as a multiple of gravity. */
   lift: positive,
   /** How fast a floating body takes the speed of the water (1/s). */

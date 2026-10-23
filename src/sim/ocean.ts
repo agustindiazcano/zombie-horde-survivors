@@ -9,18 +9,109 @@ const GOLDEN_ANGLE = 2 * Math.PI * (1 - 1 / PHI);
 export const WAVE_COUNT = 8;
 /** Pulls the wave directions towards +z so the swell has a main heading. */
 const HEADING = 0.38;
+const FIBONACCI = [1, 1, 2, 3, 5, 8, 13, 21];
 
-/** The unit direction (x, z) of each wave: a golden-angle spiral, so none lines up with another. */
-export const WAVE_DIRS: readonly (readonly [number, number])[] = Array.from(
-  { length: WAVE_COUNT },
-  (_, i) => {
-    const a = i * GOLDEN_ANGLE;
-    const x = Math.cos(a) * (1 - HEADING);
-    const z = Math.sin(a) * (1 - HEADING) + HEADING;
+/** The eight waves of an ocean: unit direction, height, frequency, speed, crest pressure and phase. */
+export interface WaveTable {
+  dx: Float64Array;
+  dz: Float64Array;
+  amp: Float64Array;
+  freq: Float64Array;
+  speed: Float64Array;
+  pressure: Float64Array;
+  phase: Float64Array;
+}
+
+/** A small seeded generator (integer maths only, so it gives the same numbers everywhere). */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildTable(o: OceanParams): WaveTable {
+  const table: WaveTable = {
+    dx: new Float64Array(WAVE_COUNT),
+    dz: new Float64Array(WAVE_COUNT),
+    amp: new Float64Array(WAVE_COUNT),
+    freq: new Float64Array(WAVE_COUNT),
+    speed: new Float64Array(WAVE_COUNT),
+    pressure: new Float64Array(WAVE_COUNT),
+    phase: new Float64Array(WAVE_COUNT),
+  };
+  const rnd = mulberry32(o.seed);
+  const swell = o.pattern === 'swell';
+  // Swell ridges stay tall and spread out in size; the other patterns shrink fast so small waves ride the big ones.
+  const ampStep = swell ? 0.82 : (1 / PHI) * 1.18;
+  const freqStep = swell ? 1.18 : PHI * 0.88;
+  let amp = o.waveHeight;
+  let freq = o.frequency;
+  let speed = o.speed;
+  let pressure = o.pressure;
+  for (let i = 0; i < WAVE_COUNT; i++) {
+    // Five draws per wave whatever the pattern, so changing one setting never shifts the others.
+    const r1 = rnd();
+    const r2 = rnd();
+    const r3 = rnd();
+    const r4 = rnd();
+    const r5 = rnd();
+    let angle: number;
+    if (o.pattern === 'fibonacci') angle = FIBONACCI[i]! * GOLDEN_ANGLE;
+    else if (o.pattern === 'random') angle = r1 * Math.PI * 2;
+    else if (swell) angle = o.heading + (r1 - 0.5) * 2 * o.spread;
+    else if (o.pattern === 'custom' && o.sequence.length > 0)
+      angle = (o.sequence[i % o.sequence.length]! * Math.PI) / 180;
+    else angle = i * GOLDEN_ANGLE;
+    angle += o.chaos * (r2 - 0.5) * (Math.PI / 2);
+    // Golden, Fibonacci and random layouts lean towards +z; swell and custom go exactly where told.
+    const pull = swell || o.pattern === 'custom' ? 0 : HEADING;
+    const x = Math.cos(angle) * (1 - pull);
+    const z = Math.sin(angle) * (1 - pull) + pull;
     const len = Math.hypot(x, z);
-    return [x / len, z / len] as const;
-  },
-);
+    table.dx[i] = x / len;
+    table.dz[i] = z / len;
+    table.amp[i] = amp * (1 + o.chaos * (r3 - 0.5) * 0.8);
+    const f = freq * (1 + o.chaos * (r4 - 0.5) * 0.3);
+    table.freq[i] = f;
+    // Swell follows deep-water dispersion (speed grows with the square root of the frequency).
+    table.speed[i] = swell ? o.speed * Math.sqrt(f / o.frequency) : speed;
+    table.pressure[i] = pressure;
+    table.phase[i] = o.chaos * r5 * Math.PI * 2;
+    amp *= ampStep;
+    freq *= freqStep;
+    speed *= 1.12;
+    pressure *= 1.08;
+  }
+  return table;
+}
+
+let snap: OceanParams | null = null;
+let cachedTable: WaveTable | null = null;
+
+const sameWaves = (a: OceanParams, b: OceanParams): boolean =>
+  a.pattern === b.pattern &&
+  a.seed === b.seed &&
+  a.chaos === b.chaos &&
+  a.heading === b.heading &&
+  a.spread === b.spread &&
+  a.sequence === b.sequence &&
+  a.waveHeight === b.waveHeight &&
+  a.frequency === b.frequency &&
+  a.speed === b.speed &&
+  a.pressure === b.pressure;
+
+/** The waves of these ocean numbers. Cached: the table is rebuilt only when a number that shapes it changes. */
+export function waveTable(o: OceanParams): WaveTable {
+  if (cachedTable && snap && sameWaves(snap, o)) return cachedTable;
+  snap = { ...o };
+  cachedTable = buildTable(o);
+  return cachedTable;
+}
 
 /** 0 where the ground is at the water level or above, 1 once the water is deeper than `1 / 0.15 + shoreFade`. */
 export function waveFade(o: OceanParams, level: number, groundY: number): number {
@@ -44,22 +135,15 @@ export function oceanHeight(
   if (fade <= 0) return level;
   const cx = Math.cos(o.currentAngle) * o.currentSpeed * t * 0.12;
   const cz = Math.sin(o.currentAngle) * o.currentSpeed * t * 0.12;
+  const w = waveTable(o);
   let sum = 0;
-  let amp = o.waveHeight;
-  let freq = o.frequency;
-  let speed = o.speed;
-  let pressure = o.pressure;
   for (let i = 0; i < WAVE_COUNT; i++) {
-    const d = WAVE_DIRS[i]!;
-    const phase = ((x - cx) * d[0] + (z - cz) * d[1]) * freq + t * speed;
+    const phase =
+      ((x - cx) * w.dx[i]! + (z - cz) * w.dz[i]!) * w.freq[i]! + t * w.speed[i]! + w.phase[i]!;
     const s = Math.sin(phase);
     const smooth = s + o.silk * 0.8 * Math.cos(phase * 2);
-    const sharp = (Math.pow(1 - Math.abs(s), pressure) - 0.45) * 2.15;
-    sum += (smooth * (1 - o.hooke) + sharp * o.hooke) * amp;
-    amp *= (1 / PHI) * 1.18;
-    freq *= PHI * 0.88;
-    speed *= 1.12;
-    pressure *= 1.08;
+    const sharp = (Math.pow(1 - Math.abs(s), w.pressure[i]!) - 0.45) * 2.15;
+    sum += (smooth * (1 - o.hooke) + sharp * o.hooke) * w.amp[i]!;
   }
   return level + sum * fade;
 }
