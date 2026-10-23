@@ -113,6 +113,36 @@ export function waveTable(o: OceanParams): WaveTable {
   return cachedTable;
 }
 
+/** Spiral growth of a whirlpool: `2 ln(phi) / pi` (the golden spiral's pitch). */
+const K_SPIRAL = (2 * Math.log(PHI)) / Math.PI;
+/** Keeps the funnel and the speeds finite at the centre. */
+const VORTEX_SAT = 0.25;
+
+const smooth01 = (x: number): number => {
+  const t = Math.min(Math.max(x, 0), 1);
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * How much the whirlpools of `o` move the surface (m) at (x, z): a funnel `-20 s / (1 + (r/R)^1.65 + 0.25)`
+ * plus a three-armed golden spiral wave that turns with the time. `rn` is the distance scaled so
+ * a radius of 14.5 m gives the shape of the original demo.
+ */
+export function vortexHeight(o: OceanParams, x: number, z: number, t: number): number {
+  let h = 0;
+  for (const v of o.vortices) {
+    const dx = x - v.x;
+    const dz = z - v.z;
+    const r = Math.hypot(dx, dz);
+    const rn = (r * 14.5) / v.radius;
+    const funnel = (-20 * v.strength) / (1 + Math.pow(r / v.radius, 1.65) + VORTEX_SAT);
+    const phase = 3 * Math.atan2(dz, dx) + rn * K_SPIRAL * 0.85 - t * 3.4;
+    h +=
+      funnel + Math.sin(phase) * 1.2 * v.strength * Math.exp(-rn * 0.025) * smooth01((rn - 2) / 12);
+  }
+  return h;
+}
+
 /** 0 where the ground is at the water level or above, 1 once the water is deeper than `1 / 0.15 + shoreFade`. */
 export function waveFade(o: OceanParams, level: number, groundY: number): number {
   return Math.min(1, Math.max(0, (level + o.shoreFade - groundY) * 0.15));
@@ -145,11 +175,38 @@ export function oceanHeight(
     const sharp = (Math.pow(1 - Math.abs(s), w.pressure[i]!) - 0.45) * 2.15;
     sum += (smooth * (1 - o.hooke) + sharp * o.hooke) * w.amp[i]!;
   }
-  return level + sum * fade;
+  return level + (sum + vortexHeight(o, x, z, t)) * fade;
 }
 
 /** The speed of the water (m/s) at a point: the steady current. Written into `out` as (x, z). */
 export function oceanFlow(o: OceanParams, out: { x: number; z: number }): void {
   out.x = Math.cos(o.currentAngle) * o.currentSpeed;
   out.z = Math.sin(o.currentAngle) * o.currentSpeed;
+}
+
+/**
+ * The speed of the water (m/s) at (x, z): the steady current plus each whirlpool's swirl
+ * (tangential `28 s / sqrt(r)` and an inward radial part `K_SPIRAL * 1.35` times as big). Written into `out`.
+ */
+export function oceanFlowAt(
+  o: OceanParams,
+  x: number,
+  z: number,
+  out: { x: number; z: number },
+): void {
+  oceanFlow(o, out);
+  for (const v of o.vortices) {
+    const dx = x - v.x;
+    const dz = z - v.z;
+    const r = Math.hypot(dx, dz);
+    const rn = (r * 14.5) / v.radius;
+    if (v.strength <= 0.01 || rn >= 95) continue;
+    const rSafe = Math.sqrt(rn * rn + (1 / VORTEX_SAT) * 8);
+    const tangential = (28 * v.strength) / Math.sqrt(rSafe);
+    const radial = tangential * K_SPIRAL * 1.35;
+    const c = dx / (r + 0.001);
+    const s = dz / (r + 0.001);
+    out.x += -s * tangential - c * radial;
+    out.z += c * tangential - s * radial;
+  }
 }

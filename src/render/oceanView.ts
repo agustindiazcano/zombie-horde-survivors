@@ -19,11 +19,31 @@ const int WAVES = ${WAVE_COUNT};
 uniform vec2 uDirs[${WAVE_COUNT}];
 uniform vec4 uWaveP[${WAVE_COUNT}];  // height, frequency, speed, pressure of each wave
 uniform float uPhase[${WAVE_COUNT}];
+uniform vec4 uVortex[3];  // x, z, strength, radius of each whirlpool
+uniform int uVortexN;
 uniform vec3 uShape;    // hooke, silk, shoreFade
 uniform vec2 uCurrent;  // m/s
 uniform float uLevel;
 uniform float uTime;
 
+const float K_SPIRAL = ${((2 * Math.log(PHI)) / Math.PI).toFixed(10)};
+// Same maths as vortexHeight() in src/sim/ocean.ts; foam is the bright ring round each funnel.
+float vortexH(vec2 p, out float foam) {
+  float h = 0.0;
+  foam = 0.0;
+  for (int v = 0; v < 3; v++) {
+    if (v >= uVortexN) break;
+    vec4 w = uVortex[v];
+    vec2 d = p - w.xy;
+    float r = length(d);
+    float rn = r * 14.5 / w.w;
+    float funnel = -20.0 * w.z / (1.0 + pow(r / w.w, 1.65) + 0.25);
+    float phase = 3.0 * atan(d.y, d.x) + rn * K_SPIRAL * 0.85 - uTime * 3.4;
+    h += funnel + sin(phase) * 1.2 * w.z * exp(-rn * 0.025) * smoothstep(2.0, 14.0, rn);
+    foam += exp(-pow((rn - 12.5) * 0.18, 2.0)) * w.z * 1.35;
+  }
+  return h;
+}
 // Same maths as oceanHeight() in src/sim/ocean.ts.
 float oceanH(vec2 p, float groundY) {
   float fade = clamp((uLevel + uShape.z - groundY) * 0.15, 0.0, 1.0);
@@ -39,7 +59,8 @@ float oceanH(vec2 p, float groundY) {
     float sharpW = (pow(1.0 - abs(s), pressure) - 0.45) * 2.15;
     sum += mix(smoothW, sharpW, uShape.x) * amp;
   }
-  return sum * fade;
+  float unusedFoam;
+  return (sum + vortexH(p, unusedFoam)) * fade;
 }
 `;
 
@@ -49,6 +70,7 @@ varying vec3 vWorldPos;
 varying vec3 vNormal;
 varying float vDepth;
 varying float vCrest;
+varying float vVortex;
 ${COMMON}
 void main() {
   vec2 p = position.xz;
@@ -62,6 +84,9 @@ void main() {
   vWorldPos = wp.xyz;
   vDepth = uLevel + h - aGround;
   vCrest = h;
+  float vf;
+  vortexH(p, vf);
+  vVortex = vf;
   gl_Position = projectionMatrix * viewMatrix * wp;
 }
 `;
@@ -89,6 +114,7 @@ varying vec3 vWorldPos;
 varying vec3 vNormal;
 varying float vDepth;
 varying float vCrest;
+varying float vVortex;
 ${COMMON}
 ${RAIN_RIPPLES_GLSL}
 const mat2 mGold = mat2(-0.7373688, -0.6754903, 0.6754903, -0.7373688);
@@ -213,7 +239,7 @@ void main() {
 
   // Foam on the sharpest crests and along the shore.
   float shore = smoothstep(0.35, 0.0, vDepth);
-  float foam = smoothstep(0.24, 0.76, clamp(vCrest * 0.9 + shore * 0.9, 0.0, 1.0) + (h0 - 0.5) * 0.24);
+  float foam = smoothstep(0.24, 0.76, clamp(vCrest * 0.9 + shore * 0.9 + vVortex * 0.7, 0.0, 1.0) + (h0 - 0.5) * 0.24);
   vec3 foamCol = mix(vec3(0.35, 0.50, 0.65), vec3(0.97, 0.99, 1.0), day + 0.3) + neon * 0.65;
 
   vec3 col = mix(body, env, clamp(fres * 0.86 * uReflection, 0.0, 1.0));
@@ -287,6 +313,8 @@ export class OceanView {
         uDirs: { value: Array.from({ length: WAVE_COUNT }, () => new THREE.Vector2()) },
         uWaveP: { value: Array.from({ length: WAVE_COUNT }, () => new THREE.Vector4()) },
         uPhase: { value: new Array<number>(WAVE_COUNT).fill(0) },
+        uVortex: { value: Array.from({ length: 3 }, () => new THREE.Vector4()) },
+        uVortexN: { value: 0 },
         uShape: { value: new THREE.Vector3() },
         uCurrent: { value: new THREE.Vector2() },
         uSunDir: { value: new THREE.Vector3(0, 1, 0) },
@@ -331,6 +359,9 @@ export class OceanView {
       (u.uPhase!.value as number[])[i] = table.phase[i]!;
     }
     u.uShape!.value.set(o.hooke, o.silk, o.shoreFade);
+    const whirlpools = u.uVortex!.value as THREE.Vector4[];
+    o.vortices.forEach((v, i) => whirlpools[i]!.set(v.x, v.z, v.strength, v.radius));
+    u.uVortexN!.value = o.vortices.length;
     u.uCurrent!.value.set(
       Math.cos(o.currentAngle) * o.currentSpeed,
       Math.sin(o.currentAngle) * o.currentSpeed,

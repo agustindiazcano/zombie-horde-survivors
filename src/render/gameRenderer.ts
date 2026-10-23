@@ -862,6 +862,37 @@ export class GameRenderer {
     this.environment.setDim(power === 0 ? this.config.skyShow.blackoutLight : 1);
   }
 
+  /**
+   * Puts a boat on the real waves: it rises with the surface under it and tilts with its slope along
+   * and across (sampled at the bow, stern and both sides). Big ships follow only a third as much.
+   */
+  private rideWaves(
+    object: THREE.Object3D,
+    def: GameConfig['vehicles'][string],
+    x: number,
+    z: number,
+    yaw: number,
+    time: number,
+  ): void {
+    const level = this.config.arena.terrain.water;
+    if (level === null) return;
+    const half = def.radius * 0.8;
+    const fx = Math.sin(yaw);
+    const fz = Math.cos(yaw);
+    const at = (dx: number, dz: number) =>
+      oceanHeight(this.config.ocean, level, this.groundAt(x + dx, z + dz), x + dx, z + dz, time);
+    const centre = at(0, 0);
+    const bow = at(fx * half, fz * half);
+    const stern = at(-fx * half, -fz * half);
+    // The model faces +z with +x on its left.
+    const left = at(fz * half, -fx * half);
+    const right = at(-fz * half, fx * half);
+    const k = def.ship ? 0.35 : 1;
+    object.position.y = (centre + (bow + stern + left + right) / 4) / 2 - 0.05;
+    object.rotation.x = -Math.atan2(bow - stern, 2 * half) * k;
+    object.rotation.z = Math.atan2(left - right, 2 * half) * k;
+  }
+
   /** Draws the vehicles of the state: a jeep for every ground type, the procedural helicopter for aircraft. */
   private syncVehicles(state: GameState, alpha: number): void {
     const live = new Set<number>();
@@ -898,7 +929,11 @@ export class GameRenderer {
       entry.object.rotation.z = swell * 0.02;
       entry.object.rotation.x = def.water ? Math.cos(state.time * 1.3 + v.id) * 0.015 : 0;
       const turn = Math.atan2(Math.sin(v.facing - v.prevFacing), Math.cos(v.facing - v.prevFacing));
-      entry.object.rotation.y = v.prevFacing + turn * alpha;
+      const yaw = v.prevFacing + turn * alpha;
+      entry.object.rotation.order = 'YXZ';
+      entry.object.rotation.y = yaw;
+      if (this.ocean && def.water && !v.air)
+        this.rideWaves(entry.object, def, x, z, yaw, state.time);
       for (const wheel of entry.wheels) wheel.rotation.x += v.speed * 0.02;
       if (v.air && entry.heli) {
         // Nose down with speed, banked into the turn; both ease so the machine does not snap.

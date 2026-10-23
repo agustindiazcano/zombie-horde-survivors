@@ -1653,7 +1653,7 @@ export class Editor {
     if (!on) return;
     const ocean = { ...gameData.ocean, ...this.current.logic.ocean };
     const physics = (
-      key: Exclude<keyof typeof gameData.ocean, 'pattern' | 'sequence'>,
+      key: Exclude<keyof typeof gameData.ocean, 'pattern' | 'sequence' | 'vortices'>,
       label: string,
       min: number,
       max: number,
@@ -1678,6 +1678,61 @@ export class Editor {
     physics('currentAngle', 'Current direction (rad)', 0, 6.28, 0.05);
     physics('lift', 'Buoyancy (x gravity)', 0.5, 5, 0.05);
     physics('drag', 'Water drag', 0, 10, 0.1);
+    physics('swimDrift', 'Water carries swimmers', 0, 1, 0.05);
+
+    el(
+      'div',
+      'editor__empty',
+      body,
+      'Whirlpools (funnel, spiral wave and a pull on everything in the water)',
+    );
+    const whirlpools = ocean.vortices;
+    const setWhirlpools = (list: typeof whirlpools, record = true) => {
+      this.edit(
+        {
+          ...this.current,
+          logic: { ...this.current.logic, ocean: { ...this.current.logic.ocean, vortices: list } },
+        },
+        record,
+      );
+    };
+    const spots = el('div', 'editor__row', body);
+    for (const n of [0, 1, 2, 3]) {
+      el(
+        'button',
+        'editor__btn',
+        spots,
+        whirlpools.length === n ? `[${n}]` : String(n),
+      ).addEventListener('click', () => {
+        // New ones sit on the sea side of the map, spread like the demo's three.
+        const half = this.current.meta.size.width / 2;
+        const places: [number, number][] = [
+          [0, -half * 0.3],
+          [-half * 0.5, -half * 0.18],
+          [half * 0.5, -half * 0.18],
+        ];
+        const strength = whirlpools[0]?.strength ?? 1;
+        const radius = whirlpools[0]?.radius ?? 14.5;
+        setWhirlpools(
+          places.slice(0, n).map(([x, z], i) => whirlpools[i] ?? { x, z, strength, radius }),
+        );
+        this.setTab('sky');
+      });
+    }
+    if (whirlpools.length > 0) {
+      this.rangeRow(body, 'Whirlpool strength', whirlpools[0]!.strength, 0, 2, 0.05, (v) =>
+        setWhirlpools(
+          whirlpools.map((w) => ({ ...w, strength: v })),
+          !this.sliding,
+        ),
+      );
+      this.rangeRow(body, 'Whirlpool width (m)', whirlpools[0]!.radius, 4, 60, 1, (v) =>
+        setWhirlpools(
+          whirlpools.map((w) => ({ ...w, radius: v })),
+          !this.sliding,
+        ),
+      );
+    }
 
     el('div', 'editor__empty', body, 'Wave pattern (chaos 0 = exactly the pattern, no randomness)');
     const patterns = el('div', 'editor__row', body);

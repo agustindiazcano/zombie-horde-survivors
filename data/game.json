@@ -759,6 +759,8 @@
     "heading": 1.5708,
     "spread": 0.12,
     "sequence": [],
+    "vortices": [],
+    "swimDrift": 0.35,
     "lift": 2.35,
     "drag": 3.8,
     "damping": 2.6

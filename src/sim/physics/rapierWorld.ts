@@ -2,7 +2,7 @@ import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import type { Arena } from '../config';
 import { OBSTACLE_HEIGHT } from '../constants';
 import { nextFloat, type Rng } from '../rng';
-import { oceanFlow, oceanHeight, type OceanParams } from '../ocean';
+import { oceanFlowAt, oceanHeight, type OceanParams } from '../ocean';
 import {
   BALL_MASS,
   BALL_RADIUS,
@@ -552,7 +552,6 @@ export class RapierWorld {
     const dt = this.world.timestep;
     const g = this.params.gravity;
     const flow = { x: 0, z: 0 };
-    oceanFlow(o.params, flow);
     const pull = Math.min(1, o.params.drag * dt);
     const damp = Math.max(0, 1 - o.params.damping * dt);
     for (let i = 0; i < this.count; i++) {
@@ -565,6 +564,7 @@ export class RapierWorld {
       const surface = oceanHeight(o.params, o.level, o.groundAt(x, z), x, z, this.oceanTime);
       const sunk = surface + r * FLOAT_OFFSET - y;
       if (sunk <= 0) continue;
+      oceanFlowAt(o.params, x, z, flow);
       const body = this.bodies[i]!;
       const v = body.linvel();
       const ratio = Math.min(sunk / (r * 2), 1.6);

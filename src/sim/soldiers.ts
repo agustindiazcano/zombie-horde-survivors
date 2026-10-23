@@ -7,7 +7,7 @@ import { ARRIVE_SHARE, findInteractable, performInteract } from './interact';
 import { aiThrowGrenade } from './grenades';
 import { throwCarried } from './objects';
 import { bonus } from './training';
-import { isSubmerged, isSwimming, updateBreath } from './swim';
+import { driftInWater, isSubmerged, isSwimming, updateBreath } from './swim';
 import { dynamicSolids, nearestOnSolid, resolveStatic, supportHeight, topOf } from './collision';
 import { localPlayer } from './players';
 import { rescueTarget } from './revive';
@@ -309,7 +309,7 @@ export function updateSoldiers(
       const max = maxHealthOf(state, config, s);
       s.health = Math.min(max, s.health + state.mods.regen * dt);
     }
-    s.swimming = isSwimming(config, s);
+    s.swimming = isSwimming(config, s, state.time);
     // The squad's sprint order only works for a unit that still has breath; in water there are no stances.
     const stance =
       s.downed || s.swimming || (state.stance === 'sprint' && (s.winded || isDrone(s)))
@@ -469,6 +469,7 @@ function updateControlled(
   }
   s.pos.x += move.x * k * speed * dt;
   s.pos.z += move.z * k * speed * dt;
+  driftInWater(config, s, dt);
   resolveUnit(s, config);
 
   const dx = aim.x - s.pos.x;
@@ -578,6 +579,7 @@ function updateAi(
       if (!isDrone(s)) openDoorAhead(state, config, s.pos, { x: dx / d, z: dz / d });
       s.pos.x += (dx / d) * step;
       s.pos.z += (dz / d) * step;
+      driftInWater(config, s, dt);
       resolveUnit(s, config);
       moveAngle = Math.atan2(dx, dz);
     }

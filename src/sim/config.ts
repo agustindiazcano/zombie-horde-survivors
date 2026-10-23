@@ -144,6 +144,19 @@ const oceanFields = {
   spread: z.number().min(0).max(1.57),
   /** Pattern custom: up to 8 wave angles in degrees (repeated if fewer). */
   sequence: z.array(z.number()).max(8),
+  /** Whirlpools (up to 3): where, how strong (0 to 2) and how wide (m, the funnel's reach). Each sinks the surface into a funnel, adds a spiral wave and pulls everything in the water round and in. */
+  vortices: z
+    .array(
+      z.object({
+        x: z.number(),
+        z: z.number(),
+        strength: z.number().min(0).max(2),
+        radius: z.number().min(4).max(60),
+      }),
+    )
+    .max(3),
+  /** How much of the water's own movement (current and whirlpools) carries a swimming unit, 0 to 1. */
+  swimDrift: z.number().min(0).max(1),
   /** Buoyancy: upward acceleration when fully under, as a multiple of gravity. */
   lift: positive,
   /** How fast a floating body takes the speed of the water (1/s). */
