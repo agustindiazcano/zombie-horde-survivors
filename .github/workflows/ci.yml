@@ -21,3 +21,5 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run check:assets
+      # The golden hash of the simulation, with the TypeScript and the Rust kernels: it must not change.
+      - run: npm run check:sim-hash

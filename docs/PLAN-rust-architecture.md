@@ -120,3 +120,25 @@ Measured twice. On the author's noisy PC it looked as if the flow field ratio gr
 Mathematically that is expected: both versions do the same operations, so their time is the same function of the size times a constant; the ratio only moves when memory behaviour changes (past a point the data leaves the cache and both wait for memory, so the ratio falls). What grows with scale is the absolute saving (10 000 bodies: 1.8 ms of 9.3 ms; a 320 x 320 grid: 4 ms of 14.5 ms). To get more than a constant factor the kernel has to change: SIMD (`simd128`), threads, or a better algorithm (a coarser flow field, hierarchical search).
 
 What this teaches: for the sim as it is, Rust gives 1.3x to 1.6x on a pure-arithmetic kernel and nothing on the rest; the whole sim step is 14% of a frame. Porting more kernels one by one adds little. The larger gains are in layers B and C (no gather / scatter, SIMD, threads), and those only pay if a game with thousands of enemies is the goal.
+
+## 8. Status of the port: what is in Rust and what is still TypeScript (2026-10-23)
+
+Rule (the user's, 2026-10-23): whatever is equal or better in Rust on the GitHub runners moves to Rust. Share = self time in the `bench:sim` profile (section 1).
+
+| Piece                                                | State                    | Share | Next step and what blocks it                                                                                                           |
+| ---------------------------------------------------- | ------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Zombie separation (`separate`)                       | ✅ In Rust, wired        | 13.6% | Done                                                                                                                                   |
+| Flow field search (`flowSearch`)                     | ✅ In Rust, wired        | ~3%   | Done                                                                                                                                   |
+| Ocean height, flow, whirlpools (`ocean.ts`)          | 🟡 In Rust, not wired    | small | Level at best, 6% to 8% slower with whirlpools, not bit-identical; wire only if a SIMD or batch version beats TypeScript               |
+| `nextWaypoint` + `lineClear` (a waypoint per zombie) | ⚪ TypeScript            | ~4%   | Called once per zombie with tiny work; the call boundary would eat the gain. Needs a batch API and a safe reorder of `updateZombies`   |
+| `nearestTarget` (nearest soldier or vehicle)         | ⚪ TypeScript            | 5.0%  | Five targets only; a batch over all zombies would change when a killed soldier stops being a target. Low gain                          |
+| `resolveStatic` + `obstaclesNear` (walls)            | ⚪ TypeScript            | ~10%  | Layer B first: obstacles as flat arrays and a CSR grid instead of `Obstacle[][]` and a `Map` of stamps                                 |
+| `updateZombies` (AI, movement, attack timers)        | ⚪ TypeScript            | 10.4% | Layer C: the zombie hot state in flat arrays; mixes rules with objects (structures, loot, soldiers)                                    |
+| Soldier AI target search (`findTarget`)              | ⚪ TypeScript            | 2.7%  | Same layer B / C; few units                                                                                                            |
+| Shot rays and line of sight (`rayAabb`, `canSee`)    | ⚪ TypeScript            | <1%   | Batch of rays on the CSR grid (layer B)                                                                                                |
+| Buoyancy `floatBodies` (Rapier lab)                  | ⚪ TypeScript            | tiny  | Lab only; needs the Rapier handles, or Rapier's Rust API                                                                               |
+| Own sphere solver (`physics/world.ts`)               | ⚪ TypeScript, reference | n/a   | Plan phases 6 to 8; Rapier beats it from about 600 balls, so only if the unified solver ([TECHNIQUES.md](TECHNIQUES.md) 7.1) is used   |
+| `InstancedMesh` matrices filled from Rust            | ⚪ Not started           | n/a   | Plan phase 8; removes the per-body JavaScript loop                                                                                     |
+| SIMD (`simd128`) and threads                         | ⚪ Not started           | n/a   | Threads need `SharedArrayBuffer` (COOP / COEP headers, which GitHub Pages cannot send) or a native wrapper: the Steam wrapper decision |
+
+Not portable: shaders (GLSL), the three.js drawing, and the DOM screens.
