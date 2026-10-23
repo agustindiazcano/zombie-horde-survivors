@@ -183,9 +183,11 @@ export class EnvironmentView {
             vec3 col = mix(top, horizon, pow(1.0 - clamp(h, 0.0, 1.0), 2.5));
 
             float sunCos = max(dot(dir, uSunDir), 0.0);
-            float sunDisk = smoothstep(0.9985, 0.9993, sunCos);
-            float sunGlow = (pow(sunCos, 16.0) * 0.45 + pow(sunCos, 256.0) * 1.2) * uGlow;
-            col += uSunColor * (sunDisk * 3.0 + sunGlow) * uSun;
+            float sunDisk = smoothstep(0.9972, 0.9988, sunCos);
+            float sunGlow = (pow(sunCos, 6.0) * 0.28 + pow(sunCos, 48.0) * 0.8 + pow(sunCos, 600.0) * 3.0 + pow(sunCos, 4.0) * 0.45 * uTwilight) * uGlow;
+            // Past 1.0 on purpose: the disc burns out to white and the halo washes the sky near it.
+            col += uSunColor * (sunDisk * 9.0 + sunGlow) * uSun;
+            col = mix(col, vec3(1.0), clamp(sunDisk * uSun, 0.0, 1.0) * 0.85);
 
             float moonCos = max(dot(dir, -uSunDir), 0.0);
             float moonDisk = smoothstep(0.9988, 0.9994, moonCos);
