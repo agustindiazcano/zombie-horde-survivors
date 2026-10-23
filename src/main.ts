@@ -63,6 +63,7 @@ import { Radar } from './radar';
 import { BuildUi } from './buildUi';
 import { PhysicsLab } from './physicsLab';
 import { PerkPicker, Shop } from './upgradesUi';
+import { installRustKernels } from './wasm/rustKernels';
 
 /** Mobile: enemies within this distance (world units) are shot at automatically. */
 const MOBILE_AIM_RANGE = 22;
@@ -80,6 +81,8 @@ const HINT_RTS =
   'RTS · WASD pan · Click/drag select · Right-click move · F follow · G: aim a grenade · E all · 1-9 pick · Y: control selected · I: squad & inventories · B: shop (between waves) · Wheel: zoom · Right-drag: rotate/tilt';
 
 async function main(): Promise<void> {
+  // The Rust copies of the hot kernels (bit-identical to TypeScript, faster); `?js-kernels` keeps TypeScript to compare.
+  if (!new URLSearchParams(location.search).has('js-kernels')) void installRustKernels();
   const config = parseConfig(data, parseMap(map1), units, items);
   /** The rules of game.json before any map overrides them. */
   const globalRules = {

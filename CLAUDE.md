@@ -47,22 +47,25 @@ All controls live in [docs/CONTROLS.md](docs/CONTROLS.md): direct control, views
 
 ## 5. Commands
 
-| Command                                                       | What it does                                                                                              |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `npm run dev -- --host 127.0.0.1 --port 5173`                 | Dev server, http://127.0.0.1:5173/ (usually already running in the background; do not start a second one) |
-| `npm run lint` · `npm run format:check` · `npm run typecheck` | The static checks CI runs                                                                                 |
-| `npm test`                                                    | The 51 existing sim tests (Vitest)                                                                        |
-| `npm run bench:sim`                                           | Stress benchmark of the sim step with 100 to 1000 zombies (ms per step); not a test, prints numbers       |
-| `npm run bench:physics` · `check:rapier` · `check:ragdoll`    | Map 12 physics: timings, determinism hashes, Rapier checks, the ragdoll rig on the real model (not tests) |
-| `npm run build`                                               | `tsc --noEmit` + Vite build into `dist/`                                                                  |
-| `npm run check:assets`                                        | Fails if an asset in `assets.toml` has a license other than CC0-1.0, CC-BY-3.0 or CC-BY-4.0               |
-| `npm run credits`                                             | Regenerates the README credits block from `assets.toml`                                                   |
+| Command                                                         | What it does                                                                                                                                                                     |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev -- --host 127.0.0.1 --port 5173`                   | Dev server, http://127.0.0.1:5173/ (usually already running in the background; do not start a second one)                                                                        |
+| `npm run lint` · `npm run format:check` · `npm run typecheck`   | The static checks CI runs                                                                                                                                                        |
+| `npm test`                                                      | The 51 existing sim tests (Vitest)                                                                                                                                               |
+| `npm run bench:sim`                                             | Stress benchmark of the sim step with 100 to 1000 zombies (ms per step); not a test, prints numbers                                                                              |
+| `npm run bench:physics` · `check:rapier` · `check:ragdoll`      | Map 12 physics: timings, determinism hashes, Rapier checks, the ragdoll rig on the real model (not tests)                                                                        |
+| `npm run check:sim-hash` · `check:kernels` · `check:ocean-wasm` | Hash of a fixed sim scenario run with TypeScript and Rust kernels (must match); Rust against TypeScript kernels bit for bit and timed; Rust ocean against TypeScript (not tests) |
+| `npm run build:wasm`                                            | Rebuilds `src/wasm/sim-core` from `crates/sim-core` (the built files are committed)                                                                                              |
+| `npm run build`                                                 | `tsc --noEmit` + Vite build into `dist/`                                                                                                                                         |
+| `npm run check:assets`                                          | Fails if an asset in `assets.toml` has a license other than CC0-1.0, CC-BY-3.0 or CC-BY-4.0                                                                                      |
+| `npm run credits`                                               | Regenerates the README credits block from `assets.toml`                                                                                                                          |
 
 Before every commit run lint, format check, typecheck, tests, build and check:assets, and **read the test result** (a chained command that ends in `grep` once hid failing tests).
 
 ## 6. Architecture rules
 
 - **`src/sim`** is the pure simulation: no Three.js, no DOM. ESLint (`no-restricted-imports`) and a test enforce it. Fixed 60 Hz step (`FIXED_DT`); the render interpolates with `prev` fields and `alpha`.
+- **Kernels:** the hot loops (zombie separation, flow field search) are flat functions in `src/sim/kernels.ts` with a Rust copy in `crates/sim-core`, bit-identical (`check:sim-hash`, `check:kernels`). The game loads the Rust ones at start (`src/wasm/rustKernels.ts`; TypeScript is the fallback and the reference). Change a kernel in both languages, run `npm run build:wasm`, and keep the hash. Plan and numbers: [docs/PLAN-rust-architecture.md](docs/PLAN-rust-architecture.md), [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 - **`src/render`** is Three.js only (arena, characters, effects, cameras, lighting). Game code talks to characters through the `CharacterView` interface.
 - **`src/*.ts`** are input, HUD, audio and the DOM screens (main menu, pause panel, squad screen, shop and perk picker, settings, radar). `src/main.ts` wires everything and owns the pause and modal logic.
 - **Physics** is documented in [docs/PHYSICS.md](docs/PHYSICS.md): update it in the same commit whenever a physics rule or formula changes. The same goes for [docs/GRAPHICS.md](docs/GRAPHICS.md) (sky, light, weather, water).

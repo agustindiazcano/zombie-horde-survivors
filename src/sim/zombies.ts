@@ -4,7 +4,7 @@ import { STEP_UP } from './constants';
 import type { GameConfig, Loadout } from './config';
 import { ageFlow, steerTarget } from './flowfield';
 import { maybeDropCrate } from './inventory';
-import { newSeparationScratch, separate } from './kernels';
+import { newSeparationScratch, runSeparate } from './kernels';
 import { dropLoot, rewardOf } from './loot';
 import { hasLimbs, severLimb, woundLimb } from './dismember';
 import { firstPlayerOf } from './players';
@@ -362,7 +362,16 @@ function separateZombies(state: GameState, config: GameConfig): void {
     sepR[i] = z.radius;
     if (alive && z.radius > widest) widest = z.radius;
   }
-  separate(sepScratch, sepX, sepZ, sepR, sepAlive, count, config.arena.halfSize, widest);
+  runSeparate(
+    sepScratch,
+    sepX.subarray(0, count),
+    sepZ.subarray(0, count),
+    sepR.subarray(0, count),
+    sepAlive.subarray(0, count),
+    count,
+    config.arena.halfSize,
+    widest,
+  );
   for (let i = 0; i < count; i++) {
     if (sepAlive[i] === 0) continue;
     const z = zombies[i]!;

@@ -1,7 +1,7 @@
 import { inShelter } from './shelter';
 import type { Arena, GameConfig, Obstacle } from './config';
 import { topOf } from './collision';
-import { flowSearch, newFlowScratch } from './kernels';
+import { newFlowScratch, runFlowSearch } from './kernels';
 import type { GameState } from './types';
 import { isOccupied } from './vehicles';
 import type { Vec2 } from './vec';
@@ -203,7 +203,15 @@ function search(blocked: Blocked, dist: Float64Array, targets: Vec2[]): void {
     const t = targets[i]!;
     targetCells[i] = cellIndex(blocked, t.z) * n + cellIndex(blocked, t.x);
   }
-  flowSearch(flowScratch, n, cells, extra, dist, targetCells, targets.length);
+  runFlowSearch(
+    flowScratch,
+    n,
+    cells,
+    extra,
+    dist,
+    targetCells.subarray(0, targets.length),
+    targets.length,
+  );
 }
 
 // Scratch space of the search, reused so a refresh allocates nothing once it has grown.

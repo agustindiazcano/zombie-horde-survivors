@@ -196,3 +196,84 @@ export function flowSearch(
     }
   }
 }
+
+/**
+ * The implementation the game runs the kernels with. By default the TypeScript functions above; once
+ * the Rust module has loaded (`src/wasm/rustKernels.ts`) it can take over. Both give the same bits
+ * (`npm run check:kernels`, `npm run check:sim-hash`), so switching mid-run changes nothing. If the
+ * Rust side ever throws, the TypeScript one takes back and stays.
+ */
+export interface KernelBackend {
+  separate(
+    x: Float64Array,
+    z: Float64Array,
+    radius: Float64Array,
+    alive: Uint8Array,
+    count: number,
+    half: number,
+    widest: number,
+  ): void;
+  flowSearch(
+    n: number,
+    cells: Uint8Array,
+    extra: Float32Array,
+    dist: Float64Array,
+    targets: Int32Array,
+    targetCount: number,
+  ): void;
+}
+
+let backend: KernelBackend | null = null;
+/** How many calls the backend served (for the checks: proof that it ran). */
+export const backendCalls = { separate: 0, flowSearch: 0 };
+
+export function useKernelBackend(next: KernelBackend | null): void {
+  backend = next;
+}
+
+export const kernelBackendName = (): 'rust' | 'typescript' => (backend ? 'rust' : 'typescript');
+
+/** `separate` through the current backend. */
+export function runSeparate(
+  s: SeparationScratch,
+  x: Float64Array,
+  z: Float64Array,
+  radius: Float64Array,
+  alive: Uint8Array,
+  count: number,
+  half: number,
+  widest: number,
+): void {
+  if (backend) {
+    try {
+      backend.separate(x, z, radius, alive, count, half, widest);
+      backendCalls.separate++;
+      return;
+    } catch {
+      backend = null; // the Rust module failed: TypeScript from now on
+    }
+  }
+  separate(s, x, z, radius, alive, count, half, widest);
+}
+
+/** `flowSearch` through the current backend. */
+export function runFlowSearch(
+  h: FlowScratch,
+  n: number,
+  cells: Uint8Array,
+  extra: Float32Array,
+  dist: Float64Array,
+  targets: Int32Array,
+  targetCount: number,
+): void {
+  if (backend) {
+    try {
+      backend.flowSearch(n, cells, extra, dist, targets, targetCount);
+      backendCalls.flowSearch++;
+      return;
+    } catch {
+      backend = null;
+    }
+  }
+  flowSearch(h, n, cells, extra, dist, targets, targetCount);
+}

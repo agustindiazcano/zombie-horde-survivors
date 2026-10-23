@@ -38,9 +38,14 @@ jobs:
           for c in check:sim-hash check:rapier; do
             echo "== npm run $c"; npm run $c 2>&1 | tail -25
           done | tee bench-results/hashes.txt
-      - name: Simulation benchmark (3 runs)
+      - name: Simulation benchmark, TypeScript kernels (3 runs)
         run: |
           for i in 1 2 3; do echo "== run $i"; npm run bench:sim 2>&1 | grep -E "zombies:|balls:|boxes:"; done | tee bench-results/bench-sim.txt
+      - name: Simulation benchmark, Rust kernels (3 runs)
+        env:
+          KERNELS: rust
+        run: |
+          for i in 1 2 3; do echo "== run $i"; npm run bench:sim 2>&1 | grep -E "kernels:|zombies:"; done | tee bench-results/bench-sim-rust.txt
       - name: Physics benchmark
         run: npm run bench:physics 2>&1 | tee bench-results/bench-physics.txt
       - name: Ragdoll and ocean checks
@@ -59,7 +64,7 @@ jobs:
         run: |
           {
             echo "## Benchmarks on ${{ matrix.os }}"
-            for f in machine hashes bench-sim bench-physics ragdoll-ocean kernels ocean-wasm; do
+            for f in machine hashes bench-sim bench-sim-rust bench-physics ragdoll-ocean kernels ocean-wasm; do
               echo; echo "### $f"; echo '```'; cat bench-results/$f.txt 2>/dev/null; echo '```'
             done
           } >> "$GITHUB_STEP_SUMMARY"

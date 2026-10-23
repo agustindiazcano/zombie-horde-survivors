@@ -5,7 +5,14 @@
  */
 import map1 from '../data/maps/map-1.json';
 import { FIXED_DT, arenaOf, maxHealthOf, parseMap, spawnZombie, step } from '../src/sim';
+import { readFileSync } from 'node:fs';
+import { installRustKernelsSync } from '../src/wasm/rustKernels';
 import { idle, makeGame } from './sim/helpers';
+
+// `KERNELS=rust npm run bench:sim` runs the step with the Rust kernels (the default is TypeScript).
+if (process.env.KERNELS === 'rust')
+  installRustKernelsSync(readFileSync('src/wasm/sim-core/sim_core_bg.wasm'));
+console.log(`kernels: ${process.env.KERNELS === 'rust' ? 'rust' : 'typescript'}`);
 
 const COUNTS = [100, 300, 600, 1000];
 const STEPS = 300;

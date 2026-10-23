@@ -6,7 +6,10 @@
  * a refactor of a hot loop, or its Rust copy, must keep it.
  */
 import map1 from '../data/maps/map-1.json';
+import { readFileSync } from 'node:fs';
 import { FIXED_DT, arenaOf, maxHealthOf, parseMap, spawnZombie, step } from '../src/sim';
+import { backendCalls, kernelBackendName } from '../src/sim/kernels';
+import { installRustKernelsSync, useTypeScriptKernels } from '../src/wasm/rustKernels';
 import { idle, makeGame } from './sim/helpers';
 
 const COUNTS = [100, 300, 1000];
@@ -31,50 +34,70 @@ class Hasher {
   }
 }
 
-const all = new Hasher();
-for (const count of COUNTS) {
-  const { state, config } = makeGame({ squad: { count: 4 } });
-  config.arena = arenaOf(parseMap(map1));
-  const half = config.arena.halfSize - 2;
-  for (let i = 0; i < count; i++) {
-    const angle = i * 2.399963;
-    const r = 8 + (i % 37);
-    spawnZombie(
-      state,
-      config,
-      {
-        x: Math.max(-half, Math.min(half, Math.sin(angle) * r)),
-        z: Math.max(-half, Math.min(half, Math.cos(angle) * r)),
-      },
-      'zombie',
-      0,
-    );
-  }
-  for (let i = 0; i < STEPS; i++) {
-    for (const s of state.soldiers) {
-      s.health = maxHealthOf(state, config, s);
-      s.downed = false;
-      s.dead = false;
+function runScenario(): string {
+  const all = new Hasher();
+  for (const count of COUNTS) {
+    const { state, config } = makeGame({ squad: { count: 4 } });
+    config.arena = arenaOf(parseMap(map1));
+    const half = config.arena.halfSize - 2;
+    for (let i = 0; i < count; i++) {
+      const angle = i * 2.399963;
+      const r = 8 + (i % 37);
+      spawnZombie(
+        state,
+        config,
+        {
+          x: Math.max(-half, Math.min(half, Math.sin(angle) * r)),
+          z: Math.max(-half, Math.min(half, Math.cos(angle) * r)),
+        },
+        'zombie',
+        0,
+      );
     }
-    state.status = 'playing';
-    step(state, config, idle, FIXED_DT);
+    for (let i = 0; i < STEPS; i++) {
+      for (const s of state.soldiers) {
+        s.health = maxHealthOf(state, config, s);
+        s.downed = false;
+        s.dead = false;
+      }
+      state.status = 'playing';
+      step(state, config, idle, FIXED_DT);
+    }
+    const h = new Hasher();
+    for (const z of state.zombies) {
+      h.num(z.pos.x);
+      h.num(z.pos.z);
+      h.num(z.health);
+      h.str(z.state);
+    }
+    for (const s of state.soldiers) {
+      h.num(s.pos.x);
+      h.num(s.pos.z);
+      h.num(s.health);
+    }
+    const alive = state.zombies.filter((z) => z.state !== 'death').length;
+    console.log(
+      `${String(count).padStart(5)} zombies after ${STEPS} steps: ${alive} alive, hash ${h.h.toString(16).padStart(8, '0')}`,
+    );
+    all.num(h.h);
   }
-  const h = new Hasher();
-  for (const z of state.zombies) {
-    h.num(z.pos.x);
-    h.num(z.pos.z);
-    h.num(z.health);
-    h.str(z.state);
-  }
-  for (const s of state.soldiers) {
-    h.num(s.pos.x);
-    h.num(s.pos.z);
-    h.num(s.health);
-  }
-  const alive = state.zombies.filter((z) => z.state !== 'death').length;
-  console.log(
-    `${String(count).padStart(5)} zombies after ${STEPS} steps: ${alive} alive, hash ${h.h.toString(16).padStart(8, '0')}`,
-  );
-  all.num(h.h);
+  return all.h.toString(16).padStart(8, '0');
 }
-console.log(`SIM HASH ${all.h.toString(16).padStart(8, '0')}`);
+
+// The same scenario with the TypeScript kernels and with the Rust ones: the hash must be the same.
+useTypeScriptKernels();
+console.log(`-- kernels: ${kernelBackendName()}`);
+const tsHash = runScenario();
+installRustKernelsSync(readFileSync('src/wasm/sim-core/sim_core_bg.wasm'));
+console.log(`-- kernels: ${kernelBackendName()}`);
+const rustHash = runScenario();
+console.log(
+  `Rust kernels served ${backendCalls.separate} separations and ${backendCalls.flowSearch} flow field searches`,
+);
+console.log(`SIM HASH ${tsHash}`);
+if (rustHash !== tsHash || backendCalls.separate === 0) {
+  console.log(`FAIL: with the Rust kernels the hash is ${rustHash}`);
+  process.exitCode = 1;
+} else {
+  console.log('OK: the Rust kernels give the same hash');
+}
