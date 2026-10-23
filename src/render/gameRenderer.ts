@@ -1497,6 +1497,21 @@ export class GameRenderer {
     patchGroundRain(m);
   }
 
+  /**
+   * Draws the scene as it stands once and times it, for "Measure my machine": `cpu` is the time of
+   * the calls that submit the frame, `total` the time until the graphics card finished (gl.finish).
+   */
+  timeFrame(): { cpu: number; total: number } {
+    const gl = this.renderer.getContext();
+    const t0 = performance.now();
+    this.drawWaterMirror();
+    this.renderer.render(this.scene, this.camera);
+    this.lens?.render(this.renderer, this.environment.rainAmount, this.clock);
+    const t1 = performance.now();
+    gl.finish();
+    return { cpu: t1 - t0, total: performance.now() - t0 };
+  }
+
   /** Gets the distance (m) of every lightning bolt, to play the thunder. */
   set onThunder(callback: ((distance: number) => void) | null) {
     this.environment.onStrike = callback;

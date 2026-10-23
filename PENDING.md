@@ -125,14 +125,14 @@ The physics, fluid and optics formulas are the author's own work; they are now r
 - [x] Done 2026-10-23: thunder (synthesised, delayed by distance), the whirlpool geyser and the sea wind (waves and current; `ocean.wind`, tied to the Weather wind slider). Look at them in Map 13.
 - [ ] ⚪ Rust / WebAssembly for the CPU side: plan and open decisions in [docs/PLAN-rust-wasm.md](docs/PLAN-rust-wasm.md) (the toolchain is installed; nothing built; first target proposed: the ocean maths).
 
-### 2r — 🟡 Graphics settings window with a cost indicator (planned 2026-10-23, nothing built)
+### 2r — 🔴 Graphics settings window with a cost indicator (built 2026-10-23)
 
-Plan: [docs/PLAN-graphics-settings.md](docs/PLAN-graphics-settings.md). Every effect gets its own switch, the settings become a near-full-screen window, and each option shows how heavy it is and whether it loads the GPU, the CPU or the VRAM (estimated first, measured later).
+Plan: [docs/PLAN-graphics-settings.md](docs/PLAN-graphics-settings.md); rules in [docs/GRAPHICS.md](docs/GRAPHICS.md) sections 1 and 13. The settings (key `O`) are a near-full-screen window drawn from the option registry `src/graphicsOptions.ts`, with GPU / CPU / VRAM bars, a cost chip on every option, 18 graphics options (11 new: snow, ground detail, fog, lightning, sea lights, ice detail, anti-aliasing, draw distance, weather particles, field of view, frame limit, plus a quarter-size mirror) and a "Measure my machine" button with a "Recommend for 60 fps" preset.
 
-- [ ] 🟡 Answer section 6 of the plan (pause or live, static numbers first, a recommend button, antialiasing restart).
-- [ ] 🟡 Step 1 and 2: the option registry with a cost record per value; presets and load / save built from it.
-- [ ] 🟡 Step 3 and 4: the new window and the cost bars and chips.
-- [ ] 🟢 Step 5: the missing switches (snow, ground detail, fog, lightning, lights, antialiasing, draw distance, particles, FOV, frame cap). Step 6: the benchmark with timer queries.
+- [ ] 🔴 Look at it in the browser: press `O`, walk the pages, change presets, press Measure my machine on a map with the effects you care about visible (a storm, a frozen sea) and check the numbers make sense. Tell what is confusing or wrong.
+- [ ] 🟡 Check that the anti-aliasing change + Reload now works, and that each new switch really turns its effect off (snow, ground detail, fog, lightning, sea lights, ice, particles).
+- [ ] 🟡 The estimated costs (`graphicsOptions.ts`) are guesses: compare them with the measured ones and fix the table.
+- [ ] 🟢 Timer queries (`EXT_disjoint_timer_query_webgl2`) for a true GPU time; a benchmark scene that forces rain, snow and ice so every option measures its real cost; a preview of the scene inside the window; a menu entry to open the settings from the title screen if it is not there yet.
 
 ### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
 

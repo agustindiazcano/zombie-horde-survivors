@@ -392,3 +392,25 @@
     align-items: flex-start;
   }
 }
+
+.set__measure {
+  border-color: #6aa0ff;
+}
+
+.set__measure:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.set__forget {
+  opacity: 0.6;
+}
+
+.set__chip-ms {
+  color: #cfd6e4;
+  white-space: nowrap;
+}
+
+.set__chip {
+  white-space: nowrap;
+}

@@ -176,6 +176,19 @@ Code: `src/render/lensDrops.ts`, called by `GameRenderer` after the frame (and a
 | Running drops | Detail 2: 16 columns, one drop per column when `hash <= 0.15 + 0.7 rain`, falling at 0.06 to 0.16 screens per second with a thin trail above it (up to 0.38 of the screen)                                                                                                                                          |
 | Lens          | Each drop gives a normal (the offset from its centre over its radius); the picture inside is the frame sampled at `uv - normal * 0.07` (turned over and shifted), darkened by `0.4 * rim` at the edge and with a soft highlight towards the upper left                                                              |
 
+## 13. Measure my machine
+
+Code: `src/graphicsBench.ts` (the logic, no Three.js or DOM), `GameRenderer.timeFrame` (the probe) and the buttons in the settings window header. It replaces the estimated cost chips with this machine's own numbers.
+
+| Rule            | Detail                                                                                                                                                                                                                                                                             |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What it does    | For every option that is active and measurable (not anti-aliasing, textures, field of view or the frame limit), it applies each value to the renderer and times 14 frames after 4 warm-up frames (median). The resolution slider is sampled at 35%, 65%, 100% and 150%             |
+| CPU and GPU     | `cpu` is the time the calls that submit the frame take; `gpu` is the rest until `gl.finish` returns. An approximation: no timer queries, so the split is rough (the browser may also hide some GPU time)                                                                           |
+| Cost of a value | What it adds over the cheapest value of the same option (ms). A chip bar is 1.5 ms; the chip also shows `+x.x ms`                                                                                                                                                                  |
+| Prediction      | `frame = measured base + sum over options (cost of the chosen value - cost at the time of measuring)`. The total bars show GPU and CPU milliseconds against the 60 fps frame (16.7 ms) and the verdict gives about how many fps, from the slower of the two (they run in parallel) |
+| Recommend       | The heaviest of Ultra, High, Medium, Low whose prediction is at most 90% of a 60 fps frame, else Toaster                                                                                                                                                                           |
+| Limits          | It measures the scene on screen when it runs: an effect that is not visible (rain on a dry day, ice on an unfrozen sea, snow) measures as free. The result is saved in localStorage and the window says when it was taken. The picture flickers for about a minute while it runs   |
+
 ## 9. Not done
 
 Ground: real textures with depth (see PENDING). Neon orbs lighting the clouds (they already light the ground and everything on it). See PENDING.md.

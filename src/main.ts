@@ -133,7 +133,13 @@ async function main(): Promise<void> {
     sfx.setVolume(settings.volume);
   };
   commitSettings(settings);
-  const settingsPanel = new SettingsPanel(document.body, () => settings, commitSettings);
+  const settingsPanel = new SettingsPanel(
+    document.body,
+    () => settings,
+    commitSettings,
+    // "Measure my machine": apply each setting to the renderer and time a frame.
+    { apply: (s) => renderer.applyGraphics(s), time: () => renderer.timeFrame() },
+  );
   let resumeAfterSettings = false;
   const openSettings = () => {
     if (settingsPanel.isOpen) return;

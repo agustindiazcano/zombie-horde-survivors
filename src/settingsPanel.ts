@@ -1,6 +1,18 @@
 import './settingsPanel.css';
 import { DEFAULT_SETTINGS, PRESETS, qualityOf, type Quality, type Settings } from './settings';
 import {
+  FRAME_60,
+  MS_PER_BAR,
+  loadMeasurement,
+  measureAll,
+  measuredMs,
+  predictMs,
+  recommend,
+  saveMeasurement,
+  type Measurement,
+  type Probe,
+} from './graphicsBench';
+import {
   GROUPS,
   OPTIONS,
   costOfOption,
@@ -45,11 +57,15 @@ export class SettingsPanel {
   private open = false;
   private onClose: () => void = () => undefined;
   private page: string = GROUPS[0]!.id;
+  private measurement: Measurement | null = loadMeasurement();
+  /** Set while "Measure my machine" runs: how many values are done of how many. */
+  private measuring: { done: number; total: number } | null = null;
 
   constructor(
     parent: HTMLElement,
     private readonly getSettings: () => Settings,
     private readonly onChange: (next: Settings) => void,
+    private readonly probe: Probe | null = null,
   ) {
     parent.appendChild(this.root);
   }
@@ -104,6 +120,7 @@ export class SettingsPanel {
     }
     const custom = el('span', 'set__custom', presets, 'Custom');
     custom.classList.toggle('set__preset--on', s.quality === 'custom');
+    this.measureButtons(presets, s);
     this.totals(head, s);
 
     // Left: the pages.
@@ -141,18 +158,72 @@ export class SettingsPanel {
     done.addEventListener('click', () => this.close());
   }
 
-  /** Three bars: how much of the heaviest possible each part of the machine is asked for. */
+  /** "Measure my machine", and once measured "Recommend" and "Forget". */
+  private measureButtons(parent: HTMLElement, s: Settings): void {
+    if (!this.probe) return;
+    const probe = this.probe;
+    const go = el('button', 'set__preset set__measure', parent);
+    go.textContent = this.measuring
+      ? `Measuring ${this.measuring.done} / ${this.measuring.total}…`
+      : this.measurement
+        ? 'Measure again'
+        : 'Measure my machine';
+    go.disabled = this.measuring !== null;
+    go.title =
+      'Draws the frame on screen with every value of every option and times it. Takes about a minute and the picture flickers meanwhile. Effects that are not visible now (rain, ice, snow) measure as free.';
+    go.addEventListener('click', () => {
+      this.measuring = { done: 0, total: 1 };
+      void measureAll(this.getSettings(), probe, (done, total) => {
+        this.measuring = { done, total };
+        this.render();
+      }).then((m) => {
+        this.measurement = m;
+        saveMeasurement(m);
+        this.measuring = null;
+        this.render();
+      });
+      this.render();
+    });
+    if (this.measurement && !this.measuring) {
+      const m = this.measurement;
+      const rec = recommend(m, s);
+      const best = el('button', 'set__preset', parent, `Recommend for 60 fps: ${rec}`);
+      best.title =
+        'Picks the heaviest preset the measurement predicts will hold 60 frames per second.';
+      best.addEventListener('click', () => this.change({ ...PRESETS[rec], quality: rec }));
+      const forget = el('button', 'set__preset set__forget', parent, 'Forget');
+      forget.addEventListener('click', () => {
+        this.measurement = null;
+        saveMeasurement(null);
+        this.render();
+      });
+    }
+  }
+
+  /** Three bars: how heavy the chosen options are (measured on this machine, or estimated). */
   private totals(parent: HTMLElement, s: Settings): void {
-    const t = totalCost(s);
     const box = el('div', 'set__totals', parent);
     const bar = (name: string, share: number, text: string) => {
       const row = el('div', 'set__total', box);
       el('span', 'set__total-name', row, name);
       const track = el('span', 'set__track', row);
       const fill = el('span', `set__fill set__fill--${level(share)}`, track);
-      fill.style.width = `${Math.round(share * 100)}%`;
+      fill.style.width = `${Math.round(Math.min(share, 1) * 100)}%`;
       el('span', 'set__total-text', row, text);
     };
+    const t = totalCost(s);
+    const m = this.measurement;
+    if (m) {
+      // Measured: a full bar is the whole 60 fps frame (16.7 ms).
+      const p = predictMs(m, s);
+      const slow = Math.max(p.cpuMs, p.gpuMs);
+      bar('GPU', p.gpuMs / FRAME_60, `${p.gpuMs.toFixed(1)} ms`);
+      bar('CPU', p.cpuMs / FRAME_60, `${p.cpuMs.toFixed(1)} ms`);
+      bar('Video memory', t.vramShare, `about ${Math.round(t.vram)} MB`);
+      const word = el('div', `set__verdict set__verdict--${level(slow / FRAME_60)}`, box);
+      word.textContent = `About ${Math.round(1000 / slow)} fps — measured here on ${new Date(m.at).toLocaleDateString()}, with the scene on screen then`;
+      return;
+    }
     bar('GPU', t.gpuShare, `${Math.round(t.gpuShare * 100)}%`);
     bar('CPU', t.cpuShare, `${Math.round(t.cpuShare * 100)}%`);
     bar('Video memory', t.vramShare, `about ${Math.round(t.vram)} MB`);
@@ -200,7 +271,7 @@ export class SettingsPanel {
         if (picked) this.change({ [o.key]: picked.value });
       });
     }
-    this.chips(side, costOfOption(o, s), o.note);
+    this.chips(side, costOfOption(o, s), o.note, this.measuredChip(o, s, active));
     if (o.restart) {
       const reload = el('button', 'set__button', side, 'Reload now');
       reload.addEventListener('click', () => location.reload());
@@ -208,9 +279,38 @@ export class SettingsPanel {
   }
 
   /** `GPU ▮▮▯▯▯  CPU ▮▯▯▯▯  64 MB` for the chosen value. */
-  private chips(parent: HTMLElement, c: Cost, note: string): void {
+  private measuredChip(
+    o: GraphicsOption,
+    s: Settings,
+    active: boolean,
+  ): { cpuMs: number; gpuMs: number } | null {
+    if (!this.measurement || !active) return null;
+    return measuredMs(this.measurement, o, s[o.key] as number | boolean);
+  }
+
+  private chips(
+    parent: HTMLElement,
+    c: Cost,
+    note: string,
+    measured: { cpuMs: number; gpuMs: number } | null,
+  ): void {
     const box = el('div', 'set__chips', parent);
-    box.title = note;
+    box.title = measured ? `${note} (measured on this machine)` : note;
+    if (measured) {
+      for (const [name, ms] of [
+        ['GPU', measured.gpuMs],
+        ['CPU', measured.cpuMs],
+      ] as const) {
+        const bars = Math.min(5, Math.round(ms / MS_PER_BAR));
+        const chip = el('span', `set__chip set__chip--${level(bars / 5)}`, box);
+        el('span', 'set__chip-name', chip, name);
+        el('span', 'set__chip-bars', chip, '▮'.repeat(bars) + '▯'.repeat(5 - bars));
+        el('span', 'set__chip-ms', chip, `+${ms.toFixed(1)} ms`);
+      }
+      if (c.vram > 0) el('span', 'set__chip set__chip--vram', box, `${c.vram} MB`);
+      return;
+    }
+
     for (const [name, n] of [
       ['GPU', c.gpu],
       ['CPU', c.cpu],

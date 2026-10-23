@@ -54,11 +54,15 @@ export interface GraphicsOption {
     step: number;
     format: (v: number) => string;
     cost: (v: number) => Cost;
+    /** The values "Measure my machine" tries (default: the two ends). */
+    samples?: number[];
   };
   /** False when the option does nothing in the current state (its cost then counts as zero). */
   active?: (s: Settings) => boolean;
   /** A change only shows after the page is reloaded. */
   restart?: boolean;
+  /** False for options "Measure my machine" must not touch (they reload files or cost nothing). */
+  measure?: boolean;
 }
 
 const cost = (gpu: number, cpu = 0, vram = 0): Cost => ({ gpu, cpu, vram });
@@ -80,6 +84,7 @@ export const OPTIONS: GraphicsOption[] = [
       min: 0.25,
       max: 2,
       step: 0.05,
+      samples: [0.35, 0.65, 1, 1.5],
       format: (v) => `${Math.round(v * 100)}%`,
       cost: (v) => cost(Math.min(5, Math.round(v * v * 2.2)), 0, Math.round(v * v * 40)),
     },
@@ -91,6 +96,7 @@ export const OPTIONS: GraphicsOption[] = [
     help: 'Smooth edges (multisampling). Fixed when the page starts, so a change needs a reload.',
     note: 'GPU fill and bandwidth: every edge is sampled several times.',
     restart: true,
+    measure: false,
     choices: [choice(false, 'Off', OFF), choice(true, 'On (4x)', cost(2, 0, 30))],
   },
   {
@@ -119,6 +125,7 @@ export const OPTIONS: GraphicsOption[] = [
   },
   {
     key: 'fov',
+    measure: false,
     label: 'Field of view',
     group: 'performance',
     help: 'How wide the camera sees, as a share of each view’s own. Wider shows more but stretches the edges.',
@@ -133,6 +140,7 @@ export const OPTIONS: GraphicsOption[] = [
   },
   {
     key: 'fpsCap',
+    measure: false,
     label: 'Frame-rate limit',
     group: 'performance',
     help: 'Stops the game drawing more frames than this. A limit saves power and heat and keeps a laptop quiet.',
@@ -248,6 +256,7 @@ export const OPTIONS: GraphicsOption[] = [
   },
   {
     key: 'textures',
+    measure: false,
     label: 'Textures',
     group: 'surfaces',
     help: 'Detail of the surface pictures. Ultra needs a bigger download.',
