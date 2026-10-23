@@ -6,3 +6,5 @@ data/maps/map-9.json
 data/maps/map-10.json
 data/maps/map-12.json
 data/maps/map-13.json
+src/wasm/sim-core
+crates/*/target

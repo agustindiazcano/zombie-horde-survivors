@@ -7,3 +7,6 @@ coverage
 # Scratch folders where the user drops things to try or add to the game
 /game-engine/
 /models/
+
+# Rust build output (the built .wasm in src/wasm/sim-core is committed)
+/crates/*/target/

@@ -1,6 +1,6 @@
 # Plan: moving the CPU side to Rust / WebAssembly
 
-Status: **a plan, nothing is built** (written 2026-10-23). The user's call: in the future everything that can goes to Rust so the engine is really optimal. The shaders stay GLSL (WGSL if the engine moves to WebGPU, see [PLAN-webgpu-engine.md](PLAN-webgpu-engine.md)); Rust is for the CPU side. Do not write anything twice: one spec in the docs, one copy in TypeScript (kept as the fallback and the reference), one in Rust, and a check that compares them.
+Status: **piece 1 (the ocean) is built, checked and not wired into the game** (plan written 2026-10-23, piece 1 built the same day, see "Piece 1: result"). The user's call: in the future everything that can goes to Rust so the engine is really optimal. The shaders stay GLSL (WGSL if the engine moves to WebGPU, see [PLAN-webgpu-engine.md](PLAN-webgpu-engine.md)); Rust is for the CPU side. Do not write anything twice: one spec in the docs, one copy in TypeScript (kept as the fallback and the reference), one in Rust, and a check that compares them.
 
 ## What is already Rust
 
@@ -28,6 +28,19 @@ Status: **a plan, nothing is built** (written 2026-10-23). The user's call: in t
 - Determinism: JavaScript's `Math.sin` and `Math.pow` may differ in the last bits between engines; Rust compiled to WASM uses the same maths library everywhere, which is also what lockstep multiplayer needs ([PLAN-multiplayer.md](PLAN-multiplayer.md)). The GPU copy in the shader can never match to the last bit, so the sim must never read it back.
 - The seeded generator (`mulberry32`, integer maths) already ports exactly: use `u32` wrapping arithmetic and the same five draws per wave.
 
+## Piece 1: result (2026-10-23)
+
+Built: `crates/sim-core` (Rust, `wasm-bindgen`), the built package committed in `src/wasm/sim-core/` (decision: commit the `.wasm`, no Rust in CI yet), the loader and parameter packing in `src/wasm/oceanWasm.ts`, and `npm run check:ocean-wasm` (TypeScript against Rust over 8 ocean setups x 20000 points). Rebuild with `npm run build:wasm` after touching the crate. The crate holds `waveTable` (all six patterns, the same five seeded draws per wave), `oceanHeight`, `vortexHeight`, `waveFade` and `oceanFlowAt`; `ocean.ts` is untouched and stays the reference.
+
+| Measure                               | Result                                                                                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Largest difference TypeScript vs Rust | 2.1e-13 m in height, 1.1e-14 m/s in flow, 2.2e-16 in the wave table (not bit-identical: `sin`, `pow`, `exp` differ in the last bits) |
+| Speed, `height` one point per call    | Rust about 1.4x to 1.5x **slower** than the TypeScript (400k calls: 305 ms TS, 437 ms Rust)                                          |
+| Speed, batch in the module's memory   | About the same as one point per call: the boundary is not the cost, Rust's `sin` / `pow` (libm in WASM) are slower than V8's         |
+| `check:rapier` hash, `check:ocean`    | Unchanged (`65505486`; the game does not call the Rust copy yet)                                                                     |
+
+So, as it stands, Rust does not make the ocean faster. What it gives is the same numbers on every machine (the point of lockstep multiplayer) and a proven pipeline. It is not wired in: `oceanHeight` is called in many places and the swap would change last bits for no visible gain. Next candidates are pieces where Rust may really win (flow field, separation grid): profile first.
+
 ## Rules that stay
 
 - `src/sim` stays pure and deterministic: no `Math.random`, no clock, fixed 1/60 s step.
@@ -37,8 +50,8 @@ Status: **a plan, nothing is built** (written 2026-10-23). The user's call: in t
 
 ## Open decisions for the user
 
-| Question                                                              | Options                                                                     |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Build the `.wasm` in CI, or commit it?                                | CI (clean, slower, needs the toolchain in both workflows) / commit (simple) |
-| First target: the ocean (small proof) or the own solver (bigger win)? | Recommended: the ocean first                                                |
-| Does the Steam wrapper (Electron or Tauri) change anything?           | Tauri is Rust: the same crate could run natively there without WASM         |
+| Question                                                              | Options                                                             |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Build the `.wasm` in CI, or commit it?                                | Decided for now: commit it (done). CI later if the crate grows      |
+| First target: the ocean (small proof) or the own solver (bigger win)? | Recommended: the ocean first                                        |
+| Does the Steam wrapper (Electron or Tauri) change anything?           | Tauri is Rust: the same crate could run natively there without WASM |
