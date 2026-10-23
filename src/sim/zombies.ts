@@ -1,10 +1,10 @@
 import { inShelter } from './shelter';
-import { resolveStatic, supportHeight } from './collision';
+import { dynamicSolids, resolveStatic, supportHeight } from './collision';
 import { STEP_UP } from './constants';
 import type { GameConfig, Loadout } from './config';
 import { ageFlow, steerTarget } from './flowfield';
 import { maybeDropCrate } from './inventory';
-import { newSeparationScratch, runSeparate } from './kernels';
+import { flatObstacles, newSeparationScratch, runResolveWalls, runSeparate } from './kernels';
 import { dropLoot, rewardOf } from './loot';
 import { hasLimbs, severLimb, woundLimb } from './dismember';
 import { firstPlayerOf } from './players';
@@ -350,6 +350,7 @@ function separateZombies(state: GameState, config: GameConfig): void {
     sepX = new Float64Array(count * 2);
     sepZ = new Float64Array(count * 2);
     sepR = new Float64Array(count * 2);
+    sepFeet = new Float64Array(count * 2);
     sepAlive = new Uint8Array(count * 2);
   }
   let widest = 0;
@@ -360,28 +361,37 @@ function separateZombies(state: GameState, config: GameConfig): void {
     sepX[i] = z.pos.x;
     sepZ[i] = z.pos.z;
     sepR[i] = z.radius;
+    // A climber passes over the boxes beneath its feet.
+    const climb = z.parts.legs ? (config.enemies[z.type]?.climber?.maxHeight ?? 0) : 0;
+    sepFeet[i] = climbFeet(climb);
     if (alive && z.radius > widest) widest = z.radius;
   }
-  runSeparate(
-    sepScratch,
-    sepX.subarray(0, count),
-    sepZ.subarray(0, count),
-    sepR.subarray(0, count),
-    sepAlive.subarray(0, count),
-    count,
-    config.arena.halfSize,
-    widest,
-  );
+  const x = sepX.subarray(0, count);
+  const z = sepZ.subarray(0, count);
+  const r = sepR.subarray(0, count);
+  const alive = sepAlive.subarray(0, count);
+  runSeparate(sepScratch, x, z, r, alive, count, config.arena.halfSize, widest);
+  // Walls push the zombies out of the obstacles: the flat kernel, unless the physics lab's solids
+  // are in play (Map 12), which only the per-body `resolveStatic` knows about.
+  const flat = dynamicSolids().length === 0;
+  if (flat) {
+    runResolveWalls(
+      flatObstacles(config.arena),
+      x,
+      z,
+      r,
+      sepFeet.subarray(0, count),
+      alive,
+      count,
+      STEP_UP,
+    );
+  }
   for (let i = 0; i < count; i++) {
     if (sepAlive[i] === 0) continue;
-    const z = zombies[i]!;
-    z.pos.x = sepX[i]!;
-    z.pos.z = sepZ[i]!;
-  }
-  for (const z of zombies) {
-    if (z.state === 'death') continue;
-    const climb = z.parts.legs ? (config.enemies[z.type]?.climber?.maxHeight ?? 0) : 0;
-    resolveStatic(z.pos, z.radius, config.arena, climbFeet(climb));
+    const body = zombies[i]!;
+    body.pos.x = sepX[i]!;
+    body.pos.z = sepZ[i]!;
+    if (!flat) resolveStatic(body.pos, body.radius, config.arena, sepFeet[i]!);
   }
 }
 
@@ -396,6 +406,7 @@ const sepScratch = newSeparationScratch();
 let sepX = new Float64Array(0);
 let sepZ = new Float64Array(0);
 let sepR = new Float64Array(0);
+let sepFeet = new Float64Array(0);
 let sepAlive = new Uint8Array(0);
 /**
  * The closest thing a zombie goes for: a soldier on foot (a downed one counts as farther away, so

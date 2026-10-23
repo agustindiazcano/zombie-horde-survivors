@@ -1,5 +1,5 @@
 import { useKernelBackend, type KernelBackend } from '../sim/kernels';
-import { FlowSearch, Separation, loadSimCore, loadSimCoreSync } from './simCore';
+import { FlowSearch, Separation, Walls, loadSimCore, loadSimCoreSync } from './simCore';
 
 /**
  * Puts the Rust copies of the flat kernels (crates/sim-core) in charge of the simulation. They are
@@ -9,11 +9,31 @@ import { FlowSearch, Separation, loadSimCore, loadSimCoreSync } from './simCore'
 function makeBackend(): KernelBackend {
   const sep = new Separation();
   const flow = new FlowSearch();
+  const walls = new Walls();
   return {
     separate: (x, z, radius, alive, count, half, widest) =>
       sep.run_slices(x, z, radius, alive, count, half, widest),
     flowSearch: (n, cells, extra, dist, targets, targetCount) =>
       flow.run_slices(n, cells, extra, dist, targets, targetCount),
+    resolveWalls: (o, x, z, radius, feet, alive, count, stepUp) => {
+      // The obstacles go over once per obstacle list (the sim replaces the list when it changes).
+      if (walls.id() !== o.id) {
+        walls.set_obstacles(
+          o.id,
+          o.n,
+          o.half,
+          o.count,
+          o.x,
+          o.z,
+          o.halfW,
+          o.halfD,
+          o.top,
+          o.cellStart,
+          o.cellItems,
+        );
+      }
+      walls.run_slices(x, z, radius, feet, alive, count, stepUp);
+    },
   };
 }
 

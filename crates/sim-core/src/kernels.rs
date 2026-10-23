@@ -395,3 +395,183 @@ fn flow_search(
         }
     }
 }
+
+/// `resolveWalls` of `src/sim/kernels.ts`: the obstacles as flat arrays and a CSR grid (uploaded once
+/// per obstacle list with `set_obstacles`), then batches of circles pushed out of them in the same
+/// order as the TypeScript. `Math.sign(v || 1)` of the TypeScript is `sign_or_one`.
+#[wasm_bindgen]
+pub struct Walls {
+    n: usize,
+    half: f64,
+    count: usize,
+    x: Vec<f64>,
+    z: Vec<f64>,
+    half_w: Vec<f64>,
+    half_d: Vec<f64>,
+    top: Vec<f64>,
+    cell_start: Vec<i32>,
+    cell_items: Vec<i32>,
+    seen: Vec<u32>,
+    stamp: u32,
+    /// The id of the obstacle set held (the TypeScript `FlatObstacles.id`), so the caller uploads once.
+    id: i64,
+}
+
+fn sign_or_one(v: f64) -> f64 {
+    if v > 0.0 {
+        1.0
+    } else if v < 0.0 {
+        -1.0
+    } else {
+        1.0
+    }
+}
+
+#[wasm_bindgen]
+impl Walls {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Walls {
+        Walls {
+            n: 0,
+            half: 0.0,
+            count: 0,
+            x: Vec::new(),
+            z: Vec::new(),
+            half_w: Vec::new(),
+            half_d: Vec::new(),
+            top: Vec::new(),
+            cell_start: Vec::new(),
+            cell_items: Vec::new(),
+            seen: Vec::new(),
+            stamp: 0,
+            id: -1,
+        }
+    }
+
+    /// The id of the obstacle set held, or -1.
+    pub fn id(&self) -> f64 {
+        self.id as f64
+    }
+
+    /// Takes a copy of an obstacle set (the arrays of the TypeScript `FlatObstacles`).
+    #[allow(clippy::too_many_arguments)]
+    pub fn set_obstacles(
+        &mut self,
+        id: f64,
+        n: usize,
+        half: f64,
+        count: usize,
+        x: &[f64],
+        z: &[f64],
+        half_w: &[f64],
+        half_d: &[f64],
+        top: &[f64],
+        cell_start: &[i32],
+        cell_items: &[i32],
+    ) {
+        self.id = id as i64;
+        self.n = n;
+        self.half = half;
+        self.count = count;
+        self.x = x.to_vec();
+        self.z = z.to_vec();
+        self.half_w = half_w.to_vec();
+        self.half_d = half_d.to_vec();
+        self.top = top.to_vec();
+        self.cell_start = cell_start.to_vec();
+        self.cell_items = cell_items.to_vec();
+        self.seen = vec![0; count];
+        self.stamp = 0;
+    }
+
+    /// Pushes each living circle out of the obstacles and keeps it in the arena; `x` and `z` come back.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_slices(
+        &mut self,
+        x: &mut [f64],
+        z: &mut [f64],
+        radius: &[f64],
+        feet: &[f64],
+        alive: &[u8],
+        count: usize,
+        step_up: f64,
+    ) {
+        assert!(x.len() >= count && z.len() >= count);
+        assert!(radius.len() >= count && feet.len() >= count && alive.len() >= count);
+        let n = self.n;
+        let half = self.half;
+        for i in 0..count {
+            if alive[i] == 0 {
+                continue;
+            }
+            let mut px = x[i];
+            let mut pz = z[i];
+            let r = radius[i];
+            let lift = feet[i] + step_up;
+            if self.count > 0 {
+                if self.stamp == u32::MAX {
+                    for s in self.seen.iter_mut() {
+                        *s = 0;
+                    }
+                    self.stamp = 0;
+                }
+                self.stamp += 1;
+                let stamp = self.stamp;
+                let x0 = cell_of(half, n, px - r);
+                let x1 = cell_of(half, n, px + r);
+                let z0 = cell_of(half, n, pz - r);
+                let z1 = cell_of(half, n, pz + r);
+                for cz in z0..=z1 {
+                    for cx in x0..=x1 {
+                        let c = cz * n + cx;
+                        for k in self.cell_start[c]..self.cell_start[c + 1] {
+                            let b = self.cell_items[k as usize] as usize;
+                            if self.seen[b] == stamp {
+                                continue;
+                            }
+                            self.seen[b] = stamp;
+                            if self.top[b] <= lift {
+                                continue;
+                            }
+                            let bx = self.x[b];
+                            let bz = self.z[b];
+                            let hw = self.half_w[b];
+                            let hd = self.half_d[b];
+                            let qx = (px.max(bx - hw)).min(bx + hw);
+                            let qz = (pz.max(bz - hd)).min(bz + hd);
+                            let dx = px - qx;
+                            let dz = pz - qz;
+                            let d2 = dx * dx + dz * dz;
+                            if d2 >= r * r {
+                                continue;
+                            }
+                            if d2 > 1e-12 {
+                                let d = d2.sqrt();
+                                let push = (r - d) / d;
+                                px += dx * push;
+                                pz += dz * push;
+                                continue;
+                            }
+                            let ox = hw - (px - bx).abs();
+                            let oz = hd - (pz - bz).abs();
+                            if ox < oz {
+                                px = bx + sign_or_one(px - bx) * (hw + r);
+                            } else {
+                                pz = bz + sign_or_one(pz - bz) * (hd + r);
+                            }
+                        }
+                    }
+                }
+            }
+            let lim = half - r;
+            x[i] = px.max(-lim).min(lim);
+            z[i] = pz.max(-lim).min(lim);
+        }
+    }
+}
+
+impl Default for Walls {
+    fn default() -> Self {
+        Walls::new()
+    }
+}

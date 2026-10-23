@@ -1,8 +1,18 @@
 // Compares the flat kernels of src/sim/kernels.ts (TypeScript) with their Rust copy bit for bit, and
 // times both on the same data: npm run check:kernels
 import { readFileSync } from 'node:fs';
-import { flowSearch, newFlowScratch, newSeparationScratch, separate } from '../src/sim/kernels';
-import { FlowSearch, Separation, loadSimCoreSync, simCoreMemory } from '../src/wasm/simCore';
+import map1 from '../data/maps/map-1.json';
+import { arenaOf, parseMap, resolveStatic, type Arena } from '../src/sim';
+import { STEP_UP } from '../src/sim/constants';
+import {
+  flatObstacles,
+  flowSearch,
+  newFlowScratch,
+  newSeparationScratch,
+  resolveWalls,
+  separate,
+} from '../src/sim/kernels';
+import { FlowSearch, Separation, Walls, loadSimCoreSync, simCoreMemory } from '../src/wasm/simCore';
 
 loadSimCoreSync(readFileSync('src/wasm/sim-core/sim_core_bg.wasm'));
 
@@ -178,6 +188,117 @@ for (const n of [80, 160, 320]) {
   console.log(
     `${(n + 'x' + n).padStart(7)} ${String(differ).padStart(12)} ${msTs.toFixed(3).padStart(12)} ${msSlices.toFixed(3).padStart(16)} ${msMem.toFixed(3).padStart(19)}`,
   );
+}
+
+// Wall collisions: the original per-body `resolveStatic`, the flat TypeScript kernel and the Rust one.
+console.log(
+  '\nwalls   bodies   bits differ (flat TS, Rust vs original)   original ms   flat TS ms   Rust ms',
+);
+const map1Arena = arenaOf(parseMap(map1)) as Arena;
+const boxy = (count: number): Arena => {
+  // Boxes of every size, some water, some low and some tall, over a 160 m arena.
+  const obstacles = [];
+  for (let b = 0; b < count; b++) {
+    obstacles.push({
+      x: (rnd() - 0.5) * 150,
+      z: (rnd() - 0.5) * 150,
+      halfW: 0.5 + rnd() * 4,
+      halfD: 0.5 + rnd() * 4,
+      ...(rnd() < 0.2 ? { height: 0.2 } : {}),
+      ...(rnd() < 0.1 ? { water: true } : {}),
+    });
+  }
+  return { ...map1Arena, halfSize: 80, obstacles } as Arena;
+};
+for (const [name, arena, bodies] of [
+  ['map 1', map1Arena, 1000],
+  ['60 boxes', boxy(60), 1000],
+  ['400 boxes', boxy(400), 1000],
+  ['400 boxes', boxy(400), 5000],
+] as [string, Arena, number][]) {
+  const half = arena.halfSize;
+  const flat = flatObstacles(arena);
+  const px = new Float64Array(bodies);
+  const pz = new Float64Array(bodies);
+  const pr = new Float64Array(bodies);
+  const pf = new Float64Array(bodies);
+  const pa = new Uint8Array(bodies);
+  for (let i = 0; i < bodies; i++) {
+    px[i] = (rnd() - 0.5) * (half * 2.1); // some start outside the arena
+    pz[i] = (rnd() - 0.5) * (half * 2.1);
+    pr[i] = 0.35 + (i % 5) * 0.12;
+    pf[i] = i % 17 === 0 ? 1.2 : 0; // some climbers
+    pa[i] = i % 13 === 5 ? 0 : 1;
+  }
+  const w = new Walls();
+  const ox = px.slice();
+  const oz = pz.slice();
+  for (let i = 0; i < bodies; i++) {
+    if (pa[i] === 0) continue;
+    const pos = { x: ox[i]!, z: oz[i]! };
+    resolveStatic(pos, pr[i]!, arena, pf[i]!);
+    ox[i] = pos.x;
+    oz[i] = pos.z;
+  }
+  const tx = px.slice();
+  const tz = pz.slice();
+  resolveWalls(flat, tx, tz, pr, pf, pa, bodies, STEP_UP);
+  const rx = px.slice();
+  const rz = pz.slice();
+  w.set_obstacles(
+    flat.id,
+    flat.n,
+    flat.half,
+    flat.count,
+    flat.x,
+    flat.z,
+    flat.halfW,
+    flat.halfD,
+    flat.top,
+    flat.cellStart,
+    flat.cellItems,
+  );
+  w.run_slices(rx, rz, pr, pf, pa, bodies, STEP_UP);
+  const differ = sameBits(ox, tx) + sameBits(oz, tz) + sameBits(tx, rx) + sameBits(tz, rz);
+  if (differ > 0) failed = true;
+
+  const reps = 100;
+  const best = (run: () => void): number => {
+    let b = Infinity;
+    for (let k = 0; k < 3; k++) {
+      const t0 = performance.now();
+      for (let r = 0; r < reps; r++) run();
+      b = Math.min(b, (performance.now() - t0) / reps);
+    }
+    return b;
+  };
+  const wx = px.slice();
+  const wz = pz.slice();
+  const msOrig = best(() => {
+    wx.set(px);
+    wz.set(pz);
+    for (let i = 0; i < bodies; i++) {
+      if (pa[i] === 0) continue;
+      const pos = { x: wx[i]!, z: wz[i]! };
+      resolveStatic(pos, pr[i]!, arena, pf[i]!);
+      wx[i] = pos.x;
+      wz[i] = pos.z;
+    }
+  });
+  const msTs = best(() => {
+    wx.set(px);
+    wz.set(pz);
+    resolveWalls(flat, wx, wz, pr, pf, pa, bodies, STEP_UP);
+  });
+  const msRust = best(() => {
+    wx.set(px);
+    wz.set(pz);
+    w.run_slices(wx, wz, pr, pf, pa, bodies, STEP_UP);
+  });
+  console.log(
+    `${name.padEnd(9)} ${String(bodies).padStart(6)} ${String(differ).padStart(34)} ${msOrig.toFixed(3).padStart(14)} ${msTs.toFixed(3).padStart(12)} ${msRust.toFixed(3).padStart(10)}`,
+  );
+  w.free();
 }
 
 console.log(

@@ -92,10 +92,10 @@ installRustKernelsSync(readFileSync('src/wasm/sim-core/sim_core_bg.wasm'));
 console.log(`-- kernels: ${kernelBackendName()}`);
 const rustHash = runScenario();
 console.log(
-  `Rust kernels served ${backendCalls.separate} separations and ${backendCalls.flowSearch} flow field searches`,
+  `Rust kernels served ${backendCalls.separate} separations, ${backendCalls.flowSearch} flow field searches and ${backendCalls.resolveWalls} wall passes`,
 );
 console.log(`SIM HASH ${tsHash}`);
-if (rustHash !== tsHash || backendCalls.separate === 0) {
+if (rustHash !== tsHash || backendCalls.separate === 0 || backendCalls.resolveWalls === 0) {
   console.log(`FAIL: with the Rust kernels the hash is ${rustHash}`);
   process.exitCode = 1;
 } else {

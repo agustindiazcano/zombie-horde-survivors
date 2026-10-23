@@ -4,6 +4,7 @@ export const memory: WebAssembly.Memory;
 export const __wbg_flowsearch_free: (a: number, b: number) => void;
 export const __wbg_ocean_free: (a: number, b: number) => void;
 export const __wbg_separation_free: (a: number, b: number) => void;
+export const __wbg_walls_free: (a: number, b: number) => void;
 export const flowsearch_cells_ptr: (a: number) => number;
 export const flowsearch_dist_ptr: (a: number) => number;
 export const flowsearch_extra_ptr: (a: number) => number;
@@ -32,6 +33,10 @@ export const separation_run: (a: number, b: number, c: number, d: number) => voi
 export const separation_run_slices: (a: number, b: number, c: number, d: any, e: number, f: number, g: any, h: number, i: number, j: number, k: number, l: number, m: number, n: number) => void;
 export const separation_x_ptr: (a: number) => number;
 export const separation_z_ptr: (a: number) => number;
+export const walls_id: (a: number) => number;
+export const walls_new: () => number;
+export const walls_run_slices: (a: number, b: number, c: number, d: any, e: number, f: number, g: any, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number) => void;
+export const walls_set_obstacles: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number) => void;
 export const __wbindgen_externrefs: WebAssembly.Table;
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_free: (a: number, b: number, c: number) => void;
