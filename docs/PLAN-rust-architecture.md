@@ -115,23 +115,8 @@ No new Vitest tests (the user's rule); scripts like `bench:*` and `check:*`.
 
 ### Does Rust win more as the problem grows? (the user's hypothesis, measured 2026-10-23)
 
-`npm run check:kernels`, one call, ms; "Rust" is the variant that works in the module's own memory. Both kernels are **bit for bit identical** to the TypeScript at every size. The machine was noisy (the same call varied by up to 40% between runs), so read the ratio, not the third digit; the GitHub runner comparison (see `docs/BENCHMARKS.md`) is the steadier source.
+Measured twice. On the author's noisy PC it looked as if the flow field ratio grew from 1.3x to 1.6x with the grid; on quiet GitHub runners (Linux and Windows, 3 runs each, [BENCHMARKS.md](BENCHMARKS.md) section 3) it does **not**: separation goes from 1.5x to 2.4x at a few hundred bodies down to 1.2x to 1.3x at 10 000, and the flow field stays at 1.3x to 1.6x from 80 x 80 to 320 x 320 cells. Both kernels are bit for bit identical to the TypeScript at every size.
 
-| Separation (dense crowd) | TypeScript | Rust   | Ratio |
-| ------------------------ | ---------- | ------ | ----- |
-| 100 bodies               | 0.050      | 0.041  | 1.2x  |
-| 300                      | 0.230      | 0.186  | 1.2x  |
-| 1000                     | 0.732      | 0.582  | 1.3x  |
-| 2000                     | 1.460      | 1.243  | 1.2x  |
-| 5000                     | 4.302      | 3.943  | 1.1x  |
-| 10000                    | 12.468     | 11.477 | 1.1x  |
-
-| Flow field search (5 targets) | TypeScript | Rust   | Ratio |
-| ----------------------------- | ---------- | ------ | ----- |
-| 80 x 80 cells                 | 1.092      | 0.834  | 1.3x  |
-| 160 x 160                     | 5.261      | 3.879  | 1.4x  |
-| 320 x 320                     | 28.560     | 17.968 | 1.6x  |
-
-So the hypothesis holds for the flow field (the ratio grows from 1.3x to 1.6x as the grid outgrows the cache, where Rust's tighter memory use shows) and **not** for separation (1.1x to 1.3x at every size). Mathematically that is expected: both versions do the same operations, so their time is the same function of the size times a constant; the ratio only moves when memory behaviour changes (cache misses), not with the count itself. What changes with scale is the absolute saving: at 10 000 bodies 1 ms of 12 ms, at a 320 x 320 grid 10 ms of 28 ms. To get more than a constant factor, the kernel has to change: SIMD (`simd128`), threads, or a better algorithm (a coarser flow field, hierarchical search).
+Mathematically that is expected: both versions do the same operations, so their time is the same function of the size times a constant; the ratio only moves when memory behaviour changes (past a point the data leaves the cache and both wait for memory, so the ratio falls). What grows with scale is the absolute saving (10 000 bodies: 1.8 ms of 9.3 ms; a 320 x 320 grid: 4 ms of 14.5 ms). To get more than a constant factor the kernel has to change: SIMD (`simd128`), threads, or a better algorithm (a coarser flow field, hierarchical search).
 
 What this teaches: for the sim as it is, Rust gives 1.3x to 1.6x on a pure-arithmetic kernel and nothing on the rest; the whole sim step is 14% of a frame. Porting more kernels one by one adds little. The larger gains are in layers B and C (no gather / scatter, SIMD, threads), and those only pay if a game with thousands of enemies is the goal.
