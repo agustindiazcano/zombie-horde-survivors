@@ -1557,6 +1557,7 @@ export class Editor {
       ['snow', 'Snow'],
       ['sand', 'Sandstorm'],
       ['fog', 'Fog'],
+      ['wind', 'Wind'],
       ['lightning', 'Lightning'],
     ] as const) {
       this.rangeRow(
@@ -1570,13 +1571,25 @@ export class Editor {
         true,
       );
     }
+    this.rangeRow(
+      weatherBody,
+      'Fog height falloff (low = tall bank)',
+      env.fogFalloff,
+      0.005,
+      0.2,
+      0.005,
+      (v) => set({ fogFalloff: v }, !this.sliding),
+    );
     const presets = el('div', 'editor__row', weatherBody);
     for (const [name, patch] of [
-      ['Clear', { rain: 0, snow: 0, sand: 0, fog: 0, lightning: 0, clouds: 0 }],
-      ['Storm', { rain: 0.85, snow: 0, sand: 0, fog: 0.2, lightning: 0.8, clouds: 0.85 }],
-      ['Blizzard', { rain: 0, snow: 1, sand: 0, fog: 0.5, lightning: 0, clouds: 0.8 }],
-      ['Sandstorm', { rain: 0, snow: 0, sand: 1, fog: 0.3, lightning: 0, clouds: 0.3 }],
-      ['Fog', { rain: 0, snow: 0, sand: 0, fog: 0.9, lightning: 0, clouds: 0.4 }],
+      ['Clear', { rain: 0, snow: 0, sand: 0, fog: 0, wind: 0, lightning: 0, clouds: 0 }],
+      [
+        'Storm',
+        { rain: 0.85, snow: 0, sand: 0, fog: 0.2, wind: 0.6, lightning: 0.8, clouds: 0.85 },
+      ],
+      ['Blizzard', { rain: 0, snow: 1, sand: 0, fog: 0.5, wind: 0.8, lightning: 0, clouds: 0.8 }],
+      ['Sandstorm', { rain: 0, snow: 0, sand: 1, fog: 0.3, wind: 0.9, lightning: 0, clouds: 0.3 }],
+      ['Fog', { rain: 0, snow: 0, sand: 0, fog: 0.9, wind: 0, lightning: 0, clouds: 0.4 }],
     ] as const) {
       el('button', 'editor__btn', presets, name).addEventListener('click', () => {
         set(patch);

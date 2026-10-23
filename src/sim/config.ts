@@ -355,6 +355,10 @@ export const EnvironmentSchema = z
     snow: unit01.default(0),
     sand: unit01.default(0),
     fog: unit01.default(0),
+    /** How fast the fog thins with height (1/m): 0.005 a tall bank, 0.2 a layer hugging the ground. */
+    fogFalloff: z.number().min(0.005).max(0.2).default(0.055),
+    /** Wind, 0 calm to 1 gale: slants rain, drives snow and sand, speeds the clouds. */
+    wind: unit01.default(0),
     /** The season tints the ground (winter turns it to snow); it never changes the rules. */
     season: z.enum(['spring', 'summer', 'autumn', 'winter']).default('summer'),
     /** How the wave ocean looks (only maps with the `ocean` rule draw it). */

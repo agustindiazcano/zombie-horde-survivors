@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { defaultEnvironment, type Environment } from '../sim';
+import { installHeightFog } from './heightFog';
 import { makeRainStreaks, rainFxUniforms } from './rainFx';
 
 /** The lighting of a normal day (the game's look before the environment existed) and of the dark mode. */
@@ -19,8 +20,8 @@ const CLOUD_RANGE = 700;
 const CLOUD_HEIGHT = 80;
 const CLOUD_SPEED = 2.5;
 const RAIN_COUNT = 2500;
-const SNOW_COUNT = 3000;
-const SAND_COUNT = 2500;
+const SNOW_COUNT = 6000;
+const SAND_COUNT = 6000;
 /** Weather particles live in a box around the camera: half its width and its height (m). */
 const BOX_HALF = 30;
 const BOX_HEIGHT = 30;
@@ -71,6 +72,7 @@ export class EnvironmentView {
     uStars: { value: 0 },
     uGlow: { value: 1 },
     uTime: { value: 0 },
+    uWind: { value: 1 },
     uDay: { value: 1 },
     uTwilight: { value: 0 },
     uGrey: { value: 0 },
@@ -118,7 +120,9 @@ export class EnvironmentView {
     private readonly hemi: THREE.HemisphereLight,
     private readonly sun: THREE.DirectionalLight,
   ) {
-    this.scene.fog = new THREE.FogExp2(0x9cc8ee, 0);
+    installHeightFog();
+    // Height fog: `near` is the density and `far` the falloff (see heightFog.ts).
+    this.scene.fog = new THREE.Fog(0x9cc8ee, 0, 0.055);
 
     this.dome = new THREE.Mesh(
       new THREE.SphereGeometry(SKY_RADIUS, 32, 24),
@@ -142,7 +146,7 @@ export class EnvironmentView {
         fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 below;
           uniform vec3 uSunDir; uniform vec3 uSunColor;
           uniform float uSun; uniform float uMoon; uniform float uStars; uniform float uGlow; uniform float uTime;
-          uniform float uDay; uniform float uTwilight; uniform float uGrey;
+          uniform float uWind; uniform float uDay; uniform float uTwilight; uniform float uGrey;
           uniform float uCloudCover; uniform float uCloudDensity; uniform int uCloudSteps; uniform float uFlash;
           varying vec3 vDir;
           const mat2 mGold = mat2(-0.7373688, -0.6754903, 0.6754903, -0.7373688);
@@ -201,7 +205,7 @@ export class EnvironmentView {
             // facing the light and a shadow side.
             if (uCloudSteps > 0 && h > 0.01 && uCloudCover > 0.01) {
               vec3 at = cameraPosition + dir * (180.0 / (h + 0.14));
-              vec2 wind = vec2(uTime * 0.77, uTime * 0.32);
+              vec2 wind = vec2(uTime * 0.77, uTime * 0.32) * uWind;
               vec2 uv = at.xz * 0.0095 + wind;
               float n = mix(cloudFbm(uv, uCloudSteps), cloudFbm(uv * 2.5 - wind * 0.6, max(2, uCloudSteps - 1)), 0.34);
               float thresh = 1.0 - uCloudCover;
@@ -430,7 +434,10 @@ export class EnvironmentView {
     );
 
     // Light: the sun by day, the moon by night, orange at the edges of the day.
-    const sunColor = mix(c(0x9db4ff), c(0xffffff), day).lerp(c(0xff9a55), twilight * 0.7);
+    const sunColor = mix(c(0x9db4ff), c(0xffffff), day)
+      .lerp(c(0xff9a55), twilight * 0.7)
+      .lerp(c(0xd9a55a), env.sand * 0.5)
+      .lerp(c(0xdfe8ff), env.snow * 0.3);
     if (env.lightColor) sunColor.set(env.lightColor);
     this.sun.color.copy(sunColor);
     // The dark mode keeps the old moonlit look; a map's night fades from pitch dark to that look.
@@ -490,6 +497,7 @@ export class EnvironmentView {
     sky.uStars.value = env.sky && this.night && murk < 0.5 ? 1 - day : 0;
     sky.uGlow.value = env.sunGlow;
     sky.uDay.value = day;
+    sky.uWind.value = 1 + env.wind * 4;
     sky.uTwilight.value = twilight;
     sky.uGrey.value = Math.min(murk * 1.3, 1);
     sky.uCloudCover.value = Math.min(env.clouds + env.rain * 0.3, 0.96);
@@ -508,8 +516,9 @@ export class EnvironmentView {
     this.cloudMaterial.opacity = 0.75 + 0.2 * env.clouds;
 
     // Fog follows the weather; sand tints it.
-    const fog = this.scene.fog as THREE.FogExp2;
-    fog.density = Math.max(env.fog * 0.045, env.sand * 0.04, env.rain * 0.012, env.snow * 0.01);
+    const fog = this.scene.fog as THREE.Fog;
+    fog.near = Math.max(env.fog * 0.045, env.sand * 0.04, env.rain * 0.012, env.snow * 0.01);
+    fog.far = env.fogFalloff * (1 - 0.55 * env.sand);
     fog.color
       .copy(horizon)
       .lerp(c(0xc9a36a), env.sand * 0.6)
@@ -561,13 +570,14 @@ export class EnvironmentView {
       for (let i = 0; i < this.rain.count; i++) {
         const y =
           wrap(seed[i * 3 + 1]! * BOX_HEIGHT - clock * RAIN_SPEED, BOX_HEIGHT) + BOX_HEIGHT / 2;
-        const x = camera.x + wrap(seed[i * 3]! * width - camera.x, width);
+        const x =
+          camera.x + wrap(seed[i * 3]! * width + clock * this.env.wind * 6 - camera.x, width);
         const z = camera.z + wrap(seed[i * 3 + 2]! * width - camera.z, width);
         const o = i * 6;
         position[o] = x;
         position[o + 1] = y;
         position[o + 2] = z;
-        position[o + 3] = x + 0.15;
+        position[o + 3] = x + 0.15 + this.env.wind * 2.5;
         position[o + 4] = y - 0.9;
         position[o + 5] = z;
       }
@@ -579,8 +589,9 @@ export class EnvironmentView {
         const s = seed[i * 3]!;
         const y =
           wrap(seed[i * 3 + 1]! * BOX_HEIGHT - clock * SNOW_SPEED, BOX_HEIGHT) + BOX_HEIGHT / 2;
-        const sway = Math.sin(clock * 0.8 + s * 40) * 0.6;
-        position[i * 3] = camera.x + wrap(s * width - camera.x, width) + sway;
+        const sway = Math.sin(clock * 0.8 + s * 40) * 0.6 * (1 + this.env.wind * 2);
+        position[i * 3] =
+          camera.x + wrap(s * width + clock * this.env.wind * 5 - camera.x, width) + sway;
         position[i * 3 + 1] = y;
         position[i * 3 + 2] = camera.z + wrap(seed[i * 3 + 2]! * width - camera.z, width);
       }
@@ -590,7 +601,9 @@ export class EnvironmentView {
       const { position, seed } = this.sand;
       for (let i = 0; i < this.sand.count; i++) {
         const s = seed[i * 3]!;
-        const x = camera.x + wrap(s * width + clock * SAND_SPEED - camera.x, width);
+        const x =
+          camera.x +
+          wrap(s * width + clock * SAND_SPEED * (0.6 + this.env.wind * 1.6) - camera.x, width);
         const wobble = Math.sin(clock * 3 + s * 50) * 0.4;
         position[i * 3] = x;
         position[i * 3 + 1] = seed[i * 3 + 1]! * 10 + wobble;
