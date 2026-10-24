@@ -1,3 +1,4 @@
+import { dcos, dsin } from './dmath';
 /** 2D vector on the ground plane (x, z). */
 export interface Vec2 {
   x: number;
@@ -64,4 +65,4 @@ export function normalize(v: Vec2): Vec2 {
 }
 
 /** Unit direction for a facing angle (0 = +z, PI/2 = +x). */
-export const dirFromAngle = (angle: number): Vec2 => ({ x: Math.sin(angle), z: Math.cos(angle) });
+export const dirFromAngle = (angle: number): Vec2 => ({ x: dsin(angle), z: dcos(angle) });

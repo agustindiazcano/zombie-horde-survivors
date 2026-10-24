@@ -4,6 +4,7 @@ import { nextFloat } from './rng';
 import type { Animal, GameState } from './types';
 import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { datan2, dcos, dsin } from './dmath';
 
 /** An animal this close (metres) to its walk target has arrived. */
 const ARRIVE_DISTANCE = 0.3;
@@ -58,7 +59,7 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
       const dz = a.pos.z - a.retreat.z;
       const d = hypot(dx, dz) || 1;
       const step = RETREAT_SPEED * dt;
-      a.facing = Math.atan2(-dx, -dz);
+      a.facing = datan2(-dx, -dz);
       a.dest = null;
       a.pos.x += (dx / d) * step;
       a.pos.z += (dz / d) * step;
@@ -75,7 +76,7 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
       if (d < 0.6) a.rush = null;
       else {
         const step = Math.min(d, (a.rushSpeed || (def.panicSpeed ?? def.speed)) * dt);
-        a.facing = Math.atan2(dx, dz);
+        a.facing = datan2(dx, dz);
         a.pos.x += (dx / d) * step;
         a.pos.z += (dz / d) * step;
         resolveStatic(a.pos, def.radius, config.arena);
@@ -102,7 +103,7 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
       const dx = a.pos.x - a.fear.x;
       const dz = a.pos.z - a.fear.z;
       const d = hypot(dx, dz) || 1;
-      a.facing = Math.atan2(dx, dz);
+      a.facing = datan2(dx, dz);
       const step = (def.panicSpeed ?? def.speed) * dt;
       a.pos.x += (dx / d) * step;
       a.pos.z += (dz / d) * step;
@@ -119,8 +120,8 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
         const angle = nextFloat(state.rng) * Math.PI * 2;
         const dist = Math.sqrt(nextFloat(state.rng)) * rules.gatherRadius;
         a.dest = {
-          x: rules.gatherX + Math.sin(angle) * dist,
-          z: rules.gatherZ + Math.cos(angle) * dist,
+          x: rules.gatherX + dsin(angle) * dist,
+          z: rules.gatherZ + dcos(angle) * dist,
         };
       }
       if (!a.dest && state.time < rules.calmUntil) continue;
@@ -131,7 +132,7 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
       if (a.wait > 0) continue;
       const angle = nextFloat(state.rng) * Math.PI * 2;
       const dist = nextFloat(state.rng) * def.wanderRadius;
-      a.dest = { x: a.home.x + Math.sin(angle) * dist, z: a.home.z + Math.cos(angle) * dist };
+      a.dest = { x: a.home.x + dsin(angle) * dist, z: a.home.z + dcos(angle) * dist };
       continue;
     }
     const dx = a.dest.x - a.pos.x;
@@ -142,7 +143,7 @@ export function updateAnimals(state: GameState, config: GameConfig, dt: number):
       a.wait = def.pauseMin + nextFloat(state.rng) * (def.pauseMax - def.pauseMin);
       continue;
     }
-    a.facing = Math.atan2(dx, dz);
+    a.facing = datan2(dx, dz);
     // Walking over to the crowd, they hurry.
     const step = Math.min(d, def.speed * (a.gathered ? GATHER_HURRY : 1) * dt);
     a.pos.x += (dx / d) * step;

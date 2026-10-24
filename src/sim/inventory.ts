@@ -15,6 +15,7 @@ import type {
 } from './types';
 import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { dcos, dsin } from './dmath';
 
 /** Crate entry that is worn as armor instead of carried. */
 export const ARMOR_PLATE = 'armor_plate';
@@ -388,8 +389,8 @@ export function dropToGround(
   if (!stack) return false;
   putCell(s, slot, null);
   const pos = {
-    x: s.pos.x + Math.sin(s.facing) * DROP_AHEAD,
-    z: s.pos.z + Math.cos(s.facing) * DROP_AHEAD,
+    x: s.pos.x + dsin(s.facing) * DROP_AHEAD,
+    z: s.pos.z + dcos(s.facing) * DROP_AHEAD,
   };
   resolveStatic(pos, ITEM_RADIUS, config.arena);
   const loose: GroundItem = {

@@ -393,6 +393,62 @@ if (Symbol.dispose) Walls.prototype[Symbol.dispose] = Walls.prototype.free;
  * @param {number} x
  * @returns {number}
  */
+export function d_atan2(y, x) {
+    const ret = wasm.d_atan2(y, x);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @returns {number}
+ */
+export function d_cos(x) {
+    const ret = wasm.d_cos(x);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @returns {number}
+ */
+export function d_exp(x) {
+    const ret = wasm.d_exp(x);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @returns {number}
+ */
+export function d_log(x) {
+    const ret = wasm.d_log(x);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @param {number} y
+ * @returns {number}
+ */
+export function d_pow(x, y) {
+    const ret = wasm.d_pow(x, y);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @returns {number}
+ */
+export function d_sin(x) {
+    const ret = wasm.d_sin(x);
+    return ret;
+}
+
+/**
+ * @param {number} y
+ * @param {number} x
+ * @returns {number}
+ */
 export function sim_atan2(y, x) {
     const ret = wasm.sim_atan2(y, x);
     return ret;

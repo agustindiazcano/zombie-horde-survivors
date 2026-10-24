@@ -1,6 +1,7 @@
 import { nextFloat, type Rng } from '../rng';
 import { KIND_RAGDOLL, type PhysicsWorld } from './world';
 import { hypot3 } from '../vec';
+import { dcos, dsin } from '../dmath';
 
 /** The eleven joints of a ragdoll, in the order the arrays use. */
 export const NODE = {
@@ -97,8 +98,8 @@ export function spawnRagdoll(
   if (world.count + NODE_COUNT > world.capacity) return null;
   if (world.conCount + BONE_COUNT > world.conCapacity) return null;
   const group = world.nextGroup++;
-  const cos = Math.cos(yaw);
-  const sin = Math.sin(yaw);
+  const cos = dcos(yaw);
+  const sin = dsin(yaw);
   const bodies: number[] = [];
   const rest: [number, number, number][] = [];
   for (let n = 0; n < NODE_COUNT; n++) {

@@ -9,6 +9,7 @@ import { bonus, squadBonus } from './training';
 import { damageZombie } from './zombies';
 import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { datan2 } from './dmath';
 
 /** Floor under the footprint test: boxes that only touch are not overlapping. */
 const EPSILON = 0.001;
@@ -512,7 +513,7 @@ export function fireStructure(
 ): boolean {
   const def = structureDef(config, st);
   if (def.ammo && st.ammo <= 0) return false;
-  st.facing = Math.atan2(target.pos.x - st.x, target.pos.z - st.z);
+  st.facing = datan2(target.pos.x - st.x, target.pos.z - st.z);
   if (st.cooldown > 0) return false;
   st.cooldown += 1 / fireRate;
   if (def.ammo) {

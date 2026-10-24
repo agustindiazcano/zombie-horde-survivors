@@ -1,6 +1,7 @@
 import type { GameConfig } from './config';
 import { nextFloat } from './rng';
 import type { BodyZone, GameState, Limb, Soldier, Zombie } from './types';
+import { datan2 } from './dmath';
 
 /** Whether an enemy's arms and legs can come off. */
 export const hasLimbs = (config: GameConfig, z: Zombie): boolean =>
@@ -67,7 +68,7 @@ export function woundLimb(
     (limb === 'legs' ? d.legFraction : d.armFraction) * z.maxHealth * (z.boss ? d.bossResist : 1);
   if (z.wounds[limb] >= limit || (killed && nextFloat(state.rng) < d.killSeverChance)) {
     const away = killer
-      ? Math.atan2(z.pos.x - killer.pos.x, z.pos.z - killer.pos.z)
+      ? datan2(z.pos.x - killer.pos.x, z.pos.z - killer.pos.z)
       : z.facing + Math.PI;
     severLimb(state, config, z, limb, away + (nextFloat(state.rng) - 0.5) * 0.8);
   }
@@ -86,7 +87,7 @@ export function blastLimbs(
   const chance =
     (config.dismember.blastSeverChance * (1 - 0.5 * Math.min(d / radius, 1))) /
     (z.boss ? config.dismember.bossResist : 1);
-  const away = Math.atan2(z.pos.x - at.x, z.pos.z - at.z);
+  const away = datan2(z.pos.x - at.x, z.pos.z - at.z);
   for (const limb of ['armL', 'armR', 'legs'] as const) {
     if (z.parts[limb] && nextFloat(state.rng) < chance) {
       severLimb(state, config, z, limb, away + (nextFloat(state.rng) - 0.5) * 1.2);

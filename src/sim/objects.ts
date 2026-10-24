@@ -10,6 +10,7 @@ import { hurtVehicle } from './vehicles';
 import { hypot } from './vec';
 import type { Vec2 } from './vec';
 import { damageZombie } from './zombies';
+import { datan2, dcos, dsin } from './dmath';
 
 /** Fires lit by one destroyed container are scattered within this share of its blast radius. */
 const SCATTER = 0.7;
@@ -122,8 +123,8 @@ export function dropCarried(state: GameState, config: GameConfig, me: Soldier): 
     const o = getObject(state, c.id);
     if (!o) return;
     o.heldBy = null;
-    o.pos.x = me.pos.x + Math.sin(me.facing) * DROP_DISTANCE;
-    o.pos.z = me.pos.z + Math.cos(me.facing) * DROP_DISTANCE;
+    o.pos.x = me.pos.x + dsin(me.facing) * DROP_DISTANCE;
+    o.pos.z = me.pos.z + dcos(me.facing) * DROP_DISTANCE;
     resolveStatic(o.pos, objectDef(config, o).radius, config.arena);
     o.y = supportHeight(config.arena, o.pos, 0);
     syncStructures(state, config);
@@ -220,7 +221,7 @@ export function throwCarried(
     flown: 0,
     thrower: me.id,
   };
-  if (run > 0.01) me.facing = Math.atan2(to.x - me.pos.x, to.z - me.pos.z);
+  if (run > 0.01) me.facing = datan2(to.x - me.pos.x, to.z - me.pos.z);
   me.carrying = null;
   syncStructures(state, config);
   me.fireCooldown = Math.max(me.fireCooldown, 0.4);
@@ -300,7 +301,7 @@ export function hurtObject(
   for (let i = 0; i < fires; i++) {
     const angle = nextFloat(state.rng) * Math.PI * 2;
     const dist = Math.sqrt(nextFloat(state.rng)) * spread;
-    ignite(state, config, o.pos.x + Math.sin(angle) * dist, o.pos.z + Math.cos(angle) * dist);
+    ignite(state, config, o.pos.x + dsin(angle) * dist, o.pos.z + dcos(angle) * dist);
   }
 }
 

@@ -3,6 +3,7 @@ import { resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import type { GameState, Soldier, Zombie } from './types';
 import { hypot } from './vec';
+import { datan2 } from './dmath';
 
 const isBody = (s: Soldier): boolean => s.kind === 'soldier' && (s.dead || s.downed);
 
@@ -109,7 +110,7 @@ export function updateDrag(state: GameState, config: GameConfig): void {
       body.pos.z = me.pos.z + (dz / d) * rope;
       resolveStatic(body.pos, config.player.radius, config.arena);
     }
-    body.facing = Math.atan2(me.pos.x - body.pos.x, me.pos.z - body.pos.z);
+    body.facing = datan2(me.pos.x - body.pos.x, me.pos.z - body.pos.z);
   }
 }
 
@@ -130,5 +131,5 @@ function dragCorpse(state: GameState, config: GameConfig, me: Soldier): void {
     corpse.pos.z = me.pos.z + (dz / d) * rope;
     resolveStatic(corpse.pos, corpse.radius, config.arena);
   }
-  corpse.facing = Math.atan2(me.pos.x - corpse.pos.x, me.pos.z - corpse.pos.z);
+  corpse.facing = datan2(me.pos.x - corpse.pos.x, me.pos.z - corpse.pos.z);
 }

@@ -19,6 +19,7 @@ import {
 } from './bodies';
 import { NODE, NODES } from './ragdoll';
 import { hypot, hypot3 } from '../vec';
+import { dcos, dsin } from '../dmath';
 
 export * from './bodies';
 
@@ -330,7 +331,7 @@ export class RapierWorld {
   ): number {
     const d = this.dynamic(x, y, z, KIND_BOX, hx, hy, hz);
     if (!d) return -1;
-    d.desc.setRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
+    d.desc.setRotation({ x: 0, y: dsin(yaw / 2), z: 0, w: dcos(yaw / 2) });
     this.register(d.id, d.desc, RAPIER.ColliderDesc.cuboid(hx, hy, hz).setMass(mass));
     return d.id;
   }
@@ -443,9 +444,9 @@ export class RapierWorld {
     tie(0, 4, NODE.chest);
     tie(4, 5, NODE.elbowR, { axis: [0, 1, 0], min: -FLEX, max: 0 });
     tie(0, 6, NODE.pelvis);
-    tie(6, 7, NODE.kneeL, { axis: [Math.cos(yaw), 0, -Math.sin(yaw)], min: 0, max: FLEX });
+    tie(6, 7, NODE.kneeL, { axis: [dcos(yaw), 0, -dsin(yaw)], min: 0, max: FLEX });
     tie(0, 8, NODE.pelvis);
-    tie(8, 9, NODE.kneeR, { axis: [Math.cos(yaw), 0, -Math.sin(yaw)], min: 0, max: FLEX });
+    tie(8, 9, NODE.kneeR, { axis: [dcos(yaw), 0, -dsin(yaw)], min: 0, max: FLEX });
     return { bodies: ids, scale };
   }
 

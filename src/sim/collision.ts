@@ -4,6 +4,7 @@ import { obstaclesNear } from './grid';
 import { flatObstacles, resolveWallsOne } from './kernels';
 import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { dcos, dsin } from './dmath';
 
 /** Distance along a ray (unit `dir`) to a circle, or null if it misses. */
 export function rayCircle(origin: Vec2, dir: Vec2, center: Vec2, radius: number): number | null {
@@ -156,8 +157,8 @@ export function nearestOnSolid(p: Vec2, s: DynamicSolid): Vec2 {
     const k = d > s.halfW ? s.halfW / d : 1;
     return { x: s.x + dx * k, z: s.z + dz * k };
   }
-  const c = Math.cos(s.yaw);
-  const n = Math.sin(s.yaw);
+  const c = dcos(s.yaw);
+  const n = dsin(s.yaw);
   const lx = Math.min(Math.max(dx * c - dz * n, -s.halfW), s.halfW);
   const lz = Math.min(Math.max(dx * n + dz * c, -s.halfD), s.halfD);
   return { x: s.x + lx * c + lz * n, z: s.z - lx * n + lz * c };
@@ -167,8 +168,8 @@ const insideSolid = (p: Vec2, s: DynamicSolid): boolean => {
   const dx = p.x - s.x;
   const dz = p.z - s.z;
   if (s.round) return dx * dx + dz * dz <= s.halfW * s.halfW;
-  const c = Math.cos(s.yaw);
-  const n = Math.sin(s.yaw);
+  const c = dcos(s.yaw);
+  const n = dsin(s.yaw);
   return Math.abs(dx * c - dz * n) <= s.halfW && Math.abs(dx * n + dz * c) <= s.halfD;
 };
 

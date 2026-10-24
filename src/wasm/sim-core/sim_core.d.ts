@@ -125,6 +125,18 @@ export class Walls {
     set_obstacles(id: number, n: number, half: number, count: number, x: Float64Array, z: Float64Array, half_w: Float64Array, half_d: Float64Array, top: Float64Array, cell_start: Int32Array, cell_items: Int32Array): void;
 }
 
+export function d_atan2(y: number, x: number): number;
+
+export function d_cos(x: number): number;
+
+export function d_exp(x: number): number;
+
+export function d_log(x: number): number;
+
+export function d_pow(x: number, y: number): number;
+
+export function d_sin(x: number): number;
+
 export function sim_atan2(y: number, x: number): number;
 
 export function sim_cos(a: number): number;
@@ -149,6 +161,12 @@ export interface InitOutput {
     readonly __wbg_ocean_free: (a: number, b: number) => void;
     readonly __wbg_separation_free: (a: number, b: number) => void;
     readonly __wbg_walls_free: (a: number, b: number) => void;
+    readonly d_atan2: (a: number, b: number) => number;
+    readonly d_cos: (a: number) => number;
+    readonly d_exp: (a: number) => number;
+    readonly d_log: (a: number) => number;
+    readonly d_pow: (a: number, b: number) => number;
+    readonly d_sin: (a: number) => number;
     readonly flowsearch_cells_ptr: (a: number) => number;
     readonly flowsearch_dist_ptr: (a: number) => number;
     readonly flowsearch_extra_ptr: (a: number) => number;

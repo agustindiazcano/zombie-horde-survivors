@@ -7,6 +7,7 @@ import { bonus } from './training';
 import type { GameState, Soldier, Zombie } from './types';
 import { damageZombie } from './zombies';
 import { hypot } from './vec';
+import { datan2, dcos, dsin } from './dmath';
 
 /** What a blow is made with: a knife in hand, else the butt of a gun, else bare fists. */
 function blowOf(config: GameConfig, s: Soldier): { item: string; damage: number; range: number } {
@@ -38,10 +39,7 @@ function strikeTarget(
     const d = hypot(dx, dz) - z.radius;
     if (d > range || d >= bestDist) continue;
     // An enemy touching the unit is always in reach; otherwise it has to be inside the cone.
-    const off = Math.atan2(
-      Math.sin(Math.atan2(dx, dz) - s.facing),
-      Math.cos(Math.atan2(dx, dz) - s.facing),
-    );
+    const off = datan2(dsin(datan2(dx, dz) - s.facing), dcos(datan2(dx, dz) - s.facing));
     if (d > 0 && Math.abs(off) > config.melee.arc) continue;
     best = z;
     bestDist = d;

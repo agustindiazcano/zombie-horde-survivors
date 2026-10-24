@@ -17,6 +17,7 @@ import type { BodyZone, GameState, HitKind, Soldier, Vehicle, Zombie } from './t
 import { hurtVehicle, isOccupied } from './vehicles';
 import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { datan2 } from './dmath';
 
 /** A boss's multipliers: the nth boss (1-based) reads the nth list entry, then keeps growing. */
 export function bossStats(config: GameConfig, nth: number) {
@@ -149,7 +150,7 @@ export function damageZombie(
     nextFloat(state.rng) < config.dismember.cutChance
   ) {
     const away = killer
-      ? Math.atan2(zombie.pos.x - killer.pos.x, zombie.pos.z - killer.pos.z)
+      ? datan2(zombie.pos.x - killer.pos.x, zombie.pos.z - killer.pos.z)
       : zombie.facing + Math.PI;
     severLimb(state, config, zombie, 'legs', away);
   }
@@ -222,7 +223,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     const dx = target.x - z.pos.x;
     const dz = target.z - z.pos.z;
     const d = hypot(dx, dz);
-    if (d > 1e-9) z.facing = Math.atan2(dx, dz);
+    if (d > 1e-9) z.facing = datan2(dx, dz);
 
     if (d > reach) {
       // Without legs it can no longer climb.
@@ -239,7 +240,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
           z.state = 'attack';
           z.attackTimer = zc.attackCooldown;
         }
-        z.facing = Math.atan2(wall.x - z.pos.x, wall.z - z.pos.z);
+        z.facing = datan2(wall.x - z.pos.x, wall.z - z.pos.z);
         if (def.thorns > 0) damageZombie(state, config, z, def.thorns * dt);
         z.attackTimer -= dt;
         if (z.attackTimer <= 0) {

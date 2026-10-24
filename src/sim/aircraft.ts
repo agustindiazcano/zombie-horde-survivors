@@ -3,6 +3,7 @@ import type { GameConfig } from './config';
 import { localPlayer } from './players';
 import type { AirState, GameState, Input, Soldier, Vehicle } from './types';
 import { dirFromAngle, type Vec2, hypot } from './vec';
+import { datan2, dcos, dsin } from './dmath';
 
 /** A pilot this close (metres) to its order point has arrived. */
 const ARRIVE_DISTANCE = 3;
@@ -19,7 +20,7 @@ const SPOOL_DECAY = 2;
 /** Closer than this (metres) to the ground counts as landed. */
 const LANDED = 0.01;
 
-const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+const wrap = (a: number) => datan2(dsin(a), dcos(a));
 
 export function createAirState(): AirState {
   return { engine: false, spool: 0, rotor: 0, alt: 0, prevAlt: 0, wantAlt: 0, idle: 'hover' };
@@ -172,10 +173,10 @@ export function updateAircraft(
     target = def.orbitSpeed;
   } else if (flying && want) {
     const mag = Math.min(1, hypot(want.x, want.z));
-    const diff = wrap(Math.atan2(want.x, want.z) - v.facing);
+    const diff = wrap(datan2(want.x, want.z) - v.facing);
     const turn = vdef.turnRate * dt;
     v.facing = wrap(v.facing + Math.max(-turn, Math.min(turn, diff)));
-    target = vdef.maxSpeed * boost * mag * Math.max(0, Math.cos(diff));
+    target = vdef.maxSpeed * boost * mag * Math.max(0, dcos(diff));
   }
   const rate = (target < v.speed ? vdef.accel * BRAKE_FACTOR : vdef.accel) * dt;
   v.speed += Math.max(-rate, Math.min(rate, target - v.speed));

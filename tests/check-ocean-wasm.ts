@@ -101,7 +101,7 @@ for (const [name, patch] of cases) {
   if (sink === 42) console.log('');
 
   worst = Math.max(worst, dTable, dHeight, dFlow, dBatch);
-  if (dTable > 1e-9 || dHeight > 1e-9 || dFlow > 1e-9 || dBatch > 1e-9) failed = true;
+  if (dTable > 0 || dHeight > 0 || dFlow > 0 || dBatch > 0) failed = true;
   const f = (v: number) => v.toExponential(1).padStart(8);
   console.log(
     `${name.padEnd(28)} ${f(dTable)} ${f(dHeight)} ${f(dFlow)} ${msTs.toFixed(0).padStart(8)} ${msWasm.toFixed(0).padStart(8)} ${msBatch.toFixed(0).padStart(8)}`,
@@ -111,5 +111,9 @@ for (const [name, patch] of cases) {
 console.log(
   `\nlargest difference: ${worst.toExponential(2)} (${POINTS} points per case, height in m, flow in m/s)`,
 );
-console.log(failed ? 'FAIL: a difference above 1e-9' : 'OK: TypeScript and Rust agree to 1e-9');
+console.log(
+  failed
+    ? 'FAIL: the Rust ocean differs from the TypeScript'
+    : 'OK: the Rust ocean is bit for bit identical to the TypeScript',
+);
 if (failed) process.exitCode = 1;

@@ -6,6 +6,7 @@ import { nextFloat } from './rng';
 import type { GameState, Soldier, Zombie } from './types';
 import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { datan2, dcos, dsin } from './dmath';
 
 type WanderRule = NonNullable<GameConfig['enemies'][string]['wander']>;
 
@@ -59,7 +60,7 @@ export function noticed(
   if (d <= rule.senseRadius * stealth) return true;
   if (d > rule.sightRadius * stealth) return false;
   // Inside the cone in front of it, with nothing in the way.
-  const toward = Math.atan2(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
+  const toward = datan2(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
   let off = Math.abs(toward - z.facing) % (2 * Math.PI);
   if (off > Math.PI) off = 2 * Math.PI - off;
   return off <= rule.sightArc && canSee(config, z.pos, s.pos);
@@ -100,7 +101,7 @@ export function wanderStep(
     if (z.roamTimer > 0) return true;
     const angle = nextFloat(state.rng) * 2 * Math.PI;
     const dist = Math.sqrt(nextFloat(state.rng)) * rule.roamRadius;
-    z.roam = { x: z.home.x + Math.sin(angle) * dist, z: z.home.z + Math.cos(angle) * dist };
+    z.roam = { x: z.home.x + dsin(angle) * dist, z: z.home.z + dcos(angle) * dist };
     z.roamTimer = ROAM_MAX_SECONDS;
     return true;
   }
@@ -113,7 +114,7 @@ export function wanderStep(
     return true;
   }
   z.state = 'walk';
-  z.facing = Math.atan2(dx, dz);
+  z.facing = datan2(dx, dz);
   const step = Math.min(d, z.speed * rule.speedScale * dt);
   z.pos.x += (dx / d) * step;
   z.pos.z += (dz / d) * step;

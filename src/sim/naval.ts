@@ -5,6 +5,7 @@ import { heightAt } from './terrain';
 import type { GameState, Vehicle } from './types';
 import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { dcos, dsin } from './dmath';
 
 export type ShipShape = NonNullable<GameConfig['vehicles'][string]['ship']>;
 
@@ -54,8 +55,8 @@ function pushOutOfShips(state: GameState, config: GameConfig, pos: Vec2, radius:
   for (const ship of state.vehicles) {
     const def = config.vehicles[ship.type]!;
     if (!def.fixed || !def.ship) continue;
-    const sin = Math.sin(ship.facing);
-    const cos = Math.cos(ship.facing);
+    const sin = dsin(ship.facing);
+    const cos = dcos(ship.facing);
     const dx = pos.x - ship.pos.x;
     const dz = pos.z - ship.pos.z;
     // Into the ship's own frame: lz along the keel (towards the bow), lx across.
@@ -160,8 +161,8 @@ export function landSpotNear(
     for (let k = 0; k < ANGLES; k++) {
       // Alternate either side of the preferred angle.
       const angle = start + (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * ((2 * Math.PI) / ANGLES);
-      const x = v.pos.x + Math.sin(angle) * reach;
-      const z = v.pos.z + Math.cos(angle) * reach;
+      const x = v.pos.x + dsin(angle) * reach;
+      const z = v.pos.z + dcos(angle) * reach;
       if (standable(config, x, z, config.player.radius)) return { x, z };
     }
   }

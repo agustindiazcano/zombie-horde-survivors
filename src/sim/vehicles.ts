@@ -6,6 +6,7 @@ import { localPlayer } from './players';
 import type { GameState, Input, Soldier, Vehicle } from './types';
 import { dirFromAngle, type Vec2, hypot } from './vec';
 import { damageZombie } from './zombies';
+import { datan2, dcos, dsin } from './dmath';
 
 /** A driver this close (metres) to its order point has arrived. */
 const ARRIVE_DISTANCE = 2.5;
@@ -197,7 +198,7 @@ function driveVector(state: GameState, v: Vehicle, driver: Soldier, input: Input
   return { x: dx / d, z: dz / d };
 }
 
-const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+const wrap = (a: number) => datan2(dsin(a), dcos(a));
 
 /**
  * Arcade driving: the vehicle turns towards the direction asked and accelerates in proportion to
@@ -227,10 +228,10 @@ export function updateVehicles(
     const mag = want ? Math.min(1, hypot(want.x, want.z)) : 0;
     let target = 0;
     if (want && mag > 0.05) {
-      const diff = wrap(Math.atan2(want.x, want.z) - v.facing);
+      const diff = wrap(datan2(want.x, want.z) - v.facing);
       const turn = def.turnRate * dt;
       v.facing = wrap(v.facing + Math.max(-turn, Math.min(turn, diff)));
-      target = def.maxSpeed * mag * Math.max(0, Math.cos(diff));
+      target = def.maxSpeed * mag * Math.max(0, dcos(diff));
     }
     const rate = (target < v.speed ? def.accel * BRAKE_FACTOR : def.accel) * dt;
     v.speed += Math.max(-rate, Math.min(rate, target - v.speed));

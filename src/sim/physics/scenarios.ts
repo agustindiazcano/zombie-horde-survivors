@@ -1,4 +1,5 @@
 import { KIND_BALL, type PhysicsWorld } from './world';
+import { dcos, dsin } from '../dmath';
 
 /** The golden angle (137.5 degrees): successive points of a Vogel spiral never line up. */
 export const GOLDEN_ANGLE = 2.3999632297;
@@ -22,9 +23,9 @@ export function vogelRain(
     const r = Math.sqrt(i) * 0.55;
     const a = i * GOLDEN_ANGLE;
     const id = world.addBody(
-      x + Math.cos(a) * r,
+      x + dcos(a) * r,
       height + i * 0.03,
-      z + Math.sin(a) * r,
+      z + dsin(a) * r,
       BALL_RADIUS,
       1,
       KIND_BALL,

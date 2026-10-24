@@ -21,6 +21,7 @@ import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from 
 import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
 import { dirFromAngle, type Vec2, hypot } from './vec';
+import { datan2, dcos, dsin } from './dmath';
 
 /** Angle between consecutive followers' formation slots (golden angle spreads them evenly). */
 const SLOT_ANGLE = 2.399;
@@ -161,7 +162,7 @@ export function createSquad(config: GameConfig, owner: string): Soldier[] {
   const soldiers: Soldier[] = Array.from({ length: n }, (_, i) => {
     // The first soldier stands at the origin; the rest form a ring around it.
     const angle = ((i - 1) / Math.max(n - 1, 1)) * Math.PI * 2;
-    const pos = i === 0 ? { x: 0, z: 0 } : { x: Math.sin(angle) * 1.5, z: Math.cos(angle) * 1.5 };
+    const pos = i === 0 ? { x: 0, z: 0 } : { x: dsin(angle) * 1.5, z: dcos(angle) * 1.5 };
     return newUnit(config, 'soldier', i + 1, owner, pos);
   });
   for (let i = 0; i < config.drone.count; i++) {
@@ -421,7 +422,7 @@ function updateSeated(
   if (s.id === controlledId) {
     const dx = input.aim.x - s.pos.x;
     const dz = input.aim.z - s.pos.z;
-    if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
+    if (dx * dx + dz * dz > 1e-9) s.facing = datan2(dx, dz);
     if (triggerPulled(config, s, gunOf(config, s), input.firing, input.autoTrigger)) {
       fireWeapon(state, config, s);
     }
@@ -433,7 +434,7 @@ function updateSeated(
   const target = findTarget(state, config, s);
   maintainAmmo(state, config, s, target !== null);
   if (!target) return;
-  s.facing = Math.atan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
+  s.facing = datan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
   if (s.fireCooldown <= 0) fireWeapon(state, config, s, config.squad.aiFireRateScale);
 }
 
@@ -471,7 +472,7 @@ function updateControlled(
 
   const dx = aim.x - s.pos.x;
   const dz = aim.z - s.pos.z;
-  if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
+  if (dx * dx + dz * dz > 1e-9) s.facing = datan2(dx, dz);
 
   const grounded = s.vy === 0 && s.y === supportHeight(config.arena, s.pos, s.y);
   if (input.jump && grounded && !isDrone(s) && !s.downed && !s.swimming) {
@@ -542,8 +543,8 @@ function updateAi(
   } else if (s.order.type === 'follow' && leader) {
     const a = s.id * SLOT_ANGLE;
     const slot = {
-      x: leader.pos.x + Math.sin(a) * config.squad.followDistance,
-      z: leader.pos.z + Math.cos(a) * config.squad.followDistance,
+      x: leader.pos.x + dsin(a) * config.squad.followDistance,
+      z: leader.pos.z + dcos(a) * config.squad.followDistance,
     };
     const d = hypot(slot.x - s.pos.x, slot.z - s.pos.z);
     if (d > SLOT_TOLERANCE) dest = slot;
@@ -578,14 +579,14 @@ function updateAi(
       s.pos.z += (dz / d) * step;
       driftInWater(config, s, dt);
       resolveUnit(s, config);
-      moveAngle = Math.atan2(dx, dz);
+      moveAngle = datan2(dx, dz);
     }
   }
 
   // An enemy right at the unit's feet gets a blow (and a shove) instead of a shot.
   const close = isDrone(s) ? null : enemyInMeleeReach(state, config, s);
   if (close) {
-    s.facing = Math.atan2(close.pos.x - s.pos.x, close.pos.z - s.pos.z);
+    s.facing = datan2(close.pos.x - s.pos.x, close.pos.z - s.pos.z);
     if (meleeStrike(state, config, s)) return;
   }
 
@@ -595,7 +596,7 @@ function updateAi(
   const target = findTarget(state, config, s);
   maintainAmmo(state, config, s, target !== null);
   if (target) {
-    s.facing = Math.atan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
+    s.facing = datan2(target.pos.x - s.pos.x, target.pos.z - s.pos.z);
     if (s.fireCooldown <= 0) {
       fireWeapon(state, config, s, isDrone(s) ? 1 : config.squad.aiFireRateScale);
     }
@@ -614,7 +615,7 @@ function findTarget(state: GameState, config: GameConfig, s: Soldier): Zombie | 
     if (z.state === 'death') continue;
     const d = hypot(z.pos.x - s.pos.x, z.pos.z - s.pos.z);
     if (d >= bestDist) continue;
-    const dir = dirFromAngle(Math.atan2(z.pos.x - s.pos.x, z.pos.z - s.pos.z));
+    const dir = dirFromAngle(datan2(z.pos.x - s.pos.x, z.pos.z - s.pos.z));
     if (!weapon.ignoresCover && isBlocked(s.pos, dir, d - z.radius, config)) continue;
     best = z;
     bestDist = d;

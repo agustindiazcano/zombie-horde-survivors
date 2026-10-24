@@ -10,6 +10,7 @@ import { hypot } from './vec';
 import type { Vec2 } from './vec';
 import { hurtVehicle } from './vehicles';
 import { damageZombie } from './zombies';
+import { datan2 } from './dmath';
 
 /** A grenade is a small ball; this is how far it is pushed out of walls when it lands. */
 const GRENADE_RADIUS = 0.15;
@@ -92,7 +93,7 @@ export function throwGrenade(
     flown: 0,
     fuse: Math.max(grenadeDef(config, aim.item).fuse, flight),
   });
-  if (d > 0.01) me.facing = Math.atan2(aim.landing.x - me.pos.x, aim.landing.z - me.pos.z);
+  if (d > 0.01) me.facing = datan2(aim.landing.x - me.pos.x, aim.landing.z - me.pos.z);
   me.fireCooldown = Math.max(me.fireCooldown, g.cooldown);
   state.events.push({ type: 'grenadeThrown', throwerId: me.id });
   return true;

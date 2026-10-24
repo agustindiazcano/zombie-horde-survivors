@@ -10,6 +10,7 @@ import {
 } from './structures';
 import type { GameState, Input, Soldier, Structure } from './types';
 import { hypot } from './vec';
+import { datan2 } from './dmath';
 
 /** A crew member aiming with the mouse shoots the enemy nearest the cursor within this distance. */
 const AIM_ASSIST = 8;
@@ -119,7 +120,7 @@ export function updatePosted(
   if (controlled) {
     const dx = input.aim.x - st.x;
     const dz = input.aim.z - st.z;
-    if (dx * dx + dz * dz > 1e-9) s.facing = Math.atan2(dx, dz);
+    if (dx * dx + dz * dz > 1e-9) s.facing = datan2(dx, dz);
     st.facing = s.facing;
     if (!input.firing) return;
     // The enemy closest to where the cursor points, if one is near enough to it.
@@ -138,7 +139,7 @@ export function updatePosted(
   }
   const target = pickTarget(state, config, st, range, false, post.ignoresCover);
   if (target) {
-    s.facing = Math.atan2(target.pos.x - st.x, target.pos.z - st.z);
+    s.facing = datan2(target.pos.x - st.x, target.pos.z - st.z);
     fireStructure(state, config, st, target, damage, post.fireRate, s);
   }
 }

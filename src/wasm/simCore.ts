@@ -4,6 +4,12 @@ import init, {
   Ocean,
   Separation,
   Walls,
+  d_atan2,
+  d_cos,
+  d_exp,
+  d_log,
+  d_pow,
+  d_sin,
   sim_atan2,
   sim_cos,
   sim_exp,
@@ -47,6 +53,12 @@ export function simCoreMemory(): WebAssembly.Memory {
 }
 
 export {
+  d_atan2,
+  d_cos,
+  d_exp,
+  d_log,
+  d_pow,
+  d_sin,
   FlowSearch,
   Ocean,
   Separation,
