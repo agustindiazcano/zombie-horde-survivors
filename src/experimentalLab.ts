@@ -11,8 +11,6 @@ import './experimentalLab.css';
  * them around and throws them, to see how they shake.
  */
 
-const GRAVITY = 22;
-const FLOOR_BOUNCE = 0.3;
 const STEP = 1 / 120;
 const MAX_THROW_SPEED = 28;
 
@@ -24,6 +22,18 @@ const JELLY_INFLUENCE = 4;
 interface Tuning {
   /** Spring strength that pulls a wobbling point back to its shape. */
   stiffness: number;
+  /** How much the springs are damped (0 wobbles for ever, 1 is dead). */
+  damping: number;
+  /** How hard the body's acceleration shoves the soft parts (inertia). */
+  push: number;
+  /** Gravity (m/s^2). */
+  gravity: number;
+  /** Share of its fall speed a body keeps when it hits the floor. */
+  bounce: number;
+  /** Upward speed of a jump (m/s). */
+  jumpSpeed: number;
+  /** Seconds between automatic jumps (0 is off). */
+  autoJump: number;
   /** Terrain height of the loaded map under a point. */
   ground: (x: number, z: number) => number;
 }
@@ -53,6 +63,11 @@ abstract class Thing {
 
   private readonly previous = new THREE.Vector3();
 
+  /** Whether the body rests on the floor (so it can jump). */
+  grounded(tuning: Tuning): boolean {
+    return this.pos.y <= tuning.ground(this.pos.x, this.pos.z) + this.radius * 0.8 + 0.05;
+  }
+
   step(dt: number, tuning: Tuning, target: THREE.Vector3 | null): void {
     this.previous.copy(this.vel);
     if (target) {
@@ -60,13 +75,13 @@ abstract class Thing {
       this.vel.addScaledVector(target.clone().sub(this.pos), 90 * dt);
       this.vel.multiplyScalar(Math.max(0, 1 - 11 * dt));
     } else {
-      this.vel.y -= GRAVITY * dt;
+      this.vel.y -= tuning.gravity * dt;
     }
     this.pos.addScaledVector(this.vel, dt);
     const floor = tuning.ground(this.pos.x, this.pos.z) + this.radius * 0.8;
     if (this.pos.y < floor) {
       this.pos.y = floor;
-      if (this.vel.y < 0) this.vel.y *= -FLOOR_BOUNCE;
+      if (this.vel.y < 0) this.vel.y *= -tuning.bounce;
       this.vel.x *= 1 - 3 * dt;
       this.vel.z *= 1 - 3 * dt;
     }
@@ -78,12 +93,14 @@ abstract class Thing {
   }
 }
 
-/** A procedural jelly ball: a welded icosphere whose points follow springy control masses. */
-class Jelly extends Thing {
-  readonly radius: number;
+/**
+ * A soft sphere: a welded icosphere whose points follow springy control masses that lag behind the
+ * body they hang from. It is the jelly itself and the belly of the procedural fat zombie.
+ */
+class SoftBlob {
+  readonly mesh: THREE.Mesh;
   private readonly geometry: THREE.BufferGeometry;
   private readonly rest: Float32Array;
-  private readonly mesh: THREE.Mesh;
   private readonly controlDir: THREE.Vector3[] = [];
   private readonly offset: THREE.Vector3[] = [];
   private readonly speed: THREE.Vector3[] = [];
@@ -93,12 +110,10 @@ class Jelly extends Thing {
   private readonly scratch = new THREE.Vector3();
 
   constructor(
-    color: number,
-    readonly transparent: boolean,
-    radius = 0.8,
+    material: THREE.Material,
+    readonly radius: number,
+    castShadow: boolean,
   ) {
-    super();
-    this.radius = radius;
     let geo: THREE.BufferGeometry = new THREE.IcosahedronGeometry(1, 4);
     geo.deleteAttribute('normal');
     geo.deleteAttribute('uv');
@@ -143,32 +158,18 @@ class Jelly extends Thing {
     }
     this.influence = { index, weight };
 
-    const material = transparent
-      ? new THREE.MeshPhysicalMaterial({
-          color,
-          transparent: true,
-          opacity: 0.55,
-          roughness: 0.04,
-          metalness: 0,
-          clearcoat: 1,
-          clearcoatRoughness: 0.05,
-          ior: 1.35,
-          specularIntensity: 1,
-          depthWrite: false,
-        })
-      : new THREE.MeshStandardMaterial({ color, roughness: 0.22, metalness: 0 });
     this.mesh = new THREE.Mesh(geo, material);
-    this.mesh.castShadow = !transparent;
+    this.mesh.castShadow = castShadow;
     this.mesh.frustumCulled = false;
-    this.group.add(this.mesh);
-    this.pos.set(0, 3, 0);
-    this.frame();
+    this.refresh();
   }
 
-  protected wobble(dt: number, tuning: Tuning): void {
+  /** One step of the springs: `acc` is the body's acceleration, `centre` where the blob is. */
+  wobble(dt: number, tuning: Tuning, acc: THREE.Vector3, centre: THREE.Vector3): void {
     const k = tuning.stiffness;
-    const damping = 2 * Math.sqrt(k) * 0.12;
-    const gain = 0.045;
+    const damping = 2 * Math.sqrt(k) * tuning.damping;
+    const gain = tuning.push;
+    const ground = tuning.ground(centre.x, centre.z);
     for (let i = 0; i < JELLY_CONTROLS; i++) {
       const off = this.offset[i]!;
       const vel = this.speed[i]!;
@@ -176,13 +177,12 @@ class Jelly extends Thing {
       for (const n of this.neighbours[i]!) sum.add(this.offset[n]!);
       sum.multiplyScalar(1 / JELLY_NEIGHBOURS).sub(off);
       // Inertia pushes against the body's acceleration; the springs pull back to the shape.
-      vel.x += (-k * off.x - damping * vel.x + sum.x * k * 0.6 - this.acc.x * gain) * dt;
-      vel.y += (-k * off.y - damping * vel.y + sum.y * k * 0.6 - this.acc.y * gain) * dt;
-      vel.z += (-k * off.z - damping * vel.z + sum.z * k * 0.6 - this.acc.z * gain) * dt;
+      vel.x += (-k * off.x - damping * vel.x + sum.x * k * 0.6 - acc.x * gain) * dt;
+      vel.y += (-k * off.y - damping * vel.y + sum.y * k * 0.6 - acc.y * gain) * dt;
+      vel.z += (-k * off.z - damping * vel.z + sum.z * k * 0.6 - acc.z * gain) * dt;
       off.addScaledVector(vel, dt);
-      // The floor flattens the underside instead of letting the jelly sink through it.
-      const worldY = this.pos.y + this.controlDir[i]!.y * this.radius + off.y;
-      const ground = tuning.ground(this.pos.x, this.pos.z);
+      // The floor flattens the underside instead of letting the blob sink through it.
+      const worldY = centre.y + this.controlDir[i]!.y * this.radius * this.mesh.scale.y + off.y;
       if (worldY < ground) {
         off.y -= worldY - ground;
         vel.y = Math.max(vel.y, 0) * 0.5;
@@ -192,7 +192,7 @@ class Jelly extends Thing {
     }
   }
 
-  frame(): void {
+  refresh(): void {
     const position = this.geometry.getAttribute('position') as THREE.BufferAttribute;
     const { index, weight } = this.influence;
     const out = position.array as Float32Array;
@@ -214,12 +214,155 @@ class Jelly extends Thing {
     position.needsUpdate = true;
     this.geometry.computeVertexNormals();
     this.geometry.computeBoundingSphere();
-    this.group.position.copy(this.pos);
   }
 
   dispose(): void {
     this.geometry.dispose();
     (this.mesh.material as THREE.Material).dispose();
+  }
+}
+
+/** A procedural jelly ball. */
+class Jelly extends Thing {
+  readonly radius: number;
+  private readonly blob: SoftBlob;
+
+  constructor(color: number, transparent: boolean, radius = 0.8) {
+    super();
+    this.radius = radius;
+    const material = transparent
+      ? new THREE.MeshPhysicalMaterial({
+          color,
+          transparent: true,
+          opacity: 0.55,
+          roughness: 0.04,
+          metalness: 0,
+          clearcoat: 1,
+          clearcoatRoughness: 0.05,
+          ior: 1.35,
+          specularIntensity: 1,
+          depthWrite: false,
+        })
+      : new THREE.MeshStandardMaterial({ color, roughness: 0.22, metalness: 0 });
+    this.blob = new SoftBlob(material, radius, !transparent);
+    this.group.add(this.blob.mesh);
+    this.pos.set(0, 3, 0);
+    this.frame();
+  }
+
+  protected wobble(dt: number, tuning: Tuning): void {
+    this.blob.wobble(dt, tuning, this.acc, this.pos);
+  }
+
+  frame(): void {
+    this.blob.refresh();
+    this.group.position.copy(this.pos);
+  }
+
+  dispose(): void {
+    this.blob.dispose();
+  }
+}
+
+/**
+ * A fat zombie made of primitives with a huge jelly belly. The belly is a soft blob that lags
+ * behind the body, so it drops when the zombie goes up and hangs out when it lands.
+ */
+class FatZombieProcedural extends Thing {
+  readonly radius = 1;
+  private readonly blob: SoftBlob;
+  private readonly legs: THREE.Object3D[] = [];
+  private readonly arms: THREE.Object3D[] = [];
+  private readonly materials: THREE.Material[] = [];
+  private readonly geometries: THREE.BufferGeometry[] = [];
+  private clock = 0;
+
+  constructor() {
+    super();
+    const skin = new THREE.MeshStandardMaterial({ color: 0x7fa65a, roughness: 0.7 });
+    const belly = new THREE.MeshStandardMaterial({ color: 0x9cc470, roughness: 0.35 });
+    const rags = new THREE.MeshStandardMaterial({ color: 0x4a3f36, roughness: 0.9 });
+    this.materials.push(skin, belly, rags);
+    const part = (geometry: THREE.BufferGeometry, material: THREE.Material) => {
+      this.geometries.push(geometry);
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      return mesh;
+    };
+
+    // Feet are at y = -0.8 (the body floor), the belly is centred a little above the hips.
+    for (const side of [-1, 1]) {
+      const pivot = new THREE.Object3D();
+      pivot.position.set(side * 0.26, -0.2, 0);
+      const leg = part(new THREE.CapsuleGeometry(0.17, 0.4, 4, 10), rags);
+      leg.position.y = -0.3;
+      pivot.add(leg);
+      this.group.add(pivot);
+      this.legs.push(pivot);
+    }
+    this.blob = new SoftBlob(belly, 0.8, true);
+    this.blob.mesh.scale.set(1.05, 0.95, 1.1);
+    this.blob.mesh.position.set(0, 0.15, 0.08);
+    this.group.add(this.blob.mesh);
+
+    const chest = part(new THREE.CapsuleGeometry(0.3, 0.2, 4, 10), skin);
+    chest.position.set(0, 0.95, -0.05);
+    this.group.add(chest);
+    const head = part(new THREE.SphereGeometry(0.25, 16, 12), skin);
+    head.position.set(0, 1.45, 0.05);
+    this.group.add(head);
+    const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff2a2a });
+    this.materials.push(eyeMaterial);
+    for (const side of [-1, 1]) {
+      const eye = part(new THREE.SphereGeometry(0.04, 8, 6), eyeMaterial);
+      eye.castShadow = false;
+      eye.position.set(side * 0.1, 1.5, 0.27);
+      this.group.add(eye);
+    }
+    // Zombie arms stretched forward.
+    for (const side of [-1, 1]) {
+      const pivot = new THREE.Object3D();
+      pivot.position.set(side * 0.4, 1.0, 0);
+      pivot.rotation.x = -1.35;
+      const arm = part(new THREE.CapsuleGeometry(0.1, 0.5, 4, 8), skin);
+      arm.position.y = -0.35;
+      pivot.add(arm);
+      this.group.add(pivot);
+      this.arms.push(pivot);
+    }
+    this.pos.set(0, 3, 0);
+    this.frame(0);
+  }
+
+  protected wobble(dt: number, tuning: Tuning): void {
+    const centre = this.blob.mesh.getWorldPosition(new THREE.Vector3());
+    this.blob.wobble(dt, tuning, this.acc, centre);
+  }
+
+  frame(dt: number): void {
+    this.clock += dt;
+    this.blob.refresh();
+    this.group.position.copy(this.pos);
+    // Legs run on the spot while it moves along the ground; arms and legs spread in the air.
+    const airborne = this.pos.y > this.radius * 0.8 + 0.1;
+    const stride = Math.sin(this.clock * 9) * Math.min(1, Math.hypot(this.vel.x, this.vel.z) * 0.3);
+    this.legs.forEach((leg, i) => {
+      const target = airborne ? (i === 0 ? 0.6 : -0.6) : stride * (i === 0 ? 0.7 : -0.7);
+      leg.rotation.x += (target - leg.rotation.x) * Math.min(1, dt * 14);
+    });
+    this.arms.forEach((arm) => {
+      const target = airborne ? -2.3 : -1.35;
+      arm.rotation.x += (target - arm.rotation.x) * Math.min(1, dt * 10);
+    });
+    // Lean towards the way it moves.
+    const lean = new THREE.Euler(this.vel.z * 0.02, 0, -this.vel.x * 0.02);
+    this.group.quaternion.slerp(new THREE.Quaternion().setFromEuler(lean), 0.15);
+  }
+
+  dispose(): void {
+    this.blob.dispose();
+    for (const g of this.geometries) g.dispose();
+    for (const m of this.materials) m.dispose();
   }
 }
 
@@ -461,7 +604,16 @@ function loadModel(path: string) {
 export function openExperimentalLab(host: LabHost, onClose: () => void): () => void {
   const { scene, camera, canvas } = host;
   const things: Thing[] = [];
-  const tuning: Tuning = { stiffness: 120, ground: host.ground };
+  const tuning: Tuning = {
+    stiffness: 120,
+    damping: 0.12,
+    push: 0.15,
+    gravity: 22,
+    bounce: 0.3,
+    jumpSpeed: 9,
+    autoJump: 0,
+    ground: host.ground,
+  };
   const hand = makeHand();
   hand.group.traverse((o) => ((o as THREE.Mesh).castShadow = false));
   scene.add(hand.group);
@@ -534,19 +686,49 @@ export function openExperimentalLab(host: LabHost, onClose: () => void): () => v
     'Tentacle monster',
     () => void spawnModel('models/enemy-tentacle.glb', (s) => new TentacleMonster(s)),
   );
-  button('Fat zombie', () => void spawnModel('models/enemy-zombie.glb', (s) => new FatZombie(s)));
+  button('Fat zombie (procedural)', () => add(new FatZombieProcedural()));
+  button(
+    'Fat zombie (model)',
+    () => void spawnModel('models/enemy-zombie.glb', (s) => new FatZombie(s)),
+  );
   button('Clear all', clear);
-  const label = document.createElement('label');
-  label.className = 'lab__note';
-  label.textContent = 'Stiffness ';
-  const slider = document.createElement('input');
-  slider.type = 'range';
-  slider.min = '20';
-  slider.max = '400';
-  slider.value = String(tuning.stiffness);
-  slider.addEventListener('input', () => (tuning.stiffness = Number(slider.value)));
-  label.appendChild(slider);
-  panel.appendChild(label);
+  const jump = () => {
+    for (const t of things) if (t.grounded(tuning)) t.vel.y = tuning.jumpSpeed;
+  };
+  button('Make them jump', jump);
+  /** One labelled slider for a number of the physics; the value is shown next to it. */
+  const slide = (
+    name: string,
+    key: Exclude<keyof Tuning, 'ground'>,
+    min: number,
+    max: number,
+    step: number,
+  ) => {
+    const label = document.createElement('label');
+    label.className = 'lab__slider';
+    const text = document.createElement('span');
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = String(min);
+    input.max = String(max);
+    input.step = String(step);
+    input.value = String(tuning[key]);
+    const show = () => (text.textContent = `${name}: ${tuning[key]}`);
+    input.addEventListener('input', () => {
+      tuning[key] = Number(input.value);
+      show();
+    });
+    show();
+    label.append(text, input);
+    panel.appendChild(label);
+  };
+  slide('Bounce (floor)', 'bounce', 0, 0.95, 0.05);
+  slide('Gravity', 'gravity', 2, 50, 1);
+  slide('Jump speed', 'jumpSpeed', 3, 20, 0.5);
+  slide('Auto jump every (s, 0 off)', 'autoJump', 0, 5, 0.5);
+  slide('Belly stiffness', 'stiffness', 20, 400, 10);
+  slide('Belly damping', 'damping', 0.02, 0.6, 0.02);
+  slide('Wobble push', 'push', 0.02, 0.6, 0.02);
   const handButton = button('✋ Hand: on (H)', () => setHandMode(!handMode));
   button('Close (Esc)', () => close());
   const help = document.createElement('p');
@@ -628,14 +810,15 @@ export function openExperimentalLab(host: LabHost, onClose: () => void): () => v
   window.addEventListener('mouseup', release);
   window.addEventListener('keydown', onKey, true);
 
-  // Something to look at from the start: one of each jelly.
-  add(new Jelly(0x35d49a, false));
+  // Something to look at from the start: a fat zombie and a jelly.
+  add(new FatZombieProcedural());
   add(new Jelly(0xff5fa8, true));
 
   // --- Loop (the game draws the scene; this only moves the things and the hand)
   let frameId = 0;
   let last = performance.now();
   let accumulator = 0;
+  let sinceJump = 0;
   const handPoint = new THREE.Vector3();
   const loop = (now: number) => {
     frameId = requestAnimationFrame(loop);
@@ -649,6 +832,13 @@ export function openExperimentalLab(host: LabHost, onClose: () => void): () => v
       !ray().intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.2), handPoint)
     ) {
       handPoint.copy(camera.position);
+    }
+    if (tuning.autoJump > 0) {
+      sinceJump += dt;
+      if (sinceJump >= tuning.autoJump) {
+        sinceJump = 0;
+        jump();
+      }
     }
     accumulator += dt;
     while (accumulator >= STEP) {
