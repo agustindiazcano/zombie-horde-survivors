@@ -28,6 +28,10 @@ const NEIGHBOURS: readonly (readonly [number, number, number])[] = [
   [-1, -1, SQRT2],
 ];
 
+/** The same neighbours as flat arrays (the search loops read these without building arrays). */
+const NEIGHBOUR_DX = Int8Array.from(NEIGHBOURS, (n) => n[0]);
+const NEIGHBOUR_DZ = Int8Array.from(NEIGHBOURS, (n) => n[1]);
+
 /** Which cells of the arena a walker cannot enter, rebuilt when the obstacle list changes. */
 interface Blocked {
   source: Obstacle[];
@@ -280,7 +284,9 @@ function nextWaypoint(blocked: Blocked, dist: Float64Array, from: Vec2, to: Vec2
   let best = cells[cz * n + cx] === 1 ? Infinity : dist[cz * n + cx]!;
   let bx = -1;
   let bz = -1;
-  for (const [dx, dz] of NEIGHBOURS) {
+  for (let k = 0; k < 8; k++) {
+    const dx = NEIGHBOUR_DX[k]!;
+    const dz = NEIGHBOUR_DZ[k]!;
     const nx = cx + dx;
     const nz = cz + dz;
     if (nx < 0 || nz < 0 || nx >= n || nz >= n) continue;

@@ -402,6 +402,13 @@ const CLIMB_EASE = 10;
 const climbFeet = (climbHeight: number): number => (climbHeight > 0 ? climbHeight - STEP_UP : 0);
 
 /** Buffers of `separateZombies`, grown with the horde. */
+/** What `nearestTarget` found; reused by every call, so read it before calling again. */
+interface NearestTarget {
+  target: Vec2;
+  soldier?: Soldier;
+  vehicle?: Vehicle;
+}
+const nearest: NearestTarget = { target: { x: 0, z: 0 } };
 const sepScratch = newSeparationScratch();
 let sepX = new Float64Array(0);
 let sepZ = new Float64Array(0);
@@ -413,12 +420,9 @@ let sepAlive = new Uint8Array(0);
  * standing soldiers come first) or a vehicle with someone in it. Soldiers inside a vehicle
  * cannot be reached, only the hull can.
  */
-function nearestTarget(
-  state: GameState,
-  config: GameConfig,
-  from: Vec2,
-): { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null {
-  let best: { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null = null;
+function nearestTarget(state: GameState, config: GameConfig, from: Vec2): NearestTarget | null {
+  let best: Soldier | Vehicle | null = null;
+  let bestIsSoldier = false;
   let bestD = Infinity;
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone' || inShelter(s)) continue; // flying units can't be reached
@@ -426,7 +430,8 @@ function nearestTarget(
     const felt = s.downed ? d * config.downed.targetDistanceScale : d;
     if (felt < bestD) {
       bestD = felt;
-      best = { target: s.pos, soldier: s };
+      best = s;
+      bestIsSoldier = true;
     }
   }
   for (const v of state.vehicles) {
@@ -437,8 +442,14 @@ function nearestTarget(
     const d = Math.hypot(v.pos.x - from.x, v.pos.z - from.z) - config.vehicles[v.type]!.radius;
     if (d < bestD) {
       bestD = d;
-      best = { target: v.pos, vehicle: v };
+      best = v;
+      bestIsSoldier = false;
     }
   }
-  return best;
+  if (!best) return null;
+  // One shared result: this runs once per zombie per step, and a fresh object each time was garbage.
+  nearest.target = best.pos;
+  nearest.soldier = bestIsSoldier ? (best as Soldier) : undefined;
+  nearest.vehicle = bestIsSoldier ? undefined : (best as Vehicle);
+  return nearest;
 }
