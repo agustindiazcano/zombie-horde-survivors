@@ -376,6 +376,11 @@ export class GameRenderer {
     return heightAt(this.config.arena.terrain.heights, this.halfSize, x, z);
   }
 
+  /** Terrain height of the loaded map under a point (for things that live on the map). */
+  terrainHeight(x: number, z: number): number {
+    return this.groundAt(x, z);
+  }
+
   /** Drops every unit view, for a new map whose units reuse the same ids with other types. */
   resetUnits(): void {
     for (const view of this.soldiers.values()) this.scene.remove(view.object);

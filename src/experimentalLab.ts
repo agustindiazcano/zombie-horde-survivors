@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -25,6 +24,16 @@ const JELLY_INFLUENCE = 4;
 interface Tuning {
   /** Spring strength that pulls a wobbling point back to its shape. */
   stiffness: number;
+  /** Terrain height of the loaded map under a point. */
+  ground: (x: number, z: number) => number;
+}
+
+/** What the lab needs from the game: its scene and camera, drawn by the game itself. */
+export interface LabHost {
+  scene: THREE.Scene;
+  camera: THREE.Camera;
+  canvas: HTMLCanvasElement;
+  ground: (x: number, z: number) => number;
 }
 
 /** Anything the hand can pick up: a sphere of `radius` around `pos` that falls, bounces and wobbles. */
@@ -54,7 +63,7 @@ abstract class Thing {
       this.vel.y -= GRAVITY * dt;
     }
     this.pos.addScaledVector(this.vel, dt);
-    const floor = this.radius * 0.8;
+    const floor = tuning.ground(this.pos.x, this.pos.z) + this.radius * 0.8;
     if (this.pos.y < floor) {
       this.pos.y = floor;
       if (this.vel.y < 0) this.vel.y *= -FLOOR_BOUNCE;
@@ -86,7 +95,7 @@ class Jelly extends Thing {
   constructor(
     color: number,
     readonly transparent: boolean,
-    radius = 1,
+    radius = 0.8,
   ) {
     super();
     this.radius = radius;
@@ -173,8 +182,9 @@ class Jelly extends Thing {
       off.addScaledVector(vel, dt);
       // The floor flattens the underside instead of letting the jelly sink through it.
       const worldY = this.pos.y + this.controlDir[i]!.y * this.radius + off.y;
-      if (worldY < 0) {
-        off.y -= worldY;
+      const ground = tuning.ground(this.pos.x, this.pos.z);
+      if (worldY < ground) {
+        off.y -= worldY - ground;
         vel.y = Math.max(vel.y, 0) * 0.5;
       }
       const length = off.length();
@@ -278,7 +288,7 @@ class TentacleMonster extends ModelThing {
   private readonly parentQuat = new THREE.Quaternion();
 
   constructor(source: { scene: THREE.Object3D; animations: THREE.AnimationClip[] }) {
-    super(source, 4, /idle/i);
+    super(source, 3, /idle/i);
     let depth = 0;
     const bones: THREE.Bone[] = [];
     this.model.traverse((o) => {
@@ -335,7 +345,7 @@ class FatZombie extends ModelThing {
   private squashSpeed = 0;
 
   constructor(source: { scene: THREE.Object3D; animations: THREE.AnimationClip[] }) {
-    super(source, 3, /walk/i);
+    super(source, 1.9, /walk/i);
     let measured = false;
     this.model.traverse((o) => {
       if (!(o instanceof THREE.SkinnedMesh)) return;
@@ -443,66 +453,46 @@ function loadModel(path: string) {
   return promise;
 }
 
-/** Opens the lab over the editor; returns a function that closes it. */
-export function openExperimentalLab(onClose: () => void): () => void {
-  const root = document.createElement('div');
-  root.className = 'lab';
-  const canvas = document.createElement('canvas');
-  canvas.className = 'lab__canvas';
-  root.appendChild(canvas);
-  document.body.appendChild(root);
-
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1b2230);
-  scene.fog = new THREE.Fog(0x1b2230, 25, 70);
-  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
-  camera.position.set(0, 5, 12);
-  const controls = new OrbitControls(camera, canvas);
-  controls.target.set(0, 2, 0);
-  controls.mouseButtons = {
-    LEFT: THREE.MOUSE.ROTATE,
-    MIDDLE: THREE.MOUSE.DOLLY,
-    RIGHT: THREE.MOUSE.ROTATE,
-  };
-  controls.update();
-
-  scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x30283a, 1.1));
-  const sun = new THREE.DirectionalLight(0xffffff, 2.2);
-  sun.position.set(6, 12, 5);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, {
-    left: -15,
-    right: 15,
-    top: 15,
-    bottom: -15,
-    near: 1,
-    far: 40,
-  });
-  scene.add(sun);
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(60, 60),
-    new THREE.MeshStandardMaterial({ color: 0x59606e, roughness: 0.9 }),
-  );
-  floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
-  scene.add(floor);
-  scene.add(new THREE.GridHelper(60, 60, 0x7a8294, 0x3d4454));
-
+/**
+ * Opens the lab on the editor's own map: the things are added to the game's scene (so the terrain,
+ * sky and light are the map's), and a small panel lets you spawn them. Returns a function that
+ * closes it and removes everything it added.
+ */
+export function openExperimentalLab(host: LabHost, onClose: () => void): () => void {
+  const { scene, camera, canvas } = host;
+  const things: Thing[] = [];
+  const tuning: Tuning = { stiffness: 120, ground: host.ground };
   const hand = makeHand();
+  hand.group.traverse((o) => ((o as THREE.Mesh).castShadow = false));
   scene.add(hand.group);
 
-  const things: Thing[] = [];
-  const tuning: Tuning = { stiffness: 120 };
+  const pointer = new THREE.Vector2(0, 0);
+  const raycaster = new THREE.Raycaster();
+  const ray = () => {
+    raycaster.setFromCamera(pointer, camera);
+    return raycaster.ray;
+  };
+  /** Where the middle of the screen meets the ground: new things appear there. */
+  const spawnPoint = () => {
+    const centre = new THREE.Raycaster();
+    centre.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const at = new THREE.Vector3();
+    if (!centre.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), at)) {
+      at.set(0, 0, 0);
+    }
+    return at;
+  };
   const add = (thing: Thing) => {
-    thing.pos.x = (Math.random() - 0.5) * 6;
-    thing.pos.z = (Math.random() - 0.5) * 4;
+    const at = spawnPoint();
+    thing.pos.set(
+      at.x + (Math.random() - 0.5) * 6,
+      thing.radius + 3,
+      at.z + (Math.random() - 0.5) * 4,
+    );
     scene.add(thing.group);
     things.push(thing);
   };
+  let held: Thing | null = null;
   const clear = () => {
     for (const t of things) {
       scene.remove(t.group);
@@ -512,10 +502,10 @@ export function openExperimentalLab(onClose: () => void): () => void {
     held = null;
   };
 
-  // --- Panel
+  // --- Panel (the map and the editor stay as they are)
   const panel = document.createElement('div');
   panel.className = 'lab__panel';
-  root.appendChild(panel);
+  document.body.appendChild(panel);
   const title = document.createElement('h3');
   title.textContent = 'Experimental lab';
   panel.appendChild(title);
@@ -562,45 +552,35 @@ export function openExperimentalLab(onClose: () => void): () => void {
   const help = document.createElement('p');
   help.className = 'lab__note';
   help.textContent =
-    'Hand on: left click grabs and drags, the wheel pushes it away or pulls it closer, let go to throw. Right drag turns the camera, wheel zooms.';
+    'Hand on: left click grabs and drags, the wheel pushes it away or pulls it closer while holding, let go to throw. Hand off: the editor works as usual.';
   panel.appendChild(help);
   panel.appendChild(status);
 
-  // Something to look at from the first frame: one of each jelly.
-  add(new Jelly(0x35d49a, false));
-  add(new Jelly(0xff5fa8, true));
-
   // --- Hand
   let handMode = true;
-  let held: Thing | null = null;
   let grabOffset = new THREE.Vector3();
   const grabPlane = new THREE.Plane();
   const target = new THREE.Vector3();
-  const pointer = new THREE.Vector2(0, 0);
-  const raycaster = new THREE.Raycaster();
-  const ray = () => {
-    raycaster.setFromCamera(pointer, camera);
-    return raycaster.ray;
-  };
   const setHandMode = (on: boolean) => {
+    if (!on) release();
     handMode = on;
     hand.group.visible = on;
     handButton.textContent = `✋ Hand: ${on ? 'on' : 'off'} (H)`;
-    controls.mouseButtons.LEFT = on ? (-1 as THREE.MOUSE) : THREE.MOUSE.ROTATE;
-    controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
-    canvas.style.cursor = on ? 'none' : 'default';
   };
-  const setPointer = (e: PointerEvent) => {
+  const setPointer = (e: MouseEvent) => {
     const rect = canvas.getBoundingClientRect();
     pointer.set(
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
       -((e.clientY - rect.top) / rect.height) * 2 + 1,
     );
   };
-  canvas.addEventListener('pointermove', setPointer);
-  canvas.addEventListener('pointerdown', (e) => {
-    setPointer(e);
+  const onMove = (e: MouseEvent) => setPointer(e);
+  const onDown = (e: MouseEvent) => {
     if (!handMode || e.button !== 0) return;
+    // The hand owns the left button over the map: the editor and the RTS camera do not see it.
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    setPointer(e);
     const r = ray();
     let best: Thing | null = null;
     let bestDistance = Infinity;
@@ -620,45 +600,39 @@ export function openExperimentalLab(onClose: () => void): () => void {
     const point = r.at(bestDistance, new THREE.Vector3());
     grabOffset = point.clone().sub(best.pos);
     grabPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()), point);
-    canvas.setPointerCapture(e.pointerId);
-  });
-  const release = () => {
+  };
+  function release() {
     if (!held) return;
     held.held = false;
     if (held.vel.length() > MAX_THROW_SPEED) held.vel.setLength(MAX_THROW_SPEED);
     held = null;
+  }
+  const onWheel = (e: WheelEvent) => {
+    if (!held) return;
+    // Holding something, the wheel moves the hand towards or away from the camera, not the map camera.
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    grabPlane.constant += e.deltaY > 0 ? 0.6 : -0.6;
   };
-  canvas.addEventListener('pointerup', release);
-  canvas.addEventListener('pointercancel', release);
-  canvas.addEventListener(
-    'wheel',
-    (e) => {
-      if (!held) return;
-      // Holding something, the wheel moves the hand towards or away from the camera.
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      grabPlane.constant += e.deltaY > 0 ? 0.6 : -0.6;
-    },
-    { capture: true, passive: false },
-  );
   const onKey = (e: KeyboardEvent) => {
     if (e.code === 'Escape') {
       e.stopPropagation();
       close();
-    } else if (e.code === 'KeyH') setHandMode(!handMode);
+    } else if (e.code === 'KeyH' && !(e.target instanceof HTMLInputElement)) {
+      setHandMode(!handMode);
+    }
   };
+  canvas.addEventListener('mousedown', onDown, true);
+  canvas.addEventListener('wheel', onWheel, { capture: true, passive: false });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', release);
   window.addEventListener('keydown', onKey, true);
-  setHandMode(true);
 
-  // --- Loop
-  const resize = () => {
-    renderer.setSize(root.clientWidth, root.clientHeight, false);
-    camera.aspect = root.clientWidth / Math.max(1, root.clientHeight);
-    camera.updateProjectionMatrix();
-  };
-  window.addEventListener('resize', resize);
-  resize();
+  // Something to look at from the start: one of each jelly.
+  add(new Jelly(0x35d49a, false));
+  add(new Jelly(0xff5fa8, true));
 
+  // --- Loop (the game draws the scene; this only moves the things and the hand)
   let frameId = 0;
   let last = performance.now();
   let accumulator = 0;
@@ -667,7 +641,6 @@ export function openExperimentalLab(onClose: () => void): () => void {
     frameId = requestAnimationFrame(loop);
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    controls.enableZoom = !held;
 
     if (held) {
       ray().intersectPlane(grabPlane, handPoint);
@@ -684,15 +657,14 @@ export function openExperimentalLab(onClose: () => void): () => void {
     }
     for (const t of things) t.frame(dt);
 
-    // The hand sits at the pointer (or at the grab point), facing the camera, fingers curled when holding.
+    // The hand sits at the pointer (or at the grab point), facing the camera, sized to look the
+    // same at any zoom, with its fingers curled when it holds something.
     hand.group.position.copy(handPoint);
     hand.group.quaternion.copy(camera.quaternion);
+    hand.group.scale.setScalar(Math.max(0.3, camera.position.distanceTo(handPoint) * 0.09));
     const curl = held ? 1.35 : 0.15;
     for (const f of hand.fingers) f.rotation.x += (curl - f.rotation.x) * Math.min(1, dt * 18);
     hand.thumb.rotation.z += ((held ? -0.2 : -0.9) - hand.thumb.rotation.z) * Math.min(1, dt * 18);
-
-    controls.update();
-    renderer.render(scene, camera);
   };
   frameId = requestAnimationFrame(loop);
 
@@ -701,12 +673,14 @@ export function openExperimentalLab(onClose: () => void): () => void {
     if (closed) return;
     closed = true;
     cancelAnimationFrame(frameId);
+    canvas.removeEventListener('mousedown', onDown, true);
+    canvas.removeEventListener('wheel', onWheel, true);
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', release);
     window.removeEventListener('keydown', onKey, true);
-    window.removeEventListener('resize', resize);
     clear();
-    controls.dispose();
-    renderer.dispose();
-    root.remove();
+    scene.remove(hand.group);
+    panel.remove();
     onClose();
   }
   return close;

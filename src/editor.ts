@@ -1,3 +1,4 @@
+import type { LabHost } from './experimentalLab';
 import './editor.css';
 import { z } from 'zod';
 import catalogData from '../data/catalog.json';
@@ -255,6 +256,7 @@ export class Editor {
   /** The mouse is down on the selection; `dragMoved` once it has actually moved. */
   private dragMoved = false;
   private tab: TabId = 'units';
+  private closeLab: (() => void) | null = null;
   private terrainTool: TerrainTool | null = null;
   private brushSize = 5;
   private brushStrength = 5;
@@ -289,6 +291,8 @@ export class Editor {
       /** The 3D view the map is drawn on, and the ground point under a normalised screen position. */
       canvas: HTMLElement;
       groundAt: (ndcX: number, ndcY: number) => Vec2 | null;
+      /** The game's scene, camera and terrain, for the experimental lab to live in. */
+      lab: () => LabHost;
       /** Shows a ring at the selected item (null hides it). */
       onMarks: (marks: { at: Vec2; radius: number }[]) => void;
       /** Shows the map's enemy spawn points while editing (null hides them). */
@@ -1274,10 +1278,10 @@ export class Editor {
     );
     const open = el('button', 'editor__btn', this.body, 'Open the lab');
     open.addEventListener('click', () => {
-      this.root.classList.add('editor--hidden');
-      void import('./experimentalLab').then(({ openExperimentalLab }) =>
-        openExperimentalLab(() => this.root.classList.remove('editor--hidden')),
-      );
+      void import('./experimentalLab').then(({ openExperimentalLab }) => {
+        this.closeLab?.();
+        this.closeLab = openExperimentalLab(this.actions.lab(), () => (this.closeLab = null));
+      });
     });
   }
 
