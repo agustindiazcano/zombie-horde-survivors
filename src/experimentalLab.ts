@@ -234,6 +234,7 @@ abstract class ModelThing extends Thing {
   ) {
     super();
     this.model = clone(source.scene);
+    this.model.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(this.model, true);
     const size = box.getSize(new THREE.Vector3());
     // Models come in centimetres or metres; the tallest side is brought to `height`.
@@ -334,7 +335,7 @@ class FatZombie extends ModelThing {
   private squashSpeed = 0;
 
   constructor(source: { scene: THREE.Object3D; animations: THREE.AnimationClip[] }) {
-    super(source, 2.1, /walk/i);
+    super(source, 3, /walk/i);
     let measured = false;
     this.model.traverse((o) => {
       if (!(o instanceof THREE.SkinnedMesh)) return;
@@ -564,6 +565,10 @@ export function openExperimentalLab(onClose: () => void): () => void {
     'Hand on: left click grabs and drags, the wheel pushes it away or pulls it closer, let go to throw. Right drag turns the camera, wheel zooms.';
   panel.appendChild(help);
   panel.appendChild(status);
+
+  // Something to look at from the first frame: one of each jelly.
+  add(new Jelly(0x35d49a, false));
+  add(new Jelly(0xff5fa8, true));
 
   // --- Hand
   let handMode = true;
