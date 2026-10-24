@@ -143,6 +143,21 @@ Rule (the user's, 2026-10-23): whatever is equal or better in Rust on the GitHub
 
 Not portable: shaders (GLSL), the three.js drawing, and the DOM screens.
 
-### Why the rest stays in TypeScript for now (2026-10-24)
+### Why the rest stays in TypeScript for now, and the maths determinism finding (2026-10-24)
 
-The pieces left in the profile (`updateZombies`, `nearestTarget`, the per-zombie waypoint, the soldiers' `findTarget`) all use `Math.hypot` (and `Math.atan2`). V8's `Math.hypot` is its own scaled algorithm, so a Rust `hypot` does not give the same bits and the golden hash would change. Porting them needs one of: replicating V8's exact `hypot` in Rust and proving it bit for bit, accepting a new golden hash (a semantic change, to be decided), or moving the state to arrays (layer C) and doing the maths in squared distances. Cheap wins that keep the bits were taken instead: `nextWaypoint` flat loop (7.7% to 1.9%) and an allocation-free `nearestTarget`.
+**`hypot` solved.** The sim now uses its own `hypot` and `hypot3` (`src/sim/vec.ts`, only `+ - * /` and `sqrt`), all 121 two- and three-argument `Math.hypot` calls of `src/sim` were replaced. They give the same bits as V8's `Math.hypot` (2 million random pairs each, edge cases included) and as the Rust copy, so no golden hash changed (`02a0a498`, Rapier `65505486`, own solver `131015085`) and the sim no longer depends on the browser's `hypot` (Firefox and Safari use other algorithms). `npm run check:kernels` checks it.
+
+**What is left is the standard maths.** Measured Rust (the WebAssembly build's maths) against V8 over 500 000 random inputs each:
+
+| Function | Rust differs from V8 | Calls in `src/sim` |
+| -------- | -------------------- | ------------------ |
+| `atan2`  | 0%                   | 38                 |
+| `exp`    | 0%                   | 4                  |
+| `sin`    | 0.91% (by one bit)   | 42                 |
+| `cos`    | 0.93% (by one bit)   | 40                 |
+| `ln`     | 0.42%                | 1                  |
+| `pow`    | 9.79%                | 4                  |
+
+So `Math.sin`, `Math.cos`, `Math.pow` and `Math.log` of the sim are not the same function in different engines (and V8 is not Rust), which matters for lockstep multiplayer across browsers and for porting `updateZombies` or the ocean to Rust bit for bit. The way out is the sim's own `sin`, `cos`, `pow`, `ln` (and `atan2`, `exp`) made only of `+ - * /`, in TypeScript and Rust with the same constants; it is a self-contained piece of work (port of the fdlibm algorithms, checked against V8 and Rust over millions of inputs). Choosing V8's results as the reference would keep every golden hash; otherwise a new hash is declared once. Decision for the user.
+
+The pieces left in the profile (`updateZombies`, `nearestTarget`, the per-zombie waypoint, the soldiers' `findTarget`) are each under 6% of the step now, so even with that done the gain is small. Cheap wins that keep the bits were taken before: the flat `nextWaypoint` loop (7.7% to 1.9%) and an allocation-free `nearestTarget`.

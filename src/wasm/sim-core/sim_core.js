@@ -389,6 +389,34 @@ export class Walls {
 if (Symbol.dispose) Walls.prototype[Symbol.dispose] = Walls.prototype.free;
 
 /**
+ * @param {number} y
+ * @param {number} x
+ * @returns {number}
+ */
+export function sim_atan2(y, x) {
+    const ret = wasm.sim_atan2(y, x);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @returns {number}
+ */
+export function sim_cos(a) {
+    const ret = wasm.sim_cos(a);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @returns {number}
+ */
+export function sim_exp(a) {
+    const ret = wasm.sim_exp(a);
+    return ret;
+}
+
+/**
  * @param {number} a
  * @param {number} b
  * @returns {number}
@@ -406,6 +434,34 @@ export function sim_hypot(a, b) {
  */
 export function sim_hypot3(a, b, c) {
     const ret = wasm.sim_hypot3(a, b, c);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @returns {number}
+ */
+export function sim_ln(a) {
+    const ret = wasm.sim_ln(a);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @param {number} b
+ * @returns {number}
+ */
+export function sim_pow(a, b) {
+    const ret = wasm.sim_pow(a, b);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @returns {number}
+ */
+export function sim_sin(a) {
+    const ret = wasm.sim_sin(a);
     return ret;
 }
 function __wbg_get_imports() {

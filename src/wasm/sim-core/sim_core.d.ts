@@ -125,9 +125,21 @@ export class Walls {
     set_obstacles(id: number, n: number, half: number, count: number, x: Float64Array, z: Float64Array, half_w: Float64Array, half_d: Float64Array, top: Float64Array, cell_start: Int32Array, cell_items: Int32Array): void;
 }
 
+export function sim_atan2(y: number, x: number): number;
+
+export function sim_cos(a: number): number;
+
+export function sim_exp(a: number): number;
+
 export function sim_hypot(a: number, b: number): number;
 
 export function sim_hypot3(a: number, b: number, c: number): number;
+
+export function sim_ln(a: number): number;
+
+export function sim_pow(a: number, b: number): number;
+
+export function sim_sin(a: number): number;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -165,8 +177,14 @@ export interface InitOutput {
     readonly separation_run_slices: (a: number, b: number, c: number, d: any, e: number, f: number, g: any, h: number, i: number, j: number, k: number, l: number, m: number, n: number) => void;
     readonly separation_x_ptr: (a: number) => number;
     readonly separation_z_ptr: (a: number) => number;
+    readonly sim_atan2: (a: number, b: number) => number;
+    readonly sim_cos: (a: number) => number;
+    readonly sim_exp: (a: number) => number;
     readonly sim_hypot: (a: number, b: number) => number;
     readonly sim_hypot3: (a: number, b: number, c: number) => number;
+    readonly sim_ln: (a: number) => number;
+    readonly sim_pow: (a: number, b: number) => number;
+    readonly sim_sin: (a: number) => number;
     readonly walls_id: (a: number) => number;
     readonly walls_new: () => number;
     readonly walls_run_slices: (a: number, b: number, c: number, d: any, e: number, f: number, g: any, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number) => void;

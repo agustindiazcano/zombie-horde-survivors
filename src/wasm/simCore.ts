@@ -4,8 +4,14 @@ import init, {
   Ocean,
   Separation,
   Walls,
+  sim_atan2,
+  sim_cos,
+  sim_exp,
   sim_hypot,
   sim_hypot3,
+  sim_ln,
+  sim_pow,
+  sim_sin,
 } from './sim-core/sim_core.js';
 
 /**
@@ -40,4 +46,17 @@ export function simCoreMemory(): WebAssembly.Memory {
   return memory;
 }
 
-export { FlowSearch, Ocean, Separation, Walls, sim_hypot, sim_hypot3 };
+export {
+  FlowSearch,
+  Ocean,
+  Separation,
+  Walls,
+  sim_hypot,
+  sim_hypot3,
+  sim_sin,
+  sim_cos,
+  sim_atan2,
+  sim_pow,
+  sim_exp,
+  sim_ln,
+};

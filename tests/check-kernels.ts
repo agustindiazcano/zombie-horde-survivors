@@ -18,8 +18,14 @@ import {
   Separation,
   Walls,
   loadSimCoreSync,
+  sim_atan2,
+  sim_cos,
+  sim_exp,
   sim_hypot,
   sim_hypot3,
+  sim_ln,
+  sim_pow,
+  sim_sin,
   simCoreMemory,
 } from '../src/wasm/simCore';
 
@@ -335,6 +341,34 @@ for (const [name, arena, bodies] of [
 hypot over ${N} samples: differs from Math.hypot ${diffV8}, from Rust ${diffRust}; hypot3: from Math.hypot ${diff3V8}, from Rust ${diff3Rust}`,
   );
   if (diffV8 + diffRust + diff3V8 + diff3Rust > 0) failed = true;
+}
+
+// Information only: the standard maths of the Rust build against V8's. Where they differ, the two
+// languages cannot share the plain `Math.*` call (the sim would need its own implementation).
+{
+  const N = 500_000;
+  const row = (
+    name: string,
+    f: (...a: number[]) => number,
+    g: (...a: number[]) => number,
+    gen: () => number[],
+  ) => {
+    let d = 0;
+    for (let i = 0; i < N; i++) {
+      const a = gen();
+      if (!Object.is(f(...a), g(...a))) d++;
+    }
+    console.log(
+      `${name.padEnd(6)} Rust differs from V8 in ${d} of ${N} (${((d / N) * 100).toFixed(2)}%)`,
+    );
+  };
+  console.log('\nstandard maths, Rust against V8 (information only):');
+  row('sin', Math.sin, sim_sin, () => [(rnd() - 0.5) * 200]);
+  row('cos', Math.cos, sim_cos, () => [(rnd() - 0.5) * 200]);
+  row('atan2', Math.atan2, sim_atan2, () => [(rnd() - 0.5) * 100, (rnd() - 0.5) * 100]);
+  row('pow', Math.pow, sim_pow, () => [rnd() * 2, 0.3 + rnd() * 3]);
+  row('exp', Math.exp, sim_exp, () => [(rnd() - 0.5) * 20]);
+  row('ln', Math.log, sim_ln, () => [rnd() * 100 + 1e-9]);
 }
 
 console.log(

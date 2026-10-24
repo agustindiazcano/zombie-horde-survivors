@@ -637,3 +637,29 @@ pub fn sim_hypot(a: f64, b: f64) -> f64 {
 pub fn sim_hypot3(a: f64, b: f64, c: f64) -> f64 {
     hypot3(a, b, c)
 }
+
+// The standard library maths as the WebAssembly build computes them (for `check:kernels`: do they match V8?).
+#[wasm_bindgen]
+pub fn sim_sin(a: f64) -> f64 {
+    a.sin()
+}
+#[wasm_bindgen]
+pub fn sim_cos(a: f64) -> f64 {
+    a.cos()
+}
+#[wasm_bindgen]
+pub fn sim_atan2(y: f64, x: f64) -> f64 {
+    y.atan2(x)
+}
+#[wasm_bindgen]
+pub fn sim_pow(a: f64, b: f64) -> f64 {
+    a.powf(b)
+}
+#[wasm_bindgen]
+pub fn sim_exp(a: f64) -> f64 {
+    a.exp()
+}
+#[wasm_bindgen]
+pub fn sim_ln(a: f64) -> f64 {
+    a.ln()
+}
