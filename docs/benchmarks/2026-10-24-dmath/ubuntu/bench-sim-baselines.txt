@@ -1,0 +1,30 @@
+== e192428 run 1
+  100 zombies: 0.55 ms/step avg, 2.75 ms worst
+  300 zombies: 0.69 ms/step avg, 2.81 ms worst
+  600 zombies: 1.26 ms/step avg, 3.53 ms worst
+ 1000 zombies: 2.36 ms/step avg, 4.51 ms worst
+== e192428 run 2
+  100 zombies: 0.53 ms/step avg, 3.07 ms worst
+  300 zombies: 0.69 ms/step avg, 2.46 ms worst
+  600 zombies: 1.25 ms/step avg, 3.48 ms worst
+ 1000 zombies: 2.26 ms/step avg, 4.96 ms worst
+== e192428 run 3
+  100 zombies: 0.53 ms/step avg, 2.19 ms worst
+  300 zombies: 0.69 ms/step avg, 2.75 ms worst
+  600 zombies: 1.24 ms/step avg, 2.97 ms worst
+ 1000 zombies: 2.29 ms/step avg, 4.86 ms worst
+== origin/main run 1
+  100 zombies: 0.49 ms/step avg, 2.41 ms worst
+  300 zombies: 0.68 ms/step avg, 1.66 ms worst
+  600 zombies: 1.22 ms/step avg, 2.30 ms worst
+ 1000 zombies: 2.07 ms/step avg, 3.56 ms worst
+== origin/main run 2
+  100 zombies: 0.48 ms/step avg, 2.36 ms worst
+  300 zombies: 0.67 ms/step avg, 2.22 ms worst
+  600 zombies: 1.20 ms/step avg, 2.70 ms worst
+ 1000 zombies: 2.00 ms/step avg, 5.17 ms worst
+== origin/main run 3
+  100 zombies: 0.48 ms/step avg, 2.17 ms worst
+  300 zombies: 0.69 ms/step avg, 2.64 ms worst
+  600 zombies: 1.19 ms/step avg, 2.69 ms worst
+ 1000 zombies: 2.00 ms/step avg, 4.76 ms worst

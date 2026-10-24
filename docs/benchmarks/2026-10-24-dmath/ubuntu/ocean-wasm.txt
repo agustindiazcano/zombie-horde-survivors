@@ -1,0 +1,45 @@
+== run 1
+> node scripts/check-ocean-wasm.mjs
+
+case                           table    height     flow     ts ms  wasm ms  batch ms
+golden (game.json)             0.0e+0   0.0e+0   0.0e+0      920      421      464
+fibonacci                      0.0e+0   0.0e+0   0.0e+0      921      413      455
+random, chaos                  0.0e+0   0.0e+0   0.0e+0      923      414      404
+swell                          0.0e+0   0.0e+0   0.0e+0      924      410      404
+custom sequence                0.0e+0   0.0e+0   0.0e+0      923      411      404
+jonswap, wind                  0.0e+0   0.0e+0   0.0e+0      931      411      405
+golden, whirlpools             0.0e+0   0.0e+0   0.0e+0     1405      589      583
+jonswap, frozen, whirlpool     0.0e+0   0.0e+0   0.0e+0     1102      468      460
+
+largest difference: 0.00e+0 (20000 points per case, height in m, flow in m/s)
+OK: the Rust ocean is bit for bit identical to the TypeScript
+== run 2
+> node scripts/check-ocean-wasm.mjs
+
+case                           table    height     flow     ts ms  wasm ms  batch ms
+golden (game.json)             0.0e+0   0.0e+0   0.0e+0      978      421      405
+fibonacci                      0.0e+0   0.0e+0   0.0e+0      929      411      406
+random, chaos                  0.0e+0   0.0e+0   0.0e+0      932      411      404
+swell                          0.0e+0   0.0e+0   0.0e+0      923      408      404
+custom sequence                0.0e+0   0.0e+0   0.0e+0      932      409      405
+jonswap, wind                  0.0e+0   0.0e+0   0.0e+0      942      411      405
+golden, whirlpools             0.0e+0   0.0e+0   0.0e+0     1398      588      583
+jonswap, frozen, whirlpool     0.0e+0   0.0e+0   0.0e+0     1091      465      459
+
+largest difference: 0.00e+0 (20000 points per case, height in m, flow in m/s)
+OK: the Rust ocean is bit for bit identical to the TypeScript
+== run 3
+> node scripts/check-ocean-wasm.mjs
+
+case                           table    height     flow     ts ms  wasm ms  batch ms
+golden (game.json)             0.0e+0   0.0e+0   0.0e+0      904      419      405
+fibonacci                      0.0e+0   0.0e+0   0.0e+0      940      412      405
+random, chaos                  0.0e+0   0.0e+0   0.0e+0      925      411      405
+swell                          0.0e+0   0.0e+0   0.0e+0      920      408      405
+custom sequence                0.0e+0   0.0e+0   0.0e+0      922      412      421
+jonswap, wind                  0.0e+0   0.0e+0   0.0e+0      932      412      420
+golden, whirlpools             0.0e+0   0.0e+0   0.0e+0     1411      588      586
+jonswap, frozen, whirlpool     0.0e+0   0.0e+0   0.0e+0     1092      469      460
+
+largest difference: 0.00e+0 (20000 points per case, height in m, flow in m/s)
+OK: the Rust ocean is bit for bit identical to the TypeScript

@@ -25,5 +25,20 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // The standard maths differ between browsers (and from Rust) in the last bit; the sim has its own.
+    files: ['src/sim/**/*.ts'],
+    ignores: ['src/sim/dmath.ts', 'src/sim/vec.ts'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        ...['sin', 'cos', 'atan2', 'exp', 'log', 'pow', 'hypot'].map((property) => ({
+          object: 'Math',
+          property,
+          message: `Use the deterministic version of Math.${property} from src/sim/dmath.ts or src/sim/vec.ts.`,
+        })),
+      ],
+    },
+  },
   prettier,
 );

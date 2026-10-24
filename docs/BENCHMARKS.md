@@ -154,3 +154,37 @@ Two changes with the same bits (hash `02a0a498`): `nextWaypoint` reads flat neig
 | This branch, Rust kernels        | 1.50, 1.52, 1.48 | 1.56, 1.61, 1.61 |
 
 Against the code before the Rust work the step is now **31% faster on Linux** and **20% faster on Windows**; the Rust kernels add 2% to 3% over the TypeScript ones. (Absolute times differ between the two runs of the workflow because GitHub gives a different virtual machine each time; compare only inside one run.)
+
+## 10. The simulation's own deterministic maths, and the Rust ocean (run `40048008881`, branch `bench/dmath`, 2026-10-24)
+
+`src/sim/dmath.ts` (and `crates/sim-core/src/dmath.rs`): the sim's own `sin`, `cos`, `atan2`, `exp`, `log` and `pow`, from the fdlibm algorithms, only `+ - * /` and the bits of a double; `hypot` and `hypot3` in `vec.ts`. `src/sim` no longer calls `Math.sin` and friends (a lint rule forbids it). Raw outputs: [benchmarks/2026-10-24-dmath/](benchmarks/2026-10-24-dmath/).
+
+| Function              | Equal to V8's `Math.*` | Worst difference from V8            | TypeScript against Rust |
+| --------------------- | ---------------------- | ----------------------------------- | ----------------------- |
+| `sin`, `cos`          | 100% of 1 000 000 each | 0 ulps                              | bit for bit identical   |
+| `atan2`, `exp`, `log` | 100% of 1 000 000 each | 0 ulps                              | bit for bit identical   |
+| `pow`                 | 90% of 1 000 000       | 1 ulp (the rest equal within 1 ulp) | bit for bit identical   |
+| `hypot`, `hypot3`     | 100% of 2 000 000      | 0 ulps                              | bit for bit identical   |
+
+Because five of the six reproduce V8's results exactly and `pow` is within one bit, no golden hash changed: simulation `02a0a498`, Rapier `65505486`, own solver `131015085`. The standard Rust maths, for comparison, differs from V8 in 0.9% (`sin`, `cos`), 0.4% (`ln`) and 9.8% (`pow`) of inputs ([PLAN-rust-architecture.md](PLAN-rust-architecture.md) section 8).
+
+### The ocean, now identical in both languages
+
+`npm run check:ocean-wasm`: 8 ocean set-ups x 20 000 points, now **0 difference** (it was 2e-13 m with the standard maths), on both systems. ms for 400 000 evaluations:
+
+| Case               | Linux TypeScript | Linux Rust | Windows TypeScript | Windows Rust |
+| ------------------ | ---------------- | ---------- | ------------------ | ------------ |
+| golden (game.json) | 920              | 421        | 873                | 380          |
+
+Rust is about **2.2x faster** than the TypeScript with the new maths (the TypeScript got slower than the old native `Math.sin` and `Math.pow`, 320 ms before), and bit-identical, so by the rule (equal or better on the GitHub runners moves to Rust) the ocean is now **wired to Rust** (`useOceanBackend`), with TypeScript as the fallback.
+
+### The full step (`bench:sim`, 1000 zombies, ms per step, same machine, three runs)
+
+| Code                             | Linux            | Windows          |
+| -------------------------------- | ---------------- | ---------------- |
+| Before the Rust work (`e192428`) | 2.36, 2.26, 2.29 | 2.06, 2.05, 2.06 |
+| `main` after PR 62               | 2.07, 2.00, 2.00 | 2.09, 1.99, 1.99 |
+| This branch, TypeScript kernels  | 1.54, 1.54, 1.52 | 1.49, 1.46, 1.49 |
+| This branch, Rust kernels        | 1.48, 1.51, 1.45 | 1.48, 1.47, 1.52 |
+
+The new maths did not slow the step (the hot paths use `atan2` and `hypot`, which cost the same): **33% to 36% faster than before the work on Linux, 28% on Windows**.
