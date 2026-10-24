@@ -13,7 +13,9 @@ import type {
   Stack,
   WeaponState,
 } from './types';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { dcos, dsin } from './dmath';
 
 /** Crate entry that is worn as armor instead of carried. */
 export const ARMOR_PLATE = 'armor_plate';
@@ -87,7 +89,7 @@ export function nearestCrate(state: GameState, pos: Vec2, range: number): Crate 
   let best: Crate | undefined;
   let bestD = range;
   for (const c of state.crates) {
-    const d = Math.hypot(c.pos.x - pos.x, c.pos.z - pos.z);
+    const d = hypot(c.pos.x - pos.x, c.pos.z - pos.z);
     if (d <= bestD) {
       bestD = d;
       best = c;
@@ -107,7 +109,7 @@ function reachableCrate(
 ): Crate | undefined {
   const crate = getCrate(state, crateId);
   if (!crate || soldier.dead) return undefined;
-  const d = Math.hypot(crate.pos.x - soldier.pos.x, crate.pos.z - soldier.pos.z);
+  const d = hypot(crate.pos.x - soldier.pos.x, crate.pos.z - soldier.pos.z);
   return d <= config.drops.pickupRange ? crate : undefined;
 }
 
@@ -387,8 +389,8 @@ export function dropToGround(
   if (!stack) return false;
   putCell(s, slot, null);
   const pos = {
-    x: s.pos.x + Math.sin(s.facing) * DROP_AHEAD,
-    z: s.pos.z + Math.cos(s.facing) * DROP_AHEAD,
+    x: s.pos.x + dsin(s.facing) * DROP_AHEAD,
+    z: s.pos.z + dcos(s.facing) * DROP_AHEAD,
   };
   resolveStatic(pos, ITEM_RADIUS, config.arena);
   const loose: GroundItem = {
@@ -417,7 +419,7 @@ export function pickUpItem(
   const s = unit(state, soldierId);
   const loose = state.groundItems.find((g) => g.id === itemId);
   if (!s || !loose || s.dead || inShelter(s)) return false;
-  if (Math.hypot(loose.pos.x - s.pos.x, loose.pos.z - s.pos.z) > config.drops.pickupRange) {
+  if (hypot(loose.pos.x - s.pos.x, loose.pos.z - s.pos.z) > config.drops.pickupRange) {
     return false;
   }
   const def = itemDef(config, loose.item);

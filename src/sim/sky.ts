@@ -1,6 +1,8 @@
 import type { GameConfig } from './config';
 import { nextFloat } from './rng';
 import type { GameState, SkyLight, Vec3 } from './types';
+import { hypot, hypot3 } from './vec';
+import { dcos, dexp, dsin } from './dmath';
 
 /** A formation hovers this close (metres) to its point when it counts as arrived. */
 const ARRIVE = 6;
@@ -27,9 +29,9 @@ export function createSky(state: GameState, config: GameConfig): void {
     const elevation = between(state, 0.35, 1.35);
     const distance = between(state, rules.minDistance, rules.maxDistance);
     const pos = {
-      x: Math.cos(azimuth) * Math.cos(elevation) * distance,
-      y: Math.sin(elevation) * distance,
-      z: Math.sin(azimuth) * Math.cos(elevation) * distance,
+      x: dcos(azimuth) * dcos(elevation) * distance,
+      y: dsin(elevation) * distance,
+      z: dsin(azimuth) * dcos(elevation) * distance,
     };
     const inFormation = i < rules.formations * 3;
     state.skyLights.push({
@@ -58,7 +60,7 @@ export function updateSky(state: GameState, config: GameConfig, dt: number): voi
   const rules = config.skyShow;
   const t = state.time;
   const houses = config.arena.obstacles.filter(
-    (o) => o.asset === 'house' && Math.hypot(o.x, o.z) < HOUSE_RANGE,
+    (o) => o.asset === 'house' && hypot(o.x, o.z) < HOUSE_RANGE,
   );
 
   for (const light of state.skyLights) {
@@ -71,9 +73,9 @@ export function updateSky(state: GameState, config: GameConfig, dt: number): voi
     if (t >= rules.flyAt && light.group < 0 && light.id % 4 === 0 && light.role !== 'plane') {
       light.role = 'plane';
       const heading = nextFloat(state.rng) * Math.PI * 2;
-      light.vel.x = Math.cos(heading) * rules.planeSpeed;
+      light.vel.x = dcos(heading) * rules.planeSpeed;
       light.vel.y = 0;
-      light.vel.z = Math.sin(heading) * rules.planeSpeed;
+      light.vel.z = dsin(heading) * rules.planeSpeed;
     } else if (t >= rules.wanderAt && light.role === 'star') {
       light.role = 'wander';
     }
@@ -81,7 +83,7 @@ export function updateSky(state: GameState, config: GameConfig, dt: number): voi
       light.pos.x += light.vel.x * dt;
       light.pos.z += light.vel.z * dt;
       // Out of sight: come back in from the other side.
-      if (Math.hypot(light.pos.x, light.pos.z) > FAR_LIMIT) {
+      if (hypot(light.pos.x, light.pos.z) > FAR_LIMIT) {
         light.pos.x *= -0.9;
         light.pos.z *= -0.9;
       }
@@ -100,16 +102,16 @@ function drift(state: GameState, config: GameConfig, light: SkyLight, dt: number
     const speed = between(state, rules.wanderSpeed * 0.3, rules.wanderSpeed);
     const a = nextFloat(state.rng) * Math.PI * 2;
     const b = (nextFloat(state.rng) - 0.5) * Math.PI;
-    light.vel.x = Math.cos(a) * Math.cos(b) * speed;
-    light.vel.y = Math.sin(b) * speed * 0.6;
-    light.vel.z = Math.sin(a) * Math.cos(b) * speed;
+    light.vel.x = dcos(a) * dcos(b) * speed;
+    light.vel.y = dsin(b) * speed * 0.6;
+    light.vel.z = dsin(a) * dcos(b) * speed;
   }
   light.pos.x += light.vel.x * dt;
   light.pos.y += light.vel.y * dt;
   light.pos.z += light.vel.z * dt;
   // Keep it above the horizon and inside the shell it started in.
   light.pos.y = Math.max(light.pos.y, 120);
-  const r = Math.hypot(light.pos.x, light.pos.y, light.pos.z);
+  const r = hypot3(light.pos.x, light.pos.y, light.pos.z);
   const clamped = Math.min(Math.max(r, rules.minDistance * 0.8), rules.maxDistance * 1.1);
   if (clamped !== r) {
     const k = clamped / r;
@@ -139,11 +141,11 @@ function flyFormation(
     // Followers: a slowly turning triangle around the leader.
     const angle = (light.slot / 3) * Math.PI * 2 + state.time * 0.5;
     const want = {
-      x: leader.pos.x + Math.cos(angle) * rules.spread,
-      y: leader.pos.y + Math.sin(state.time * 1.7 + light.slot) * 0.8,
-      z: leader.pos.z + Math.sin(angle) * rules.spread,
+      x: leader.pos.x + dcos(angle) * rules.spread,
+      y: leader.pos.y + dsin(state.time * 1.7 + light.slot) * 0.8,
+      z: leader.pos.z + dsin(angle) * rules.spread,
     };
-    const k = 1 - Math.exp(-3 * dt);
+    const k = 1 - dexp(-3 * dt);
     light.pos.x += (want.x - light.pos.x) * k;
     light.pos.y += (want.y - light.pos.y) * k;
     light.pos.z += (want.z - light.pos.z) * k;
@@ -158,7 +160,7 @@ function flyFormation(
   const target = light.target;
 
   if (light.hovering) {
-    light.pos.y = target.y + Math.sin(state.time * 2.3 + light.group) * 0.4;
+    light.pos.y = target.y + dsin(state.time * 2.3 + light.group) * 0.4;
     return;
   }
 
@@ -169,7 +171,7 @@ function flyFormation(
     const dx = target.x - light.pos.x;
     const dy = target.y - light.pos.y;
     const dz = target.z - light.pos.z;
-    const dist = Math.hypot(dx, dy, dz);
+    const dist = hypot3(dx, dy, dz);
     if (dist < ARRIVE) {
       light.hovering = true;
       return;
@@ -190,7 +192,7 @@ function flyFormation(
   const mx = wp.x - light.pos.x;
   const my = wp.y - light.pos.y;
   const mz = wp.z - light.pos.z;
-  const d = Math.hypot(mx, my, mz);
+  const d = hypot3(mx, my, mz);
   const step = light.timer * dt;
   if (d <= step) {
     copy(light.pos, wp);

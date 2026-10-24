@@ -18,6 +18,8 @@ import {
   type RapierRagdoll,
 } from './bodies';
 import { NODE, NODES } from './ragdoll';
+import { hypot, hypot3 } from '../vec';
+import { dcos, dsin } from '../dmath';
 
 export * from './bodies';
 
@@ -76,7 +78,7 @@ function turnYTo(dx: number, dy: number, dz: number): Quat {
   // cross((0,1,0), d) = (dz, 0, -dx), the angle gives w = 1 + dot.
   if (dy < -0.99999) return { x: 1, y: 0, z: 0, w: 0 };
   const w = 1 + dy;
-  const n = Math.hypot(dz, dx, w);
+  const n = hypot3(dz, dx, w);
   return { x: dz / n, y: 0, z: -dx / n, w: w / n };
 }
 
@@ -329,7 +331,7 @@ export class RapierWorld {
   ): number {
     const d = this.dynamic(x, y, z, KIND_BOX, hx, hy, hz);
     if (!d) return -1;
-    d.desc.setRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
+    d.desc.setRotation({ x: 0, y: dsin(yaw / 2), z: 0, w: dcos(yaw / 2) });
     this.register(d.id, d.desc, RAPIER.ColliderDesc.cuboid(hx, hy, hz).setMass(mass));
     return d.id;
   }
@@ -363,7 +365,7 @@ export class RapierWorld {
       const dx = pb[0] - pa[0];
       const dy = pb[1] - pa[1];
       const dz = pb[2] - pa[2];
-      const len = Math.max(Math.hypot(dx, dy, dz), 0.05);
+      const len = Math.max(hypot3(dx, dy, dz), 0.05);
       const ux = dx / len;
       const uy = dy / len;
       const uz = dz / len;
@@ -442,9 +444,9 @@ export class RapierWorld {
     tie(0, 4, NODE.chest);
     tie(4, 5, NODE.elbowR, { axis: [0, 1, 0], min: -FLEX, max: 0 });
     tie(0, 6, NODE.pelvis);
-    tie(6, 7, NODE.kneeL, { axis: [Math.cos(yaw), 0, -Math.sin(yaw)], min: 0, max: FLEX });
+    tie(6, 7, NODE.kneeL, { axis: [dcos(yaw), 0, -dsin(yaw)], min: 0, max: FLEX });
     tie(0, 8, NODE.pelvis);
-    tie(8, 9, NODE.kneeR, { axis: [Math.cos(yaw), 0, -Math.sin(yaw)], min: 0, max: FLEX });
+    tie(8, 9, NODE.kneeR, { axis: [dcos(yaw), 0, -dsin(yaw)], min: 0, max: FLEX });
     return { bodies: ids, scale };
   }
 
@@ -488,7 +490,7 @@ export class RapierWorld {
       const dx = this.pos[i * 3]! - x;
       const dy = this.pos[i * 3 + 1]! - y;
       const dz = this.pos[i * 3 + 2]! - z;
-      const d = Math.hypot(dx, dy, dz);
+      const d = hypot3(dx, dy, dz);
       if (d >= radius) continue;
       const fall = 1 - d / radius;
       const dv = Math.min((power * fall) / (d + SATURATION) / BLAST_SCALE, BLAST_MAX_SPEED);
@@ -574,7 +576,7 @@ export class RapierWorld {
         for (const w of o.params.vortices) {
           const dx = x - w.x;
           const dz = z - w.z;
-          const d = Math.hypot(dx, dz);
+          const d = hypot(dx, dz);
           if ((d * 14.5) / w.radius > GEYSER_CORE) continue;
           const v = this.bodies[i]!.linvel();
           this.bodies[i]!.setLinvel(

@@ -6,6 +6,9 @@
  * See docs/PLAN-rust-architecture.md.
  */
 
+import type { Arena } from './config';
+import { OBSTACLE_HEIGHT } from './constants';
+
 /** Side (metres) of a grid cell; the same as `CELL` in grid.ts. */
 export const KERNEL_CELL = 4;
 
@@ -198,6 +201,184 @@ export function flowSearch(
 }
 
 /**
+ * The obstacles of an arena as flat arrays plus a uniform grid in CSR form: the cell `c` holds the
+ * obstacle indices `cellItems[cellStart[c] .. cellStart[c + 1]]`, in obstacle order (the same order
+ * `obstaclesNear` in grid.ts visits them). `top` is `topOf`: infinite for water and cliffs.
+ */
+export interface FlatObstacles {
+  /** Changes whenever a new set is built, so the Rust side knows when to take a new copy. */
+  id: number;
+  n: number;
+  half: number;
+  count: number;
+  x: Float64Array;
+  z: Float64Array;
+  halfW: Float64Array;
+  halfD: Float64Array;
+  top: Float64Array;
+  cellStart: Int32Array;
+  cellItems: Int32Array;
+  /** The last query that met each obstacle, so a box in several cells is met once (TypeScript only). */
+  seen: Uint32Array;
+  stamp: number;
+}
+
+let flatId = 0;
+const flatCache = new WeakMap<Arena['obstacles'], FlatObstacles>();
+
+/** The flat copy of `arena.obstacles`, built once per obstacle list (the sim replaces the list when it changes). */
+export function flatObstacles(arena: Arena): FlatObstacles {
+  const list = arena.obstacles;
+  const cached = flatCache.get(list);
+  if (cached && cached.count === list.length && cached.half === arena.halfSize) return cached;
+  const half = arena.halfSize;
+  const n = Math.ceil((half * 2) / KERNEL_CELL) + 1;
+  const count = list.length;
+  const o: FlatObstacles = {
+    id: ++flatId,
+    n,
+    half,
+    count,
+    x: new Float64Array(count),
+    z: new Float64Array(count),
+    halfW: new Float64Array(count),
+    halfD: new Float64Array(count),
+    top: new Float64Array(count),
+    cellStart: new Int32Array(n * n + 1),
+    cellItems: new Int32Array(0),
+    seen: new Uint32Array(count),
+    stamp: 0,
+  };
+  const range = new Int32Array(count * 4);
+  const perCell = new Int32Array(n * n);
+  for (let b = 0; b < count; b++) {
+    const box = list[b]!;
+    o.x[b] = box.x;
+    o.z[b] = box.z;
+    o.halfW[b] = box.halfW;
+    o.halfD[b] = box.halfD;
+    o.top[b] = box.water ? Infinity : (box.height ?? OBSTACLE_HEIGHT);
+    const x0 = cellOf(half, n, box.x - box.halfW);
+    const x1 = cellOf(half, n, box.x + box.halfW);
+    const z0 = cellOf(half, n, box.z - box.halfD);
+    const z1 = cellOf(half, n, box.z + box.halfD);
+    range[b * 4] = x0;
+    range[b * 4 + 1] = x1;
+    range[b * 4 + 2] = z0;
+    range[b * 4 + 3] = z1;
+    for (let cz = z0; cz <= z1; cz++) for (let cx = x0; cx <= x1; cx++) perCell[cz * n + cx]!++;
+  }
+  for (let c = 0; c < n * n; c++) o.cellStart[c + 1] = o.cellStart[c]! + perCell[c]!;
+  o.cellItems = new Int32Array(o.cellStart[n * n]!);
+  const fill = o.cellStart.slice(0, n * n);
+  for (let b = 0; b < count; b++) {
+    for (let cz = range[b * 4 + 2]!; cz <= range[b * 4 + 3]!; cz++)
+      for (let cx = range[b * 4]!; cx <= range[b * 4 + 1]!; cx++) {
+        const c = cz * n + cx;
+        o.cellItems[fill[c]!] = b;
+        fill[c]!++;
+      }
+  }
+  flatCache.set(list, o);
+  return o;
+}
+
+/**
+ * `resolveStatic` (collision.ts) for a batch of circles, without dynamic solids: pushes each living body
+ * out of every obstacle taller than its feet plus `stepUp`, in the order `obstaclesNear` meets them, then
+ * keeps it inside the arena. `feet[i]` is the height of the body's feet (a climber passes over low boxes).
+ */
+export function resolveWalls(
+  o: FlatObstacles,
+  x: Float64Array,
+  z: Float64Array,
+  radius: Float64Array,
+  feet: Float64Array,
+  alive: Uint8Array,
+  count: number,
+  stepUp: number,
+): void {
+  const { n, half } = o;
+  for (let i = 0; i < count; i++) {
+    if (alive[i] === 0) continue;
+    let px = x[i]!;
+    let pz = z[i]!;
+    const r = radius[i]!;
+    const lift = feet[i]! + stepUp;
+    if (o.count > 0) {
+      if (o.stamp === 0xffffffff) {
+        o.seen.fill(0);
+        o.stamp = 0;
+      }
+      const stamp = ++o.stamp;
+      const x0 = cellOf(half, n, px - r);
+      const x1 = cellOf(half, n, px + r);
+      const z0 = cellOf(half, n, pz - r);
+      const z1 = cellOf(half, n, pz + r);
+      for (let cz = z0; cz <= z1; cz++) {
+        for (let cx = x0; cx <= x1; cx++) {
+          const c = cz * n + cx;
+          for (let k = o.cellStart[c]!; k < o.cellStart[c + 1]!; k++) {
+            const b = o.cellItems[k]!;
+            if (o.seen[b] === stamp) continue;
+            o.seen[b] = stamp;
+            if (o.top[b]! <= lift) continue;
+            const bx = o.x[b]!;
+            const bz = o.z[b]!;
+            const hw = o.halfW[b]!;
+            const hd = o.halfD[b]!;
+            const qx = Math.min(Math.max(px, bx - hw), bx + hw);
+            const qz = Math.min(Math.max(pz, bz - hd), bz + hd);
+            const dx = px - qx;
+            const dz = pz - qz;
+            const d2 = dx * dx + dz * dz;
+            if (d2 >= r * r) continue;
+            if (d2 > 1e-12) {
+              const d = Math.sqrt(d2);
+              const push = (r - d) / d;
+              px += dx * push;
+              pz += dz * push;
+              continue;
+            }
+            // The centre is inside the box: leave through the nearest face.
+            const ox = hw - Math.abs(px - bx);
+            const oz = hd - Math.abs(pz - bz);
+            if (ox < oz) px = bx + Math.sign(px - bx || 1) * (hw + r);
+            else pz = bz + Math.sign(pz - bz || 1) * (hd + r);
+          }
+        }
+      }
+    }
+    const lim = half - r;
+    x[i] = Math.min(Math.max(px, -lim), lim);
+    z[i] = Math.min(Math.max(pz, -lim), lim);
+  }
+}
+
+const oneX = new Float64Array(1);
+const oneZ = new Float64Array(1);
+const oneR = new Float64Array(1);
+const oneFeet = new Float64Array(1);
+const oneAlive = new Uint8Array([1]);
+
+/** `resolveWalls` for one circle, in place (the scalar `resolveStatic` of collision.ts without dynamic solids). */
+export function resolveWallsOne(
+  o: FlatObstacles,
+  pos: { x: number; z: number },
+  radius: number,
+  feet: number,
+  stepUp: number,
+): void {
+  oneX[0] = pos.x;
+  oneZ[0] = pos.z;
+  oneR[0] = radius;
+  oneFeet[0] = feet;
+  resolveWalls(o, oneX, oneZ, oneR, oneFeet, oneAlive, 1, stepUp);
+  pos.x = oneX[0]!;
+  pos.z = oneZ[0]!;
+}
+
+/**
  * The implementation the game runs the kernels with. By default the TypeScript functions above; once
  * the Rust module has loaded (`src/wasm/rustKernels.ts`) it can take over. Both give the same bits
  * (`npm run check:kernels`, `npm run check:sim-hash`), so switching mid-run changes nothing. If the
@@ -221,11 +402,21 @@ export interface KernelBackend {
     targets: Int32Array,
     targetCount: number,
   ): void;
+  resolveWalls(
+    o: FlatObstacles,
+    x: Float64Array,
+    z: Float64Array,
+    radius: Float64Array,
+    feet: Float64Array,
+    alive: Uint8Array,
+    count: number,
+    stepUp: number,
+  ): void;
 }
 
 let backend: KernelBackend | null = null;
 /** How many calls the backend served (for the checks: proof that it ran). */
-export const backendCalls = { separate: 0, flowSearch: 0 };
+export const backendCalls = { separate: 0, flowSearch: 0, resolveWalls: 0 };
 
 export function useKernelBackend(next: KernelBackend | null): void {
   backend = next;
@@ -276,4 +467,27 @@ export function runFlowSearch(
     }
   }
   flowSearch(h, n, cells, extra, dist, targets, targetCount);
+}
+
+/** `resolveWalls` through the current backend. */
+export function runResolveWalls(
+  o: FlatObstacles,
+  x: Float64Array,
+  z: Float64Array,
+  radius: Float64Array,
+  feet: Float64Array,
+  alive: Uint8Array,
+  count: number,
+  stepUp: number,
+): void {
+  if (backend) {
+    try {
+      backend.resolveWalls(o, x, z, radius, feet, alive, count, stepUp);
+      backendCalls.resolveWalls++;
+      return;
+    } catch {
+      backend = null;
+    }
+  }
+  resolveWalls(o, x, z, radius, feet, alive, count, stepUp);
 }

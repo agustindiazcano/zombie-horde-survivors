@@ -6,6 +6,8 @@ import { gunOf, weaponDef } from './stats';
 import { bonus } from './training';
 import type { GameState, Soldier, Zombie } from './types';
 import { damageZombie } from './zombies';
+import { hypot } from './vec';
+import { datan2, dcos, dsin } from './dmath';
 
 /** What a blow is made with: a knife in hand, else the butt of a gun, else bare fists. */
 function blowOf(config: GameConfig, s: Soldier): { item: string; damage: number; range: number } {
@@ -34,13 +36,10 @@ function strikeTarget(
     if (z.state === 'death') continue;
     const dx = z.pos.x - s.pos.x;
     const dz = z.pos.z - s.pos.z;
-    const d = Math.hypot(dx, dz) - z.radius;
+    const d = hypot(dx, dz) - z.radius;
     if (d > range || d >= bestDist) continue;
     // An enemy touching the unit is always in reach; otherwise it has to be inside the cone.
-    const off = Math.atan2(
-      Math.sin(Math.atan2(dx, dz) - s.facing),
-      Math.cos(Math.atan2(dx, dz) - s.facing),
-    );
+    const off = datan2(dsin(datan2(dx, dz) - s.facing), dcos(datan2(dx, dz) - s.facing));
     if (d > 0 && Math.abs(off) > config.melee.arc) continue;
     best = z;
     bestDist = d;
@@ -53,7 +52,7 @@ export function enemyInMeleeReach(state: GameState, config: GameConfig, s: Soldi
   const reach = Math.min(config.melee.aiRange, blowOf(config, s).range);
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
-    if (Math.hypot(z.pos.x - s.pos.x, z.pos.z - s.pos.z) - z.radius <= reach) return z;
+    if (hypot(z.pos.x - s.pos.x, z.pos.z - s.pos.z) - z.radius <= reach) return z;
   }
   return null;
 }
@@ -89,7 +88,7 @@ export function meleeStrike(state: GameState, config: GameConfig, s: Soldier): b
   const weight = (target.radius / config.zombie.radius) * (target.boss ? 1 / m.bossPushScale : 1);
   const dx = target.pos.x - s.pos.x;
   const dz = target.pos.z - s.pos.z;
-  const len = Math.hypot(dx, dz) || 1;
+  const len = hypot(dx, dz) || 1;
   const shove = m.push / Math.max(weight, 1);
   target.pos.x += (dx / len) * shove;
   target.pos.z += (dz / len) * shove;

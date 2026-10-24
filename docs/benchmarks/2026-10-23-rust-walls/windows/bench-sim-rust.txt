@@ -1,0 +1,18 @@
+== run 1
+kernels: rust
+  100 zombies: 0.52 ms/step avg, 3.03 ms worst
+  300 zombies: 0.60 ms/step avg, 2.36 ms worst
+  600 zombies: 1.11 ms/step avg, 2.50 ms worst
+ 1000 zombies: 1.75 ms/step avg, 4.50 ms worst
+== run 2
+kernels: rust
+  100 zombies: 0.49 ms/step avg, 3.19 ms worst
+  300 zombies: 0.61 ms/step avg, 1.94 ms worst
+  600 zombies: 1.07 ms/step avg, 2.74 ms worst
+ 1000 zombies: 1.74 ms/step avg, 4.66 ms worst
+== run 3
+kernels: rust
+  100 zombies: 0.49 ms/step avg, 3.38 ms worst
+  300 zombies: 0.61 ms/step avg, 2.54 ms worst
+  600 zombies: 1.04 ms/step avg, 2.42 ms worst
+ 1000 zombies: 1.77 ms/step avg, 4.53 ms worst

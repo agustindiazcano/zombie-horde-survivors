@@ -1,4 +1,24 @@
-import init, { initSync, FlowSearch, Ocean, Separation } from './sim-core/sim_core.js';
+import init, {
+  initSync,
+  FlowSearch,
+  Ocean,
+  Separation,
+  Walls,
+  d_atan2,
+  d_cos,
+  d_exp,
+  d_log,
+  d_pow,
+  d_sin,
+  sim_atan2,
+  sim_cos,
+  sim_exp,
+  sim_hypot,
+  sim_hypot3,
+  sim_ln,
+  sim_pow,
+  sim_sin,
+} from './sim-core/sim_core.js';
 
 /**
  * Loads the Rust / WebAssembly module of `crates/sim-core` (rebuild it with `npm run build:wasm`).
@@ -32,4 +52,23 @@ export function simCoreMemory(): WebAssembly.Memory {
   return memory;
 }
 
-export { FlowSearch, Ocean, Separation };
+export {
+  d_atan2,
+  d_cos,
+  d_exp,
+  d_log,
+  d_pow,
+  d_sin,
+  FlowSearch,
+  Ocean,
+  Separation,
+  Walls,
+  sim_hypot,
+  sim_hypot3,
+  sim_sin,
+  sim_cos,
+  sim_atan2,
+  sim_pow,
+  sim_exp,
+  sim_ln,
+};

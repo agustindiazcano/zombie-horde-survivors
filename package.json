@@ -20,6 +20,7 @@
     "check:rapier": "node scripts/check-rapier.mjs",
     "check:sim-hash": "node scripts/check-sim-hash.mjs",
     "check:kernels": "node scripts/check-kernels.mjs",
+    "check:dmath": "node scripts/check-dmath.mjs",
     "check:ocean": "node scripts/check-ocean.mjs",
     "check:ocean-wasm": "node scripts/check-ocean-wasm.mjs",
     "build:wasm": "wasm-pack build crates/sim-core --release --target web --no-pack --out-dir ../../src/wasm/sim-core",

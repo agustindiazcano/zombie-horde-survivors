@@ -7,8 +7,10 @@ import { hurtSoldier } from './soldiers';
 import { hurtStructure, syncStructures } from './structures';
 import type { Carry, Fire, GameObject, GameState, Soldier } from './types';
 import { hurtVehicle } from './vehicles';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 import { damageZombie } from './zombies';
+import { datan2, dcos, dsin } from './dmath';
 
 /** Fires lit by one destroyed container are scattered within this share of its blast radius. */
 const SCATTER = 0.7;
@@ -121,8 +123,8 @@ export function dropCarried(state: GameState, config: GameConfig, me: Soldier): 
     const o = getObject(state, c.id);
     if (!o) return;
     o.heldBy = null;
-    o.pos.x = me.pos.x + Math.sin(me.facing) * DROP_DISTANCE;
-    o.pos.z = me.pos.z + Math.cos(me.facing) * DROP_DISTANCE;
+    o.pos.x = me.pos.x + dsin(me.facing) * DROP_DISTANCE;
+    o.pos.z = me.pos.z + dcos(me.facing) * DROP_DISTANCE;
     resolveStatic(o.pos, objectDef(config, o).radius, config.arena);
     o.y = supportHeight(config.arena, o.pos, 0);
     syncStructures(state, config);
@@ -155,7 +157,7 @@ export function liftOrDrop(
   const oc = config.objects;
   let best: { carry: Omit<Carry, 'speed'>; d: number } | null = null;
   const consider = (kind: Carry['kind'], id: number, weight: number, x: number, z: number) => {
-    const d = Math.hypot(x - me.pos.x, z - me.pos.z);
+    const d = hypot(x - me.pos.x, z - me.pos.z);
     if (d <= oc.liftRange && (!best || d < best.d)) best = { carry: { kind, id, weight }, d };
   };
   for (const o of state.objects) {
@@ -206,10 +208,10 @@ export function throwCarried(
   const reach = Math.max(MIN_THROW, oc.throwRange * (1 - oc.throwLoadLoss * share));
   const dx = aim.x - me.pos.x;
   const dz = aim.z - me.pos.z;
-  const d = Math.hypot(dx, dz);
+  const d = hypot(dx, dz);
   const k = d > reach ? reach / d : 1;
   const to = { x: me.pos.x + dx * k, z: me.pos.z + dz * k };
-  const run = Math.hypot(to.x - me.pos.x, to.z - me.pos.z);
+  const run = hypot(to.x - me.pos.x, to.z - me.pos.z);
   o.heldBy = null;
   o.flight = {
     from: { x: me.pos.x, z: me.pos.z },
@@ -219,7 +221,7 @@ export function throwCarried(
     flown: 0,
     thrower: me.id,
   };
-  if (run > 0.01) me.facing = Math.atan2(to.x - me.pos.x, to.z - me.pos.z);
+  if (run > 0.01) me.facing = datan2(to.x - me.pos.x, to.z - me.pos.z);
   me.carrying = null;
   syncStructures(state, config);
   me.fireCooldown = Math.max(me.fireCooldown, 0.4);
@@ -236,7 +238,7 @@ function explodeAt(state: GameState, config: GameConfig, o: GameObject, def: Obj
   const at = o.pos;
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
-    const d = Math.hypot(z.pos.x - at.x, z.pos.z - at.z);
+    const d = hypot(z.pos.x - at.x, z.pos.z - at.z);
     if (d <= blast.radius + z.radius) {
       damageZombie(state, config, z, blastAt(blast.damage, d, blast.radius));
       blastLimbs(state, config, z, at, d, blast.radius);
@@ -244,7 +246,7 @@ function explodeAt(state: GameState, config: GameConfig, o: GameObject, def: Obj
   }
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone' || inShelter(s)) continue;
-    const d = Math.hypot(s.pos.x - at.x, s.pos.z - at.z);
+    const d = hypot(s.pos.x - at.x, s.pos.z - at.z);
     if (d <= blast.radius && config.grenades.friendlyFire > 0) {
       hurtSoldier(
         state,
@@ -256,19 +258,19 @@ function explodeAt(state: GameState, config: GameConfig, o: GameObject, def: Obj
     }
   }
   for (const v of [...state.vehicles]) {
-    const d = Math.hypot(v.pos.x - at.x, v.pos.z - at.z);
+    const d = hypot(v.pos.x - at.x, v.pos.z - at.z);
     if (d <= blast.radius + config.vehicles[v.type]!.radius && v.seats.some((id) => id !== null)) {
       hurtVehicle(state, config, v, blastAt(blast.damage, d, blast.radius));
     }
   }
   for (const s of [...state.structures]) {
-    const d = Math.hypot(s.x - at.x, s.z - at.z);
+    const d = hypot(s.x - at.x, s.z - at.z);
     if (d <= blast.radius) hurtStructure(state, config, s, blastAt(blast.damage, d, blast.radius));
   }
   // The blast sets off the objects near it (barrels chain).
   for (const other of [...state.objects]) {
     if (other === o) continue;
-    const d = Math.hypot(other.pos.x - at.x, other.pos.z - at.z);
+    const d = hypot(other.pos.x - at.x, other.pos.z - at.z);
     if (d <= blast.radius) hurtObject(state, config, other, blastAt(blast.damage, d, blast.radius));
   }
   state.events.push({ type: 'explosion', pos: { x: at.x, z: at.z }, radius: blast.radius });
@@ -299,7 +301,7 @@ export function hurtObject(
   for (let i = 0; i < fires; i++) {
     const angle = nextFloat(state.rng) * Math.PI * 2;
     const dist = Math.sqrt(nextFloat(state.rng)) * spread;
-    ignite(state, config, o.pos.x + Math.sin(angle) * dist, o.pos.z + Math.cos(angle) * dist);
+    ignite(state, config, o.pos.x + dsin(angle) * dist, o.pos.z + dcos(angle) * dist);
   }
 }
 
@@ -314,7 +316,7 @@ function land(state: GameState, config: GameConfig, o: GameObject): void {
   const hit = def.radius + 0.8;
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
-    if (Math.hypot(z.pos.x - o.pos.x, z.pos.z - o.pos.z) > hit + z.radius) continue;
+    if (hypot(z.pos.x - o.pos.x, z.pos.z - o.pos.z) > hit + z.radius) continue;
     damageZombie(state, config, z, def.weight * config.objects.damagePerKg, thrower);
     z.stagger = Math.max(z.stagger, config.objects.stagger);
   }

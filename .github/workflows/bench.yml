@@ -20,6 +20,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -46,6 +48,13 @@ jobs:
           KERNELS: rust
         run: |
           for i in 1 2 3; do echo "== run $i"; npm run bench:sim 2>&1 | grep -E "kernels:|zombies:"; done | tee bench-results/bench-sim-rust.txt
+      - name: Baselines on this same machine (before the Rust work, and main)
+        run: |
+          for ref in e192428 origin/main; do
+            d="../base-$(echo "$ref" | tr '/' '-')"
+            git worktree add -f "$d" "$ref" > /dev/null
+            (cd "$d" && npm ci --silent && for i in 1 2 3; do echo "== $ref run $i"; npm run bench:sim 2>&1 | grep -E "zombies:"; done)
+          done | tee bench-results/bench-sim-baselines.txt
       - name: Physics benchmark
         run: npm run bench:physics 2>&1 | tee bench-results/bench-physics.txt
       - name: Ragdoll and ocean checks
@@ -64,7 +73,7 @@ jobs:
         run: |
           {
             echo "## Benchmarks on ${{ matrix.os }}"
-            for f in machine hashes bench-sim bench-sim-rust bench-physics ragdoll-ocean kernels ocean-wasm; do
+            for f in machine hashes bench-sim bench-sim-rust bench-sim-baselines bench-physics ragdoll-ocean kernels ocean-wasm; do
               echo; echo "### $f"; echo '```'; cat bench-results/$f.txt 2>/dev/null; echo '```'
             done
           } >> "$GITHUB_STEP_SUMMARY"

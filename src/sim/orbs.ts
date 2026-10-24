@@ -1,7 +1,9 @@
 import type { GameConfig } from './config';
 import { nextFloat } from './rng';
 import type { Animal, GameState, Orb } from './types';
+import { hypot, hypot3 } from './vec';
 import type { Vec2 } from './vec';
+import { dcos, dsin } from './dmath';
 
 type OrbDef = GameConfig['orbs'][string];
 
@@ -47,7 +49,7 @@ function nearestCivilian(state: GameState, config: GameConfig, from: Vec2): Anim
   let bestD = Infinity;
   for (const a of state.animals) {
     if (!isCivilian(config, a) || a.lift > 0 || a.burn > 0) continue;
-    const d = Math.hypot(a.pos.x - from.x, a.pos.z - from.z);
+    const d = hypot(a.pos.x - from.x, a.pos.z - from.z);
     if (d < bestD) {
       bestD = d;
       best = a;
@@ -61,7 +63,7 @@ function scare(state: GameState, config: GameConfig, at: Vec2, radius: number): 
   for (const a of state.animals) {
     const def = config.animals[a.type];
     if (!def?.fearRadius || a.lift > 0 || a.burn > 0) continue;
-    if (Math.hypot(a.pos.x - at.x, a.pos.z - at.z) > Math.max(radius, def.fearRadius)) continue;
+    if (hypot(a.pos.x - at.x, a.pos.z - at.z) > Math.max(radius, def.fearRadius)) continue;
     a.panic = 12;
     a.fear = { x: at.x, z: at.z };
   }
@@ -190,7 +192,7 @@ function flyTo(
   const mx = to.x - orb.pos.x;
   const my = to.y - orb.y;
   const mz = to.z - orb.pos.z;
-  const d = Math.hypot(mx, my, mz);
+  const d = hypot3(mx, my, mz);
   const step = speed * dt;
   if (d <= step) {
     orb.pos.x = to.x;
@@ -222,14 +224,14 @@ function updateScout(
       const a = nextFloat(state.rng) * Math.PI * 2;
       const r = Math.sqrt(nextFloat(state.rng)) * 6;
       orb.waypoint = {
-        x: centre.x + Math.cos(a) * r,
+        x: centre.x + dcos(a) * r,
         y: def.lowHeight ?? 5.5,
-        z: centre.z + Math.sin(a) * r,
+        z: centre.z + dsin(a) * r,
       };
     }
     const reached = flyTo(orb, orb.waypoint, def.chaseSpeed * 0.5, dt);
     if (reached) {
-      orb.y = (def.lowHeight ?? 5.5) + Math.sin(state.time * 1.3 + orb.id) * 0.25;
+      orb.y = (def.lowHeight ?? 5.5) + dsin(state.time * 1.3 + orb.id) * 0.25;
     }
     return;
   }
@@ -240,9 +242,9 @@ function updateScout(
     const a = nextFloat(state.rng) * Math.PI * 2;
     const r = Math.sqrt(nextFloat(state.rng)) * (def.roamRadius ?? 40);
     orb.waypoint = {
-      x: centre.x + Math.cos(a) * r,
+      x: centre.x + dcos(a) * r,
       y: between(state, 8, def.height + 10),
-      z: centre.z + Math.sin(a) * r,
+      z: centre.z + dsin(a) * r,
     };
   }
   if (flyTo(orb, orb.waypoint, def.chaseSpeed * between(state, 0.6, 1.3), dt)) {
@@ -295,7 +297,7 @@ function updateAbductor(
     // Everyone under the moving ray goes up in a few moments.
     for (const a of state.animals) {
       if (!isCivilian(config, a) || a.lift > 0 || a.burnSpeed > 0) continue;
-      if (Math.hypot(a.pos.x - tip.x, a.pos.z - tip.z) > SWEEP_WIDTH) continue;
+      if (hypot(a.pos.x - tip.x, a.pos.z - tip.z) > SWEEP_WIDTH) continue;
       a.burn = Math.max(a.burn, 0.02);
       a.burnSpeed = 1 / SWEEP_BURN;
       a.panic = 0;
@@ -357,8 +359,8 @@ const SWEEP_BURN = 0.8;
 function startSweep(state: GameState, orb: Orb, def: OrbDef, work: Vec2): void {
   const angle = nextFloat(state.rng) * Math.PI;
   const half = (def.sweepLength ?? 30) / 2;
-  const dx = Math.cos(angle) * half;
-  const dz = Math.sin(angle) * half;
+  const dx = dcos(angle) * half;
+  const dz = dsin(angle) * half;
   orb.sweep = {
     from: { x: work.x - dx, z: work.z - dz },
     to: { x: work.x + dx, z: work.z + dz },
@@ -420,7 +422,7 @@ function startNextVictim(
 function jumpBeside(orb: Orb, to: Vec2, distance: number): void {
   const dx = orb.pos.x - to.x;
   const dz = orb.pos.z - to.z;
-  const d = Math.hypot(dx, dz) || 1;
+  const d = hypot(dx, dz) || 1;
   orb.pos.x = to.x + (dx / d) * distance;
   orb.pos.z = to.z + (dz / d) * distance;
   // No interpolation across the jump: it simply is there.
@@ -432,12 +434,12 @@ function jumpBeside(orb: Orb, to: Vec2, distance: number): void {
 function follow(orb: Orb, to: Vec2, distance: number, step: number): void {
   const dx = orb.pos.x - to.x;
   const dz = orb.pos.z - to.z;
-  const d = Math.hypot(dx, dz) || 1;
+  const d = hypot(dx, dz) || 1;
   const wantX = to.x + (dx / d) * distance;
   const wantZ = to.z + (dz / d) * distance;
   const mx = wantX - orb.pos.x;
   const mz = wantZ - orb.pos.z;
-  const m = Math.hypot(mx, mz);
+  const m = hypot(mx, mz);
   if (m < 1e-6) return;
   const k = Math.min(m, step) / m;
   orb.pos.x += mx * k;

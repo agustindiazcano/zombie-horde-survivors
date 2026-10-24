@@ -1,4 +1,6 @@
 import type { GameConfig } from './config';
+import { hypot } from './vec';
+import { datan2, dcos, dexp, dlog, dpow, dsin } from './dmath';
 
 /** The numbers of the wave ocean (`ocean` in game.json, overridden by the map). */
 export type OceanParams = GameConfig['ocean'];
@@ -30,11 +32,11 @@ function jonswap(o: OceanParams): { k: number[]; amp: number[] } {
   const k: number[] = [];
   const raw: number[] = [];
   for (let i = 0; i < WAVE_COUNT; i++) {
-    const ki = o.frequency * JON_START * Math.pow(JON_RATIO, i);
+    const ki = o.frequency * JON_START * dpow(JON_RATIO, i);
     const w = Math.sqrt(GRAVITY * ki);
     const sigma = w <= wp ? JON_SIGMA_LOW : JON_SIGMA_HIGH;
-    const r = Math.exp(-((w - wp) * (w - wp)) / (2 * sigma * sigma * wp * wp));
-    const s = Math.pow(w, -5) * Math.exp(-1.25 * Math.pow(wp / w, 4)) * Math.pow(JON_GAMMA, r);
+    const r = dexp(-((w - wp) * (w - wp)) / (2 * sigma * sigma * wp * wp));
+    const s = dpow(w, -5) * dexp(-1.25 * dpow(wp / w, 4)) * dpow(JON_GAMMA, r);
     k.push(ki);
     raw.push(Math.sqrt(s * w));
   }
@@ -106,9 +108,9 @@ function buildTable(o: OceanParams): WaveTable {
     angle += o.chaos * (r2 - 0.5) * (Math.PI / 2);
     // Golden, Fibonacci and random layouts lean towards +z; swell and custom go exactly where told.
     const pull = swell || jon || o.pattern === 'custom' ? 0 : HEADING;
-    const x = Math.cos(angle) * (1 - pull);
-    const z = Math.sin(angle) * (1 - pull) + pull;
-    const len = Math.hypot(x, z);
+    const x = dcos(angle) * (1 - pull);
+    const z = dsin(angle) * (1 - pull) + pull;
+    const len = hypot(x, z);
     table.dx[i] = x / len;
     table.dz[i] = z / len;
     table.amp[i] = (jon ? jon.amp[i]! : amp) * (1 + o.chaos * (r3 - 0.5) * 0.8);
@@ -127,6 +129,20 @@ function buildTable(o: OceanParams): WaveTable {
   }
   return table;
 }
+
+/**
+ * The implementation `oceanHeight` and `oceanFlowAt` run with. TypeScript by default; once the Rust module
+ * has loaded (`src/wasm/rustKernels.ts`) it takes over: it gives the same bits (`npm run check:ocean-wasm`)
+ * and is about twice as fast. If it ever throws, TypeScript takes back and stays.
+ */
+export interface OceanBackend {
+  height(o: OceanParams, level: number, groundY: number, x: number, z: number, t: number): number;
+  flowAt(o: OceanParams, x: number, z: number, out: { x: number; z: number }): void;
+}
+let oceanBackend: OceanBackend | null = null;
+export const useOceanBackend = (next: OceanBackend | null): void => {
+  oceanBackend = next;
+};
 
 let snap: OceanParams | null = null;
 let cachedTable: WaveTable | null = null;
@@ -157,14 +173,14 @@ const WIND_CURRENT = 3;
 
 /** The steady current (m/s) as (x, z): the map's current plus what the wind pushes. */
 export function currentVector(o: OceanParams, out: { x: number; z: number }): void {
-  out.x = Math.cos(o.currentAngle) * o.currentSpeed + WIND_CURRENT * o.wind;
-  out.z = Math.sin(o.currentAngle) * o.currentSpeed;
+  out.x = dcos(o.currentAngle) * o.currentSpeed + WIND_CURRENT * o.wind;
+  out.z = dsin(o.currentAngle) * o.currentSpeed;
 }
 
 const currentScratch = { x: 0, z: 0 };
 
 /** Spiral growth of a whirlpool: `2 ln(phi) / pi` (the golden spiral's pitch). */
-const K_SPIRAL = (2 * Math.log(PHI)) / Math.PI;
+const K_SPIRAL = (2 * dlog(PHI)) / Math.PI;
 /** Keeps the funnel and the speeds finite at the centre. */
 const VORTEX_SAT = 0.25;
 
@@ -183,12 +199,11 @@ export function vortexHeight(o: OceanParams, x: number, z: number, t: number): n
   for (const v of o.vortices) {
     const dx = x - v.x;
     const dz = z - v.z;
-    const r = Math.hypot(dx, dz);
+    const r = hypot(dx, dz);
     const rn = (r * 14.5) / v.radius;
-    const funnel = (-20 * v.strength) / (1 + Math.pow(r / v.radius, 1.65) + VORTEX_SAT);
-    const phase = 3 * Math.atan2(dz, dx) + rn * K_SPIRAL * 0.85 - t * 3.4;
-    h +=
-      funnel + Math.sin(phase) * 1.2 * v.strength * Math.exp(-rn * 0.025) * smooth01((rn - 2) / 12);
+    const funnel = (-20 * v.strength) / (1 + dpow(r / v.radius, 1.65) + VORTEX_SAT);
+    const phase = 3 * datan2(dz, dx) + rn * K_SPIRAL * 0.85 - t * 3.4;
+    h += funnel + dsin(phase) * 1.2 * v.strength * dexp(-rn * 0.025) * smooth01((rn - 2) / 12);
   }
   return h;
 }
@@ -211,6 +226,13 @@ export function oceanHeight(
   z: number,
   t: number,
 ): number {
+  if (oceanBackend) {
+    try {
+      return oceanBackend.height(o, level, groundY, x, z, t);
+    } catch {
+      oceanBackend = null;
+    }
+  }
   const fade = waveFade(o, level, groundY);
   if (fade <= 0) return level;
   currentVector(o, currentScratch);
@@ -221,9 +243,9 @@ export function oceanHeight(
   for (let i = 0; i < WAVE_COUNT; i++) {
     const phase =
       ((x - cx) * w.dx[i]! + (z - cz) * w.dz[i]!) * w.freq[i]! + t * w.speed[i]! + w.phase[i]!;
-    const s = Math.sin(phase);
-    const smooth = s + o.silk * 0.8 * Math.cos(phase * 2);
-    const sharp = (Math.pow(1 - Math.abs(s), w.pressure[i]!) - 0.45) * 2.15;
+    const s = dsin(phase);
+    const smooth = s + o.silk * 0.8 * dcos(phase * 2);
+    const sharp = (dpow(1 - Math.abs(s), w.pressure[i]!) - 0.45) * 2.15;
     sum += (smooth * (1 - o.hooke) + sharp * o.hooke) * w.amp[i]!;
   }
   return level + (sum + vortexHeight(o, x, z, t)) * fade * (1 - o.frozen);
@@ -246,11 +268,19 @@ export function oceanFlowAt(
   z: number,
   out: { x: number; z: number },
 ): void {
+  if (oceanBackend) {
+    try {
+      oceanBackend.flowAt(o, x, z, out);
+      return;
+    } catch {
+      oceanBackend = null;
+    }
+  }
   oceanFlow(o, out);
   for (const v of o.vortices) {
     const dx = x - v.x;
     const dz = z - v.z;
-    const r = Math.hypot(dx, dz);
+    const r = hypot(dx, dz);
     const rn = (r * 14.5) / v.radius;
     if (v.strength <= 0.01 || rn >= 95) continue;
     const rSafe = Math.sqrt(rn * rn + (1 / VORTEX_SAT) * 8);

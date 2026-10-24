@@ -1,10 +1,10 @@
 import { inShelter } from './shelter';
-import { resolveStatic, supportHeight } from './collision';
+import { dynamicSolids, resolveStatic, supportHeight } from './collision';
 import { STEP_UP } from './constants';
 import type { GameConfig, Loadout } from './config';
 import { ageFlow, steerTarget } from './flowfield';
 import { maybeDropCrate } from './inventory';
-import { newSeparationScratch, runSeparate } from './kernels';
+import { flatObstacles, newSeparationScratch, runResolveWalls, runSeparate } from './kernels';
 import { dropLoot, rewardOf } from './loot';
 import { hasLimbs, severLimb, woundLimb } from './dismember';
 import { firstPlayerOf } from './players';
@@ -15,7 +15,9 @@ import { huntTarget, wanderStep } from './wander';
 import { gunOf, weaponDef } from './stats';
 import type { BodyZone, GameState, HitKind, Soldier, Vehicle, Zombie } from './types';
 import { hurtVehicle, isOccupied } from './vehicles';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { datan2 } from './dmath';
 
 /** A boss's multipliers: the nth boss (1-based) reads the nth list entry, then keeps growing. */
 export function bossStats(config: GameConfig, nth: number) {
@@ -148,7 +150,7 @@ export function damageZombie(
     nextFloat(state.rng) < config.dismember.cutChance
   ) {
     const away = killer
-      ? Math.atan2(zombie.pos.x - killer.pos.x, zombie.pos.z - killer.pos.z)
+      ? datan2(zombie.pos.x - killer.pos.x, zombie.pos.z - killer.pos.z)
       : zombie.facing + Math.PI;
     severLimb(state, config, zombie, 'legs', away);
   }
@@ -220,8 +222,8 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     const reach = z.attackRange + (vehicle ? config.vehicles[vehicle.type]!.radius : 0);
     const dx = target.x - z.pos.x;
     const dz = target.z - z.pos.z;
-    const d = Math.hypot(dx, dz);
-    if (d > 1e-9) z.facing = Math.atan2(dx, dz);
+    const d = hypot(dx, dz);
+    if (d > 1e-9) z.facing = datan2(dx, dz);
 
     if (d > reach) {
       // Without legs it can no longer climb.
@@ -238,7 +240,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
           z.state = 'attack';
           z.attackTimer = zc.attackCooldown;
         }
-        z.facing = Math.atan2(wall.x - z.pos.x, wall.z - z.pos.z);
+        z.facing = datan2(wall.x - z.pos.x, wall.z - z.pos.z);
         if (def.thorns > 0) damageZombie(state, config, z, def.thorns * dt);
         z.attackTimer -= dt;
         if (z.attackTimer <= 0) {
@@ -250,7 +252,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       z.state = 'walk';
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
-      const td = Math.hypot(tx, tz) || 1;
+      const td = hypot(tx, tz) || 1;
       z.pos.x += (tx / td) * z.speed * dt;
       z.pos.z += (tz / td) * z.speed * dt;
       const acrobat = config.enemies[z.type]?.acrobat;
@@ -350,6 +352,7 @@ function separateZombies(state: GameState, config: GameConfig): void {
     sepX = new Float64Array(count * 2);
     sepZ = new Float64Array(count * 2);
     sepR = new Float64Array(count * 2);
+    sepFeet = new Float64Array(count * 2);
     sepAlive = new Uint8Array(count * 2);
   }
   let widest = 0;
@@ -360,28 +363,37 @@ function separateZombies(state: GameState, config: GameConfig): void {
     sepX[i] = z.pos.x;
     sepZ[i] = z.pos.z;
     sepR[i] = z.radius;
+    // A climber passes over the boxes beneath its feet.
+    const climb = z.parts.legs ? (config.enemies[z.type]?.climber?.maxHeight ?? 0) : 0;
+    sepFeet[i] = climbFeet(climb);
     if (alive && z.radius > widest) widest = z.radius;
   }
-  runSeparate(
-    sepScratch,
-    sepX.subarray(0, count),
-    sepZ.subarray(0, count),
-    sepR.subarray(0, count),
-    sepAlive.subarray(0, count),
-    count,
-    config.arena.halfSize,
-    widest,
-  );
+  const x = sepX.subarray(0, count);
+  const z = sepZ.subarray(0, count);
+  const r = sepR.subarray(0, count);
+  const alive = sepAlive.subarray(0, count);
+  runSeparate(sepScratch, x, z, r, alive, count, config.arena.halfSize, widest);
+  // Walls push the zombies out of the obstacles: the flat kernel, unless the physics lab's solids
+  // are in play (Map 12), which only the per-body `resolveStatic` knows about.
+  const flat = dynamicSolids().length === 0;
+  if (flat) {
+    runResolveWalls(
+      flatObstacles(config.arena),
+      x,
+      z,
+      r,
+      sepFeet.subarray(0, count),
+      alive,
+      count,
+      STEP_UP,
+    );
+  }
   for (let i = 0; i < count; i++) {
     if (sepAlive[i] === 0) continue;
-    const z = zombies[i]!;
-    z.pos.x = sepX[i]!;
-    z.pos.z = sepZ[i]!;
-  }
-  for (const z of zombies) {
-    if (z.state === 'death') continue;
-    const climb = z.parts.legs ? (config.enemies[z.type]?.climber?.maxHeight ?? 0) : 0;
-    resolveStatic(z.pos, z.radius, config.arena, climbFeet(climb));
+    const body = zombies[i]!;
+    body.pos.x = sepX[i]!;
+    body.pos.z = sepZ[i]!;
+    if (!flat) resolveStatic(body.pos, body.radius, config.arena, sepFeet[i]!);
   }
 }
 
@@ -392,30 +404,36 @@ const CLIMB_EASE = 10;
 const climbFeet = (climbHeight: number): number => (climbHeight > 0 ? climbHeight - STEP_UP : 0);
 
 /** Buffers of `separateZombies`, grown with the horde. */
+/** What `nearestTarget` found; reused by every call, so read it before calling again. */
+interface NearestTarget {
+  target: Vec2;
+  soldier?: Soldier;
+  vehicle?: Vehicle;
+}
+const nearest: NearestTarget = { target: { x: 0, z: 0 } };
 const sepScratch = newSeparationScratch();
 let sepX = new Float64Array(0);
 let sepZ = new Float64Array(0);
 let sepR = new Float64Array(0);
+let sepFeet = new Float64Array(0);
 let sepAlive = new Uint8Array(0);
 /**
  * The closest thing a zombie goes for: a soldier on foot (a downed one counts as farther away, so
  * standing soldiers come first) or a vehicle with someone in it. Soldiers inside a vehicle
  * cannot be reached, only the hull can.
  */
-function nearestTarget(
-  state: GameState,
-  config: GameConfig,
-  from: Vec2,
-): { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null {
-  let best: { target: Vec2; soldier?: Soldier; vehicle?: Vehicle } | null = null;
+function nearestTarget(state: GameState, config: GameConfig, from: Vec2): NearestTarget | null {
+  let best: Soldier | Vehicle | null = null;
+  let bestIsSoldier = false;
   let bestD = Infinity;
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone' || inShelter(s)) continue; // flying units can't be reached
-    const d = Math.hypot(s.pos.x - from.x, s.pos.z - from.z);
+    const d = hypot(s.pos.x - from.x, s.pos.z - from.z);
     const felt = s.downed ? d * config.downed.targetDistanceScale : d;
     if (felt < bestD) {
       bestD = felt;
-      best = { target: s.pos, soldier: s };
+      best = s;
+      bestIsSoldier = true;
     }
   }
   for (const v of state.vehicles) {
@@ -423,11 +441,17 @@ function nearestTarget(
     // A helicopter above reach cannot be bitten.
     const safe = config.vehicles[v.type]!.air?.safeAlt;
     if (v.air && safe !== undefined && v.air.alt > safe) continue;
-    const d = Math.hypot(v.pos.x - from.x, v.pos.z - from.z) - config.vehicles[v.type]!.radius;
+    const d = hypot(v.pos.x - from.x, v.pos.z - from.z) - config.vehicles[v.type]!.radius;
     if (d < bestD) {
       bestD = d;
-      best = { target: v.pos, vehicle: v };
+      best = v;
+      bestIsSoldier = false;
     }
   }
-  return best;
+  if (!best) return null;
+  // One shared result: this runs once per zombie per step, and a fresh object each time was garbage.
+  nearest.target = best.pos;
+  nearest.soldier = bestIsSoldier ? (best as Soldier) : undefined;
+  nearest.vehicle = bestIsSoldier ? undefined : (best as Vehicle);
+  return nearest;
 }

@@ -3,6 +3,7 @@ import { resolveStatic } from './collision';
 import { nextFloat } from './rng';
 import type { GameState } from './types';
 import { spawnZombie } from './zombies';
+import { hypot } from './vec';
 
 export const waveSize = (config: GameConfig, wave: number): number =>
   Math.round(
@@ -84,7 +85,7 @@ function spawnWanderer(
     at.z = (nextFloat(state.rng) * 2 - 1) * lim;
     resolveStatic(at, radius, config.arena);
     const near = state.soldiers.some(
-      (s) => !s.dead && Math.hypot(s.pos.x - at.x, s.pos.z - at.z) < keepAway,
+      (s) => !s.dead && hypot(s.pos.x - at.x, s.pos.z - at.z) < keepAway,
     );
     if (!near) break;
   }

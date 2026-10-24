@@ -1,0 +1,63 @@
+== run 1
+  80x80            0        0.752            0.509               0.505
+160x160            0        3.561            2.596               2.575
+320x320            0       17.337           12.334              12.247
+
+walls   bodies   bits differ (flat TS, Rust vs original)   original ms   flat TS ms   Rust ms
+map 1       1000                                  0          0.233        0.031      0.028
+60 boxes    1000                                  0          0.249        0.031      0.029
+400 boxes   1000                                  0          0.427        0.045      0.040
+400 boxes   5000                                  0          2.224        0.388      0.324
+
+hypot over 2000000 samples: differs from Math.hypot 0, from Rust 0; hypot3: from Math.hypot 0, from Rust 0
+
+standard maths, Rust against V8 (information only):
+sin    Rust differs from V8 in 4544 of 500000 (0.91%)
+cos    Rust differs from V8 in 4654 of 500000 (0.93%)
+atan2  Rust differs from V8 in 0 of 500000 (0.00%)
+pow    Rust differs from V8 in 22572 of 500000 (4.51%)
+exp    Rust differs from V8 in 0 of 500000 (0.00%)
+ln     Rust differs from V8 in 2101 of 500000 (0.42%)
+OK: bit for bit identical
+== run 2
+  80x80            0        0.723            0.508               0.505
+160x160            0        3.553            2.597               2.574
+320x320            0       17.323           12.277              12.185
+
+walls   bodies   bits differ (flat TS, Rust vs original)   original ms   flat TS ms   Rust ms
+map 1       1000                                  0          0.222        0.031      0.028
+60 boxes    1000                                  0          0.243        0.031      0.029
+400 boxes   1000                                  0          0.429        0.044      0.041
+400 boxes   5000                                  0          2.186        0.390      0.323
+
+hypot over 2000000 samples: differs from Math.hypot 0, from Rust 0; hypot3: from Math.hypot 0, from Rust 0
+
+standard maths, Rust against V8 (information only):
+sin    Rust differs from V8 in 4544 of 500000 (0.91%)
+cos    Rust differs from V8 in 4654 of 500000 (0.93%)
+atan2  Rust differs from V8 in 0 of 500000 (0.00%)
+pow    Rust differs from V8 in 22572 of 500000 (4.51%)
+exp    Rust differs from V8 in 0 of 500000 (0.00%)
+ln     Rust differs from V8 in 2101 of 500000 (0.42%)
+OK: bit for bit identical
+== run 3
+  80x80            0        0.725            0.510               0.505
+160x160            0        3.562            2.584               2.586
+320x320            0       17.401           12.250              12.168
+
+walls   bodies   bits differ (flat TS, Rust vs original)   original ms   flat TS ms   Rust ms
+map 1       1000                                  0          0.220        0.031      0.028
+60 boxes    1000                                  0          0.252        0.031      0.029
+400 boxes   1000                                  0          0.430        0.044      0.040
+400 boxes   5000                                  0          2.251        0.389      0.324
+
+hypot over 2000000 samples: differs from Math.hypot 0, from Rust 0; hypot3: from Math.hypot 0, from Rust 0
+
+standard maths, Rust against V8 (information only):
+sin    Rust differs from V8 in 4544 of 500000 (0.91%)
+cos    Rust differs from V8 in 4654 of 500000 (0.93%)
+atan2  Rust differs from V8 in 0 of 500000 (0.00%)
+pow    Rust differs from V8 in 22572 of 500000 (4.51%)
+exp    Rust differs from V8 in 0 of 500000 (0.00%)
+ln     Rust differs from V8 in 2101 of 500000 (0.42%)
+OK: bit for bit identical

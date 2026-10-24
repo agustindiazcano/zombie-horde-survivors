@@ -7,6 +7,7 @@
 
 use wasm_bindgen::prelude::*;
 
+pub mod dmath;
 pub mod kernels;
 
 const WAVE_COUNT: usize = 8;
@@ -61,7 +62,7 @@ fn golden_angle() -> f64 {
 }
 
 fn k_spiral() -> f64 {
-    (2.0 * PHI.ln()) / PI
+    (2.0 * dmath::dlog(PHI)) / PI
 }
 
 fn smooth01(x: f64) -> f64 {
@@ -71,7 +72,7 @@ fn smooth01(x: f64) -> f64 {
 
 /// `Math.hypot` of two numbers.
 fn hypot(a: f64, b: f64) -> f64 {
-    a.hypot(b)
+    kernels::hypot(a, b)
 }
 
 /// The seeded generator of the TypeScript side (`mulberry32`), in wrapping `u32` maths.
@@ -113,15 +114,17 @@ fn jonswap(p: &[f64; PARAM_COUNT]) -> ([f64; WAVE_COUNT], [f64; WAVE_COUNT]) {
     let mut k = [0.0; WAVE_COUNT];
     let mut raw = [0.0; WAVE_COUNT];
     for i in 0..WAVE_COUNT {
-        let ki = frequency * JON_START * JON_RATIO.powf(i as f64);
+        let ki = frequency * JON_START * dmath::dpow(JON_RATIO, i as f64);
         let w = (GRAVITY * ki).sqrt();
         let sigma = if w <= wp {
             JON_SIGMA_LOW
         } else {
             JON_SIGMA_HIGH
         };
-        let r = (-((w - wp) * (w - wp)) / (2.0 * sigma * sigma * wp * wp)).exp();
-        let s = w.powf(-5.0) * (-1.25 * (wp / w).powf(4.0)).exp() * JON_GAMMA.powf(r);
+        let r = dmath::dexp(-((w - wp) * (w - wp)) / (2.0 * sigma * sigma * wp * wp));
+        let s = dmath::dpow(w, -5.0)
+            * dmath::dexp(-1.25 * dmath::dpow(wp / w, 4.0))
+            * dmath::dpow(JON_GAMMA, r);
         k[i] = ki;
         raw[i] = (s * w).sqrt();
     }
@@ -180,8 +183,8 @@ fn build_table(p: &[f64; PARAM_COUNT]) -> Table {
         } else {
             HEADING
         };
-        let x = angle.cos() * (1.0 - pull);
-        let z = angle.sin() * (1.0 - pull) + pull;
+        let x = dmath::dcos(angle) * (1.0 - pull);
+        let z = dmath::dsin(angle) * (1.0 - pull) + pull;
         let len = hypot(x, z);
         table.dx[i] = x / len;
         table.dz[i] = z / len;
@@ -299,8 +302,8 @@ impl Ocean {
         let angle = self.p[P_CURRENT_ANGLE];
         let speed = self.p[P_CURRENT_SPEED];
         (
-            angle.cos() * speed + WIND_CURRENT * self.p[P_WIND],
-            angle.sin() * speed,
+            dmath::dcos(angle) * speed + WIND_CURRENT * self.p[P_WIND],
+            dmath::dsin(angle) * speed,
         )
     }
 
@@ -312,13 +315,14 @@ impl Ocean {
             let dz = z - v.z;
             let r = hypot(dx, dz);
             let rn = (r * 14.5) / v.radius;
-            let funnel = (-20.0 * v.strength) / (1.0 + (r / v.radius).powf(1.65) + VORTEX_SAT);
-            let phase = 3.0 * dz.atan2(dx) + rn * k_spiral() * 0.85 - t * 3.4;
+            let funnel =
+                (-20.0 * v.strength) / (1.0 + dmath::dpow(r / v.radius, 1.65) + VORTEX_SAT);
+            let phase = 3.0 * dmath::datan2(dz, dx) + rn * k_spiral() * 0.85 - t * 3.4;
             h += funnel
-                + phase.sin()
+                + dmath::dsin(phase)
                     * 1.2
                     * v.strength
-                    * (-rn * 0.025).exp()
+                    * dmath::dexp(-rn * 0.025)
                     * smooth01((rn - 2.0) / 12.0);
         }
         h
@@ -347,9 +351,9 @@ impl Ocean {
         for i in 0..WAVE_COUNT {
             let phase =
                 ((x - cx) * w.dx[i] + (z - cz) * w.dz[i]) * w.freq[i] + t * w.speed[i] + w.phase[i];
-            let s = phase.sin();
-            let smooth = s + silk * 0.8 * (phase * 2.0).cos();
-            let sharp = ((1.0 - s.abs()).powf(w.pressure[i]) - 0.45) * 2.15;
+            let s = dmath::dsin(phase);
+            let smooth = s + silk * 0.8 * dmath::dcos(phase * 2.0);
+            let sharp = (dmath::dpow(1.0 - s.abs(), w.pressure[i]) - 0.45) * 2.15;
             sum += (smooth * (1.0 - hooke) + sharp * hooke) * w.amp[i];
         }
         level + (sum + self.vortex_height(x, z, t)) * fade * (1.0 - self.p[P_FROZEN])

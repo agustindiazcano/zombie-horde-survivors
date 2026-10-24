@@ -3,7 +3,9 @@ import type { GameConfig } from './config';
 import { obstaclesNear } from './grid';
 import { heightAt } from './terrain';
 import type { GameState, Vehicle } from './types';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { dcos, dsin } from './dmath';
 
 export type ShipShape = NonNullable<GameConfig['vehicles'][string]['ship']>;
 
@@ -53,8 +55,8 @@ function pushOutOfShips(state: GameState, config: GameConfig, pos: Vec2, radius:
   for (const ship of state.vehicles) {
     const def = config.vehicles[ship.type]!;
     if (!def.fixed || !def.ship) continue;
-    const sin = Math.sin(ship.facing);
-    const cos = Math.cos(ship.facing);
+    const sin = dsin(ship.facing);
+    const cos = dcos(ship.facing);
     const dx = pos.x - ship.pos.x;
     const dz = pos.z - ship.pos.z;
     // Into the ship's own frame: lz along the keel (towards the bow), lx across.
@@ -127,7 +129,7 @@ export function moveBoat(
         ? alongZ
         : { ...from };
   }
-  return { pos, hit: Math.hypot(pos.x - wanted.x, pos.z - wanted.z) > 1e-3 };
+  return { pos, hit: hypot(pos.x - wanted.x, pos.z - wanted.z) > 1e-3 };
 }
 
 /** Is a soldier of this radius free to stand at (x, z): dry ground clear of every obstacle? */
@@ -137,7 +139,7 @@ function standable(config: GameConfig, x: number, z: number, radius: number): bo
   for (const box of obstaclesNear(config.arena, x - radius, z - radius, x + radius, z + radius)) {
     const probe = { x, z };
     resolveCircleAabb(probe, radius, box);
-    if (Math.hypot(probe.x - x, probe.z - z) > 1e-6) return false;
+    if (hypot(probe.x - x, probe.z - z) > 1e-6) return false;
   }
   return true;
 }
@@ -159,8 +161,8 @@ export function landSpotNear(
     for (let k = 0; k < ANGLES; k++) {
       // Alternate either side of the preferred angle.
       const angle = start + (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * ((2 * Math.PI) / ANGLES);
-      const x = v.pos.x + Math.sin(angle) * reach;
-      const z = v.pos.z + Math.cos(angle) * reach;
+      const x = v.pos.x + dsin(angle) * reach;
+      const z = v.pos.z + dcos(angle) * reach;
       if (standable(config, x, z, config.player.radius)) return { x, z };
     }
   }

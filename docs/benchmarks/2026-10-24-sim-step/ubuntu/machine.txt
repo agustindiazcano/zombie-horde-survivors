@@ -1,0 +1,5 @@
+os: ubuntu-latest
+cpu: AMD EPYC 7763 64-Core Processor x 4
+memory GB: 15.6
+node: v22.23.3
+12368ae3797d3659312ff8c25276b499493cf393

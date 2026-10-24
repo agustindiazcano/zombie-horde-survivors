@@ -7,7 +7,9 @@ import type { GameState, Soldier, Structure, Zombie } from './types';
 import { localPlayer } from './players';
 import { bonus, squadBonus } from './training';
 import { damageZombie } from './zombies';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { datan2 } from './dmath';
 
 /** Floor under the footprint test: boxes that only touch are not overlapping. */
 const EPSILON = 0.001;
@@ -64,7 +66,7 @@ export function edgeDistance(config: GameConfig, s: Structure, p: Vec2): number 
   const { halfW, halfD } = footprint(config, s.type, s.turns);
   const dx = Math.max(Math.abs(p.x - s.x) - halfW, 0);
   const dz = Math.max(Math.abs(p.z - s.z) - halfD, 0);
-  return Math.hypot(dx, dz);
+  return hypot(dx, dz);
 }
 
 /**
@@ -434,7 +436,7 @@ export function nearestEnemyDistance(state: GameState, from: Vec2): number {
   let best = Infinity;
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
-    best = Math.min(best, Math.hypot(z.pos.x - from.x, z.pos.z - from.z));
+    best = Math.min(best, hypot(z.pos.x - from.x, z.pos.z - from.z));
   }
   return best;
 }
@@ -485,7 +487,7 @@ export function pickTarget(
   let best: { z: Zombie; d: number; boss: boolean } | null = null;
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
-    const d = Math.hypot(z.pos.x - at.x, z.pos.z - at.z);
+    const d = hypot(z.pos.x - at.x, z.pos.z - at.z);
     if (d > range) continue;
     const boss = bossFirst && z.boss;
     if (best && (best.boss && !boss ? true : boss === best.boss && d >= best.d)) continue;
@@ -511,7 +513,7 @@ export function fireStructure(
 ): boolean {
   const def = structureDef(config, st);
   if (def.ammo && st.ammo <= 0) return false;
-  st.facing = Math.atan2(target.pos.x - st.x, target.pos.z - st.z);
+  st.facing = datan2(target.pos.x - st.x, target.pos.z - st.z);
   if (st.cooldown > 0) return false;
   st.cooldown += 1 / fireRate;
   if (def.ammo) {
@@ -664,7 +666,7 @@ export function blockingStructure(
   let bestD = Infinity;
   const dx = towards.x - from.x;
   const dz = towards.z - from.z;
-  const len = Math.hypot(dx, dz) || 1;
+  const len = hypot(dx, dz) || 1;
   for (const s of state.structures) {
     if (!s.built || !blocks(config, s)) continue;
     const d = edgeDistance(config, s, from) - radius;
@@ -675,7 +677,7 @@ export function blockingStructure(
     const cz = Math.min(Math.max(from.z, s.z - fp.halfD), s.z + fp.halfD);
     const ex = cx - from.x;
     const ez = cz - from.z;
-    const el = Math.hypot(ex, ez);
+    const el = hypot(ex, ez);
     if (el > 1e-6 && (ex * dx + ez * dz) / (el * len) < 0.2) continue;
     best = s;
     bestD = d;

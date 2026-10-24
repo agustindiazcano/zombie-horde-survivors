@@ -300,6 +300,226 @@ export class Separation {
     }
 }
 if (Symbol.dispose) Separation.prototype[Symbol.dispose] = Separation.prototype.free;
+
+/**
+ * `resolveWalls` of `src/sim/kernels.ts`: the obstacles as flat arrays and a CSR grid (uploaded once
+ * per obstacle list with `set_obstacles`), then batches of circles pushed out of them in the same
+ * order as the TypeScript. `Math.sign(v || 1)` of the TypeScript is `sign_or_one`.
+ */
+export class Walls {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WallsFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_walls_free(ptr, 0);
+    }
+    /**
+     * The id of the obstacle set held, or -1.
+     * @returns {number}
+     */
+    id() {
+        const ret = wasm.walls_id(this.__wbg_ptr);
+        return ret;
+    }
+    constructor() {
+        const ret = wasm.walls_new();
+        this.__wbg_ptr = ret;
+        WallsFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Pushes each living circle out of the obstacles and keeps it in the arena; `x` and `z` come back.
+     * @param {Float64Array} x
+     * @param {Float64Array} z
+     * @param {Float64Array} radius
+     * @param {Float64Array} feet
+     * @param {Uint8Array} alive
+     * @param {number} count
+     * @param {number} step_up
+     */
+    run_slices(x, z, radius, feet, alive, count, step_up) {
+        var ptr0 = passArrayF64ToWasm0(x, wasm.__wbindgen_malloc);
+        var len0 = WASM_VECTOR_LEN;
+        var ptr1 = passArrayF64ToWasm0(z, wasm.__wbindgen_malloc);
+        var len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArrayF64ToWasm0(radius, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArrayF64ToWasm0(feet, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passArray8ToWasm0(alive, wasm.__wbindgen_malloc);
+        const len4 = WASM_VECTOR_LEN;
+        wasm.walls_run_slices(this.__wbg_ptr, ptr0, len0, x, ptr1, len1, z, ptr2, len2, ptr3, len3, ptr4, len4, count, step_up);
+    }
+    /**
+     * Takes a copy of an obstacle set (the arrays of the TypeScript `FlatObstacles`).
+     * @param {number} id
+     * @param {number} n
+     * @param {number} half
+     * @param {number} count
+     * @param {Float64Array} x
+     * @param {Float64Array} z
+     * @param {Float64Array} half_w
+     * @param {Float64Array} half_d
+     * @param {Float64Array} top
+     * @param {Int32Array} cell_start
+     * @param {Int32Array} cell_items
+     */
+    set_obstacles(id, n, half, count, x, z, half_w, half_d, top, cell_start, cell_items) {
+        const ptr0 = passArrayF64ToWasm0(x, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF64ToWasm0(z, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArrayF64ToWasm0(half_w, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArrayF64ToWasm0(half_d, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passArrayF64ToWasm0(top, wasm.__wbindgen_malloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ptr5 = passArray32ToWasm0(cell_start, wasm.__wbindgen_malloc);
+        const len5 = WASM_VECTOR_LEN;
+        const ptr6 = passArray32ToWasm0(cell_items, wasm.__wbindgen_malloc);
+        const len6 = WASM_VECTOR_LEN;
+        wasm.walls_set_obstacles(this.__wbg_ptr, id, n, half, count, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, ptr6, len6);
+    }
+}
+if (Symbol.dispose) Walls.prototype[Symbol.dispose] = Walls.prototype.free;
+
+/**
+ * @param {number} y
+ * @param {number} x
+ * @returns {number}
+ */
+export function d_atan2(y, x) {
+    const ret = wasm.d_atan2(y, x);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @returns {number}
+ */
+export function d_cos(x) {
+    const ret = wasm.d_cos(x);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @returns {number}
+ */
+export function d_exp(x) {
+    const ret = wasm.d_exp(x);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @returns {number}
+ */
+export function d_log(x) {
+    const ret = wasm.d_log(x);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @param {number} y
+ * @returns {number}
+ */
+export function d_pow(x, y) {
+    const ret = wasm.d_pow(x, y);
+    return ret;
+}
+
+/**
+ * @param {number} x
+ * @returns {number}
+ */
+export function d_sin(x) {
+    const ret = wasm.d_sin(x);
+    return ret;
+}
+
+/**
+ * @param {number} y
+ * @param {number} x
+ * @returns {number}
+ */
+export function sim_atan2(y, x) {
+    const ret = wasm.sim_atan2(y, x);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @returns {number}
+ */
+export function sim_cos(a) {
+    const ret = wasm.sim_cos(a);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @returns {number}
+ */
+export function sim_exp(a) {
+    const ret = wasm.sim_exp(a);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @param {number} b
+ * @returns {number}
+ */
+export function sim_hypot(a, b) {
+    const ret = wasm.sim_hypot(a, b);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @param {number} b
+ * @param {number} c
+ * @returns {number}
+ */
+export function sim_hypot3(a, b, c) {
+    const ret = wasm.sim_hypot3(a, b, c);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @returns {number}
+ */
+export function sim_ln(a) {
+    const ret = wasm.sim_ln(a);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @param {number} b
+ * @returns {number}
+ */
+export function sim_pow(a, b) {
+    const ret = wasm.sim_pow(a, b);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @returns {number}
+ */
+export function sim_sin(a) {
+    const ret = wasm.sim_sin(a);
+    return ret;
+}
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
@@ -334,6 +554,9 @@ const OceanFinalization = (typeof FinalizationRegistry === 'undefined')
 const SeparationFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_separation_free(ptr, 1));
+const WallsFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_walls_free(ptr, 1));
 
 function getArrayF64FromWasm0(ptr, len) {
     ptr = ptr >>> 0;

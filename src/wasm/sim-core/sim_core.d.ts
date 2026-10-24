@@ -102,6 +102,57 @@ export class Separation {
     z_ptr(): number;
 }
 
+/**
+ * `resolveWalls` of `src/sim/kernels.ts`: the obstacles as flat arrays and a CSR grid (uploaded once
+ * per obstacle list with `set_obstacles`), then batches of circles pushed out of them in the same
+ * order as the TypeScript. `Math.sign(v || 1)` of the TypeScript is `sign_or_one`.
+ */
+export class Walls {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * The id of the obstacle set held, or -1.
+     */
+    id(): number;
+    constructor();
+    /**
+     * Pushes each living circle out of the obstacles and keeps it in the arena; `x` and `z` come back.
+     */
+    run_slices(x: Float64Array, z: Float64Array, radius: Float64Array, feet: Float64Array, alive: Uint8Array, count: number, step_up: number): void;
+    /**
+     * Takes a copy of an obstacle set (the arrays of the TypeScript `FlatObstacles`).
+     */
+    set_obstacles(id: number, n: number, half: number, count: number, x: Float64Array, z: Float64Array, half_w: Float64Array, half_d: Float64Array, top: Float64Array, cell_start: Int32Array, cell_items: Int32Array): void;
+}
+
+export function d_atan2(y: number, x: number): number;
+
+export function d_cos(x: number): number;
+
+export function d_exp(x: number): number;
+
+export function d_log(x: number): number;
+
+export function d_pow(x: number, y: number): number;
+
+export function d_sin(x: number): number;
+
+export function sim_atan2(y: number, x: number): number;
+
+export function sim_cos(a: number): number;
+
+export function sim_exp(a: number): number;
+
+export function sim_hypot(a: number, b: number): number;
+
+export function sim_hypot3(a: number, b: number, c: number): number;
+
+export function sim_ln(a: number): number;
+
+export function sim_pow(a: number, b: number): number;
+
+export function sim_sin(a: number): number;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -109,6 +160,13 @@ export interface InitOutput {
     readonly __wbg_flowsearch_free: (a: number, b: number) => void;
     readonly __wbg_ocean_free: (a: number, b: number) => void;
     readonly __wbg_separation_free: (a: number, b: number) => void;
+    readonly __wbg_walls_free: (a: number, b: number) => void;
+    readonly d_atan2: (a: number, b: number) => number;
+    readonly d_cos: (a: number) => number;
+    readonly d_exp: (a: number) => number;
+    readonly d_log: (a: number) => number;
+    readonly d_pow: (a: number, b: number) => number;
+    readonly d_sin: (a: number) => number;
     readonly flowsearch_cells_ptr: (a: number) => number;
     readonly flowsearch_dist_ptr: (a: number) => number;
     readonly flowsearch_extra_ptr: (a: number) => number;
@@ -137,6 +195,18 @@ export interface InitOutput {
     readonly separation_run_slices: (a: number, b: number, c: number, d: any, e: number, f: number, g: any, h: number, i: number, j: number, k: number, l: number, m: number, n: number) => void;
     readonly separation_x_ptr: (a: number) => number;
     readonly separation_z_ptr: (a: number) => number;
+    readonly sim_atan2: (a: number, b: number) => number;
+    readonly sim_cos: (a: number) => number;
+    readonly sim_exp: (a: number) => number;
+    readonly sim_hypot: (a: number, b: number) => number;
+    readonly sim_hypot3: (a: number, b: number, c: number) => number;
+    readonly sim_ln: (a: number) => number;
+    readonly sim_pow: (a: number, b: number) => number;
+    readonly sim_sin: (a: number) => number;
+    readonly walls_id: (a: number) => number;
+    readonly walls_new: () => number;
+    readonly walls_run_slices: (a: number, b: number, c: number, d: any, e: number, f: number, g: any, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number) => void;
+    readonly walls_set_obstacles: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number) => void;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;

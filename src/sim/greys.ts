@@ -2,7 +2,9 @@ import { createAnimal } from './animals';
 import type { GameConfig } from './config';
 import { nextFloat } from './rng';
 import type { Animal, GameState, GreyScene } from './types';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
+import { datan2, dcos, dsin } from './dmath';
 
 /** A grey fires at someone when they are this close to its target stage position, in metres. */
 const WALKER_STOP = 3.4;
@@ -22,7 +24,7 @@ const isCivilian = (config: GameConfig, a: Animal): boolean => !!config.animals[
 const isGrey = (config: GameConfig, a: Animal): boolean =>
   config.animals[a.type]?.scripted === true;
 
-const dist = (a: Vec2, b: Vec2): number => Math.hypot(a.x - b.x, a.z - b.z);
+const dist = (a: Vec2, b: Vec2): number => hypot(a.x - b.x, a.z - b.z);
 
 /** Free civilians: not lifted, not already being burned. */
 function freeCivilians(state: GameState, config: GameConfig): Animal[] {
@@ -86,7 +88,7 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
         const g0 = greysOf(state, config)[0];
         const gx = g0 ? g0.pos.x : scene.at.x;
         const gz = g0 ? g0.pos.z : scene.at.z;
-        const away = Math.hypot(walker.pos.x - gx, walker.pos.z - gz) || 1;
+        const away = hypot(walker.pos.x - gx, walker.pos.z - gz) || 1;
         walker.rush = {
           x: gx + ((walker.pos.x - gx) / away) * (WALKER_STOP - 0.6),
           z: gz + ((walker.pos.z - gz) / away) * (WALKER_STOP - 0.6),
@@ -108,7 +110,7 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
       return;
     }
     // The grey turns to watch him come.
-    grey0.facing = Math.atan2(walker.pos.x - grey0.pos.x, walker.pos.z - grey0.pos.z);
+    grey0.facing = datan2(walker.pos.x - grey0.pos.x, walker.pos.z - grey0.pos.z);
     if (dist(walker.pos, grey0.pos) < WALKER_STOP) {
       fire(state, scene, grey0, walker, 'paralyse');
       walker.dest = null;
@@ -135,8 +137,8 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
       // Runs to a spot beside the frozen person.
       const angle = nextFloat(state.rng) * Math.PI * 2;
       next.rush = {
-        x: walker.pos.x + Math.cos(angle) * 1.6,
-        z: walker.pos.z + Math.sin(angle) * 1.6,
+        x: walker.pos.x + dcos(angle) * 1.6,
+        z: walker.pos.z + dsin(angle) * 1.6,
       };
       scene.stage = 'rush';
       scene.time = 0;
@@ -150,7 +152,7 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
       return;
     }
     // The second grey raises its staff as the helper comes close.
-    grey1.facing = Math.atan2(helper.pos.x - grey1.pos.x, helper.pos.z - grey1.pos.z);
+    grey1.facing = datan2(helper.pos.x - grey1.pos.x, helper.pos.z - grey1.pos.z);
     const near = walker ? dist(helper.pos, walker.pos) < 2.4 : true;
     if (near || scene.time > 5) {
       fire(state, scene, grey1, helper, 'vaporise');
@@ -208,13 +210,13 @@ function fire(
   target: Animal,
   kind: 'paralyse' | 'vaporise',
 ): void {
-  grey.facing = Math.atan2(target.pos.x - grey.pos.x, target.pos.z - grey.pos.z);
+  grey.facing = datan2(target.pos.x - grey.pos.x, target.pos.z - grey.pos.z);
   state.events.push({
     type: 'greyRay',
     id: scene.rayId++,
     from: {
-      x: grey.pos.x + Math.sin(grey.facing) * HAND_Z_OFFSET,
-      z: grey.pos.z + Math.cos(grey.facing) * HAND_Z_OFFSET,
+      x: grey.pos.x + dsin(grey.facing) * HAND_Z_OFFSET,
+      z: grey.pos.z + dcos(grey.facing) * HAND_Z_OFFSET,
     },
     to: { x: target.pos.x, z: target.pos.z },
     kind,
@@ -245,8 +247,8 @@ function startScene(state: GameState, config: GameConfig, at: Vec2): void {
   for (let i = 0; i < rules.count; i++) {
     const angle = (i / rules.count) * Math.PI * 2 + 0.5;
     const pos = {
-      x: at.x + Math.sin(angle) * rules.landRadius,
-      z: at.z + Math.cos(angle) * rules.landRadius,
+      x: at.x + dsin(angle) * rules.landRadius,
+      z: at.z + dcos(angle) * rules.landRadius,
     };
     const grey = createAnimal(nextId + i, 'grey_alien', pos, angle + Math.PI);
     grey.lift = rules.descendHeight;
@@ -257,8 +259,7 @@ function startScene(state: GameState, config: GameConfig, at: Vec2): void {
   const near = freeCivilians(state, config)
     .filter((a) => dist(a.pos, at) <= rules.reach)
     .sort(
-      (p, q) =>
-        Math.atan2(p.pos.x - at.x, p.pos.z - at.z) - Math.atan2(q.pos.x - at.x, q.pos.z - at.z),
+      (p, q) => datan2(p.pos.x - at.x, p.pos.z - at.z) - datan2(q.pos.x - at.x, q.pos.z - at.z),
     );
   const slots: Vec2[] = [];
   for (let ring = 0; slots.length < near.length; ring++) {
@@ -266,12 +267,12 @@ function startScene(state: GameState, config: GameConfig, at: Vec2): void {
     const count = Math.max(6, Math.floor((Math.PI * 2 * r) / RING_SPACING));
     for (let k = 0; k < count; k++) {
       const angle = (k / count) * Math.PI * 2 + ring * 0.4;
-      slots.push({ x: at.x + Math.sin(angle) * r, z: at.z + Math.cos(angle) * r });
+      slots.push({ x: at.x + dsin(angle) * r, z: at.z + dcos(angle) * r });
     }
   }
   // Pair people and slots by angle, so each walks to the part of the ring on their side.
   const bySlotAngle = [...slots].sort(
-    (p, q) => Math.atan2(p.x - at.x, p.z - at.z) - Math.atan2(q.x - at.x, q.z - at.z),
+    (p, q) => datan2(p.x - at.x, p.z - at.z) - datan2(q.x - at.x, q.z - at.z),
   );
   near.forEach((a, i) => {
     a.panic = 0;

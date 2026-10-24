@@ -1,6 +1,8 @@
 import type { GameConfig } from './config';
 import type { GameState, Zombie } from './types';
 import { grantLevels } from './upgrades';
+import { hypot } from './vec';
+import { dcos, dsin } from './dmath';
 
 export interface LevelInfo {
   level: number;
@@ -35,8 +37,8 @@ export function rewardOf(config: GameConfig, zombie: Zombie): { gold: number; xp
 export function dropLoot(state: GameState, config: GameConfig, zombie: Zombie): void {
   const { gold, xp } = rewardOf(config, zombie);
   const angle = zombie.id * 2.4;
-  const dx = Math.cos(angle) * 0.35;
-  const dz = Math.sin(angle) * 0.35;
+  const dx = dcos(angle) * 0.35;
+  const dz = dsin(angle) * 0.35;
 
   state.pickups.push(
     {
@@ -66,7 +68,7 @@ export function updatePickups(state: GameState, config: GameConfig, dt: number):
     if (p.age >= config.loot.lifetime) continue;
 
     const collector = state.soldiers.find(
-      (s) => !s.dead && Math.hypot(s.pos.x - p.pos.x, s.pos.z - p.pos.z) <= radius,
+      (s) => !s.dead && hypot(s.pos.x - p.pos.x, s.pos.z - p.pos.z) <= radius,
     );
     if (!collector) {
       kept.push(p);

@@ -6,6 +6,7 @@ import { edgeDistance, getStructure, hurtStructure, structureDef } from './struc
 import { nextFloat } from './rng';
 import type { Fire, GameState } from './types';
 import { damageZombie } from './zombies';
+import { hypot } from './vec';
 
 /** Burn damage lands in bursts this many seconds apart, so hurt effects do not fire every tick. */
 const BURN_INTERVAL = 0.5;
@@ -29,7 +30,7 @@ function spreadFrom(state: GameState, config: GameConfig, fire: Fire): void {
   const f = config.hazards.fire;
   for (const o of state.objects) {
     if (!objectDef(config, o).flammable || o.heldBy !== null || o.flight !== null) continue;
-    if (Math.hypot(o.pos.x - fire.x, o.pos.z - fire.z) > f.spreadRadius) continue;
+    if (hypot(o.pos.x - fire.x, o.pos.z - fire.z) > f.spreadRadius) continue;
     if (hosted(state, 'object', o.id) || nextFloat(state.rng) >= f.spreadChance) continue;
     ignite(state, config, o.pos.x, o.pos.z, { kind: 'object', id: o.id });
   }
@@ -72,19 +73,19 @@ export function updateHazards(state: GameState, config: GameConfig, dt: number):
   for (const fire of [...state.fires]) {
     for (const s of state.soldiers) {
       if (s.dead || s.kind === 'drone' || inShelter(s) || s.carriedBy !== null) continue;
-      if (Math.hypot(s.pos.x - fire.x, s.pos.z - fire.z) <= f.radius) {
+      if (hypot(s.pos.x - fire.x, s.pos.z - fire.z) <= f.radius) {
         hurtSoldier(state, config, s, amount, -1);
       }
     }
     for (const z of state.zombies) {
       if (z.state === 'death') continue;
-      if (Math.hypot(z.pos.x - fire.x, z.pos.z - fire.z) <= f.radius + z.radius) {
+      if (hypot(z.pos.x - fire.x, z.pos.z - fire.z) <= f.radius + z.radius) {
         damageZombie(state, config, z, amount);
       }
     }
     for (const o of [...state.objects]) {
       if (!objectDef(config, o).flammable || o.heldBy !== null) continue;
-      if (Math.hypot(o.pos.x - fire.x, o.pos.z - fire.z) <= f.radius) {
+      if (hypot(o.pos.x - fire.x, o.pos.z - fire.z) <= f.radius) {
         hurtObject(state, config, o, thing);
       }
     }

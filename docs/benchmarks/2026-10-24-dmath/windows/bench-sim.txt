@@ -1,0 +1,15 @@
+== run 1
+  100 zombies: 0.45 ms/step avg, 4.65 ms worst
+  300 zombies: 0.51 ms/step avg, 2.17 ms worst
+  600 zombies: 0.87 ms/step avg, 2.79 ms worst
+ 1000 zombies: 1.49 ms/step avg, 3.64 ms worst
+== run 2
+  100 zombies: 0.48 ms/step avg, 5.17 ms worst
+  300 zombies: 0.50 ms/step avg, 1.50 ms worst
+  600 zombies: 0.88 ms/step avg, 2.43 ms worst
+ 1000 zombies: 1.46 ms/step avg, 3.49 ms worst
+== run 3
+  100 zombies: 0.48 ms/step avg, 3.45 ms worst
+  300 zombies: 0.50 ms/step avg, 1.77 ms worst
+  600 zombies: 0.87 ms/step avg, 2.65 ms worst
+ 1000 zombies: 1.49 ms/step avg, 7.69 ms worst
