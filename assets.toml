@@ -219,3 +219,10 @@ author = "ambientCG"
 source = "https://ambientcg.com/a/Tiles107"
 license = "CC0-1.0"
 path = "public/textures/real/tiles_color.jpg"
+
+[[asset]]
+name = "Enemy_Tentacle (animated tentacle, experimental lab)"
+author = "Quaternius"
+source = "https://poly.pizza/m/BR1vpIvvvv"
+license = "CC0-1.0"
+path = "public/models/enemy-tentacle.glb"

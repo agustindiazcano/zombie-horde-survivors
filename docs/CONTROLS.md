@@ -137,6 +137,10 @@ Opened from the main menu. It starts paused; **▶ Play** tests the map and **�
 | Game logic tab: spawn point tool | Click adds a point (spawn point, fire, mission goal); right click or **Esc** drops the tool                                                                                                                    |
 | Top bar                          | ← Menu, ▶ Play / ■ Stop, New, Open, Save, Export, Import, Undo, Redo                                                                                                                                           |
 
+## Experimental lab (editor > Experimental tab)
+
+Opens a sandbox of our own tests over the editor (jelly, tentacle monster, fat zombie). Left click grabs and drags with the hand, the wheel pushes it away or pulls it closer while holding, letting go throws. **H** turns the hand on or off (off: left drag turns the camera). Right drag turns the camera, the wheel zooms. **Esc** closes it.
+
 ## Mobile (landscape)
 
 On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the URL to try it on a desktop). Hold the phone sideways. The small 👁 pad on the right turns the camera: drag it to look up and sideways (the first drag switches to third person), tap it to cycle normal, third and first person; in those views the squad fires at enemies near where you look. Grenades are not on the touch layout yet.

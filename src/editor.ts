@@ -119,7 +119,7 @@ const logicGroups: Group[] = [
   },
 ];
 
-type TabId = 'units' | 'assets' | 'terrain' | 'logic' | 'sky' | 'players';
+type TabId = 'units' | 'assets' | 'terrain' | 'logic' | 'sky' | 'players' | 'experimental';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'units', label: 'Units' },
@@ -128,6 +128,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'logic', label: 'Game logic' },
   { id: 'sky', label: 'Environment' },
   { id: 'players', label: 'Players' },
+  { id: 'experimental', label: 'Experimental' },
 ];
 
 const SOON = 'Not built yet';
@@ -1262,7 +1263,22 @@ export class Editor {
     else if (tab === 'terrain') this.terrain();
     else if (tab === 'logic') this.logic();
     else if (tab === 'sky') this.environmentTab();
+    else if (tab === 'experimental') this.experimental();
     else this.players();
+  }
+
+  /** Our own tests, outside the map: jelly, tentacles and a hand that picks things up. */
+  private experimental(): void {
+    this.note(
+      'Tests of ours, not part of any map. Opens a sandbox with soft jelly, a tentacle monster and a fat zombie, and a hand to grab, shake and throw them.',
+    );
+    const open = el('button', 'editor__btn', this.body, 'Open the lab');
+    open.addEventListener('click', () => {
+      this.root.classList.add('editor--hidden');
+      void import('./experimentalLab').then(({ openExperimentalLab }) =>
+        openExperimentalLab(() => this.root.classList.remove('editor--hidden')),
+      );
+    });
   }
 
   private note(text: string): void {
