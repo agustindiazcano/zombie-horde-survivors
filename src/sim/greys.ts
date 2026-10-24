@@ -2,6 +2,7 @@ import { createAnimal } from './animals';
 import type { GameConfig } from './config';
 import { nextFloat } from './rng';
 import type { Animal, GameState, GreyScene } from './types';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 
 /** A grey fires at someone when they are this close to its target stage position, in metres. */
@@ -22,7 +23,7 @@ const isCivilian = (config: GameConfig, a: Animal): boolean => !!config.animals[
 const isGrey = (config: GameConfig, a: Animal): boolean =>
   config.animals[a.type]?.scripted === true;
 
-const dist = (a: Vec2, b: Vec2): number => Math.hypot(a.x - b.x, a.z - b.z);
+const dist = (a: Vec2, b: Vec2): number => hypot(a.x - b.x, a.z - b.z);
 
 /** Free civilians: not lifted, not already being burned. */
 function freeCivilians(state: GameState, config: GameConfig): Animal[] {
@@ -86,7 +87,7 @@ export function updateGreys(state: GameState, config: GameConfig, dt: number): v
         const g0 = greysOf(state, config)[0];
         const gx = g0 ? g0.pos.x : scene.at.x;
         const gz = g0 ? g0.pos.z : scene.at.z;
-        const away = Math.hypot(walker.pos.x - gx, walker.pos.z - gz) || 1;
+        const away = hypot(walker.pos.x - gx, walker.pos.z - gz) || 1;
         walker.rush = {
           x: gx + ((walker.pos.x - gx) / away) * (WALKER_STOP - 0.6),
           z: gz + ((walker.pos.z - gz) / away) * (WALKER_STOP - 0.6),

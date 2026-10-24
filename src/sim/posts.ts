@@ -9,6 +9,7 @@ import {
   structureDef,
 } from './structures';
 import type { GameState, Input, Soldier, Structure } from './types';
+import { hypot } from './vec';
 
 /** A crew member aiming with the mouse shoots the enemy nearest the cursor within this distance. */
 const AIM_ASSIST = 8;
@@ -126,8 +127,8 @@ export function updatePosted(
     let bestD = AIM_ASSIST;
     for (const z of state.zombies) {
       if (z.state === 'death') continue;
-      const d = Math.hypot(z.pos.x - input.aim.x, z.pos.z - input.aim.z);
-      if (d < bestD && Math.hypot(z.pos.x - st.x, z.pos.z - st.z) <= range) {
+      const d = hypot(z.pos.x - input.aim.x, z.pos.z - input.aim.z);
+      if (d < bestD && hypot(z.pos.x - st.x, z.pos.z - st.z) <= range) {
         best = z;
         bestD = d;
       }

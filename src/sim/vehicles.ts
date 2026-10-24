@@ -4,7 +4,7 @@ import type { GameConfig } from './config';
 import { landSpotNear, moveBoat } from './naval';
 import { localPlayer } from './players';
 import type { GameState, Input, Soldier, Vehicle } from './types';
-import { dirFromAngle, type Vec2 } from './vec';
+import { dirFromAngle, type Vec2, hypot } from './vec';
 import { damageZombie } from './zombies';
 
 /** A driver this close (metres) to its order point has arrived. */
@@ -67,7 +67,7 @@ export function vehicleInReach(
     // Nobody climbs into a helicopter that has left the ground.
     if (v.air && v.air.alt > BOARD_ALT) continue;
     const def = config.vehicles[v.type]!;
-    const d = Math.hypot(v.pos.x - from.x, v.pos.z - from.z);
+    const d = hypot(v.pos.x - from.x, v.pos.z - from.z);
     if (d <= def.enterRange + def.radius && d < bestDist) {
       best = v;
       bestDist = d;
@@ -155,7 +155,7 @@ export function toggleVehicle(state: GameState, config: GameConfig, soldierId: n
     for (const f of state.soldiers) {
       const spot = v.seats.indexOf(null);
       if (spot < 0) break;
-      const near = Math.hypot(f.pos.x - v.pos.x, f.pos.z - v.pos.z) <= BOARD_FOLLOWERS_RANGE;
+      const near = hypot(f.pos.x - v.pos.x, f.pos.z - v.pos.z) <= BOARD_FOLLOWERS_RANGE;
       if (f.kind === 'soldier' && !f.dead && !f.downed && f.vehicleId === null && near) {
         if (f.order.type === 'follow') seat(v, f, spot);
       }
@@ -189,7 +189,7 @@ function driveVector(state: GameState, v: Vehicle, driver: Soldier, input: Input
   if (o.type !== 'move') return { x: 0, z: 0 };
   const dx = o.x - v.pos.x;
   const dz = o.z - v.pos.z;
-  const d = Math.hypot(dx, dz);
+  const d = hypot(dx, dz);
   if (d < ARRIVE_DISTANCE) {
     driver.order = { type: 'hold' };
     return { x: 0, z: 0 };
@@ -224,7 +224,7 @@ export function updateVehicles(
     }
     const want =
       driver && !driver.dead && !driver.downed ? driveVector(state, v, driver, input) : null;
-    const mag = want ? Math.min(1, Math.hypot(want.x, want.z)) : 0;
+    const mag = want ? Math.min(1, hypot(want.x, want.z)) : 0;
     let target = 0;
     if (want && mag > 0.05) {
       const diff = wrap(Math.atan2(want.x, want.z) - v.facing);
@@ -240,14 +240,14 @@ export function updateVehicles(
     let moved = { ...wanted };
     if (def.water) moved = moveBoat(state, config, def.radius, v.pos, wanted).pos;
     else resolveStatic(moved, def.radius, config.arena);
-    if (Math.hypot(moved.x - wanted.x, moved.z - wanted.z) > 1e-3) v.speed *= CRASH_KEEP;
+    if (hypot(moved.x - wanted.x, moved.z - wanted.z) > 1e-3) v.speed *= CRASH_KEEP;
     v.pos.x = moved.x;
     v.pos.z = moved.z;
 
     if (driver && v.speed >= def.ramSpeed) {
       for (const z of state.zombies) {
         if (z.state === 'death') continue;
-        if (Math.hypot(z.pos.x - v.pos.x, z.pos.z - v.pos.z) < def.radius + z.radius) {
+        if (hypot(z.pos.x - v.pos.x, z.pos.z - v.pos.z) < def.radius + z.radius) {
           damageZombie(state, config, z, def.ramDps * dt, driver);
         }
       }

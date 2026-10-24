@@ -4,6 +4,7 @@ import { factor } from './accessoryMods';
 import { gunMods, gunOf, weaponOf, type WeaponStats } from './stats';
 import { bonus, skillOf } from './training';
 import type { GameState, Soldier } from './types';
+import { hypot } from './vec';
 
 /** The recoil numbers of the gun in hand, if it has any. */
 export function recoilOf(config: GameConfig, s: Soldier) {
@@ -21,7 +22,7 @@ export function spreadNow(config: GameConfig, s: Soldier, weapon: WeaponStats): 
   const a = config.accuracy;
   let spread = 0;
   if (weapon.spread > 0) {
-    const speed = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) / FIXED_DT;
+    const speed = hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) / FIXED_DT;
     const move = 1 + a.movementSpread * Math.min(2, speed / config.player.speed);
     const level = skillOf(config, s, weapon.class);
     const trained = Math.min(1, (level - 1) / (a.skillMaxLevel - 1));

@@ -4,6 +4,7 @@ import { topOf } from './collision';
 import { newFlowScratch, runFlowSearch } from './kernels';
 import type { GameState } from './types';
 import { isOccupied } from './vehicles';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 
 /** Side (metres) of a path cell: fine enough for the gaps between obstacles. */
@@ -178,7 +179,7 @@ function makeBlocked(arena: Arena, climbHeight: number, ally: boolean, sight = f
 function lineClear(blocked: Blocked, a: Vec2, b: Vec2): boolean {
   const dx = b.x - a.x;
   const dz = b.z - a.z;
-  const steps = Math.ceil(Math.hypot(dx, dz) / (FLOW_CELL * 0.75));
+  const steps = Math.ceil(hypot(dx, dz) / (FLOW_CELL * 0.75));
   for (let i = 1; i < steps; i++) {
     const t = i / steps;
     const c = cellIndex(blocked, a.z + dz * t) * blocked.n + cellIndex(blocked, a.x + dx * t);

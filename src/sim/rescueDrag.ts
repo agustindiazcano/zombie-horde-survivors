@@ -3,10 +3,11 @@ import type { GameConfig } from './config';
 import { releaseDrag, toggleDrag } from './drag';
 import { itemDef } from './inventory';
 import type { GameState, Soldier } from './types';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 
 const standing = (s: Soldier): boolean => !s.dead && !s.downed && s.kind === 'soldier';
-const dist = (a: Vec2, b: Vec2): number => Math.hypot(a.x - b.x, a.z - b.z);
+const dist = (a: Vec2, b: Vec2): number => hypot(a.x - b.x, a.z - b.z);
 
 /** Can this soldier revive someone? It carries a medkit, so it will walk over and do that instead. */
 const hasMedkit = (config: GameConfig, s: Soldier): boolean =>
@@ -70,7 +71,7 @@ export function rescueDrag(
     // Back away from the closest enemy, a few metres at a time.
     const dx = s.pos.x - threat.pos.x;
     const dz = s.pos.z - threat.pos.z;
-    const d = Math.hypot(dx, dz) || 1;
+    const d = hypot(dx, dz) || 1;
     return { x: s.pos.x + (dx / d) * 4, z: s.pos.z + (dz / d) * 4 };
   }
   if (s.dragCorpse !== null || s.carrying) return undefined;

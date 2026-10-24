@@ -20,7 +20,7 @@ import { triggerPulled } from './weaponState';
 import { WEAPON_CLASSES, type GameConfig, type Loadout, type WeaponClass } from './config';
 import type { GameState, Input, Soldier, Stance, UnitKind, Zombie } from './types';
 import { isBlocked, fireWeapon } from './weapon';
-import { dirFromAngle, type Vec2 } from './vec';
+import { dirFromAngle, type Vec2, hypot } from './vec';
 
 /** Angle between consecutive followers' formation slots (golden angle spreads them evenly). */
 const SLOT_ANGLE = 2.399;
@@ -282,7 +282,7 @@ export function updateSoldiers(
   for (const s of state.soldiers) {
     // How far it moved last step decides how long it has stood still.
     s.stillTime =
-      Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) < STILL_DISTANCE ? s.stillTime + dt : 0;
+      hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) < STILL_DISTANCE ? s.stillTime + dt : 0;
     s.prev.x = s.pos.x;
     s.prev.z = s.pos.z;
     s.prevY = s.y;
@@ -333,7 +333,7 @@ function updateStamina(config: GameConfig, s: Soldier, stance: Stance, dt: numbe
   if (isDrone(s)) return;
   const { staminaDrain, staminaRegen, staminaResume } = config.stance;
   const staminaMax = config.stance.staminaMax * (1 + bonus(config, s, 'stamina'));
-  const moved = Math.hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > 1e-6;
+  const moved = hypot(s.pos.x - s.prev.x, s.pos.z - s.prev.z) > 1e-6;
   if (stance === 'sprint' && moved) {
     s.stamina = Math.max(0, s.stamina - staminaDrain * dt);
     if (s.stamina === 0) s.winded = true;
@@ -363,7 +363,7 @@ function updateJump(state: GameState, config: GameConfig, s: Soldier, dt: number
 function climbSpeed(state: GameState, config: GameConfig, s: Soldier, move: Vec2): number | null {
   const { jumpSpeed, climbMaxHeight, climbStamina } = config.stance;
   const gravity = state.gravity;
-  const len = Math.hypot(move.x, move.z);
+  const len = hypot(move.x, move.z);
   if (len < 0.1 || s.winded || s.stamina < climbStamina) return null;
   const reach = config.player.radius + CLIMB_REACH;
   /** Whether a box with this top and nearest point (cx, cz) is one to vault onto. */
@@ -374,7 +374,7 @@ function climbSpeed(state: GameState, config: GameConfig, s: Soldier, move: Vec2
     }
     const dx = cx - s.pos.x;
     const dz = cz - s.pos.z;
-    const dist = Math.hypot(dx, dz);
+    const dist = hypot(dx, dz);
     if (dist > reach || dist < 1e-6) return false;
     // Only when walking towards the box.
     return (dx * move.x + dz * move.z) / (dist * len) >= CLIMB_FACING;
@@ -390,10 +390,7 @@ function climbSpeed(state: GameState, config: GameConfig, s: Soldier, move: Vec2
   }
   // The free boxes of the physics lab (Map 12).
   for (const box of dynamicSolids()) {
-    if (
-      !box.walkable ||
-      Math.hypot(box.x - s.pos.x, box.z - s.pos.z) > reach + box.halfW + box.halfD
-    )
+    if (!box.walkable || hypot(box.x - s.pos.x, box.z - s.pos.z) > reach + box.halfW + box.halfD)
       continue;
     const near = nearestOnSolid(s.pos, box);
     if (vaultable(box.top, near.x, near.z)) return climb(box.top);
@@ -455,7 +452,7 @@ function updateControlled(
     input.aiming === true && !s.aimBroken && !s.downed && !isDrone(s) && stance !== 'sprint';
   s.aimLine = input.aimLine ?? null;
   // Normalize only above unit length so analog input keeps its magnitude.
-  const l = Math.hypot(move.x, move.z);
+  const l = hypot(move.x, move.z);
   const k = l > 1 ? 1 / l : 1;
   let speed = speedOf(config, s, state.mods, stance);
   if (s.swimming) {
@@ -512,7 +509,7 @@ function updateAi(
   let speed = s.swimming ? config.swimming.speed : speedOf(config, s, state.mods, stance);
   if (s.order.type === 'move') {
     dest = { x: s.order.x, z: s.order.z };
-    if (Math.hypot(dest.x - s.pos.x, dest.z - s.pos.z) < ARRIVE_DISTANCE) {
+    if (hypot(dest.x - s.pos.x, dest.z - s.pos.z) < ARRIVE_DISTANCE) {
       s.order = { type: 'hold' };
       dest = null;
     }
@@ -522,7 +519,7 @@ function updateAi(
       s.order = { type: 'hold' };
     } else {
       const reach = config.vehicles[v.type]!;
-      if (Math.hypot(v.pos.x - s.pos.x, v.pos.z - s.pos.z) <= reach.enterRange + reach.radius) {
+      if (hypot(v.pos.x - s.pos.x, v.pos.z - s.pos.z) <= reach.enterRange + reach.radius) {
         s.order = { type: 'hold' };
         toggleVehicle(state, config, s.id);
       } else {
@@ -548,7 +545,7 @@ function updateAi(
       x: leader.pos.x + Math.sin(a) * config.squad.followDistance,
       z: leader.pos.z + Math.cos(a) * config.squad.followDistance,
     };
-    const d = Math.hypot(slot.x - s.pos.x, slot.z - s.pos.z);
+    const d = hypot(slot.x - s.pos.x, slot.z - s.pos.z);
     if (d > SLOT_TOLERANCE) dest = slot;
     if (d > config.squad.followDistance * 2.5) speed *= CATCH_UP_SPEED;
   }
@@ -556,7 +553,7 @@ function updateAi(
   // Walk to a downed ally (with a medkit) or a fallen one (with a defibrillator) and stay there.
   const patient = s.order.type === 'follow' ? rescueTarget(state, config, s) : null;
   if (patient) {
-    const near = Math.hypot(patient.pos.x - s.pos.x, patient.pos.z - s.pos.z);
+    const near = hypot(patient.pos.x - s.pos.x, patient.pos.z - s.pos.z);
     dest = near > config.downed.reviveRange * 0.7 ? { ...patient.pos } : null;
   }
   // Nobody can heal a downed ally under attack: pull it away from the enemies.
@@ -573,7 +570,7 @@ function updateAi(
     const via = isDrone(s) ? dest : walkTarget(state, config, s.id, s.pos, dest);
     const dx = via.x - s.pos.x;
     const dz = via.z - s.pos.z;
-    const d = Math.hypot(dx, dz);
+    const d = hypot(dx, dz);
     if (d > 1e-6) {
       const step = Math.min(speed * dt, d);
       if (!isDrone(s)) openDoorAhead(state, config, s.pos, { x: dx / d, z: dz / d });
@@ -615,7 +612,7 @@ function findTarget(state: GameState, config: GameConfig, s: Soldier): Zombie | 
   let bestDist = isDrone(s) ? weapon.range : Math.min(config.squad.aiRange, weapon.range);
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
-    const d = Math.hypot(z.pos.x - s.pos.x, z.pos.z - s.pos.z);
+    const d = hypot(z.pos.x - s.pos.x, z.pos.z - s.pos.z);
     if (d >= bestDist) continue;
     const dir = dirFromAngle(Math.atan2(z.pos.x - s.pos.x, z.pos.z - s.pos.z));
     if (!weapon.ignoresCover && isBlocked(s.pos, dir, d - z.radius, config)) continue;
@@ -637,7 +634,7 @@ function separateSoldiers(state: GameState, config: GameConfig): void {
       if (b.dead || isDrone(b) || inShelter(b) || b.carriedBy !== null) continue;
       const dx = b.pos.x - a.pos.x;
       const dz = b.pos.z - a.pos.z;
-      const d = Math.hypot(dx, dz);
+      const d = hypot(dx, dz);
       if (d >= minDist) continue;
       const nx = d < 1e-6 ? 1 : dx / d;
       const nz = d < 1e-6 ? 0 : dz / d;

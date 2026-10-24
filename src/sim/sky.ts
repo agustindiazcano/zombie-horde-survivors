@@ -1,6 +1,7 @@
 import type { GameConfig } from './config';
 import { nextFloat } from './rng';
 import type { GameState, SkyLight, Vec3 } from './types';
+import { hypot, hypot3 } from './vec';
 
 /** A formation hovers this close (metres) to its point when it counts as arrived. */
 const ARRIVE = 6;
@@ -58,7 +59,7 @@ export function updateSky(state: GameState, config: GameConfig, dt: number): voi
   const rules = config.skyShow;
   const t = state.time;
   const houses = config.arena.obstacles.filter(
-    (o) => o.asset === 'house' && Math.hypot(o.x, o.z) < HOUSE_RANGE,
+    (o) => o.asset === 'house' && hypot(o.x, o.z) < HOUSE_RANGE,
   );
 
   for (const light of state.skyLights) {
@@ -81,7 +82,7 @@ export function updateSky(state: GameState, config: GameConfig, dt: number): voi
       light.pos.x += light.vel.x * dt;
       light.pos.z += light.vel.z * dt;
       // Out of sight: come back in from the other side.
-      if (Math.hypot(light.pos.x, light.pos.z) > FAR_LIMIT) {
+      if (hypot(light.pos.x, light.pos.z) > FAR_LIMIT) {
         light.pos.x *= -0.9;
         light.pos.z *= -0.9;
       }
@@ -109,7 +110,7 @@ function drift(state: GameState, config: GameConfig, light: SkyLight, dt: number
   light.pos.z += light.vel.z * dt;
   // Keep it above the horizon and inside the shell it started in.
   light.pos.y = Math.max(light.pos.y, 120);
-  const r = Math.hypot(light.pos.x, light.pos.y, light.pos.z);
+  const r = hypot3(light.pos.x, light.pos.y, light.pos.z);
   const clamped = Math.min(Math.max(r, rules.minDistance * 0.8), rules.maxDistance * 1.1);
   if (clamped !== r) {
     const k = clamped / r;
@@ -169,7 +170,7 @@ function flyFormation(
     const dx = target.x - light.pos.x;
     const dy = target.y - light.pos.y;
     const dz = target.z - light.pos.z;
-    const dist = Math.hypot(dx, dy, dz);
+    const dist = hypot3(dx, dy, dz);
     if (dist < ARRIVE) {
       light.hovering = true;
       return;
@@ -190,7 +191,7 @@ function flyFormation(
   const mx = wp.x - light.pos.x;
   const my = wp.y - light.pos.y;
   const mz = wp.z - light.pos.z;
-  const d = Math.hypot(mx, my, mz);
+  const d = hypot3(mx, my, mz);
   const step = light.timer * dt;
   if (d <= step) {
     copy(light.pos, wp);

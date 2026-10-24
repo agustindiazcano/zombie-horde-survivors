@@ -1,6 +1,7 @@
 import type { GameConfig } from './config';
 import type { GameState, Zombie } from './types';
 import { grantLevels } from './upgrades';
+import { hypot } from './vec';
 
 export interface LevelInfo {
   level: number;
@@ -66,7 +67,7 @@ export function updatePickups(state: GameState, config: GameConfig, dt: number):
     if (p.age >= config.loot.lifetime) continue;
 
     const collector = state.soldiers.find(
-      (s) => !s.dead && Math.hypot(s.pos.x - p.pos.x, s.pos.z - p.pos.z) <= radius,
+      (s) => !s.dead && hypot(s.pos.x - p.pos.x, s.pos.z - p.pos.z) <= radius,
     );
     if (!collector) {
       kept.push(p);

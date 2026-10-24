@@ -3,9 +3,9 @@ import { itemDef } from './inventory';
 import { maxHealthOf } from './stats';
 import { bonus } from './training';
 import type { GameState, Soldier } from './types';
+import { hypot } from './vec';
 
-const distance = (a: Soldier, b: Soldier): number =>
-  Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
+const distance = (a: Soldier, b: Soldier): number => hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
 
 /** A unit that can help: a soldier on its feet. */
 const standing = (s: Soldier): boolean => !s.dead && !s.downed && s.kind === 'soldier';

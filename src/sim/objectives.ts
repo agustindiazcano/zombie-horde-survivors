@@ -1,5 +1,6 @@
 import type { GameConfig, Objective } from './config';
 import type { GameState } from './types';
+import { hypot } from './vec';
 
 /** Progress of one objective as `[current, target]`; reaching a spot is 0 / 1. */
 export function objectiveProgress(
@@ -22,7 +23,7 @@ export function objectiveProgress(
           !s.dead &&
           !s.downed &&
           s.kind !== 'drone' &&
-          Math.hypot(s.pos.x - objective.x, s.pos.z - objective.z) <= objective.radius,
+          hypot(s.pos.x - objective.x, s.pos.z - objective.z) <= objective.radius,
       );
       return [near ? 1 : 0, 1];
     }

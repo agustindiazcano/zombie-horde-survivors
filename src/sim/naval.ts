@@ -3,6 +3,7 @@ import type { GameConfig } from './config';
 import { obstaclesNear } from './grid';
 import { heightAt } from './terrain';
 import type { GameState, Vehicle } from './types';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 
 export type ShipShape = NonNullable<GameConfig['vehicles'][string]['ship']>;
@@ -127,7 +128,7 @@ export function moveBoat(
         ? alongZ
         : { ...from };
   }
-  return { pos, hit: Math.hypot(pos.x - wanted.x, pos.z - wanted.z) > 1e-3 };
+  return { pos, hit: hypot(pos.x - wanted.x, pos.z - wanted.z) > 1e-3 };
 }
 
 /** Is a soldier of this radius free to stand at (x, z): dry ground clear of every obstacle? */
@@ -137,7 +138,7 @@ function standable(config: GameConfig, x: number, z: number, radius: number): bo
   for (const box of obstaclesNear(config.arena, x - radius, z - radius, x + radius, z + radius)) {
     const probe = { x, z };
     resolveCircleAabb(probe, radius, box);
-    if (Math.hypot(probe.x - x, probe.z - z) > 1e-6) return false;
+    if (hypot(probe.x - x, probe.z - z) > 1e-6) return false;
   }
   return true;
 }

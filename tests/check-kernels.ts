@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import map1 from '../data/maps/map-1.json';
 import { arenaOf, parseMap, resolveStaticReference, type Arena } from '../src/sim';
 import { STEP_UP } from '../src/sim/constants';
+import { hypot, hypot3 } from '../src/sim/vec';
 import {
   flatObstacles,
   flowSearch,
@@ -12,7 +13,15 @@ import {
   resolveWalls,
   separate,
 } from '../src/sim/kernels';
-import { FlowSearch, Separation, Walls, loadSimCoreSync, simCoreMemory } from '../src/wasm/simCore';
+import {
+  FlowSearch,
+  Separation,
+  Walls,
+  loadSimCoreSync,
+  sim_hypot,
+  sim_hypot3,
+  simCoreMemory,
+} from '../src/wasm/simCore';
 
 loadSimCoreSync(readFileSync('src/wasm/sim-core/sim_core_bg.wasm'));
 
@@ -299,6 +308,33 @@ for (const [name, arena, bodies] of [
     `${name.padEnd(9)} ${String(bodies).padStart(6)} ${String(differ).padStart(34)} ${msOrig.toFixed(3).padStart(14)} ${msTs.toFixed(3).padStart(12)} ${msRust.toFixed(3).padStart(10)}`,
   );
   w.free();
+}
+
+// hypot: the simulation's own against V8's Math.hypot and against Rust, over millions of pairs.
+{
+  const scales = [1e-9, 1e-3, 1, 7, 50, 300, 1e5, 1e12];
+  let diffV8 = 0;
+  let diffRust = 0;
+  let diff3V8 = 0;
+  let diff3Rust = 0;
+  const N = 2_000_000;
+  for (let i = 0; i < N; i++) {
+    const s1 = scales[Math.floor(rnd() * scales.length)]!;
+    const s2 = scales[Math.floor(rnd() * scales.length)]!;
+    const s3 = scales[Math.floor(rnd() * scales.length)]!;
+    const a = (rnd() - 0.5) * 2 * s1;
+    const b = (rnd() - 0.5) * 2 * s2;
+    const c = (rnd() - 0.5) * 2 * s3;
+    if (!Object.is(hypot(a, b), Math.hypot(a, b))) diffV8++;
+    if (!Object.is(hypot(a, b), sim_hypot(a, b))) diffRust++;
+    if (!Object.is(hypot3(a, b, c), Math.hypot(a, b, c))) diff3V8++;
+    if (!Object.is(hypot3(a, b, c), sim_hypot3(a, b, c))) diff3Rust++;
+  }
+  console.log(
+    `
+hypot over ${N} samples: differs from Math.hypot ${diffV8}, from Rust ${diffRust}; hypot3: from Math.hypot ${diff3V8}, from Rust ${diff3Rust}`,
+  );
+  if (diffV8 + diffRust + diff3V8 + diff3Rust > 0) failed = true;
 }
 
 console.log(

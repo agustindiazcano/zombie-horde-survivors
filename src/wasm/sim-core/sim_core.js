@@ -387,6 +387,27 @@ export class Walls {
     }
 }
 if (Symbol.dispose) Walls.prototype[Symbol.dispose] = Walls.prototype.free;
+
+/**
+ * @param {number} a
+ * @param {number} b
+ * @returns {number}
+ */
+export function sim_hypot(a, b) {
+    const ret = wasm.sim_hypot(a, b);
+    return ret;
+}
+
+/**
+ * @param {number} a
+ * @param {number} b
+ * @param {number} c
+ * @returns {number}
+ */
+export function sim_hypot3(a, b, c) {
+    const ret = wasm.sim_hypot3(a, b, c);
+    return ret;
+}
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,

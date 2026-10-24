@@ -4,6 +4,7 @@ import { nextFloat } from './rng';
 import { weaponDef } from './stats';
 import { skillOf } from './training';
 import type { AimLine, BodyZone, GameState, HitKind, Soldier, Zombie } from './types';
+import { hypot } from './vec';
 
 /** How a hit landed: its kind and the damage multiplier that comes with it. */
 export interface HitRoll {
@@ -41,7 +42,7 @@ function bodyZone(
   const side = nextFloat(state.rng) < 0.5 ? 0 : 1;
   if (useLine && shooter.aimLine) {
     const line = shooter.aimLine;
-    const reach = Math.hypot(at.x - line.x, at.z - line.z);
+    const reach = hypot(at.x - line.x, at.z - line.z);
     const h = line.height + line.slope * reach;
     if (h < heightOf(config, target) * d.legBand) return { zone: 'leg', side };
   } else if (target.parts.legs && nextFloat(state.rng) < d.legChance) {
@@ -56,7 +57,7 @@ function bodyZone(
  */
 function lineHitsHead(config: GameConfig, line: AimLine, z: Zombie, at: { x: number; z: number }) {
   const top = heightOf(config, z);
-  const reach = Math.hypot(at.x - line.x, at.z - line.z);
+  const reach = hypot(at.x - line.x, at.z - line.z);
   const h = line.height + line.slope * reach;
   return h >= top * (1 - config.hits.headFraction) && h <= top * 1.15;
 }

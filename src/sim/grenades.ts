@@ -6,6 +6,7 @@ import { bonus } from './training';
 import { itemDef } from './inventory';
 import { hurtSoldier } from './soldiers';
 import type { GameState, Grenade, Soldier, Stack } from './types';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 import { hurtVehicle } from './vehicles';
 import { damageZombie } from './zombies';
@@ -46,7 +47,7 @@ export function grenadeAim(
   const def = grenadeDef(config, stack.item);
   const dx = target.x - soldier.pos.x;
   const dz = target.z - soldier.pos.z;
-  const d = Math.hypot(dx, dz);
+  const d = hypot(dx, dz);
   const reach = def.throwRange * (1 + bonus(config, soldier, 'throw'));
   const clamped = d > reach;
   const k = clamped ? reach / d : 1;
@@ -77,7 +78,7 @@ export function throwGrenade(
   if (--stack.count === 0) me.backpack.splice(me.backpack.indexOf(stack), 1);
 
   const g = config.grenades;
-  const d = Math.hypot(aim.landing.x - me.pos.x, aim.landing.z - me.pos.z);
+  const d = hypot(aim.landing.x - me.pos.x, aim.landing.z - me.pos.z);
   const flight = Math.max(MIN_FLIGHT, d / g.throwSpeed);
   state.grenades.push({
     id: state.nextGrenadeId++,
@@ -121,12 +122,12 @@ export function aiThrowGrenade(state: GameState, config: GameConfig, me: Soldier
   let bestScore = g.aiMinEnemies - 1e-6;
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
-    const d = Math.hypot(z.pos.x - me.pos.x, z.pos.z - me.pos.z);
+    const d = hypot(z.pos.x - me.pos.x, z.pos.z - me.pos.z);
     if (d > reach || d < safe) continue;
     let score = 0;
     for (const o of state.zombies) {
       if (o.state === 'death') continue;
-      if (Math.hypot(o.pos.x - z.pos.x, o.pos.z - z.pos.z) <= radius * g.aiClusterShare) {
+      if (hypot(o.pos.x - z.pos.x, o.pos.z - z.pos.z) <= radius * g.aiClusterShare) {
         score += o.boss ? g.aiBossWeight : 1;
       }
     }
@@ -136,7 +137,7 @@ export function aiThrowGrenade(state: GameState, config: GameConfig, me: Soldier
         !a.dead &&
         a.kind !== 'drone' &&
         a.vehicleId === null &&
-        Math.hypot(a.pos.x - z.pos.x, a.pos.z - z.pos.z) < safe,
+        hypot(a.pos.x - z.pos.x, a.pos.z - z.pos.z) < safe,
     );
     if (allyNear) continue;
     best = z.pos;
@@ -161,7 +162,7 @@ function explode(state: GameState, config: GameConfig, grenade: Grenade): void {
 
   for (const z of state.zombies) {
     if (z.state === 'death') continue;
-    const d = Math.hypot(z.pos.x - at.x, z.pos.z - at.z);
+    const d = hypot(z.pos.x - at.x, z.pos.z - at.z);
     if (d <= radius + z.radius) {
       damageZombie(state, config, z, blastAt(def, d, radius, scale), thrower);
       blastLimbs(state, config, z, at, d, radius);
@@ -169,7 +170,7 @@ function explode(state: GameState, config: GameConfig, grenade: Grenade): void {
   }
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone' || inShelter(s)) continue;
-    const d = Math.hypot(s.pos.x - at.x, s.pos.z - at.z);
+    const d = hypot(s.pos.x - at.x, s.pos.z - at.z);
     if (d <= radius && config.grenades.friendlyFire > 0) {
       hurtSoldier(
         state,
@@ -181,7 +182,7 @@ function explode(state: GameState, config: GameConfig, grenade: Grenade): void {
     }
   }
   for (const v of [...state.vehicles]) {
-    const d = Math.hypot(v.pos.x - at.x, v.pos.z - at.z);
+    const d = hypot(v.pos.x - at.x, v.pos.z - at.z);
     const reach = radius + config.vehicles[v.type]!.radius;
     if (d <= reach && v.seats.some((id) => id !== null))
       hurtVehicle(state, config, v, blastAt(def, d, radius, scale));

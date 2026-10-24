@@ -4,6 +4,7 @@ import type { GameConfig } from './config';
 import { canSee } from './flowfield';
 import { nextFloat } from './rng';
 import type { GameState, Soldier, Zombie } from './types';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 
 type WanderRule = NonNullable<GameConfig['enemies'][string]['wander']>;
@@ -22,7 +23,7 @@ export function alertZombie(state: GameState, config: GameConfig, z: Zombie): vo
     if (shout <= 0) continue;
     for (const other of state.zombies) {
       if (other.mode !== 'wander' || other.state === 'death') continue;
-      if (Math.hypot(other.pos.x - from.pos.x, other.pos.z - from.pos.z) > shout) continue;
+      if (hypot(other.pos.x - from.pos.x, other.pos.z - from.pos.z) > shout) continue;
       other.mode = 'chase';
       state.events.push({
         type: 'zombieAlerted',
@@ -41,7 +42,7 @@ export function hearShot(state: GameState, config: GameConfig, at: Vec2, noise: 
   const reach = noise * rule.noiseMetres;
   for (const z of state.zombies) {
     if (z.mode !== 'wander' || z.state === 'death') continue;
-    if (Math.hypot(z.pos.x - at.x, z.pos.z - at.z) <= reach) alertZombie(state, config, z);
+    if (hypot(z.pos.x - at.x, z.pos.z - at.z) <= reach) alertZombie(state, config, z);
   }
 }
 
@@ -52,7 +53,7 @@ export function noticed(
   rule: WanderRule,
   s: Soldier,
 ): boolean {
-  const d = Math.hypot(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
+  const d = hypot(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
   // A crouching squad is harder to notice.
   const stealth = state.stance === 'crouch' ? config.wander.crouchStealth : 1;
   if (d <= rule.senseRadius * stealth) return true;
@@ -105,7 +106,7 @@ export function wanderStep(
   }
   const dx = z.roam.x - z.pos.x;
   const dz = z.roam.z - z.pos.z;
-  const d = Math.hypot(dx, dz);
+  const d = hypot(dx, dz);
   if (d < 0.4 || z.roamTimer <= 0) {
     z.roam = null;
     z.roamTimer = rule.pauseMin + nextFloat(state.rng) * (rule.pauseMax - rule.pauseMin);
@@ -136,7 +137,7 @@ export function huntTarget(
   let seenD = Infinity;
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone' || inShelter(s)) continue;
-    const d = Math.hypot(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
+    const d = hypot(s.pos.x - z.pos.x, s.pos.z - z.pos.z);
     if (d < seenD && noticed(state, config, z, rule, s)) {
       seen = s;
       seenD = d;
@@ -148,7 +149,7 @@ export function huntTarget(
     return null;
   }
   z.unseen += dt;
-  const reached = z.lastSeen && Math.hypot(z.lastSeen.x - z.pos.x, z.lastSeen.z - z.pos.z) < 1;
+  const reached = z.lastSeen && hypot(z.lastSeen.x - z.pos.x, z.lastSeen.z - z.pos.z) < 1;
   if (z.unseen < (rule.loseTrack ?? 0)) {
     if (z.lastSeen && !reached) return z.lastSeen;
     // At the last place it saw them (or never saw anyone): it stands and looks around.

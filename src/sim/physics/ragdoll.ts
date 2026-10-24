@@ -1,5 +1,6 @@
 import { nextFloat, type Rng } from '../rng';
 import { KIND_RAGDOLL, type PhysicsWorld } from './world';
+import { hypot3 } from '../vec';
 
 /** The eleven joints of a ragdoll, in the order the arrays use. */
 export const NODE = {
@@ -131,12 +132,12 @@ export function spawnRagdoll(
     const ra = rest[a]!;
     const rb = rest[b]!;
     const length = pose
-      ? Math.hypot(
+      ? hypot3(
           pose[b * 3]! - pose[a * 3]!,
           pose[b * 3 + 1]! - pose[a * 3 + 1]!,
           pose[b * 3 + 2]! - pose[a * 3 + 2]!,
         )
-      : Math.hypot(rb[0] - ra[0], rb[1] - ra[1], rb[2] - ra[2]);
+      : hypot3(rb[0] - ra[0], rb[1] - ra[1], rb[2] - ra[2]);
     world.addConstraint(bodies[a]!, bodies[b]!, length, stiffness);
   }
   return { group, bodies, scale };

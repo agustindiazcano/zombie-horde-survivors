@@ -1,4 +1,5 @@
 import type { GameConfig } from './config';
+import { hypot } from './vec';
 
 /** The numbers of the wave ocean (`ocean` in game.json, overridden by the map). */
 export type OceanParams = GameConfig['ocean'];
@@ -108,7 +109,7 @@ function buildTable(o: OceanParams): WaveTable {
     const pull = swell || jon || o.pattern === 'custom' ? 0 : HEADING;
     const x = Math.cos(angle) * (1 - pull);
     const z = Math.sin(angle) * (1 - pull) + pull;
-    const len = Math.hypot(x, z);
+    const len = hypot(x, z);
     table.dx[i] = x / len;
     table.dz[i] = z / len;
     table.amp[i] = (jon ? jon.amp[i]! : amp) * (1 + o.chaos * (r3 - 0.5) * 0.8);
@@ -183,7 +184,7 @@ export function vortexHeight(o: OceanParams, x: number, z: number, t: number): n
   for (const v of o.vortices) {
     const dx = x - v.x;
     const dz = z - v.z;
-    const r = Math.hypot(dx, dz);
+    const r = hypot(dx, dz);
     const rn = (r * 14.5) / v.radius;
     const funnel = (-20 * v.strength) / (1 + Math.pow(r / v.radius, 1.65) + VORTEX_SAT);
     const phase = 3 * Math.atan2(dz, dx) + rn * K_SPIRAL * 0.85 - t * 3.4;
@@ -250,7 +251,7 @@ export function oceanFlowAt(
   for (const v of o.vortices) {
     const dx = x - v.x;
     const dz = z - v.z;
-    const r = Math.hypot(dx, dz);
+    const r = hypot(dx, dz);
     const rn = (r * 14.5) / v.radius;
     if (v.strength <= 0.01 || rn >= 95) continue;
     const rSafe = Math.sqrt(rn * rn + (1 / VORTEX_SAT) * 8);

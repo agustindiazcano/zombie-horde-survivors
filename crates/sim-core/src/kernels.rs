@@ -575,3 +575,65 @@ impl Default for Walls {
         Walls::new()
     }
 }
+
+/// `hypot` of `src/sim/vec.ts`: scaled by the larger value, Kahan-summed squares, then `sqrt`. Only
+/// `+ - * /` and `sqrt`, which are exactly rounded, so it gives the TypeScript's bits (and V8's `Math.hypot`).
+pub fn hypot(a: f64, b: f64) -> f64 {
+    let x = a.abs();
+    let y = b.abs();
+    let max = if x > y { x } else { y };
+    if max == f64::INFINITY {
+        return f64::INFINITY;
+    }
+    if max == 0.0 {
+        return 0.0;
+    }
+    if x.is_nan() || y.is_nan() {
+        return f64::NAN;
+    }
+    let n = x / max;
+    let sum = n * n;
+    let n = y / max;
+    let summand = n * n;
+    (sum + summand).sqrt() * max
+}
+
+/// `hypot3` of `src/sim/vec.ts` (full Kahan summation).
+pub fn hypot3(a: f64, b: f64, c: f64) -> f64 {
+    let x = a.abs();
+    let y = b.abs();
+    let w = c.abs();
+    let mut max = if x > y { x } else { y };
+    if w > max {
+        max = w;
+    }
+    if max == f64::INFINITY {
+        return f64::INFINITY;
+    }
+    if max == 0.0 {
+        return 0.0;
+    }
+    if x.is_nan() || y.is_nan() || w.is_nan() {
+        return f64::NAN;
+    }
+    let mut sum = 0.0;
+    let mut compensation = 0.0;
+    for v in [x, y, w] {
+        let n = v / max;
+        let summand = n * n - compensation;
+        let preliminary = sum + summand;
+        compensation = preliminary - sum - summand;
+        sum = preliminary;
+    }
+    f64::sqrt(sum) * max
+}
+
+#[wasm_bindgen]
+pub fn sim_hypot(a: f64, b: f64) -> f64 {
+    hypot(a, b)
+}
+
+#[wasm_bindgen]
+pub fn sim_hypot3(a: f64, b: f64, c: f64) -> f64 {
+    hypot3(a, b, c)
+}

@@ -15,6 +15,7 @@ import { huntTarget, wanderStep } from './wander';
 import { gunOf, weaponDef } from './stats';
 import type { BodyZone, GameState, HitKind, Soldier, Vehicle, Zombie } from './types';
 import { hurtVehicle, isOccupied } from './vehicles';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 
 /** A boss's multipliers: the nth boss (1-based) reads the nth list entry, then keeps growing. */
@@ -220,7 +221,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
     const reach = z.attackRange + (vehicle ? config.vehicles[vehicle.type]!.radius : 0);
     const dx = target.x - z.pos.x;
     const dz = target.z - z.pos.z;
-    const d = Math.hypot(dx, dz);
+    const d = hypot(dx, dz);
     if (d > 1e-9) z.facing = Math.atan2(dx, dz);
 
     if (d > reach) {
@@ -250,7 +251,7 @@ export function updateZombies(state: GameState, config: GameConfig, dt: number):
       z.state = 'walk';
       const tx = waypoint.x - z.pos.x;
       const tz = waypoint.z - z.pos.z;
-      const td = Math.hypot(tx, tz) || 1;
+      const td = hypot(tx, tz) || 1;
       z.pos.x += (tx / td) * z.speed * dt;
       z.pos.z += (tz / td) * z.speed * dt;
       const acrobat = config.enemies[z.type]?.acrobat;
@@ -426,7 +427,7 @@ function nearestTarget(state: GameState, config: GameConfig, from: Vec2): Neares
   let bestD = Infinity;
   for (const s of state.soldiers) {
     if (s.dead || s.kind === 'drone' || inShelter(s)) continue; // flying units can't be reached
-    const d = Math.hypot(s.pos.x - from.x, s.pos.z - from.z);
+    const d = hypot(s.pos.x - from.x, s.pos.z - from.z);
     const felt = s.downed ? d * config.downed.targetDistanceScale : d;
     if (felt < bestD) {
       bestD = felt;
@@ -439,7 +440,7 @@ function nearestTarget(state: GameState, config: GameConfig, from: Vec2): Neares
     // A helicopter above reach cannot be bitten.
     const safe = config.vehicles[v.type]!.air?.safeAlt;
     if (v.air && safe !== undefined && v.air.alt > safe) continue;
-    const d = Math.hypot(v.pos.x - from.x, v.pos.z - from.z) - config.vehicles[v.type]!.radius;
+    const d = hypot(v.pos.x - from.x, v.pos.z - from.z) - config.vehicles[v.type]!.radius;
     if (d < bestD) {
       bestD = d;
       best = v;

@@ -2,6 +2,7 @@ import { inShelter } from './shelter';
 import { resolveStatic } from './collision';
 import type { GameConfig } from './config';
 import type { GameState, Soldier, Zombie } from './types';
+import { hypot } from './vec';
 
 const isBody = (s: Soldier): boolean => s.kind === 'soldier' && (s.dead || s.downed);
 
@@ -40,7 +41,7 @@ export function toggleDrag(
     if (b === me || !isBody(b) || b.vehicleId !== null) continue;
     if (bodyId !== undefined && b.id !== bodyId) continue;
     if (state.soldiers.some((s) => s.dragging === b.id)) continue;
-    const d = Math.hypot(b.pos.x - me.pos.x, b.pos.z - me.pos.z);
+    const d = hypot(b.pos.x - me.pos.x, b.pos.z - me.pos.z);
     if (d <= bestDist) {
       best = b;
       bestDist = d;
@@ -71,7 +72,7 @@ export function toggleDragCorpse(
   for (const z of state.zombies) {
     if (!isCorpse(z) || (corpseId !== undefined && z.id !== corpseId)) continue;
     if (state.soldiers.some((s) => s.dragCorpse === z.id)) continue;
-    const d = Math.hypot(z.pos.x - me.pos.x, z.pos.z - me.pos.z);
+    const d = hypot(z.pos.x - me.pos.x, z.pos.z - me.pos.z);
     if (d <= bestDist) {
       best = z;
       bestDist = d;
@@ -101,7 +102,7 @@ export function updateDrag(state: GameState, config: GameConfig): void {
     }
     const dx = body.pos.x - me.pos.x;
     const dz = body.pos.z - me.pos.z;
-    const d = Math.hypot(dx, dz);
+    const d = hypot(dx, dz);
     const rope = config.drag.ropeLength;
     if (d > rope) {
       body.pos.x = me.pos.x + (dx / d) * rope;
@@ -122,7 +123,7 @@ function dragCorpse(state: GameState, config: GameConfig, me: Soldier): void {
   corpse.deathTimer = KEEP_FRESH;
   const dx = corpse.pos.x - me.pos.x;
   const dz = corpse.pos.z - me.pos.z;
-  const d = Math.hypot(dx, dz);
+  const d = hypot(dx, dz);
   const rope = config.drag.ropeLength;
   if (d > rope) {
     corpse.pos.x = me.pos.x + (dx / d) * rope;

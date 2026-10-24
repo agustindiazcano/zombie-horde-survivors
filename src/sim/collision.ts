@@ -2,6 +2,7 @@ import type { GameConfig, Obstacle } from './config';
 import { OBSTACLE_HEIGHT, STEP_UP } from './constants';
 import { obstaclesNear } from './grid';
 import { flatObstacles, resolveWallsOne } from './kernels';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 
 /** Distance along a ray (unit `dir`) to a circle, or null if it misses. */
@@ -109,7 +110,7 @@ export function setDynamicSolids(list: readonly DynamicSolid[]): void {
   solidList = list;
   solidGrid.clear();
   for (const s of list) {
-    const r = s.round ? s.halfW : Math.hypot(s.halfW, s.halfD);
+    const r = s.round ? s.halfW : hypot(s.halfW, s.halfD);
     const x0 = Math.floor((s.x - r) / SOLID_CELL);
     const x1 = Math.floor((s.x + r) / SOLID_CELL);
     const z0 = Math.floor((s.z - r) / SOLID_CELL);
@@ -151,7 +152,7 @@ export function nearestOnSolid(p: Vec2, s: DynamicSolid): Vec2 {
   const dx = p.x - s.x;
   const dz = p.z - s.z;
   if (s.round) {
-    const d = Math.hypot(dx, dz);
+    const d = hypot(dx, dz);
     const k = d > s.halfW ? s.halfW / d : 1;
     return { x: s.x + dx * k, z: s.z + dz * k };
   }
@@ -176,7 +177,7 @@ function resolveCircleSolid(pos: Vec2, radius: number, s: DynamicSolid): void {
   const near = nearestOnSolid(pos, s);
   let dx = pos.x - near.x;
   let dz = pos.z - near.z;
-  const d = Math.hypot(dx, dz);
+  const d = hypot(dx, dz);
   if (d >= radius) return;
   let push: number;
   if (d > 1e-6) {
@@ -187,7 +188,7 @@ function resolveCircleSolid(pos: Vec2, radius: number, s: DynamicSolid): void {
     // The centre is inside: leave away from the solid's centre.
     dx = pos.x - s.x;
     dz = pos.z - s.z;
-    const m = Math.hypot(dx, dz) || 1;
+    const m = hypot(dx, dz) || 1;
     dx /= m;
     dz /= m;
     push = radius + (s.round ? s.halfW : Math.min(s.halfW, s.halfD));

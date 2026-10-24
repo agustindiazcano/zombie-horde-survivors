@@ -13,6 +13,7 @@ import {
 } from './structures';
 import type { GameState, InteractKind, Soldier } from './types';
 import { toggleVehicle } from './vehicles';
+import { hypot } from './vec';
 import type { Vec2 } from './vec';
 
 /** A soldier walking to a thing stops and acts at this share of its reach. */
@@ -42,7 +43,7 @@ export interface Interactable {
 }
 
 const isBody = (s: Soldier): boolean => s.kind === 'soldier' && (s.dead || s.downed);
-const centre = (pos: Vec2) => (p: Vec2) => Math.hypot(pos.x - p.x, pos.z - p.z);
+const centre = (pos: Vec2) => (p: Vec2) => hypot(pos.x - p.x, pos.z - p.z);
 
 /** Every thing in the world the action key can use right now. `skip` leaves some bodies out. */
 export function listInteractables(
@@ -85,7 +86,7 @@ export function listInteractables(
       pos: z.pos,
       pick: BODY_PICK * z.size + CORPSE_PENALTY,
       reach: config.drag.range + CORPSE_PENALTY,
-      from: (p) => Math.hypot(z.pos.x - p.x, z.pos.z - p.z) + CORPSE_PENALTY,
+      from: (p) => hypot(z.pos.x - p.x, z.pos.z - p.z) + CORPSE_PENALTY,
     });
   }
   for (const c of state.crates) {
@@ -279,7 +280,7 @@ export function orderInteract(
   let actor: Soldier | undefined;
   let bestD = Infinity;
   for (const s of crew) {
-    const d = Math.hypot(s.pos.x - it.pos.x, s.pos.z - it.pos.z);
+    const d = hypot(s.pos.x - it.pos.x, s.pos.z - it.pos.z);
     if (d < bestD) {
       actor = s;
       bestD = d;
