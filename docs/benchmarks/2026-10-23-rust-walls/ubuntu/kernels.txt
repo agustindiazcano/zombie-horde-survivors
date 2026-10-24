@@ -1,0 +1,63 @@
+== run 1
+
+bodies   bits differ   ts ms/call   rust slices ms   rust in-memory ms   (best of 3 runs of 200 calls)
+   100            0        0.022            0.015               0.013
+   300            0        0.120            0.055               0.053
+  1000            0        0.475            0.347               0.346
+  2000            0        1.108            0.837               0.844
+  5000            0        3.483            2.715               2.704
+ 10000            0       10.721            8.016               8.134
+
+grid     bits differ   ts ms/call   rust slices ms   rust in-memory ms   (a search from 5 targets)
+  80x80            0        0.725            0.510               0.505
+160x160            0        3.565            2.589               2.569
+320x320            0       17.406           12.277              12.265
+
+walls   bodies   bits differ (flat TS, Rust vs original)   original ms   flat TS ms   Rust ms
+map 1       1000                                  0          0.225        0.031      0.029
+60 boxes    1000                                  0          0.251        0.031      0.029
+400 boxes   1000                                  0          0.428        0.044      0.040
+400 boxes   5000                                  0          2.211        0.390      0.323
+OK: bit for bit identical
+== run 2
+
+bodies   bits differ   ts ms/call   rust slices ms   rust in-memory ms   (best of 3 runs of 200 calls)
+   100            0        0.022            0.015               0.013
+   300            0        0.102            0.055               0.060
+  1000            0        0.479            0.347               0.354
+  2000            0        1.081            0.837               0.833
+  5000            0        3.458            2.714               2.705
+ 10000            0       10.646            7.977               7.996
+
+grid     bits differ   ts ms/call   rust slices ms   rust in-memory ms   (a search from 5 targets)
+  80x80            0        0.724            0.511               0.503
+160x160            0        3.574            2.589               2.606
+320x320            0       17.419           12.270              12.166
+
+walls   bodies   bits differ (flat TS, Rust vs original)   original ms   flat TS ms   Rust ms
+map 1       1000                                  0          0.225        0.031      0.031
+60 boxes    1000                                  0          0.249        0.031      0.028
+400 boxes   1000                                  0          0.420        0.044      0.040
+400 boxes   5000                                  0          2.214        0.389      0.325
+OK: bit for bit identical
+== run 3
+
+bodies   bits differ   ts ms/call   rust slices ms   rust in-memory ms   (best of 3 runs of 200 calls)
+   100            0        0.022            0.015               0.013
+   300            0        0.102            0.056               0.054
+  1000            0        0.477            0.348               0.345
+  2000            0        1.089            0.836               0.834
+  5000            0        3.514            2.714               2.707
+ 10000            0       10.795            7.960               7.967
+
+grid     bits differ   ts ms/call   rust slices ms   rust in-memory ms   (a search from 5 targets)
+  80x80            0        0.725            0.510               0.505
+160x160            0        3.562            2.592               2.579
+320x320            0       17.348           12.344              12.244
+
+walls   bodies   bits differ (flat TS, Rust vs original)   original ms   flat TS ms   Rust ms
+map 1       1000                                  0          0.212        0.031      0.028
+60 boxes    1000                                  0          0.249        0.031      0.028
+400 boxes   1000                                  0          0.421        0.044      0.040
+400 boxes   5000                                  0          2.229        0.390      0.324
+OK: bit for bit identical

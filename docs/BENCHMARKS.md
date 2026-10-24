@@ -113,3 +113,29 @@ The game now runs the Rust separation and flow field kernels (rule decided by th
 | Rust       | 2.03, 2.09, 2.06 | 2.09, 2.02, 2.05 |
 
 The full step is **level** (the Rust kernels are faster alone, 1.2x to 2.4x, but separation and flow field are only about 15% of the step), and the result is bit-identical. The ocean stays in TypeScript (section 4: level at best, 6% to 8% slower with whirlpools, not bit-identical).
+
+## 9. Flat obstacles and the wall kernel (run `40042535443`, branch `bench/rust-walls-3`, 2026-10-23)
+
+Layer B of [PLAN-rust-architecture.md](PLAN-rust-architecture.md): the obstacles as flat arrays plus a CSR grid (`flatObstacles`), the wall collision as a batch kernel (`resolveWalls`) in TypeScript and Rust, and the scalar `resolveStatic` running on the same flat grid for every caller. Bit for bit identical to the original per-body version in all four scenes (`check:kernels`) and the simulation hash is unchanged (`02a0a498`, TypeScript and Rust kernels). Raw outputs: [benchmarks/2026-10-23-rust-walls/](benchmarks/2026-10-23-rust-walls/).
+
+### The kernel alone (ms per call, 3 runs agree within 3%)
+
+| Scene                 | Linux original | Linux flat TS | Linux Rust | Windows original | Windows flat TS | Windows Rust |
+| --------------------- | -------------- | ------------- | ---------- | ---------------- | --------------- | ------------ |
+| Map 1, 1000 bodies    | 0.221          | 0.031         | 0.028      | 0.241            | 0.031           | 0.028        |
+| 60 boxes, 1000 bodies | 0.243          | 0.031         | 0.031      | 0.272            | 0.035           | 0.028        |
+| 400 boxes, 1000       | 0.420          | 0.044         | 0.041      | 0.447            | 0.045           | 0.040        |
+| 400 boxes, 5000       | 2.179          | 0.390         | 0.324      | 2.343            | 0.400           | 0.325        |
+
+The flat layout alone is **5.6x to 9.9x faster** than the original (objects, a `Map` of stamps and arrays of arrays); Rust adds only 1.0x to 1.25x on top. The gain comes from the data layout, not from the language.
+
+### The full step against the code before the Rust work, on the same machine (`bench:sim`, 1000 zombies, ms per step)
+
+| Code                                                        | Linux (3 runs)   | Windows (3 runs) |
+| ----------------------------------------------------------- | ---------------- | ---------------- |
+| Before the Rust work (`e192428`)                            | 2.21, 2.21, 2.23 | 2.28, 2.39, 2.29 |
+| `main` after PR 62 (flat separation and flow field kernels) | 1.98, 1.98, 2.14 | 2.03, 2.12, 2.12 |
+| This branch, TypeScript kernels                             | 1.73, 1.76, 1.77 | 1.77, 1.77, 1.79 |
+| This branch, Rust kernels                                   | 1.68, 1.70, 1.70 | 1.74, 1.75, 1.77 |
+
+The simulation step is **about 23% (Linux) to 25% (Windows) faster than before the work** (2.2 ms to 1.7 ms with 1000 zombies; 600 zombies 1.23 to 1.02 ms). Almost all of it comes from the flat TypeScript layout; the Rust kernels add 2% to 4% on top. That agrees with the prediction of the architecture plan: the data layout first, Rust second.
