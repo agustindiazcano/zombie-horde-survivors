@@ -1,0 +1,45 @@
+== run 1
+> node scripts/check-ocean-wasm.mjs
+
+case                           table    height     flow     ts ms  wasm ms  batch ms
+golden (game.json)            2.2e-16  1.5e-13   0.0e+0      431      416      402
+fibonacci                     1.1e-16  9.4e-14   0.0e+0      434      408      397
+random, chaos                 2.2e-16  8.3e-14   0.0e+0      428      404      395
+swell                          0.0e+0  8.9e-16   0.0e+0      425      406      400
+custom sequence               2.2e-16  1.1e-13   0.0e+0      427      407      400
+jonswap, wind                 2.2e-16  2.1e-13   0.0e+0      432      408      401
+golden, whirlpools            2.2e-16  1.3e-13  1.1e-14      653      690      682
+jonswap, frozen, whirlpool    1.1e-16  7.3e-14  2.7e-15      513      503      498
+
+largest difference: 2.14e-13 (20000 points per case, height in m, flow in m/s)
+OK: TypeScript and Rust agree to 1e-9
+== run 2
+> node scripts/check-ocean-wasm.mjs
+
+case                           table    height     flow     ts ms  wasm ms  batch ms
+golden (game.json)            2.2e-16  1.5e-13   0.0e+0      436      416      400
+fibonacci                     1.1e-16  9.4e-14   0.0e+0      433      408      398
+random, chaos                 2.2e-16  8.3e-14   0.0e+0      434      408      392
+swell                          0.0e+0  8.9e-16   0.0e+0      429      402      400
+custom sequence               2.2e-16  1.1e-13   0.0e+0      426      405      402
+jonswap, wind                 2.2e-16  2.1e-13   0.0e+0      432      405      401
+golden, whirlpools            2.2e-16  1.3e-13  1.1e-14      670      689      681
+jonswap, frozen, whirlpool    1.1e-16  7.3e-14  2.7e-15      508      502      480
+
+largest difference: 2.14e-13 (20000 points per case, height in m, flow in m/s)
+OK: TypeScript and Rust agree to 1e-9
+== run 3
+> node scripts/check-ocean-wasm.mjs
+
+case                           table    height     flow     ts ms  wasm ms  batch ms
+golden (game.json)            2.2e-16  1.5e-13   0.0e+0      429      416      399
+fibonacci                     1.1e-16  9.4e-14   0.0e+0      433      408      400
+random, chaos                 2.2e-16  8.3e-14   0.0e+0      425      399      392
+swell                          0.0e+0  8.9e-16   0.0e+0      428      407      398
+custom sequence               2.2e-16  1.1e-13   0.0e+0      429      405      394
+jonswap, wind                 2.2e-16  2.1e-13   0.0e+0      435      408      401
+golden, whirlpools            2.2e-16  1.3e-13  1.1e-14      665      692      682
+jonswap, frozen, whirlpool    1.1e-16  7.3e-14  2.7e-15      504      501      493
+
+largest difference: 2.14e-13 (20000 points per case, height in m, flow in m/s)
+OK: TypeScript and Rust agree to 1e-9

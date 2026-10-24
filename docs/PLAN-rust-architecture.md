@@ -142,3 +142,7 @@ Rule (the user's, 2026-10-23): whatever is equal or better in Rust on the GitHub
 | SIMD (`simd128`) and threads                         | ⚪ Not started                                         | n/a   | Threads need `SharedArrayBuffer` (COOP / COEP headers, which GitHub Pages cannot send) or a native wrapper: the Steam wrapper decision                                                                                                                                                                                                           |
 
 Not portable: shaders (GLSL), the three.js drawing, and the DOM screens.
+
+### Why the rest stays in TypeScript for now (2026-10-24)
+
+The pieces left in the profile (`updateZombies`, `nearestTarget`, the per-zombie waypoint, the soldiers' `findTarget`) all use `Math.hypot` (and `Math.atan2`). V8's `Math.hypot` is its own scaled algorithm, so a Rust `hypot` does not give the same bits and the golden hash would change. Porting them needs one of: replicating V8's exact `hypot` in Rust and proving it bit for bit, accepting a new golden hash (a semantic change, to be decided), or moving the state to arrays (layer C) and doing the maths in squared distances. Cheap wins that keep the bits were taken instead: `nextWaypoint` flat loop (7.7% to 1.9%) and an allocation-free `nearestTarget`.

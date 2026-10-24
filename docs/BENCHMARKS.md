@@ -139,3 +139,18 @@ The flat layout alone is **5.6x to 9.9x faster** than the original (objects, a `
 | This branch, Rust kernels                                   | 1.68, 1.70, 1.70 | 1.74, 1.75, 1.77 |
 
 The simulation step is **about 23% (Linux) to 25% (Windows) faster than before the work** (2.2 ms to 1.7 ms with 1000 zombies; 600 zombies 1.23 to 1.02 ms). Almost all of it comes from the flat TypeScript layout; the Rust kernels add 2% to 4% on top. That agrees with the prediction of the architecture plan: the data layout first, Rust second.
+
+### After the flat neighbour loop and the allocation-free `nearestTarget` (run `40043757307`, branch `bench/rust-walls-4`, 2026-10-24)
+
+Two changes with the same bits (hash `02a0a498`): `nextWaypoint` reads flat neighbour arrays instead of destructuring `[dx, dz, step]` arrays (7.7% of the profile down to 1.9%), and `nearestTarget` reuses one result object instead of making one per zombie per step (the garbage collector left the top of the profile). Raw outputs: [benchmarks/2026-10-24-sim-step/](benchmarks/2026-10-24-sim-step/).
+
+`bench:sim`, 1000 zombies, ms per step, same machine per system, three runs:
+
+| Code                             | Linux            | Windows          |
+| -------------------------------- | ---------------- | ---------------- |
+| Before the Rust work (`e192428`) | 2.24, 2.14, 2.20 | 2.02, 1.99, 2.03 |
+| `main` after PR 62               | 2.05, 1.94, 1.98 | 2.08, 2.26, 2.05 |
+| This branch, TypeScript kernels  | 1.53, 1.56, 1.52 | 1.50, 1.64, 1.67 |
+| This branch, Rust kernels        | 1.50, 1.52, 1.48 | 1.56, 1.61, 1.61 |
+
+Against the code before the Rust work the step is now **31% faster on Linux** and **20% faster on Windows**; the Rust kernels add 2% to 3% over the TypeScript ones. (Absolute times differ between the two runs of the workflow because GitHub gives a different virtual machine each time; compare only inside one run.)
