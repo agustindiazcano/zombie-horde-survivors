@@ -10,6 +10,9 @@ const LOOK_GAIN = 2.6;
 const TAP_SLOP = 8;
 const TAP_MS = 300;
 
+/** Text of the view button: normal (top-down) view, third person and first person. */
+const VIEW_LABEL = { top: 'ASYM', third: '3rd', first: '1st' } as const;
+
 /** Phones and tablets (coarse pointer), or `?mobile=1` to try the layout on a desktop browser. */
 export function isMobile(): boolean {
   try {
@@ -59,6 +62,7 @@ export class MobileControls {
   private readonly knob: HTMLElement;
   private readonly base: HTMLElement;
   private readonly crate: HTMLButtonElement;
+  private readonly viewBtn: HTMLButtonElement;
   private pointerId: number | null = null;
   private baseX = 0;
   private baseY = 0;
@@ -98,6 +102,9 @@ export class MobileControls {
     this.crate.hidden = true;
     this.toggle(acts, '🧎', 'Crouch', (on) => actions.onAction('crouch', on));
     this.toggle(acts, '💨', 'Sprint', (on) => actions.onAction('sprint', on));
+    // One button cycles the view and always shows the current one.
+    this.viewBtn = this.button(acts, VIEW_LABEL.top, 'Change view', actions.onView);
+    this.viewBtn.classList.add('mob__act--view');
     this.hold(acts, '⤒', 'Jump', (on) => actions.onAction('jump', on));
 
     const rotate = el('div', 'mob__rotate', this.root);
@@ -187,6 +194,12 @@ export class MobileControls {
       this.base.classList.remove('mob__stick--active');
       this.actions.onMove(0, 0);
     }
+  }
+
+  /** Labels the view button with the current view. */
+  setView(mode: 'top' | 'third' | 'first'): void {
+    const label = VIEW_LABEL[mode];
+    if (this.viewBtn.textContent !== label) this.viewBtn.textContent = label;
   }
 
   /** Shows the crate button while the leader stands next to a crate. */

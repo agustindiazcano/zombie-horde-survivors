@@ -732,6 +732,7 @@ async function main(): Promise<void> {
 
       const crate = !modalOpen() && playable() ? crateInReach() : undefined;
       mobileUi?.setCrateReady(crate !== undefined);
+      mobileUi?.setView(renderer.viewMode);
       mobileUi?.setMenuOpen(paused || modalOpen());
       if (crate) {
         const p = renderer.projectToScreen(crate.pos.x, crate.pos.z, 1.5);
