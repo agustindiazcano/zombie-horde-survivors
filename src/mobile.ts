@@ -42,6 +42,8 @@ export interface MobileActions {
   onLook: (dx: number, dy: number) => void;
   /** Tap on the look pad: cycles normal, third and first person view. */
   onView: () => void;
+  /** Opens or closes the build menu (only maps with building on). */
+  onBuild: () => void;
   onSettings: () => void;
   onMenu: () => void;
   onShop: () => void;
@@ -91,6 +93,7 @@ export class MobileControls {
     const bar = el('div', 'mob__buttons', this.root);
     this.button(bar, '⚙', 'Settings', actions.onSettings);
     this.button(bar, '☰', 'Main menu', actions.onMenu);
+    this.button(bar, '🔨', 'Build mode', actions.onBuild);
     this.button(bar, '🛒', 'Shop', actions.onShop);
     this.button(bar, '🎒', 'Squad & inventory', actions.onInventory);
     if (document.fullscreenEnabled) this.button(bar, '⛶', 'Full screen', actions.onFullscreen);

@@ -141,16 +141,16 @@ Opened from the main menu. It starts paused; **▶ Play** tests the map and **�
 
 On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the URL to try it on a desktop). Hold the phone sideways. The small 👁 pad on the right turns the camera: drag it to look up and sideways (the first drag switches to third person), tap it to cycle normal, third and first person (the same cycle as the view button beside the action buttons, which reads ASYM, 3rd or 1st for the current view); in those views the squad fires at enemies near where you look. Grenades are not on the touch layout yet.
 
-| Control           | Action                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------- |
-| Joystick (left)   | Drag a thumb anywhere in the lower-left area to move the whole squad; the others follow           |
-| Auto-fire         | The leader aims at the nearest enemy and fires on its own; so does the rest of the squad          |
-| Soldier icons     | Top-left row with each unit's health; tap one and direct control passes to it                     |
-| ⚙ / ☰ / 🛒 / 🎒  | Top-right: settings, main menu, shop (between waves), squad screen and inventories                |
-| Inventory         | Tap a weapon, then tap the slot to move it to (drag and drop also works where the browser allows) |
-| 📦 (bottom-right) | Appears when the leader stands next to a crate: tap to open it                                    |
-| 🧎 / 💨 / ⤒       | Crouch and sprint (tap to toggle) and jump (hold)                                                 |
-| Pinch / ⛶ / buzz  | Two-finger zoom; full screen button; the phone vibrates when a soldier is hurt                    |
+| Control               | Action                                                                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Joystick (left)       | Drag a thumb anywhere in the lower-left area to move the whole squad; the others follow                                |
+| Auto-fire             | The leader aims at the nearest enemy and fires on its own; so does the rest of the squad                               |
+| Soldier icons         | Top-left row with each unit's health; tap one and direct control passes to it                                          |
+| ⚙ / ☰ / 🔨 / 🛒 / 🎒 | Top-right: settings, main menu, build menu (maps with building on), shop (between waves), squad screen and inventories |
+| Inventory             | Tap a weapon, then tap the slot to move it to (drag and drop also works where the browser allows)                      |
+| 📦 (bottom-right)     | Appears when the leader stands next to a crate: tap to open it                                                         |
+| 🧎 / 💨 / ⤒           | Crouch and sprint (tap to toggle) and jump (hold)                                                                      |
+| Pinch / ⛶ / buzz      | Two-finger zoom; full screen button; the phone vibrates when a soldier is hurt                                         |
 
 ## Physics lab (Map 12)
 

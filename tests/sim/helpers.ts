@@ -24,6 +24,7 @@ type Patch = {
       | 'items'
       | 'briefing'
       | 'build'
+      | 'startBuild'
       | 'noWaves'
       | 'startGold'
       | 'swim'
