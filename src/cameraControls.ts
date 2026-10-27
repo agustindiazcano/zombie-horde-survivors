@@ -20,7 +20,13 @@ export class CameraControls {
   } | null = null;
 
   /** `blocked` says a right-drag belongs to something else right now (the editor moving items). */
-  constructor(canvas: HTMLElement, renderer: GameRenderer, blocked: () => boolean = () => false) {
+  constructor(
+    canvas: HTMLElement,
+    renderer: GameRenderer,
+    blocked: () => boolean = () => false,
+    /** While true, two fingers moving together also orbit and tilt the camera (the map editor). */
+    twoFingerOrbit: () => boolean = () => false,
+  ) {
     canvas.addEventListener(
       'wheel',
       (e) => {
@@ -32,10 +38,16 @@ export class CameraControls {
 
     // Two-finger pinch zooms on touch screens.
     let pinch = 0;
+    let mid = { x: 0, y: 0 };
+    const midpoint = (t: TouchList) => ({
+      x: (t[0]!.clientX + t[1]!.clientX) / 2,
+      y: (t[0]!.clientY + t[1]!.clientY) / 2,
+    });
     const span = (t: TouchList) =>
       Math.hypot(t[0]!.clientX - t[1]!.clientX, t[0]!.clientY - t[1]!.clientY);
     canvas.addEventListener('touchstart', (e) => {
       pinch = e.touches.length === 2 ? span(e.touches) : 0;
+      if (e.touches.length === 2) mid = midpoint(e.touches);
     });
     canvas.addEventListener(
       'touchmove',
@@ -45,6 +57,11 @@ export class CameraControls {
         const now = span(e.touches);
         renderer.zoomBy(pinch / now);
         pinch = now;
+        if (twoFingerOrbit()) {
+          const m = midpoint(e.touches);
+          renderer.rotate(-(m.x - mid.x) * YAW_PER_PIXEL, (m.y - mid.y) * PITCH_PER_PIXEL);
+          mid = m;
+        }
       },
       { passive: false },
     );
