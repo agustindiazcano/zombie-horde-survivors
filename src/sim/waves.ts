@@ -92,6 +92,13 @@ function spawnWanderer(
   spawnZombie(state, config, at, type);
 }
 
+/** Ends the calm early: the next wave starts on the next step (build maps, "Start wave"). */
+export function startWaveNow(state: GameState): void {
+  if (state.status === 'playing' && state.spawner.phase === 'intermission') {
+    state.spawner.timer = 0;
+  }
+}
+
 export function updateWaves(state: GameState, config: GameConfig, dt: number): void {
   const sp = state.spawner;
   const wc = config.waves;

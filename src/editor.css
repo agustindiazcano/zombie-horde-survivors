@@ -367,3 +367,34 @@ body.mobile .editor__tabs {
 body.mobile.editing .mob__buttons {
   display: none;
 }
+
+/* The eye button: only on touch screens, bottom-left, always above the panels it hides. */
+.editor__eye {
+  display: none;
+}
+
+body.mobile .editor__eye {
+  position: absolute;
+  left: max(10px, env(safe-area-inset-left));
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 1;
+  display: block;
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  color: #fff;
+  background: rgba(16, 20, 28, 0.75);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+body.mobile .editor__eye--off {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.editor--ui-hidden > :not(.editor__eye) {
+  display: none !important;
+}
