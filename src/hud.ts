@@ -71,6 +71,9 @@ export class Hud {
   private readonly gold: HTMLElement;
   private readonly level: HTMLElement;
   private readonly xpFill: HTMLElement;
+  private readonly bossBar: HTMLElement;
+  private readonly bossFill: HTMLElement;
+  private shownBoss = -1;
   private readonly banner: HTMLElement;
   private readonly damage: HTMLElement;
   private readonly countdown: HTMLElement;
@@ -125,6 +128,8 @@ export class Hud {
     this.gold = el('span', 'hud__gold', stats);
     this.level = el('span', 'hud__level', stats);
     this.xpFill = el('div', 'hud__xp-fill', el('div', 'hud__xp', root));
+    this.bossBar = el('div', 'hud__boss', root);
+    this.bossFill = el('div', 'hud__boss-fill', this.bossBar);
     this.objectives = el('ul', 'hud__objectives', root);
     this.briefing = el('div', 'hud__briefing', root);
     this.briefing.addEventListener('click', () => this.showBriefing(''));
@@ -305,6 +310,18 @@ export class Hud {
       const info = levelInfo(state.xp, this.config);
       this.level.textContent = `Lv ${info.level}`;
       this.xpFill.style.width = `${(info.into / info.needed) * 100}%`;
+    }
+
+    // A thin red bar under the XP bar while a mini boss lives (the toughest one if there are several).
+    let boss: (typeof state.zombies)[number] | undefined;
+    for (const z of state.zombies) {
+      if (z.boss && z.state !== 'death' && (!boss || z.maxHealth > boss.maxHealth)) boss = z;
+    }
+    const bossRatio = boss ? Math.min(Math.max(boss.health / boss.maxHealth, 0), 1) : -1;
+    if (bossRatio !== this.shownBoss) {
+      this.shownBoss = bossRatio;
+      this.bossBar.classList.toggle('hud__boss--visible', boss !== undefined);
+      this.bossFill.style.width = `${Math.max(bossRatio, 0) * 100}%`;
     }
 
     const countdown =

@@ -250,6 +250,30 @@
   transition: width 0.2s ease-out;
 }
 
+.hud__boss {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  width: min(360px, 60vw);
+  height: 4px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+  overflow: hidden;
+  display: none;
+}
+
+.hud__boss--visible {
+  display: block;
+}
+
+.hud__boss-fill {
+  height: 100%;
+  width: 100%;
+  background: #d62020;
+  transition: width 0.15s ease-out;
+}
+
 .hud__crosshair {
   --cross: 22px;
   position: absolute;
@@ -431,6 +455,7 @@
 
 .hud--cinema .hud__health,
 .hud--cinema .hud__stats,
+.hud--cinema .hud__boss,
 .hud--cinema .hud__xp {
   display: none;
 }

@@ -205,6 +205,7 @@ async function main(): Promise<void> {
       loadMap(entry.map);
       hud.showBriefing(config.briefing ?? '');
       // Some maps start in a person's eyes (the sky show looks up from the street).
+      if (config.build && config.startBuild) build.show();
       if (config.startView && localPlayer(state).controlledId !== null) {
         setView(config.startView);
         renderer.setLookPitch(config.startPitch);
@@ -349,6 +350,9 @@ async function main(): Promise<void> {
       onView: () => {
         if (playable() && !modalOpen() && localPlayer(state).controlledId !== null)
           setView(NEXT_VIEW[renderer.viewMode]);
+      },
+      onBuild: () => {
+        if (playable() && !modalOpen()) build.toggle();
       },
       onSettings: () => openSettings(),
       onMenu: () => {
@@ -732,6 +736,7 @@ async function main(): Promise<void> {
 
       const crate = !modalOpen() && playable() ? crateInReach() : undefined;
       mobileUi?.setCrateReady(crate !== undefined);
+      mobileUi?.setView(renderer.viewMode);
       mobileUi?.setMenuOpen(paused || modalOpen());
       if (crate) {
         const p = renderer.projectToScreen(crate.pos.x, crate.pos.z, 1.5);

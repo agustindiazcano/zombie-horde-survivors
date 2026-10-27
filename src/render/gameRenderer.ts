@@ -1324,6 +1324,7 @@ export class GameRenderer {
           0.6 + z.radius * 1.2,
           z.health / z.maxHealth,
           this.camera,
+          true,
         );
       }
     }
