@@ -42,6 +42,7 @@ import {
   toggleDrag,
   togglePost,
   postInReach,
+  startWaveNow,
   toggleVehicle,
   vehicleInReach,
   shopAvailable,
@@ -268,7 +269,12 @@ async function main(): Promise<void> {
     },
     () => [...rts.selected],
   );
-  const hud = new Hud(document.body, config, () => resetGame());
+  const hud = new Hud(
+    document.body,
+    config,
+    () => resetGame(),
+    () => startWaveNow(state),
+  );
   const damageNumbers = new DamageNumbers(document.body, (x, z, y) =>
     renderer.projectToScreen(x, z, y),
   );

@@ -77,6 +77,7 @@ export class Hud {
   private readonly banner: HTMLElement;
   private readonly damage: HTMLElement;
   private readonly countdown: HTMLElement;
+  private readonly startWave: HTMLButtonElement;
   private readonly pause: HTMLElement;
   private readonly hint: HTMLElement;
   private readonly crosshair: HTMLElement;
@@ -109,6 +110,7 @@ export class Hud {
     parent: HTMLElement,
     private readonly config: GameConfig,
     onRestart: () => void,
+    private readonly onStartWave: () => void = () => undefined,
   ) {
     const root = el('div', 'hud', parent);
     this.root = root;
@@ -136,6 +138,9 @@ export class Hud {
     this.banner = el('div', 'hud__banner', root);
     this.damage = el('div', 'hud__damage', root);
     this.countdown = el('div', 'hud__countdown', root);
+    this.startWave = el('button', 'hud__start-wave', root, '▶ Start wave');
+    this.startWave.hidden = true;
+    this.startWave.addEventListener('click', () => this.onStartWave());
     this.hint = el('div', 'hud__hint', root);
     this.crosshair = el('div', 'hud__crosshair', root);
     this.subtitle = el('div', 'hud__subtitle', root);
@@ -328,6 +333,8 @@ export class Hud {
       state.status === 'playing' && state.spawner.phase === 'intermission'
         ? `Next wave in ${Math.ceil(state.spawner.timer)}s · B: shop`
         : '';
+    // Build maps let the player end the calm early.
+    this.startWave.hidden = !(this.config.build && countdown !== '');
     if (countdown !== this.shown.countdown) {
       this.shown.countdown = countdown;
       this.countdown.textContent = countdown;

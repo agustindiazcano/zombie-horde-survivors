@@ -489,3 +489,30 @@
 .hud--cinema .hud__oxygen {
   display: none;
 }
+
+/* "Start wave": during the calm of a build map, under the countdown. */
+.hud__start-wave {
+  position: absolute;
+  top: 82px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: #2a8a3a;
+  border: 1px solid #5fd070;
+  border-radius: 6px;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.hud__start-wave[hidden] {
+  display: none;
+}
+
+.hud--cinema .hud__start-wave {
+  display: none;
+}
