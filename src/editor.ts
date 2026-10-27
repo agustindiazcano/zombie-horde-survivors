@@ -331,6 +331,13 @@ export class Editor {
     el('span', 'editor__title', this.stopBar, 'Testing the map');
 
     this.boxEl = el('div', 'editor__box', this.root);
+    // Touch screens: a corner button hides every editor panel to see the map clear (it stays visible).
+    const eye = el('button', 'editor__eye', this.root, '👁');
+    eye.setAttribute('aria-label', 'Hide or show the editor panels');
+    eye.addEventListener('click', () => {
+      const hidden = this.root.classList.toggle('editor--ui-hidden');
+      eye.classList.toggle('editor__eye--off', hidden);
+    });
     parent.appendChild(this.root);
     this.setTab('units');
 
