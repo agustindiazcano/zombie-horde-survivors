@@ -139,7 +139,7 @@ Opened from the main menu. It starts paused; **▶ Play** tests the map and **�
 
 ## Mobile (landscape)
 
-On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the URL to try it on a desktop). Hold the phone sideways. The small 👁 pad on the right turns the camera: drag it to look up and sideways (the first drag switches to third person), tap it to cycle normal, third and first person (the same cycle as the view button beside the action buttons, which reads ASYM, 3rd or 1st for the current view); in those views the squad fires at enemies near where you look. Grenades are not on the touch layout yet.
+On a phone or tablet the game switches to a touch layout (add `?mobile=1` to the URL to try it on a desktop). On the deployed site only Map 1 is offered; add `?dev=1` to the URL to unlock every map (Start → Development). Hold the phone sideways. The small 👁 pad on the right turns the camera: drag it to look up and sideways (the first drag switches to third person), tap it to cycle normal, third and first person (the same cycle as the view button beside the action buttons, which reads ASYM, 3rd or 1st for the current view); in those views the squad fires at enemies near where you look. Grenades are not on the touch layout yet.
 
 | Control               | Action                                                                                                                 |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
