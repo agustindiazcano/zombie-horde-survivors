@@ -325,3 +325,45 @@ body.editing .radar {
   border-radius: 3px;
   padding: 2px 4px;
 }
+
+/* Touch screens: the editor's keys appear as buttons, and the bar and panel shrink for a phone held sideways. */
+.editor__touch {
+  display: none;
+}
+
+body.mobile .editor__touch {
+  display: inline-block;
+}
+
+body.mobile .editor__bar {
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+body.mobile .editor__btn,
+body.mobile .editor__tab {
+  min-height: 34px;
+  padding: 4px 9px;
+  font-size: 13px;
+  touch-action: manipulation;
+}
+
+body.mobile .editor__title {
+  display: none;
+}
+
+body.mobile .editor__panel {
+  top: 84px;
+  width: min(260px, 46vw);
+}
+
+body.mobile .editor__tabs {
+  gap: 3px;
+  padding: 4px;
+}
+
+/* The play buttons stay out of the editor's way (its own bar has Menu and Play). */
+body.mobile.editing .mob__buttons {
+  display: none;
+}

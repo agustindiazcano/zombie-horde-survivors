@@ -10,6 +10,7 @@ import { DamageNumbers } from './damageNumbers';
 import { Hud } from './hud';
 import { MainMenu } from './mainMenu';
 import { isMobile, MobileControls } from './mobile';
+import { bridgeTouchToMouse } from './touchEdit';
 import { InputController } from './input';
 import { CameraControls } from './cameraControls';
 import { CratePrompt, InventoryUi } from './inventoryUi';
@@ -214,7 +215,7 @@ async function main(): Promise<void> {
     preview,
     openSettings,
     () => openEditor(),
-    !mobile,
+    true,
   );
   const editor = new Editor(document.body, {
     canvas: renderer.domElement,
@@ -585,7 +586,13 @@ async function main(): Promise<void> {
     if (!editor.isEditing) setPaused(true);
   });
 
-  new CameraControls(renderer.domElement, renderer, () => editor.ownsRightDrag);
+  new CameraControls(
+    renderer.domElement,
+    renderer,
+    () => editor.ownsRightDrag,
+    () => editor.isEditing,
+  );
+  if (mobile) bridgeTouchToMouse(renderer.domElement, () => editor.isEditing);
 
   const blank = (): Input => ({
     move: { x: 0, z: 0 },
