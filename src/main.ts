@@ -10,6 +10,7 @@ import { DamageNumbers } from './damageNumbers';
 import { Hud } from './hud';
 import { MainMenu } from './mainMenu';
 import { isMobile, MobileControls } from './mobile';
+import { bridgeTouchToMouse } from './touchEdit';
 import { InputController } from './input';
 import { CameraControls } from './cameraControls';
 import { CratePrompt, InventoryUi } from './inventoryUi';
@@ -41,6 +42,7 @@ import {
   toggleDrag,
   togglePost,
   postInReach,
+  startWaveNow,
   toggleVehicle,
   vehicleInReach,
   shopAvailable,
@@ -205,6 +207,7 @@ async function main(): Promise<void> {
       loadMap(entry.map);
       hud.showBriefing(config.briefing ?? '');
       // Some maps start in a person's eyes (the sky show looks up from the street).
+      if (config.build && config.startBuild) build.show();
       if (config.startView && localPlayer(state).controlledId !== null) {
         setView(config.startView);
         renderer.setLookPitch(config.startPitch);
@@ -213,7 +216,7 @@ async function main(): Promise<void> {
     preview,
     openSettings,
     () => openEditor(),
-    !mobile,
+    true,
   );
   const editor = new Editor(document.body, {
     canvas: renderer.domElement,
@@ -272,7 +275,12 @@ async function main(): Promise<void> {
     },
     () => [...rts.selected],
   );
-  const hud = new Hud(document.body, config, () => resetGame());
+  const hud = new Hud(
+    document.body,
+    config,
+    () => resetGame(),
+    () => startWaveNow(state),
+  );
   const damageNumbers = new DamageNumbers(document.body, (x, z, y) =>
     renderer.projectToScreen(x, z, y),
   );
@@ -355,6 +363,9 @@ async function main(): Promise<void> {
       onView: () => {
         if (playable() && !modalOpen() && localPlayer(state).controlledId !== null)
           setView(NEXT_VIEW[renderer.viewMode]);
+      },
+      onBuild: () => {
+        if (playable() && !modalOpen()) build.toggle();
       },
       onSettings: () => openSettings(),
       onMenu: () => {
@@ -587,7 +598,13 @@ async function main(): Promise<void> {
     if (!editor.isEditing) setPaused(true);
   });
 
-  new CameraControls(renderer.domElement, renderer, () => editor.ownsRightDrag);
+  new CameraControls(
+    renderer.domElement,
+    renderer,
+    () => editor.ownsRightDrag,
+    () => editor.isEditing,
+  );
+  if (mobile) bridgeTouchToMouse(renderer.domElement, () => editor.isEditing);
 
   const blank = (): Input => ({
     move: { x: 0, z: 0 },
@@ -738,6 +755,7 @@ async function main(): Promise<void> {
 
       const crate = !modalOpen() && playable() ? crateInReach() : undefined;
       mobileUi?.setCrateReady(crate !== undefined);
+      mobileUi?.setView(renderer.viewMode);
       mobileUi?.setMenuOpen(paused || modalOpen());
       if (crate) {
         const p = renderer.projectToScreen(crate.pos.x, crate.pos.z, 1.5);

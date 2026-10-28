@@ -209,6 +209,11 @@ body.mobile .hud__xp {
   width: min(240px, 36vw);
 }
 
+body.mobile .hud__boss {
+  top: 43px;
+  width: min(240px, 36vw);
+}
+
 body.mobile .hud__banner {
   font-size: 28px;
   top: 18%;
@@ -356,6 +361,15 @@ body.mobile .set__button {
   display: none;
 }
 
+.mob__act--view {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+body.mobile .mob__actions .mob__btn.mob__act--view {
+  font-size: 13px;
+}
+
 .mob__btn--on {
   background: rgba(255, 210, 74, 0.45);
   border-color: #ffd24a;
@@ -419,4 +433,10 @@ body.mobile .us__card .us__kills {
 body.mobile .us__stage {
   width: 100px;
   height: 140px;
+}
+
+body.mobile .hud__start-wave {
+  top: 66px;
+  padding: 4px 12px;
+  font-size: 13px;
 }

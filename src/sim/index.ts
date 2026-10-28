@@ -49,7 +49,7 @@ export { handState, newWeaponState } from './weaponState';
 export { baseMods, buyItem, choosePerk, maxHealthOf, shopAvailable, shopCost } from './upgrades';
 export type { Slot, SlotRef } from './inventory';
 export { levelInfo, type LevelInfo } from './loot';
-export { waveSize } from './waves';
+export { startWaveNow, waveSize } from './waves';
 export { toggleDrag } from './drag';
 export { grenadeAim, grenadeCount, throwGrenade } from './grenades';
 export { meleeStrike } from './melee';

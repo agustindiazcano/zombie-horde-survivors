@@ -215,6 +215,8 @@ const mapLogic = z
     briefing: z.string().max(600).optional(),
     /** Build mode: the squad can raise structures (key N); the gold the run starts with. */
     build: z.boolean().optional(),
+    /** With `build`: the run starts with the build menu open (a build phase before wave 1). */
+    startBuild: z.boolean().optional(),
     /** No waves spawn: only the units the map places (test maps, hide and seek). */
     noWaves: z.boolean().optional(),
     startGold: nonNegative.optional(),
@@ -496,6 +498,8 @@ const PROP_HEIGHTS: Record<string, number> = {
   house: 6,
   tree: 6,
   lamp: 5,
+  gas_station: 4.2,
+  gas_pump: 1.8,
   car: 1.5,
   // The texture lab: walls, floor slabs low enough to walk over, glass and sirens.
   ...LAB_PROP_HEIGHTS,
@@ -1801,6 +1805,7 @@ export type GameConfig = z.infer<typeof GameConfigSchema> & {
   fires: Vec2[];
   /** Build mode is on (the build menu opens) and the gold the run starts with. */
   build: boolean;
+  startBuild?: boolean;
   noWaves: boolean;
   startGold: number;
   /** Water is swimmable: units wade, swim and dive instead of being stopped by it. */
@@ -1885,6 +1890,7 @@ type MapRules = Pick<
   | 'briefing'
   | 'fires'
   | 'build'
+  | 'startBuild'
   | 'noWaves'
   | 'startGold'
   | 'swim'
@@ -1945,6 +1951,7 @@ export function mapRules(
     briefing: logic.mode === 'story' ? logic.briefing : undefined,
     fires: logic.fires ?? [],
     build: logic.build ?? false,
+    startBuild: logic.startBuild ?? false,
     noWaves: logic.noWaves ?? false,
     startGold: logic.startGold ?? 0,
     swim: logic.swim ?? false,

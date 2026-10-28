@@ -94,6 +94,11 @@ export class BuildUi {
     this.shown = '';
   }
 
+  /** Opens the menu (no-op when it is open or building is off). */
+  show(): void {
+    if (!this.open) this.toggle();
+  }
+
   close(): void {
     this.open = false;
     this.disarm();

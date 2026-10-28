@@ -144,6 +144,107 @@ export function buildHouse(o: Obstacle): THREE.Group {
   return group;
 }
 
+const canopyMaterial = new THREE.MeshStandardMaterial({ color: 0xc9422f, roughness: 0.7 });
+const stripeMaterial = new THREE.MeshStandardMaterial({ color: 0xf2efe6, roughness: 0.7 });
+const pumpMaterial = new THREE.MeshStandardMaterial({ color: 0xd8d4c8, roughness: 0.5 });
+const pumpDisplayMaterial = new THREE.MeshStandardMaterial({
+  color: 0x203a2a,
+  emissive: 0x66ff99,
+  emissiveIntensity: 0.6,
+});
+const stationWallMaterial = new THREE.MeshStandardMaterial({ color: 0xe3d8bd, roughness: 0.9 });
+
+/**
+ * A desert gas station filling the box `o` (its shop): flat roof, a big window and door toward +z
+ * of its own frame, a red canopy on four posts in front of it and a tall price sign. The canopy
+ * and the sign are drawn outside the collider, so the squad can walk under them.
+ */
+export function buildGasStation(o: Obstacle): THREE.Group {
+  const group = new THREE.Group();
+  const facing = o.facing ?? 0;
+  const turned = Math.round(facing / (Math.PI / 2)) % 2 !== 0;
+  const halfW = turned ? o.halfD : o.halfW;
+  const halfD = turned ? o.halfW : o.halfD;
+  const w = halfW * 2;
+  const d = halfD * 2;
+  const shopHeight = 3.6;
+  const shop = shadowed(
+    new THREE.Mesh(new THREE.BoxGeometry(w, shopHeight, d), stationWallMaterial),
+  );
+  shop.position.y = shopHeight / 2;
+  group.add(shop);
+  const roof = shadowed(
+    new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 0.35, d + 0.6), canopyMaterial),
+  );
+  roof.position.y = shopHeight + 0.17;
+  group.add(roof);
+  const face = halfD + 0.03;
+  const window = new THREE.Mesh(new THREE.BoxGeometry(w * 0.55, 1.5, 0.08), glassMaterial);
+  window.position.set(-w * 0.15, 1.9, face);
+  group.add(window);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.2, 0.08), doorMaterial);
+  door.position.set(w * 0.33, 1.1, face);
+  group.add(door);
+
+  // The canopy over the pumps: a slab on four posts, with a pale stripe round its edge.
+  const cw = w + 4;
+  const cd = 6;
+  const cz = halfD + cd / 2 + 0.4;
+  const slab = shadowed(new THREE.Mesh(new THREE.BoxGeometry(cw, 0.4, cd), canopyMaterial));
+  slab.position.set(0, 4.2, cz);
+  group.add(slab);
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(cw + 0.05, 0.14, cd + 0.05), stripeMaterial);
+  stripe.position.set(0, 4.06, cz);
+  group.add(stripe);
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const post = shadowed(new THREE.Mesh(new THREE.BoxGeometry(0.3, 4.2, 0.3), poleMaterial));
+      post.position.set(sx * (cw / 2 - 0.4), 2.1, cz + sz * (cd / 2 - 0.4));
+      group.add(post);
+    }
+  }
+  // The price sign on a pole at one end.
+  const pole = shadowed(new THREE.Mesh(new THREE.BoxGeometry(0.25, 6.5, 0.25), poleMaterial));
+  pole.position.set(-cw / 2 - 1.5, 3.25, cz);
+  group.add(pole);
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.6, 0.2), lampHeadMaterial);
+  sign.position.set(-cw / 2 - 1.5, 6.4, cz);
+  group.add(sign);
+  group.rotation.y = facing;
+  group.position.set(o.x, 0, o.z);
+  return group;
+}
+
+/** A fuel pump: a pale column with a green display and a hose, filling the box `o`. */
+export function buildGasPump(o: Obstacle): THREE.Group {
+  const group = new THREE.Group();
+  const body = shadowed(
+    new THREE.Mesh(new THREE.BoxGeometry(o.halfW * 2, 1.5, o.halfD * 2), pumpMaterial),
+  );
+  body.position.y = 0.75;
+  group.add(body);
+  const top = shadowed(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(o.halfW * 2 + 0.06, 0.2, o.halfD * 2 + 0.06),
+      canopyMaterial,
+    ),
+  );
+  top.position.y = 1.6;
+  group.add(top);
+  const display = new THREE.Mesh(
+    new THREE.BoxGeometry(o.halfW * 1.2, 0.35, 0.05),
+    pumpDisplayMaterial,
+  );
+  display.position.set(0, 1.15, o.halfD + 0.03);
+  group.add(display);
+  const display2 = display.clone();
+  display2.position.z = -o.halfD - 0.03;
+  group.add(display2);
+  group.rotation.y = o.facing ?? 0;
+  group.position.set(o.x, 0, o.z);
+  return group;
+}
+
 /** A tree with a trunk and a canopy of two or three blobs, in a few shades of green. */
 export function buildTree(o: Obstacle): THREE.Group {
   const h = hash(o.x, o.z);
@@ -314,6 +415,10 @@ export function buildProp(o: Obstacle): THREE.Group | null {
   switch (o.asset) {
     case 'house':
       return buildHouse(o);
+    case 'gas_station':
+      return buildGasStation(o);
+    case 'gas_pump':
+      return buildGasPump(o);
     case 'tree':
       return buildTree(o);
     case 'lamp':

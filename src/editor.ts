@@ -314,6 +314,13 @@ export class Editor {
     this.undoButton.addEventListener('click', () => this.undo());
     this.redoButton = el('button', 'editor__btn', this.bar, '↷ Redo');
     this.redoButton.addEventListener('click', () => this.redo());
+    // The keys of the editor (R, Ctrl+C, Ctrl+V, Delete) as buttons, shown on touch screens only.
+    const touchKey = (label: string, action: () => void) =>
+      el('button', 'editor__btn editor__touch', this.bar, label).addEventListener('click', action);
+    touchKey('↻ Rotate', () => this.rotateSelected());
+    touchKey('⧉ Copy', () => this.copySelected());
+    touchKey('Paste', () => this.pasteCopied());
+    touchKey('🗑 Delete', () => this.deleteSelected());
     this.title = el('span', 'editor__title', this.bar);
 
     const tabs = el('div', 'editor__tabs', this.side);
@@ -329,6 +336,13 @@ export class Editor {
     el('span', 'editor__title', this.stopBar, 'Testing the map');
 
     this.boxEl = el('div', 'editor__box', this.root);
+    // Touch screens: a corner button hides every editor panel to see the map clear (it stays visible).
+    const eye = el('button', 'editor__eye', this.root, '👁');
+    eye.setAttribute('aria-label', 'Hide or show the editor panels');
+    eye.addEventListener('click', () => {
+      const hidden = this.root.classList.toggle('editor--ui-hidden');
+      eye.classList.toggle('editor__eye--off', hidden);
+    });
     parent.appendChild(this.root);
     this.setTab('units');
 

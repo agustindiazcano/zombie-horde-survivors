@@ -22,6 +22,7 @@ const materials = {
   high: mat(0x4caf50),
   mid: mat(0xe0b030),
   low: mat(0xe0533d),
+  enemy: mat(0xd62020),
 };
 
 /** Camera-facing health bars drawn over enemies (always visible, even behind others). */
@@ -50,6 +51,7 @@ export class HealthBars {
     width: number,
     ratio: number,
     camera: THREE.Camera,
+    red = false,
   ): void {
     let bar = this.active.get(id);
     if (!bar) {
@@ -63,7 +65,13 @@ export class HealthBars {
     bar.back.scale.set(width, BAR_HEIGHT, 1);
     bar.fill.scale.set(Math.max(width * r, 0.001), BAR_HEIGHT * 0.7, 1);
     bar.fill.position.set(-width / 2 + (width * r) / 2, 0, 0.001);
-    bar.fill.material = r > 0.6 ? materials.high : r > 0.3 ? materials.mid : materials.low;
+    bar.fill.material = red
+      ? materials.enemy
+      : r > 0.6
+        ? materials.high
+        : r > 0.3
+          ? materials.mid
+          : materials.low;
   }
 
   hide(id: number): void {
