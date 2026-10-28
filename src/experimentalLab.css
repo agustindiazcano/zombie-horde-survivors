@@ -1,0 +1,55 @@
+.lab__panel {
+  position: fixed;
+  z-index: 60;
+  top: 60px;
+  left: 12px;
+  width: 230px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: rgba(16, 20, 28, 0.92);
+  border: 1px solid #2c3444;
+  border-radius: 6px;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+}
+
+.lab__panel h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.lab__btn {
+  padding: 6px 8px;
+  background: #232c3c;
+  color: #fff;
+  border: 1px solid #3a4560;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.lab__btn:hover {
+  background: #2f3b52;
+}
+
+.lab__note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #aab3c5;
+}
+
+.lab__slider {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: #aab3c5;
+}
+
+.lab__slider input {
+  width: 100%;
+}
