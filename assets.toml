@@ -278,3 +278,68 @@ author = "Quarcling"
 source = "https://sketchfab.com/3d-models/tactical-helmet-b6aa1fd24f1146dbab1e3d1035d3e9b1"
 license = "CC-BY-NC-ND-4.0"
 path = "public/models/helmet-tactical.glb"
+
+# Local test models: they live in public/models/test/, which is not in git (heavy files, or a license
+# or origin that is not settled). Listed here so the credits owed are not forgotten.
+[[testing_asset]]
+name = "Esquiva 1"
+author = "user1145"
+source = "https://sketchfab.com/3d-models/esquiva-1"
+license = "CC-BY-4.0"
+path = "public/models/test/unit-esquiva.glb"
+
+[[testing_asset]]
+name = "Japanese girl breakdance"
+author = "user1145"
+source = "https://sketchfab.com/user1145"
+license = "CC-BY-4.0"
+path = "public/models/test/unit-breakdance.glb"
+
+[[testing_asset]]
+name = "Facial animation of a sexy girl"
+author = "patromes"
+source = "https://sketchfab.com/patromes"
+license = "CC-BY-4.0"
+path = "public/models/test/unit-facial-girl.glb"
+
+[[testing_asset]]
+name = "Women in Nightgown"
+author = "Pseudonym (aromatic_gas)"
+source = "https://sketchfab.com/aromatic_gas"
+license = "CC-BY-SA-4.0"
+path = "public/models/test/unit-nightgown.glb"
+
+[[testing_asset]]
+name = "Until Dawn - Jessica Underwear"
+author = "VITU6018"
+source = "https://sketchfab.com/VITU6018"
+license = "CC-BY-4.0"
+path = "public/models/test/unit-jessica.glb"
+
+[[testing_asset]]
+name = "FREE Female Figure - BASE"
+author = "Slate"
+source = "https://sketchfab.com/Slate"
+license = "CC-BY-4.0"
+path = "public/models/test/unit-female-base.glb"
+
+[[testing_asset]]
+name = "FlipaClip Frame Animation Guide Free-2027"
+author = "AlonePhoenix1538"
+source = "https://sketchfab.com/AlonePhoenix1538"
+license = "CC-BY-4.0"
+path = "public/models/test/unit-flipaclip-guide.glb"
+
+[[testing_asset]]
+name = "Police officer (Meshy image-to-3d, the user's own generation)"
+author = "Meshy AI output"
+source = "https://www.meshy.ai/"
+license = "Meshy terms to confirm"
+path = "public/models/test/unit-police.glb"
+
+[[testing_asset]]
+name = "Police car with open interior (the user's own model)"
+author = "the user"
+source = "local"
+license = "to confirm"
+path = "public/models/test/vehicle-police-car.glb"

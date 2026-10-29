@@ -6,7 +6,7 @@ import type { GearSpec } from './characterConfig';
 const models = new Map<string, THREE.Object3D>();
 
 /** The box of a model in world space; a skinned mesh is measured vertex by vertex with its bones applied. */
-function measure(root: THREE.Object3D): THREE.Box3 {
+export function measure(root: THREE.Object3D): THREE.Box3 {
   const box = new THREE.Box3();
   const v = new THREE.Vector3();
   root.traverse((o) => {

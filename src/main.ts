@@ -328,6 +328,7 @@ async function main(): Promise<void> {
       config.arena = arenaOf(map);
       renderer.setArena(config.arena);
     }
+    if (map.units.some((u) => u.type === 'police_car')) renderer.ensurePoliceCar();
     renderer.setFireMarkers(config.fires);
     renderer.setGoalMarkers(
       config.objectives.flatMap((o) =>

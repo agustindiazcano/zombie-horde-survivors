@@ -10,3 +10,6 @@ coverage
 
 # Rust build output (the built .wasm in src/wasm/sim-core is committed)
 /crates/*/target/
+
+# Heavy or unlicensed test models the user tries locally (never committed)
+/public/models/test/

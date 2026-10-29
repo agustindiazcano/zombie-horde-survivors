@@ -14,6 +14,8 @@ Only what is still open: read this first in every session. When an item here is 
 
 Details: [docs/worklog/2026-10-28-gear-models.md](docs/worklog/2026-10-28-gear-models.md). New Beretta pistol and SMG, four helmets (head slot, equip and unequip from the inventory), the playable alien monster and **Map 16 - Gear test** (Development menu or the editor). **License problem to decide:** the two Beretta models (Sketchfab Standard) and the tactical helmet (CC-BY-NC-ND) are not CC0 / CC-BY, so they sit under `[[testing_asset]]` in `assets.toml` and must not ship in a public build (Pages deploys on every push to `main`) until the user replaces them or gets permission. Not seen in first person; placement of guns and helmets is by eye.
 
+Same branch, later: nine more unit models, the drivable police car and **Map 17 - Unit models** ([worklog](docs/worklog/2026-10-28-unit-models-police-car.md)). Their files are in `public/models/test/` (git-ignored). The two nude models in the root (`charlotte_...`, `gloria(1)`) were not added.
+
 ## Merged on 2026-10-20 (PRs #57 to #59, `main` at `54b68c5`)
 
 Everything that was local on 2026-10-20 is now in `main`: the SUV colour texture (#57), AI grenades (#58), and the stack in #59 (W0 soldier pathing, objects block movement, draggable corpses and loose items, door system v2 with Map 7, machine-gun nest and watchtower with turret ammo, structures in the map editor). Worklogs: `w0-soldier-pathing`, `ai-grenades`, `objects-block-movement`, `corpses-and-loose-items`, `doors-v2`, `posts-and-turret-ammo`, `editor-structures` (all 2026-10-20). The old local branches are all merged; do not delete them without asking the user (PENDING §5).

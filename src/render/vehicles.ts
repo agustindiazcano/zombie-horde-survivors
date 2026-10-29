@@ -26,6 +26,155 @@ export async function loadVehicleModel(): Promise<THREE.Object3D | null> {
   }
 }
 
+/** The police car: its model (open interior, front towards -X) and where its lights and glass go. */
+const POLICE_MODEL = 'models/test/vehicle-police-car.glb';
+const POLICE_LIGHTS = 'models/test/vehicle-police-car.lights.json';
+/** The model is 1.9 units long (a real car is about 4.6 m) and its wheels are 0.34 under the ground. */
+const POLICE_SCALE = 2.4;
+const POLICE_HALF_HEIGHT = 0.34;
+
+type Point = [number, number, number];
+/** The lights file of the police car, in the model's own units. */
+interface PoliceLights {
+  siren: { red: Point[]; blue: Point[] };
+  headlights: Point[];
+  brakelights: Point[];
+  glass: (Point[] | { parent: string; quad: Point[] })[];
+}
+
+export interface PoliceCarModel {
+  scene: THREE.Object3D;
+  lights: PoliceLights;
+}
+
+/** Loads the police car and its light data; null (the box jeep is drawn instead) if it is missing. */
+export async function loadPoliceCar(): Promise<PoliceCarModel | null> {
+  try {
+    const base = import.meta.env.BASE_URL;
+    const [gltf, lights] = await Promise.all([
+      new GLTFLoader().loadAsync(base + POLICE_MODEL),
+      fetch(base + POLICE_LIGHTS).then((r) => {
+        if (!r.ok) throw new Error(`${POLICE_LIGHTS}: ${r.status}`);
+        return r.json() as Promise<PoliceLights>;
+      }),
+    ]);
+    gltf.scene.traverse((o) => {
+      if (o instanceof THREE.Mesh) o.castShadow = true;
+    });
+    return { scene: gltf.scene, lights };
+  } catch (err) {
+    console.warn(`Could not load "${POLICE_MODEL}", using the box jeep`, err);
+    return null;
+  }
+}
+
+let flare: THREE.CanvasTexture | undefined;
+/** A soft round glow for the light bar. */
+function flareTexture(): THREE.CanvasTexture {
+  if (flare) return flare;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext('2d')!;
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.3, 'rgba(255,255,255,0.4)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  flare = new THREE.CanvasTexture(canvas);
+  return flare;
+}
+
+/** What `createPoliceCar` hands back: the car, its spinning wheel pivots and the siren's clock. */
+export interface PoliceCar {
+  object: THREE.Group;
+  wheels: THREE.Object3D[];
+  /** Flashes the light bar for this time (seconds). */
+  flash(time: number): void;
+}
+
+/**
+ * The police car, facing +Z with its wheels on the ground: the model, its glass panes, head and
+ * brake lights and a red and blue light bar that flashes in turn.
+ */
+export function createPoliceCar(model: PoliceCarModel): PoliceCar {
+  const object = new THREE.Group();
+  // The model faces -X; one group turns it, scales it and sets it on the ground.
+  const inner = new THREE.Group();
+  inner.rotation.y = Math.PI / 2;
+  inner.scale.setScalar(POLICE_SCALE);
+  inner.position.y = POLICE_HALF_HEIGHT * POLICE_SCALE;
+  object.add(inner);
+  const body = model.scene.clone(true);
+  inner.add(body);
+  const wheels: THREE.Object3D[] = [];
+  body.traverse((o) => {
+    if (o.name.startsWith('Wheel') && o.name.endsWith('_pivot')) wheels.push(o);
+  });
+
+  const { lights } = model;
+  const glassMaterial = new THREE.MeshStandardMaterial({
+    color: 0x18222b,
+    roughness: 0.1,
+    metalness: 0.2,
+    transparent: true,
+    opacity: 0.4,
+    side: THREE.DoubleSide,
+  });
+  for (const pane of lights.glass) {
+    const quad = Array.isArray(pane) ? pane : pane.quad;
+    const geometry = new THREE.BufferGeometry().setFromPoints(
+      [0, 1, 2, 0, 2, 3].map((i) => new THREE.Vector3(...quad[i]!)),
+    );
+    geometry.computeVertexNormals();
+    inner.add(new THREE.Mesh(geometry, glassMaterial));
+  }
+  const lamp = (at: Point, color: number, size: number, intensity: number) => {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(size, 8, 6),
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: intensity }),
+    );
+    mesh.position.set(...at);
+    inner.add(mesh);
+    return mesh;
+  };
+  for (const at of lights.brakelights) lamp(at, 0xff1a1a, 0.025, 1);
+
+  const beacons: { mesh: THREE.Mesh; glow: THREE.Sprite; offset: number }[] = [];
+  for (const [list, color, offset] of [
+    [lights.siren.red, 0xff1a1a, 0],
+    [lights.siren.blue, 0x1a44ff, 0.5],
+  ] as const) {
+    for (const at of list) {
+      const mesh = lamp(at, color, 0.035, 0);
+      const glow = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: flareTexture(),
+          color,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          transparent: true,
+        }),
+      );
+      glow.scale.setScalar(0.5);
+      glow.position.set(...at);
+      glow.visible = false;
+      inner.add(glow);
+      beacons.push({ mesh, glow, offset });
+    }
+  }
+  const flash = (time: number) => {
+    for (const b of beacons) {
+      // Two quick flashes in each second, the blue half a second after the red.
+      const t = (time + b.offset) % 1;
+      const on = t < 0.12 || (t > 0.22 && t < 0.34);
+      (b.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = on ? 6 : 0;
+      b.glow.visible = on;
+    }
+  };
+  return { object, wheels, flash };
+}
+
 /** A copy of the loaded model with the mounted gun a jeep carries; its wheels spin when driving. */
 function jeepFromModel(model: THREE.Object3D): { object: THREE.Group; wheels: THREE.Object3D[] } {
   const object = new THREE.Group();

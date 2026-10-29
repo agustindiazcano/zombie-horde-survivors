@@ -10,7 +10,13 @@ const characterSpec = z
     /** Simulation state name -> animation clip name inside the model. */
     clips: z.record(z.string(), z.string()),
     /** For models without animation clips: a code-driven motion. */
-    procedural: z.enum(['wiggle', 'hover']).optional(),
+    procedural: z.enum(['wiggle', 'hover', 'still']).optional(),
+    /** Fits the model to this height in metres (feet on the ground), instead of using `scale`. */
+    height: z.number().positive().optional(),
+    /** Loads the model the first time a unit of it appears (heavy test models). */
+    lazy: z.boolean().optional(),
+    /** Clips kept in other files with the same skeleton: state name -> path under public/. */
+    extraClips: z.record(z.string(), z.string()).optional(),
     /** Height above the ground where the health bar floats (enemies). */
     barHeight: z.number().positive().optional(),
     /** Color multiplied over the model's textures (e.g. sickly green for an infected soldier). */

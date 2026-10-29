@@ -93,6 +93,110 @@
         "charisma": 10
       },
       "model": 1
+    },
+    "police": {
+      "name": "Police officer",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 2
+    },
+    "esquiva": {
+      "name": "Esquiva (dodge)",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 3
+    },
+    "breakdancer": {
+      "name": "Breakdance girl",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 4
+    },
+    "facial_girl": {
+      "name": "Facial animation girl",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 5
+    },
+    "nightgown": {
+      "name": "Woman in nightgown",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 6
+    },
+    "jessica": {
+      "name": "Jessica (Until Dawn)",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 7
+    },
+    "female_base": {
+      "name": "Female figure base",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 8
+    },
+    "flipaclip_guide": {
+      "name": "FlipaClip guide",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 9
     }
   }
 }

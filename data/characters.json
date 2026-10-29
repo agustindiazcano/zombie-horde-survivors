@@ -24,6 +24,104 @@
         "attack": "ArmatureAction"
       },
       "once": []
+    },
+    {
+      "model": "models/test/unit-police.glb",
+      "scale": 1,
+      "yawOffset": 0,
+      "height": 1.78,
+      "lazy": true,
+      "clips": {
+        "idle": "Armature|clip0|baselayer"
+      },
+      "extraClips": {
+        "walk": "models/test/unit-police-walk.glb",
+        "run": "models/test/unit-police-run.glb",
+        "attack": "models/test/unit-police-walk.glb"
+      },
+      "once": []
+    },
+    {
+      "model": "models/test/unit-esquiva.glb",
+      "scale": 1,
+      "yawOffset": 0,
+      "height": 1.75,
+      "lazy": true,
+      "clips": {
+        "idle": "mixamo.com",
+        "walk": "mixamo.com",
+        "run": "mixamo.com",
+        "attack": "mixamo.com"
+      },
+      "once": []
+    },
+    {
+      "model": "models/test/unit-breakdance.glb",
+      "scale": 1,
+      "yawOffset": 0,
+      "height": 1.65,
+      "lazy": true,
+      "clips": {
+        "idle": "mixamo.com",
+        "walk": "mixamo.com",
+        "run": "mixamo.com",
+        "attack": "mixamo.com"
+      },
+      "once": []
+    },
+    {
+      "model": "models/test/unit-facial-girl.glb",
+      "scale": 1,
+      "yawOffset": 0,
+      "height": 1.65,
+      "lazy": true,
+      "clips": {
+        "idle": "3186909810144_TempMotion",
+        "walk": "3186909810144_TempMotion",
+        "run": "3186909810144_TempMotion",
+        "attack": "3186909810144_TempMotion"
+      },
+      "once": []
+    },
+    {
+      "model": "models/test/unit-nightgown.glb",
+      "scale": 1,
+      "yawOffset": 0,
+      "height": 1.65,
+      "lazy": true,
+      "procedural": "still",
+      "clips": {},
+      "once": []
+    },
+    {
+      "model": "models/test/unit-jessica.glb",
+      "scale": 1,
+      "yawOffset": 0,
+      "height": 1.7,
+      "lazy": true,
+      "procedural": "still",
+      "clips": {},
+      "once": []
+    },
+    {
+      "model": "models/test/unit-female-base.glb",
+      "scale": 1,
+      "yawOffset": 0,
+      "height": 1.7,
+      "lazy": true,
+      "procedural": "still",
+      "clips": {},
+      "once": []
+    },
+    {
+      "model": "models/test/unit-flipaclip-guide.glb",
+      "scale": 1,
+      "yawOffset": 0,
+      "height": 2.0,
+      "lazy": true,
+      "procedural": "still",
+      "clips": {},
+      "once": []
     }
   ],
   "enemies": {
