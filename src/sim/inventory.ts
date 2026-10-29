@@ -30,7 +30,7 @@ export interface Slot {
 }
 
 const isEquipSlot = (slot: SlotRef): slot is keyof Equipment => typeof slot === 'string';
-const isHand = (slot: keyof Equipment): slot is Hand => slot !== 'chest';
+const isHand = (slot: keyof Equipment): slot is Hand => slot !== 'chest' && slot !== 'head';
 
 export const itemDef = (config: GameConfig, id: string): ItemDef => config.items[id]!;
 
@@ -149,6 +149,7 @@ function accepts(config: GameConfig, s: Soldier, slot: SlotRef, item: string): b
   if (def.type === 'weapon' && def.innate) return false;
   if (!isEquipSlot(slot)) return true;
   if (slot === 'chest') return def.type === 'armor' && s.kind !== 'drone';
+  if (slot === 'head') return def.type === 'helmet' && s.kind !== 'drone';
   if (def.type !== 'weapon') return false;
   if (s.kind === 'drone') return slot === 'rightHand' && def.droneOnly === true;
   if (def.droneOnly) return false;
@@ -220,7 +221,7 @@ export function moveItem(state: GameState, config: GameConfig, from: Slot, to: S
   return false;
 }
 
-/** Puts what a hand or the chest holds into the backpack. */
+/** Puts what a hand, the chest or the head holds into the backpack. */
 export function unequipSlot(
   state: GameState,
   config: GameConfig,
@@ -238,7 +239,7 @@ export function unequipSlot(
 }
 
 /**
- * Equips a backpack weapon in the right hand (or armor on the chest), swapping what was
+ * Equips a backpack weapon in the right hand (armor on the chest, a helmet on the head), swapping what was
  * there into its backpack slot. A two-handed weapon also stows the left-hand item.
  */
 export function equipFromBackpack(
@@ -251,7 +252,14 @@ export function equipFromBackpack(
   const stack = s?.backpack[index];
   if (!s || s.dead || !stack) return false;
   const def = itemDef(config, stack.item);
-  const slot = def.type === 'armor' ? 'chest' : def.type === 'weapon' ? 'rightHand' : null;
+  const slot =
+    def.type === 'armor'
+      ? 'chest'
+      : def.type === 'helmet'
+        ? 'head'
+        : def.type === 'weapon'
+          ? 'rightHand'
+          : null;
   if (slot === null || !accepts(config, s, slot, stack.item)) return false;
 
   const saved = snapshot(s);

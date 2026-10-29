@@ -21,6 +21,10 @@
           "name": "Marine 4"
         },
         {
+          "id": "alien_monster",
+          "name": "Alien monster"
+        },
+        {
           "id": "civilian",
           "name": "Civilian",
           "mocked": true

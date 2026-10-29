@@ -34,7 +34,7 @@ const isSquad = (u: MapUnit): boolean =>
 
 const CATEGORIES: { id: string; label: string; types: string[] }[] = [
   { id: 'weapons', label: 'Weapons', types: ['weapon'] },
-  { id: 'armor', label: 'Armor', types: ['armor', 'plate'] },
+  { id: 'armor', label: 'Armor', types: ['armor', 'plate', 'helmet'] },
   { id: 'medical', label: 'Medical', types: ['medical', 'defibrillator'] },
   { id: 'grenades', label: 'Grenades', types: ['grenade'] },
   { id: 'accessories', label: 'Accessories', types: ['accessory'] },
@@ -103,12 +103,12 @@ export function openInventory(
     draw();
   };
 
-  const effective = (slot: 'rightHand' | 'leftHand' | 'chest'): string | null => {
+  const effective = (slot: 'rightHand' | 'leftHand' | 'chest' | 'head'): string | null => {
     const set = unit().equipment?.[slot];
     if (set !== undefined) return set;
     return slot === 'rightHand' && squad && !drone ? START_WEAPON : null;
   };
-  const setSlot = (slot: 'rightHand' | 'leftHand' | 'chest', id: string | null) =>
+  const setSlot = (slot: 'rightHand' | 'leftHand' | 'chest' | 'head', id: string | null) =>
     update({ equipment: { ...unit().equipment, [slot]: id } });
 
   const addToPack = (id: string) => {
@@ -128,6 +128,7 @@ export function openInventory(
     const def = items[id];
     if (!def) return;
     if (def.type === 'armor') setSlot('chest', id);
+    else if (def.type === 'helmet') setSlot('head', id);
     else if (def.type === 'weapon') {
       // A two-handed weapon takes both hands; a one-handed one only the right.
       const equipment = { ...unit().equipment, rightHand: id } as NonNullable<MapUnit['equipment']>;
@@ -145,6 +146,7 @@ export function openInventory(
         ['rightHand', 'Right hand'],
         ['leftHand', 'Left hand'],
         ['chest', 'Vest'],
+        ['head', 'Helmet'],
       ] as const) {
         const row = el('div', 'editor__row', mine);
         const id = effective(slot);

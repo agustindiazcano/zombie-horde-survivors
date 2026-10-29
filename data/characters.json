@@ -12,6 +12,18 @@
         "death": "Dead"
       },
       "once": ["death"]
+    },
+    {
+      "model": "models/soldier-alien-monster.glb",
+      "scale": 0.1,
+      "yawOffset": 1.5708,
+      "clips": {
+        "idle": "ArmatureAction",
+        "run": "ArmatureAction",
+        "walk": "ArmatureAction",
+        "attack": "ArmatureAction"
+      },
+      "once": []
     }
   ],
   "enemies": {
@@ -305,5 +317,43 @@
     "clips": {},
     "once": [],
     "procedural": "hover"
+  },
+  "gear": {
+    "pistol": {
+      "model": "models/weapon-beretta-apx.glb",
+      "size": 0.19,
+      "anchor": [0.5, 0.5, 0.2]
+    },
+    "smg": {
+      "model": "models/weapon-beretta-pmx.glb",
+      "size": 0.6,
+      "anchor": [0.5, 0.55, 0.35]
+    },
+    "helmet_generic": {
+      "model": "models/helmet-generic.glb",
+      "size": 0.3,
+      "rotation": [0, -1.5708, 0],
+      "anchor": [0.5, 0.4, 0.5],
+      "offset": [0, 0.15, 0.01]
+    },
+    "helmet_esmad": {
+      "model": "models/helmet-esmad.glb",
+      "size": 0.34,
+      "anchor": [0.5, 0.4, 0.5],
+      "offset": [0, 0.1, 0.01]
+    },
+    "helmet_security": {
+      "model": "models/helmet-security-guard.glb",
+      "size": 0.32,
+      "anchor": [0.5, 0.4, 0.5],
+      "offset": [0, 0.12, 0.0],
+      "rotation": [0, 1.5708, 0]
+    },
+    "helmet_tactical": {
+      "model": "models/helmet-tactical.glb",
+      "size": 0.3,
+      "anchor": [0.5, 0.4, 0.5],
+      "offset": [0, 0.1, 0.01]
+    }
   }
 }

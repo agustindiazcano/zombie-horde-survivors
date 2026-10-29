@@ -6,6 +6,7 @@ import { stainTextures } from './bloodTexture';
 import { createPartsControl, splitParts } from './limbSplit';
 import { ArmPose } from './armPose';
 import { createWeaponModel } from './weaponModels';
+import { createGearModel, normalizeGear, registerGear } from './gearModels';
 import type { CharacterSpec, CharactersConfig } from './characterConfig';
 import {
   createPlaceholderDrone,
@@ -181,6 +182,36 @@ function createHolder(model: THREE.Object3D, root: THREE.Object3D): Holder | und
   };
 }
 
+/** Finds the head bone of a Mixamo rig. */
+function findHead(model: THREE.Object3D): THREE.Object3D | null {
+  let found: THREE.Object3D | null = null;
+  model.traverse((o) => {
+    if (!found && /^(mixamorig:?)?Head$/.test(o.name)) found = o;
+  });
+  return found;
+}
+
+/** Lets a rigged soldier wear a helmet: parented to the head bone, scaled to undo the rig's own scale. */
+function createHeadWear(model: THREE.Object3D): NonNullable<CharacterView['wear']> | undefined {
+  const head = findHead(model);
+  if (!head) return undefined;
+  const holder = new THREE.Group();
+  head.add(holder);
+  let shown: string | null = null;
+  const scale = new THREE.Vector3();
+  return (item) => {
+    if (item === shown) return;
+    shown = item;
+    holder.clear();
+    const helmet = item === null ? null : createGearModel(item);
+    if (!helmet) return;
+    model.updateMatrixWorld(true);
+    head.getWorldScale(scale);
+    holder.scale.setScalar(scale.x > 1e-6 ? 1 / scale.x : 1);
+    holder.add(helmet);
+  };
+}
+
 function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
   const splittable = spec.dismember === true && splitParts(gltf.scene);
   const stained = spec.blood ? stainTextures(gltf.scene, spec.blood) : undefined;
@@ -203,14 +234,23 @@ function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
 
     const animation = new AnimationController(model, gltf.animations, spec);
     const holder = createHolder(model, root);
+    const wear = createHeadWear(model);
     const parts = splittable ? createPartsControl(model, root) : undefined;
     return {
       removePart: parts?.removePart,
       restoreParts: parts?.restoreParts,
       hold: holder?.hold,
+      wear,
       aim: holder?.aim,
       object: root,
-      setState: (state) => animation.setState(state),
+      setState: (state) => {
+        animation.setState(state);
+        // A model with no death clip falls over instead.
+        if (!spec.clips.death) {
+          model.rotation.x = state === 'death' ? -Math.PI / 2 : 0;
+          model.position.y = state === 'death' ? 0.25 : 0;
+        }
+      },
       update: (dt) => {
         animation.update(dt);
         holder?.pose();
@@ -227,6 +267,7 @@ export class GltfAssetLoader implements AssetLoader {
   async loadCharacters(config: CharactersConfig): Promise<CharacterFactories> {
     const enemyIds = Object.keys(config.enemies);
     const animalIds = Object.keys(config.animals);
+    await this.loadGear(config.gear);
     const [soldiers, enemyList, drone, animalList] = await Promise.all([
       Promise.all(config.soldiers.map((spec) => this.load(spec, createPlaceholderSoldier))),
       Promise.all(enemyIds.map((id) => this.load(config.enemies[id]!, createPlaceholderZombie))),
@@ -245,6 +286,20 @@ export class GltfAssetLoader implements AssetLoader {
     );
     const animals = Object.fromEntries(animalIds.map((id, i) => [id, animalList[i]!]));
     return { soldiers, enemies, barHeights, spurts, drone, animals };
+  }
+
+  /** Loads the models of the weapons and helmets and registers them by item id. */
+  private async loadGear(gear: CharactersConfig['gear']): Promise<void> {
+    await Promise.all(
+      Object.entries(gear).map(async ([item, spec]) => {
+        try {
+          const gltf = await this.loader.loadAsync(import.meta.env.BASE_URL + spec.model);
+          registerGear(item, normalizeGear(gltf.scene, spec));
+        } catch (err) {
+          console.warn(`Could not load "${spec.model}" for ${item}, using the plain shape`, err);
+        }
+      }),
+    );
   }
 
   private async load(

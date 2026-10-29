@@ -53,7 +53,7 @@
         "intelligence": 10,
         "charisma": 10
       },
-      "model": 1
+      "model": 0
     },
     "marine3": {
       "name": "Marine 3",
@@ -66,7 +66,7 @@
         "intelligence": 10,
         "charisma": 10
       },
-      "model": 2
+      "model": 0
     },
     "marine4": {
       "name": "Marine 4",
@@ -79,7 +79,20 @@
         "intelligence": 10,
         "charisma": 10
       },
-      "model": 3
+      "model": 0
+    },
+    "alien_monster": {
+      "name": "Alien monster",
+      "family": "human",
+      "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "perception": 10,
+        "intelligence": 10,
+        "charisma": 10
+      },
+      "model": 1
     }
   }
 }

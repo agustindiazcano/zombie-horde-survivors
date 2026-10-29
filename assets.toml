@@ -226,3 +226,55 @@ author = "Quaternius"
 source = "https://poly.pizza/m/BR1vpIvvvv"
 license = "CC0-1.0"
 path = "public/models/enemy-tentacle.glb"
+
+[[asset]]
+name = "alien monster (playable alien, test map)"
+author = "victory_mirosya"
+source = "https://sketchfab.com/3d-models/alien-monster-1a28f8bd9b544b52b633591ee8b8d987"
+license = "CC-BY-4.0"
+path = "public/models/soldier-alien-monster.glb"
+
+[[asset]]
+name = "ESMAD Helmet"
+author = "Juan Pablo Camacho"
+source = "https://sketchfab.com/3d-models/esmad-helmet-cc01c1d2b55a46d2bf513677df33cd1a"
+license = "CC-BY-4.0"
+path = "public/models/helmet-esmad.glb"
+
+[[asset]]
+name = "Helmet"
+author = "Willy Decarpentrie"
+source = "https://sketchfab.com/3d-models/helmet-655e1b6a4714448fa6960aa4f831fe94"
+license = "CC-BY-4.0"
+path = "public/models/helmet-generic.glb"
+
+[[asset]]
+name = "Security Guard Helmet"
+author = "~Drift~"
+source = "https://sketchfab.com/3d-models/security-guard-helmet-2cc78926cc294368906e0b9c353693ed"
+license = "CC-BY-4.0"
+path = "public/models/helmet-security-guard.glb"
+
+# Models whose license is NOT one of the allowed ones. They are here only so the user can try them
+# locally: `npm run check:assets` lists them as a warning, and they must not ship in a public build
+# until the user decides (replace them with a CC0 / CC-BY model, or get permission).
+[[testing_asset]]
+name = "Beretta APX A1 Full Size Standard"
+author = "geyges"
+source = "https://sketchfab.com/3d-models/beretta-apx-a1-full-size-standard-18d387fbe2b14b43bdb103544ff13948"
+license = "SKETCHFAB Standard"
+path = "public/models/weapon-beretta-apx.glb"
+
+[[testing_asset]]
+name = "Beretta PMX PMXS Comune"
+author = "geyges"
+source = "https://sketchfab.com/3d-models/beretta-pmx-pmxs-comune-1455778419a44b2aa061085fa3ad6906"
+license = "SKETCHFAB Standard"
+path = "public/models/weapon-beretta-pmx.glb"
+
+[[testing_asset]]
+name = "Tactical Helmet"
+author = "Quarcling"
+source = "https://sketchfab.com/3d-models/tactical-helmet-b6aa1fd24f1146dbab1e3d1035d3e9b1"
+license = "CC-BY-NC-ND-4.0"
+path = "public/models/helmet-tactical.glb"

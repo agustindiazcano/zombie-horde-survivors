@@ -45,6 +45,7 @@ const loadoutShape = {
       rightHand: z.string().nullable().optional(),
       leftHand: z.string().nullable().optional(),
       chest: z.string().nullable().optional(),
+      head: z.string().nullable().optional(),
     })
     .strict()
     .optional(),
@@ -75,7 +76,12 @@ export type Loadout = {
   name?: string;
   maxHealth?: number;
   attributes?: Record<string, number>;
-  equipment?: { rightHand?: string | null; leftHand?: string | null; chest?: string | null };
+  equipment?: {
+    rightHand?: string | null;
+    leftHand?: string | null;
+    chest?: string | null;
+    head?: string | null;
+  };
   backpack?: { item: string; count: number }[];
   downed?: boolean;
 };
@@ -732,6 +738,14 @@ const itemDef = z.discriminatedUnion('type', [
       type: z.literal('armor'),
       slot: z.literal('chest'),
       mocked: z.object({ armor: positive, weight: nonNegative }).strict(),
+    })
+    .strict(),
+  /** A helmet: worn on the head slot; it only changes how the unit looks for now. */
+  z
+    .object({
+      ...itemBase,
+      type: z.literal('helmet'),
+      mocked: z.object({ weight: nonNegative }).strict(),
     })
     .strict(),
   /** Armor plate: worn at once from a crate (adds `player.armorPlate` to the armor bar). */

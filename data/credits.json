@@ -184,5 +184,35 @@
     "author": "ambientCG",
     "source": "https://ambientcg.com/a/Tiles107",
     "license": "CC0-1.0"
+  },
+  {
+    "name": "Enemy_Tentacle (animated tentacle, experimental lab)",
+    "author": "Quaternius",
+    "source": "https://poly.pizza/m/BR1vpIvvvv",
+    "license": "CC0-1.0"
+  },
+  {
+    "name": "alien monster (playable alien, test map)",
+    "author": "victory_mirosya",
+    "source": "https://sketchfab.com/3d-models/alien-monster-1a28f8bd9b544b52b633591ee8b8d987",
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "ESMAD Helmet",
+    "author": "Juan Pablo Camacho",
+    "source": "https://sketchfab.com/3d-models/esmad-helmet-cc01c1d2b55a46d2bf513677df33cd1a",
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "Helmet",
+    "author": "Willy Decarpentrie",
+    "source": "https://sketchfab.com/3d-models/helmet-655e1b6a4714448fa6960aa4f831fe94",
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "Security Guard Helmet",
+    "author": "~Drift~",
+    "source": "https://sketchfab.com/3d-models/security-guard-helmet-2cc78926cc294368906e0b9c353693ed",
+    "license": "CC-BY-4.0"
   }
 ]

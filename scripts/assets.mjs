@@ -10,6 +10,12 @@ export function readAssets(file = 'assets.toml') {
   return Array.isArray(doc.asset) ? doc.asset : [];
 }
 
+/** Models kept only for local tests: their license is not an allowed one, so they only warn. */
+export function readTestingAssets(file = 'assets.toml') {
+  const doc = parse(readFileSync(file, 'utf8'));
+  return Array.isArray(doc.testing_asset) ? doc.testing_asset : [];
+}
+
 /** Returns a list of human-readable problems; empty means the manifest is valid. */
 export function validateAssets(assets, root = process.cwd()) {
   const errors = [];

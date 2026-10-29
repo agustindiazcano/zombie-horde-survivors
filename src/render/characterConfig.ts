@@ -28,6 +28,23 @@ const characterSpec = z
   })
   .strict();
 
+/** A model worn or held by a unit: weapons in hand, helmets on the head. */
+const gearSpec = z
+  .object({
+    /** Path under public/. */
+    model: z.string().min(1),
+    /** Metres the longest side of the model measures once fitted. */
+    size: z.number().positive(),
+    /** Turn (radians, x y z) that points the muzzle along +Z (weapons) or the top along +Y (helmets). */
+    rotation: z.tuple([z.number(), z.number(), z.number()]).optional(),
+    /** The point of the model's box (0 to 1 on each axis, after the turn) that sits at the hand or head. */
+    anchor: z.tuple([z.number(), z.number(), z.number()]),
+    /** Metres moved after the anchor is placed. */
+    offset: z.tuple([z.number(), z.number(), z.number()]).optional(),
+  })
+  .strict();
+export type GearSpec = z.infer<typeof gearSpec>;
+
 /** Schema for data/characters.json: the single place states are mapped to clip names. */
 export const CharactersConfigSchema = z
   .object({
@@ -38,6 +55,8 @@ export const CharactersConfigSchema = z
     /** Animal variants by id (dog, cat); states are idle and walk. */
     animals: z.record(z.string(), characterSpec).default({}),
     drone: characterSpec,
+    /** Models of items by item id: a weapon in the hand, a helmet on the head. */
+    gear: z.record(z.string(), gearSpec).default({}),
   })
   .strict()
   .refine((c) => 'zombie' in c.enemies, { message: 'enemies must include "zombie"' });

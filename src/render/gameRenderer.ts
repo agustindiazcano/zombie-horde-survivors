@@ -832,7 +832,7 @@ export class GameRenderer {
   /** The model of a soldier: the one its unit type names (marine1...), else one by id. */
   private soldierFactory(s: GameState['soldiers'][number]): CharacterFactory {
     const list = this.factories.soldiers;
-    const slot = this.config.units.units[s.unitType]?.model ?? s.id - 1;
+    const slot = this.config.units.units[s.unitType]?.model ?? 0;
     return list[slot % list.length]!;
   }
 
@@ -1057,6 +1057,7 @@ export class GameRenderer {
       const held =
         s.dead || s.downed || drone ? null : (s.equipment.rightHand ?? s.equipment.leftHand);
       view.hold?.(held);
+      view.wear?.(drone ? null : s.equipment.head);
       // Arms come up to the gun while it fires or aims, and drop back to the clip afterwards.
       const raised = Math.max(this.shotLeft.get(s.id) ?? 0, s.aiming ? 1 : 0);
       this.shotLeft.set(s.id, Math.max((this.shotLeft.get(s.id) ?? 0) - dt, 0));

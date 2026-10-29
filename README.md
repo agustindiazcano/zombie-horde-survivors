@@ -167,5 +167,10 @@ Every third-party asset is listed in `assets.toml` (name, author, source, licens
 - **Ground 111 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Ground111)
 - **Marble 012 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Marble012)
 - **Tiles 107 (ambientCG material, shrunk to 512 px)** by ambientCG — [CC0-1.0](https://ambientcg.com/a/Tiles107)
+- **Enemy_Tentacle (animated tentacle, experimental lab)** by Quaternius — [CC0-1.0](https://poly.pizza/m/BR1vpIvvvv)
+- **alien monster (playable alien, test map)** by victory_mirosya — [CC-BY-4.0](https://sketchfab.com/3d-models/alien-monster-1a28f8bd9b544b52b633591ee8b8d987)
+- **ESMAD Helmet** by Juan Pablo Camacho — [CC-BY-4.0](https://sketchfab.com/3d-models/esmad-helmet-cc01c1d2b55a46d2bf513677df33cd1a)
+- **Helmet** by Willy Decarpentrie — [CC-BY-4.0](https://sketchfab.com/3d-models/helmet-655e1b6a4714448fa6960aa4f831fe94)
+- **Security Guard Helmet** by ~Drift~ — [CC-BY-4.0](https://sketchfab.com/3d-models/security-guard-helmet-2cc78926cc294368906e0b9c353693ed)
 
 <!-- credits:end -->

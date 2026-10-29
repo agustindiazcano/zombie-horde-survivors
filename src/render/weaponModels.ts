@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createGearModel } from './gearModels';
 
 /** Palette of the held weapons. */
 const METAL = new THREE.MeshStandardMaterial({ color: 0x2b2d30, metalness: 0.5, roughness: 0.5 });
@@ -34,6 +35,7 @@ export interface WeaponPose {
 /** Pose data of the weapons that are shown in hand; knives have a hip place only. */
 export const WEAPON_POSES: Record<string, WeaponPose> = {
   pistol: { hip: [0.17, -0.17, -0.4], ads: [0, -0.075, -0.3] },
+  smg: { foregrip: [0, -0.01, 0.22], hip: [0.2, -0.2, -0.42], ads: [0, -0.105, -0.3] },
   rifle: { foregrip: [0, -0.03, 0.38], hip: [0.2, -0.2, -0.42], ads: [0, -0.095, -0.3] },
   heavy_mg: { foregrip: [0, -0.04, 0.42], hip: [0.2, -0.23, -0.5], ads: [0, -0.125, -0.38] },
   knife: { hip: [0.22, -0.2, -0.36], ads: [0.22, -0.2, -0.36] },
@@ -44,6 +46,8 @@ export const WEAPON_POSES: Record<string, WeaponPose> = {
  * towards +Z and the top towards +Y. Items without a model here are not drawn.
  */
 export function createWeaponModel(item: string): THREE.Group | null {
+  const loaded = createGearModel(item);
+  if (loaded) return loaded;
   const g = new THREE.Group();
   switch (item) {
     case 'pistol':
@@ -56,6 +60,12 @@ export function createWeaponModel(item: string): THREE.Group | null {
       part(g, GRIP, [0.05, 0.1, 0.05], [0, -0.04, 0]);
       part(g, GRIP, [0.045, 0.1, 0.22], [0, 0.02, -0.17]);
       part(g, METAL, [0.04, 0.12, 0.06], [0, -0.06, 0.2]);
+      break;
+    case 'smg':
+      part(g, METAL, [0.045, 0.08, 0.4], [0, 0.04, 0.12]);
+      part(g, METAL, [0.025, 0.025, 0.2], [0, 0.05, 0.42]);
+      part(g, GRIP, [0.04, 0.1, 0.045], [0, -0.04, 0]);
+      part(g, METAL, [0.035, 0.12, 0.05], [0, -0.07, 0.18]);
       break;
     case 'heavy_mg':
       part(g, METAL, [0.08, 0.12, 0.6], [0, 0.05, 0.25]);

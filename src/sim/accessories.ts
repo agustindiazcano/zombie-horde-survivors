@@ -50,7 +50,7 @@ function weaponAt(
   if (!cell.state) {
     const made = newWeaponState(config, cell.item);
     if (typeof slot === 'string') {
-      if (slot === 'chest') return null;
+      if (slot === 'chest' || slot === 'head') return null;
       s.weaponStates[slot] = made;
     } else {
       s.backpack[slot]!.state = made;
