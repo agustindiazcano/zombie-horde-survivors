@@ -90,7 +90,7 @@ const boxes = (w: LabWorld, extra: Record<string, number> = {}): string => {
     const half = ((side - 1) * d) / 2;
     for (let i = 0; i < side; i++)
       for (let j = 0; j < side; j++) {
-        top = w.addBox(-half + i * d, 0.5 + 0.005 + layer * (d + 0.005), -half + j * d);
+        top = w.addBox(-half + i * d, 0.5 + layer * d, -half + j * d);
         ids.push(top);
       }
   }
@@ -109,7 +109,8 @@ const boxes = (w: LabWorld, extra: Record<string, number> = {}): string => {
     const dz = w.pos[id * 3 + 2]! - start[k]![2]!;
     drift = Math.max(drift, Math.sqrt(dx * dx + dz * dz));
   });
-  const apex = ((apex0 - w.pos[top * 3 + 1]!) * 100).toFixed(1);
+  const apex =
+    ((apex0 - w.pos[top * 3 + 1]!) * 100).toFixed(2) + ` cm, ${w.sleeping}/${w.count} asleep`;
   const pyramidHash = w.stateHash().toString(16);
   // One box dropped on a corner must end flat: its up axis (y of the rotated y vector) near 1 or -1.
   w.clear();
@@ -131,7 +132,7 @@ const boxes = (w: LabWorld, extra: Record<string, number> = {}): string => {
     Math.abs(2 * (qy * qz - qx * qw)),
   );
   return (
-    `pyramid apex (0.5 s, 2 s,${early}) ${apex} cm, worst drift ${(drift * 100).toFixed(1)} cm, ${ms.toFixed(2)} ms/step, ` +
+    `pyramid apex (0.5 s, 2 s,${early}) ${apex}, worst drift ${(drift * 100).toFixed(1)} cm, ${ms.toFixed(2)} ms/step, ` +
     `hash ${pyramidHash}; contacts ${(w as { solver?: { contacts: number } }).solver?.contacts ?? '-'}; dropped box up-axis ${up.toFixed(3)} (1 = flat), y ${w.pos[tilt * 3 + 1]!.toFixed(2)}`
   );
 };

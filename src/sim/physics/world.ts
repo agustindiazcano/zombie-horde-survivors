@@ -68,6 +68,8 @@ const WALL_RESTITUTION = 0.4;
 const MAX_SOURCES = 8;
 /** A touching body slower than `sleepSpeed` for this many sub-steps falls asleep (the benchmark page uses 6). */
 const SLEEP_SUBSTEPS = 6;
+/** A box must stay touching and slow this long (s) before it falls asleep. */
+const BOX_SLEEP_TIME = 0.25;
 /** A contact deeper than this wakes a sleeping body that an awake one is pressing on. */
 const WAKE_OVERLAP = 0.008;
 /** Lift added to every blast, scaled by the falloff (m/s per unit of 1/mass). */
@@ -131,6 +133,8 @@ export class PhysicsWorld {
   private readonly bnz: Float32Array;
   /** 1 while a free ball rests: it is not moved and its pairs with other sleepers are skipped. */
   readonly sleeping: Uint8Array;
+  /** For each sphere of a box, the id of the box's first sphere (the 8 spheres follow it); -1 otherwise. A box sleeps and wakes as one. */
+  private readonly boxStart: Int32Array;
   private readonly sleepFrames: Uint8Array;
   private readonly head = new Int32Array(HASH_SIZE).fill(-1);
   /** The hash slots used in the last sub-step, so only those are cleared (never all 16384). */
@@ -187,6 +191,7 @@ export class PhysicsWorld {
     this.cellY = new Int32Array(capacity);
     this.cellZ = new Int32Array(capacity);
     this.sleeping = new Uint8Array(capacity);
+    this.boxStart = new Int32Array(capacity).fill(-1);
     this.sleepFrames = new Uint8Array(capacity);
     this.pairA = new Int32Array(capacity * PAIRS_PER_BODY);
     this.pairB = new Int32Array(capacity * PAIRS_PER_BODY);
@@ -210,6 +215,7 @@ export class PhysicsWorld {
     this.clearHash();
     this.sleeping.fill(0);
     this.sleepFrames.fill(0);
+    this.boxStart.fill(-1);
     this.sourceCount = 0;
     this.cellSize = CELL;
     this.fitted = false;
@@ -250,8 +256,21 @@ export class PhysicsWorld {
 
   /** Wakes body `i` (a push, a blast or a changed rule must not leave it frozen). */
   wake(i: number): void {
+    const f = this.boxStart[i]!;
+    if (f >= 0) {
+      for (let c = 0; c < 8; c++) {
+        this.sleeping[f + c] = 0;
+        this.sleepFrames[f + c] = 0;
+      }
+      return;
+    }
     this.sleeping[i] = 0;
     this.sleepFrames[i] = 0;
+  }
+
+  /** Declares the 8 spheres from `first` one box: they fall asleep and wake together. */
+  markBox(first: number): void {
+    for (let c = 0; c < 8; c++) this.boxStart[first + c] = first;
   }
 
   wakeAll(): void {
@@ -435,7 +454,7 @@ export class PhysicsWorld {
     this.dampBones();
     const sleep2 = p.sleepSpeed * p.sleepSpeed;
     for (let i = 0; i < n; i++) {
-      if (this.sleeping[i] === 1) continue;
+      if (this.sleeping[i] === 1 || this.boxStart[i]! >= 0) continue;
       if (this.touched[i] === 0) {
         this.sleepFrames[i] = 0;
         continue;
@@ -451,6 +470,30 @@ export class PhysicsWorld {
         }
       } else {
         this.sleepFrames[i] = 0;
+      }
+    }
+    // A box counts as one: some sphere touching something and all 8 slower than sleepSpeed.
+    for (let f = 0; f < n; f++) {
+      if (this.boxStart[f] !== f || this.sleeping[f] === 1) continue;
+      let touching = false;
+      let slow = true;
+      for (let c = 0; c < 8; c++) {
+        const k = f + c;
+        if (this.touched[k] === 1) touching = true;
+        if (vx[k]! * vx[k]! + vy[k]! * vy[k]! + vz[k]! * vz[k]! >= sleep2) slow = false;
+      }
+      if (!touching || !slow) {
+        this.sleepFrames[f] = 0;
+        continue;
+      }
+      // Slow for BOX_SLEEP_TIME seconds, not a few sub-steps: a box at the top of a tip is slow too.
+      if (++this.sleepFrames[f]! * h < BOX_SLEEP_TIME) continue;
+      for (let c = 0; c < 8; c++) {
+        this.sleeping[f + c] = 1;
+        this.bounce[f + c] = 0;
+        vx[f + c] = 0;
+        vy[f + c] = 0;
+        vz[f + c] = 0;
       }
     }
   }
@@ -725,7 +768,7 @@ export class PhysicsWorld {
       const wa = invMass[a]!;
       const wb = invMass[b]!;
       const ws = wa + wb;
-      if (ws === 0) continue;
+      if (ws === 0 || (this.sleeping[a] === 1 && this.sleeping[b] === 1)) continue;
       const dx = px[b]! - px[a]!;
       const dy = py[b]! - py[a]!;
       const dz = pz[b]! - pz[a]!;
@@ -750,7 +793,7 @@ export class PhysicsWorld {
       const wa = invMass[a]!;
       const wb = invMass[b]!;
       const ws = wa + wb;
-      if (ws === 0) continue;
+      if (ws === 0 || (this.sleeping[a] === 1 && this.sleeping[b] === 1)) continue;
       const dx = px[b]! - px[a]!;
       const dy = py[b]! - py[a]!;
       const dz = pz[b]! - pz[a]!;

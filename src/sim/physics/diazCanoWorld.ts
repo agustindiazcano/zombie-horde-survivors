@@ -204,6 +204,7 @@ export class DiazCanoWorld implements LabWorld {
         );
         s.addConstraint(first + a, first + b, d, BOX_STIFFNESS);
       }
+    s.markBox(first);
     s.fitCell();
     this.refresh(first, true);
     this.size[first * 3] = hx;
