@@ -62,6 +62,8 @@ const PAIR_MARGIN = 0.1;
 const PAIRS_PER_BODY = 8;
 /** Walls and boxes give back this share of the closing speed. */
 const WALL_RESTITUTION = 0.4;
+/** At most this many gravity wells (point attractors) per world. */
+const MAX_SOURCES = 8;
 /** A touching body slower than `sleepSpeed` for this many sub-steps falls asleep (the benchmark page uses 6). */
 const SLEEP_SUBSTEPS = 6;
 /** A contact deeper than this wakes a sleeping body that an awake one is pressing on. */
@@ -129,6 +131,20 @@ export class PhysicsWorld {
   private readonly dirty: Int32Array;
   private dirtyCount = 0;
   private lastGravity = Number.NaN;
+  /** The hash cell of each body, computed once per sub-step (the pair search reuses it). */
+  private readonly cellX: Int32Array;
+  private readonly cellY: Int32Array;
+  private readonly cellZ: Int32Array;
+  /**
+   * Gravity wells (technique 8, inverse Archimedes): each pushes every body towards it with
+   * `strength * max(0, 1 - d/radius) / (d + SATURATION)` (no cutoff when `radius` is 0).
+   */
+  private readonly srcX = new Float32Array(MAX_SOURCES);
+  private readonly srcY = new Float32Array(MAX_SOURCES);
+  private readonly srcZ = new Float32Array(MAX_SOURCES);
+  private readonly srcStrength = new Float32Array(MAX_SOURCES);
+  private readonly srcRadius = new Float32Array(MAX_SOURCES);
+  sourceCount = 0;
   private readonly next: Int32Array;
   private readonly pairA: Int32Array;
   private readonly pairB: Int32Array;
@@ -161,6 +177,9 @@ export class PhysicsWorld {
     this.bnz = new Float32Array(capacity);
     this.next = new Int32Array(capacity);
     this.dirty = new Int32Array(capacity);
+    this.cellX = new Int32Array(capacity);
+    this.cellY = new Int32Array(capacity);
+    this.cellZ = new Int32Array(capacity);
     this.sleeping = new Uint8Array(capacity);
     this.sleepFrames = new Uint8Array(capacity);
     this.pairA = new Int32Array(capacity * PAIRS_PER_BODY);
@@ -185,6 +204,29 @@ export class PhysicsWorld {
     this.clearHash();
     this.sleeping.fill(0);
     this.sleepFrames.fill(0);
+    this.sourceCount = 0;
+  }
+
+  /**
+   * Adds a gravity well and wakes everything (a resting pile must feel it). `strength` is
+   * G * M of the technique-8 law `a = dir * strength / (d + 0.25)`; with `radius > 0` the pull
+   * fades to zero at that distance. Returns its index, or -1 when full.
+   */
+  addGravitySource(x: number, y: number, z: number, strength: number, radius = 0): number {
+    if (this.sourceCount >= MAX_SOURCES) return -1;
+    const k = this.sourceCount++;
+    this.srcX[k] = x;
+    this.srcY[k] = y;
+    this.srcZ[k] = z;
+    this.srcStrength[k] = strength;
+    this.srcRadius[k] = radius;
+    this.wakeAll();
+    return k;
+  }
+
+  clearGravitySources(): void {
+    this.sourceCount = 0;
+    this.wakeAll();
   }
 
   /** Wakes body `i` (a push, a blast or a changed rule must not leave it frozen). */
@@ -304,6 +346,19 @@ export class PhysicsWorld {
       qz[i] = pz[i]!;
       if (this.sleeping[i] === 1) continue;
       vy[i] = vy[i]! - p.gravity * h;
+      for (let k = 0; k < this.sourceCount; k++) {
+        const dx = this.srcX[k]! - px[i]!;
+        const dy = this.srcY[k]! - py[i]!;
+        const dz = this.srcZ[k]! - pz[i]!;
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (d < 1e-6) continue;
+        const reach = this.srcRadius[k]!;
+        const fade = reach > 0 ? Math.max(0, 1 - d / reach) : 1;
+        const pull = (this.srcStrength[k]! * fade * h) / ((d + SATURATION) * d);
+        vx[i] = vx[i]! + dx * pull;
+        vy[i] = vy[i]! + dy * pull;
+        vz[i] = vz[i]! + dz * pull;
+      }
       vx[i] = vx[i]! * drag;
       vy[i] = vy[i]! * drag;
       vz[i] = vz[i]! * drag;
@@ -383,12 +438,15 @@ export class PhysicsWorld {
     const p = this.params;
     this.clearHash();
     const { sleeping } = this;
+    const { cellX, cellY, cellZ } = this;
     for (let i = 0; i < this.count; i++) {
-      const slot = hashCell(
-        Math.floor(px[i]! / CELL),
-        Math.floor(py[i]! / CELL),
-        Math.floor(pz[i]! / CELL),
-      );
+      const cx = Math.floor(px[i]! / CELL);
+      const cy = Math.floor(py[i]! / CELL);
+      const cz = Math.floor(pz[i]! / CELL);
+      cellX[i] = cx;
+      cellY[i] = cy;
+      cellZ[i] = cz;
+      const slot = hashCell(cx, cy, cz);
       if (this.head[slot] === -1) this.dirty[this.dirtyCount++] = slot;
       this.next[i] = this.head[slot]!;
       this.head[slot] = i;
@@ -396,9 +454,9 @@ export class PhysicsWorld {
     const max = this.pairA.length;
     this.pairCount = 0;
     for (let i = 0; i < this.count; i++) {
-      const cx = Math.floor(px[i]! / CELL);
-      const cy = Math.floor(py[i]! / CELL);
-      const cz = Math.floor(pz[i]! / CELL);
+      const cx = cellX[i]!;
+      const cy = cellY[i]!;
+      const cz = cellZ[i]!;
       for (let ox = -1; ox <= 1; ox++)
         for (let oy = -1; oy <= 1; oy++)
           for (let oz = -1; oz <= 1; oz++) {
