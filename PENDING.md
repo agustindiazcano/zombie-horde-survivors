@@ -137,6 +137,15 @@ Plan: [docs/PLAN-graphics-settings.md](docs/PLAN-graphics-settings.md); rules in
 - [ ] 🟡 The estimated costs (`graphicsOptions.ts`) are guesses: compare them with the measured ones and fix the table.
 - [ ] 🟢 Timer queries (`EXT_disjoint_timer_query_webgl2`) for a true GPU time; a benchmark scene that forces rain, snow and ice so every option measures its real cost; a preview of the scene inside the window; a menu entry to open the settings from the title screen if it is not there yet.
 
+### 2s — 🟡 The author's physics into the game (noted 2026-11-01, nothing built)
+
+Plan: [docs/PLAN-new-physics.md](docs/PLAN-new-physics.md); reference page `tests/physics-lab-diaz-cano-vs-euler.html` (`npm run bench:physics-html`); formulas in [docs/PHYSICS.md](docs/PHYSICS.md) sections 5 and 8. Decided: all gravity is the author's technique 8; a switch `physics.engine` (`classic` until the new one is ready, classic code kept); boxes stay on Rapier meanwhile.
+
+- [x] Done 2026-11-01: gravity law confirmed by the author (PHYSICS section 8, rows 11 and 12); dirty buckets and sleep skipping in `world.ts` (pyramid 0.5 cm; 600 balls 8.35 to 4.51 ms).
+- [ ] 🟡 Build the switch `physics.engine` (`classic` default, `diaz-cano` on in Maps 12 and 13), then boxes as 8 spheres joined by rigid constraints (option A) in the lab to retire Rapier; then `gravityAt`, blasts and melee pushes. Plan phases 3 to 5.
+- [ ] 🟡 Analyse the long prompt of 2026-11-01 point by point (plan section 5, 11 points) before using it as a work order.
+- [ ] 🟡 Fix the out-of-date "Determinism" sentence in PHYSICS section 7 (the ocean already uses `dsin`/`dpow`).
+
 ### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
 
 Plan: [docs/PLAN-physics-lab.md](docs/PLAN-physics-lab.md). Map 12 now runs Rapier (deterministic build): balls, boxes with rotation, a box pyramid and marine-zombie ragdolls with hinge joints ([worklog](docs/worklog/2026-10-21-rapier-lab.md), [PHYSICS.md section 6](docs/PHYSICS.md)). The own sphere solver is kept for the Rust/WASM port. Measured headless only (`npm run check:rapier`, `bench:physics`, `check:ragdoll`).

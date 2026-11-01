@@ -228,7 +228,7 @@ The solver resolves contacts; it does not fly anything. A flight model is a forc
 
 ### 7.3 Technique 8 and a ship pulled by gravity
 
-> **Correction 2026-11-01:** the Plummer force law and the leapfrog below were written by an assistant while reviewing the literature; they are **not** in any file of the author's (his benchmark page only has the flat `v_y -= g h` and the `0.25` in the blast). Treat them as a proposal. The author's own formula for technique 8 is still to be confirmed: PHYSICS.md section 9, row 1. The register of what is confirmed is PHYSICS.md section 8.
+> **Correction 2026-11-01:** the Plummer force law and the leapfrog below were written by an assistant while reviewing the literature; they are **not** the author's. He confirmed on 2026-11-01 that all gravity is his technique 8: on surface maps `a_y = -g` in the prediction step with the support coming from the Hooke contact; for wells `a = sum d_hat G M / (d + 0.25)` (optional cutoff `max(0, 1 - d/R)`). Plummer is discarded. The register is PHYSICS.md section 8, rows 11 and 12.
 
 As a game rule, the Le Sage "shadow" model reduces to an attractive force that stays finite at zero distance. The 0.25 "saturation" is the same device as the softening length of n-body codes (Plummer 1911), so any softened gravity gives the same behaviour. The theory is refuted as physics (section 3, row 8), which does not matter for a game rule as long as it is not presented as physics.
 

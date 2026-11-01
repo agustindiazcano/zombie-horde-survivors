@@ -62,6 +62,10 @@ const PAIR_MARGIN = 0.1;
 const PAIRS_PER_BODY = 8;
 /** Walls and boxes give back this share of the closing speed. */
 const WALL_RESTITUTION = 0.4;
+/** A touching body slower than `sleepSpeed` for this many sub-steps falls asleep (the benchmark page uses 6). */
+const SLEEP_SUBSTEPS = 6;
+/** A contact deeper than this wakes a sleeping body that an awake one is pressing on. */
+const WAKE_OVERLAP = 0.008;
 /** Lift added to every blast, scaled by the falloff (m/s per unit of 1/mass). */
 const BLAST_LIFT = 18;
 
@@ -117,7 +121,14 @@ export class PhysicsWorld {
   private readonly bnx: Float32Array;
   private readonly bny: Float32Array;
   private readonly bnz: Float32Array;
-  private readonly head = new Int32Array(HASH_SIZE);
+  /** 1 while a free ball rests: it is not moved and its pairs with other sleepers are skipped. */
+  readonly sleeping: Uint8Array;
+  private readonly sleepFrames: Uint8Array;
+  private readonly head = new Int32Array(HASH_SIZE).fill(-1);
+  /** The hash slots used in the last sub-step, so only those are cleared (never all 16384). */
+  private readonly dirty: Int32Array;
+  private dirtyCount = 0;
+  private lastGravity = Number.NaN;
   private readonly next: Int32Array;
   private readonly pairA: Int32Array;
   private readonly pairB: Int32Array;
@@ -149,6 +160,9 @@ export class PhysicsWorld {
     this.bny = new Float32Array(capacity);
     this.bnz = new Float32Array(capacity);
     this.next = new Int32Array(capacity);
+    this.dirty = new Int32Array(capacity);
+    this.sleeping = new Uint8Array(capacity);
+    this.sleepFrames = new Uint8Array(capacity);
     this.pairA = new Int32Array(capacity * PAIRS_PER_BODY);
     this.pairB = new Int32Array(capacity * PAIRS_PER_BODY);
     this.pairE = new Float32Array(capacity * PAIRS_PER_BODY);
@@ -168,6 +182,25 @@ export class PhysicsWorld {
     this.nextGroup = 0;
     this.contacts = 0;
     this.pairCount = 0;
+    this.clearHash();
+    this.sleeping.fill(0);
+    this.sleepFrames.fill(0);
+  }
+
+  /** Wakes body `i` (a push, a blast or a changed rule must not leave it frozen). */
+  wake(i: number): void {
+    this.sleeping[i] = 0;
+    this.sleepFrames[i] = 0;
+  }
+
+  wakeAll(): void {
+    this.sleeping.fill(0);
+    this.sleepFrames.fill(0);
+  }
+
+  private clearHash(): void {
+    for (let k = 0; k < this.dirtyCount; k++) this.head[this.dirty[k]!] = -1;
+    this.dirtyCount = 0;
   }
 
   /** Adds a sphere; returns its id, or -1 when the pool is full or it is too wide for the hash. */
@@ -192,6 +225,8 @@ export class PhysicsWorld {
     this.invMass[i] = 1 / mass;
     this.kind[i] = kind;
     this.group[i] = group;
+    this.sleeping[i] = 0;
+    this.sleepFrames[i] = 0;
     return i;
   }
 
@@ -208,6 +243,7 @@ export class PhysicsWorld {
   /** Changes a body's speed by `impulse / mass` (a heavy body moves less). */
   impulse(i: number, ix: number, iy: number, iz: number): void {
     const w = this.invMass[i]!;
+    this.wake(i);
     this.vx[i] = this.vx[i]! + ix * w;
     this.vy[i] = this.vy[i]! + iy * w;
     this.vz[i] = this.vz[i]! + iz * w;
@@ -237,6 +273,10 @@ export class PhysicsWorld {
   step(dt: number, arena: Arena): void {
     const n = Math.max(1, Math.round(this.params.substeps));
     this.contacts = 0;
+    if (this.params.gravity !== this.lastGravity) {
+      if (!Number.isNaN(this.lastGravity)) this.wakeAll();
+      this.lastGravity = this.params.gravity;
+    }
     for (let s = 0; s < n; s++) this.substep(dt / n, arena);
   }
 
@@ -262,6 +302,7 @@ export class PhysicsWorld {
       qx[i] = px[i]!;
       qy[i] = py[i]!;
       qz[i] = pz[i]!;
+      if (this.sleeping[i] === 1) continue;
       vy[i] = vy[i]! - p.gravity * h;
       vx[i] = vx[i]! * drag;
       vy[i] = vy[i]! * drag;
@@ -280,12 +321,15 @@ export class PhysicsWorld {
     for (let it = 0; it < p.iterations; it++) {
       this.solveBones();
       this.solvePairs(h);
-      for (let i = 0; i < n; i++) this.collideStatic(i, arena, it === 0, h);
+      for (let i = 0; i < n; i++) {
+        if (this.sleeping[i] === 0) this.collideStatic(i, arena, it === 0, h);
+      }
     }
 
     // 4. The speed is the displacement over the sub-step.
     const inv = 1 / h;
     for (let i = 0; i < n; i++) {
+      if (this.sleeping[i] === 1) continue;
       vx[i] = (px[i]! - qx[i]!) * inv;
       vy[i] = (py[i]! - qy[i]!) * inv;
       vz[i] = (pz[i]! - qz[i]!) * inv;
@@ -294,7 +338,7 @@ export class PhysicsWorld {
     // 5. Bounces, bone damping, and stopping what has all but stopped.
     for (let i = 0; i < n; i++) {
       const b = this.bounce[i]!;
-      if (b <= 0) continue;
+      if (b <= 0 || this.sleeping[i] === 1) continue;
       const nx = this.bnx[i]!;
       const ny = this.bny[i]!;
       const nz = this.bnz[i]!;
@@ -313,11 +357,22 @@ export class PhysicsWorld {
     this.dampBones();
     const sleep2 = p.sleepSpeed * p.sleepSpeed;
     for (let i = 0; i < n; i++) {
-      if (this.touched[i] === 0) continue;
+      if (this.sleeping[i] === 1) continue;
+      if (this.touched[i] === 0) {
+        this.sleepFrames[i] = 0;
+        continue;
+      }
       if (vx[i]! * vx[i]! + vy[i]! * vy[i]! + vz[i]! * vz[i]! < sleep2) {
         vx[i] = 0;
         vy[i] = 0;
         vz[i] = 0;
+        // Only free balls fall asleep; the bones of a ragdoll stay awake (they are joined).
+        if (this.group[i]! < 0 && ++this.sleepFrames[i]! >= SLEEP_SUBSTEPS) {
+          this.sleeping[i] = 1;
+          this.bounce[i] = 0;
+        }
+      } else {
+        this.sleepFrames[i] = 0;
       }
     }
   }
@@ -326,13 +381,15 @@ export class PhysicsWorld {
   private findPairs(): void {
     const { px, py, pz, vx, vy, vz, radius } = this;
     const p = this.params;
-    this.head.fill(-1);
+    this.clearHash();
+    const { sleeping } = this;
     for (let i = 0; i < this.count; i++) {
       const slot = hashCell(
         Math.floor(px[i]! / CELL),
         Math.floor(py[i]! / CELL),
         Math.floor(pz[i]! / CELL),
       );
+      if (this.head[slot] === -1) this.dirty[this.dirtyCount++] = slot;
       this.next[i] = this.head[slot]!;
       this.head[slot] = i;
     }
@@ -347,7 +404,11 @@ export class PhysicsWorld {
           for (let oz = -1; oz <= 1; oz++) {
             let j = this.head[hashCell(cx + ox, cy + oy, cz + oz)]!;
             while (j !== -1) {
-              if (j > i && (this.group[i]! < 0 || this.group[i] !== this.group[j])) {
+              if (
+                j > i &&
+                (this.group[i]! < 0 || this.group[i] !== this.group[j]) &&
+                (sleeping[i] === 0 || sleeping[j] === 0)
+              ) {
                 const dx = px[i]! - px[j]!;
                 const dy = py[i]! - py[j]!;
                 const dz = pz[i]! - pz[j]!;
@@ -362,6 +423,11 @@ export class PhysicsWorld {
                   const vn =
                     ((vx[i]! - vx[j]!) * dx + (vy[i]! - vy[j]!) * dy + (vz[i]! - vz[j]!) * dz) / d;
                   this.pairE[k] = vn < -p.restSpeed ? -vn * p.restitution : 0;
+                  // A hit hard enough wakes the sleeper (the benchmark page: closing speed over restSpeed).
+                  if (vn < -p.restSpeed * 0.5) {
+                    this.wake(i);
+                    this.wake(j);
+                  }
                 }
               }
               j = this.next[j]!;
@@ -417,8 +483,13 @@ export class PhysicsWorld {
       const ny = dy / d;
       const nz = dz / d;
       const overlap = min - d;
-      const wa = invMass[i]!;
-      const wb = invMass[j]!;
+      if (overlap > WAKE_OVERLAP) {
+        this.wake(i);
+        this.wake(j);
+      }
+      // A sleeping body is an immovable support (weight 0) for the awake one touching it.
+      const wa = this.sleeping[i] === 1 ? 0 : invMass[i]!;
+      const wb = this.sleeping[j] === 1 ? 0 : invMass[j]!;
       const ws = wa + wb;
       const s = overlap / (ws + alpha);
       px[i] = px[i]! + nx * s * wa;
