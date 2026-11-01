@@ -150,6 +150,8 @@ test-game/
 
 Not in git: `node_modules/`, `dist/`, and the two root folders `game-engine/` and `models/` (in `.gitignore`): they are where the user drops things to try out or add to the game (engine experiments, new models). Look there when the user says they put something to test; never commit them. A model that is accepted goes through section 9 (copy to `public/models/`, `assets.toml`, `characters.json`).
 
+Also never in git: the loose `.glb` and `.part` files in the repo root, `policia/`, `police-car-open-interior/` and `public/models/test/` (all in `.gitignore`). They are the user's models for local performance tests only; they never go to the repository, so do not offer to add them, and `git add` explicit paths, never `-A` at the root.
+
 ## 8. Workflow rules
 
 - A branch per task, small English conventional commits ending with the `Co-Authored-By` line from the session reminder.
