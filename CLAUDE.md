@@ -176,6 +176,10 @@ Not in git: `node_modules/`, `dist/`, and the two root folders `game-engine/` an
 - Git prints "LF will be replaced by CRLF" warnings on `git add`: harmless.
 - CI warns that the `ubuntu-latest` runner label migrates to Ubuntu 26 on 2026-10-19.
 
+## 10b. Antigravity subagent
+
+`agy` (Antigravity) is installed. For Google searches and web research, and for trivial or bulky tasks that would burn the main agent's tokens, delegate to it following [ANTIGRAVITY.md](ANTIGRAVITY.md) and the skill `.claude/skills/delegate-antigravity/SKILL.md` (Codex has the same in `.agents/skills/`; [AGENTS.md](AGENTS.md)). Read-only by default, never with approve-everything options, and verify what it returns.
+
 ## 11. Ask the user first
 
 - Anything outward-facing: pushing, opening or closing PRs beyond what they asked, deleting branches, creating accounts or API keys (analytics), changing the repo's Pages or visibility settings.
