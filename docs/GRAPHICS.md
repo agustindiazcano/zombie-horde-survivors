@@ -206,6 +206,24 @@ When the enemies, the other characters or the water are set below 100%, the fram
 
 Enemies take `min(all characters, enemies only)`; the other characters take `all characters`. Cost: one extra scene pass per lowered part (vertex work and draw calls of that part only) plus the composite; a part at 50% saves about three quarters of its fill. Known limits: pieces that are not on a character's view (blood, gibs, loose limbs, health bars) stay at full resolution; blending of transparent things happens in linear colour on this path, so glass and fire can differ very slightly from the normal path; a block can overlap the world's edge by up to one block.
 
+## 15. Which technique each rule is (cross-reference with TECHNIQUES.md)
+
+The author's names and numbers are in [TECHNIQUES.md](TECHNIQUES.md); the standard technique next to each is what a reader should compare it with. Nothing here is called standard or new beyond what that file says.
+
+| Rule (section)                                           | Technique (TECHNIQUES.md)        | Standard technique next to it                                           |
+| -------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------- |
+| Reflection curve `area`, `(1 - cos)^(phi²)` (5)          | 1, golden-ratio Fresnel          | Schlick's approximation with another exponent                           |
+| Reflection curve `sapito` (5)                            | 2                                | Alternative Schlick curves, Smith visibility (label and formula differ) |
+| `r0` from the impedance (5)                              | 2b                               | Fresnel equations at normal incidence                                   |
+| Depth colour `1 - (S/0.25)^phi` (5)                      | 3, light brake by saturation     | Beer-Lambert law, per-channel absorption                                |
+| Whirlpools, funnel and swirl (5)                         | 9, "Law 3" and golden whirlpools | Rankine, Lamb-Oseen, Burgers vortices                                   |
+| Ripples, caustics, ice noise, cloud noise (3, 5, 11)     | 10, golden hash and golden FBM   | Fractal Brownian motion, golden-ratio hashes                            |
+| Neon orbs on a golden-angle spiral (5)                   | 11, Vogel orbits                 | Vogel's sunflower model                                                 |
+| One-pass water, same wave function on CPU and GPU (5)    | 12, cheap-shader approach        | Finch 2004; screen-space refraction (McGuire and Mara)                  |
+| Wave shape and eight golden waves (PHYSICS.md section 7) | 4 and 5                          | Sine to a power (Finch), Gerstner, JONSWAP                              |
+
+**Open, not adopted (an outside note of 2026-11-01):** replacing the `pow` of techniques 1 and 3 in the shader by polynomials in the ALU (for example `x * x * mix(1, x, 0.618 + 0.118 (1 - x))` for `x^(phi²)`). Those are approximations, not exact: the linear `mix` stands in for `x^0.618` and gives 0.264 at `x = 0` where the true value is 0. TECHNIQUES.md section 3 already says the speed claim for these curves is not proven (`x^5` is three multiplications, a non-integer power is `exp2(log2(x) p)`). Measure the error and the GPU time (the author's PC has no GPU; use "Measure my machine", section 13, on one with a GPU) before changing any shader.
+
 ## 9. Not done
 
 Ground: real textures with depth (see PENDING). Neon orbs lighting the clouds (they already light the ground and everything on it). See PENDING.md.

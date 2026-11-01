@@ -75,16 +75,16 @@ A cheaper path that keeps the current game: first measure; then try `InstancedMe
 
 ## 5b. Extra ideas from the chat notes (kept short, not in the brief)
 
-| Topic                  | Note                                                                                                                   |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Physics engine options | Rapier (Rust, chosen), Ammo.js (Bullet, mature vehicles and ragdolls, rougher API), PhysX to WASM (most complex setup) |
-| Scaling by PC          | detect the GPU and set unit cap, shadows, AO and particle counts per profile; high-end uncapped                        |
-| Light shafts           | translucent cones with a special material instead of real volumetric light                                             |
-| Clouds                 | large soft particles shaded away from the sun, no raymarching on iGPU                                                  |
-| Trees                  | Meshy, or Blender add-ons Sapling Tree Gen and MTree; leaves as plane clusters (billboards)                            |
-| Doors, wheels, glass   | split into separate objects / material slots in Blender (or the headless script), animate by code                      |
-| Hybrid physics         | live units are simple capsules; the detailed ragdoll exists only for the 10 to 15 that just died                       |
-| Jiggle: two ways       | extra bones + spring (bosses, few units) or vertex-colour shader (hordes)                                              |
+| Topic                  | Note                                                                                                                                                                                                                                                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Physics engine options | Rapier (Rust, chosen in 2026-10; **since 2026-11-01 the author's own solver is the intended engine for loose bodies and ragdolls**, Rapier stays only for boxes until the lab tests boxes of 8 spheres, see PLAN-new-physics.md), Ammo.js (Bullet, mature vehicles and ragdolls, rougher API), PhysX to WASM (most complex setup) |
+| Scaling by PC          | detect the GPU and set unit cap, shadows, AO and particle counts per profile; high-end uncapped                                                                                                                                                                                                                                   |
+| Light shafts           | translucent cones with a special material instead of real volumetric light                                                                                                                                                                                                                                                        |
+| Clouds                 | large soft particles shaded away from the sun, no raymarching on iGPU                                                                                                                                                                                                                                                             |
+| Trees                  | Meshy, or Blender add-ons Sapling Tree Gen and MTree; leaves as plane clusters (billboards)                                                                                                                                                                                                                                       |
+| Doors, wheels, glass   | split into separate objects / material slots in Blender (or the headless script), animate by code                                                                                                                                                                                                                                 |
+| Hybrid physics         | live units are simple capsules; the detailed ragdoll exists only for the 10 to 15 that just died                                                                                                                                                                                                                                  |
+| Jiggle: two ways       | extra bones + spring (bosses, few units) or vertex-colour shader (hordes)                                                                                                                                                                                                                                                         |
 
 ## 6. Questions for the user
 

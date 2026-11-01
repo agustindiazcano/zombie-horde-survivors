@@ -4,17 +4,18 @@ A browser-based 3D squad shooter: command a small squad of soldiers and a drone 
 
 ## Tech stack
 
-| Layer               | Technology                                                                                |
-| ------------------- | ----------------------------------------------------------------------------------------- |
-| Language and build  | TypeScript 6, Vite 8                                                                      |
-| 3D rendering        | Three.js 0.186 (WebGL today; a WebGPU + TSL migration is planned)                         |
-| Simulation          | pure TypeScript in `src/sim` (no Three.js, no DOM), fixed 60 Hz step, seeded RNG          |
-| Data and validation | JSON in `data/`, validated with a strict zod schema                                       |
-| Models              | GLB (glTF binary) with skeletal animation clips, Quaternius, KayKit, Kenney and Meshy AI  |
-| Audio               | procedural sound effects (Web Audio)                                                      |
-| Saved data          | the browser's localStorage (best score, settings, your own maps); no backend, no accounts |
-| Tests and checks    | Vitest (48 sim tests), ESLint, Prettier, `tsc`, an asset-license check                    |
-| Hosting             | GitHub Pages, redeployed on every push to `main`                                          |
+| Layer               | Technology                                                                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language and build  | TypeScript 6, Vite 8                                                                                                                                                                                          |
+| 3D rendering        | Three.js 0.186 (WebGL today; a WebGPU + TSL migration is planned)                                                                                                                                             |
+| Simulation          | pure TypeScript in `src/sim` (no Three.js, no DOM), fixed 60 Hz step, seeded RNG                                                                                                                              |
+| Physics             | the author's own solver in `src/sim/physics` (spheres, ragdolls, Hooke contacts on positions, spatial hash, sleeping, gravity wells); Rapier only in the Map 12 lab, for boxes, until the own solver has them |
+| Data and validation | JSON in `data/`, validated with a strict zod schema                                                                                                                                                           |
+| Models              | GLB (glTF binary) with skeletal animation clips, Quaternius, KayKit, Kenney and Meshy AI                                                                                                                      |
+| Audio               | procedural sound effects (Web Audio)                                                                                                                                                                          |
+| Saved data          | the browser's localStorage (best score, settings, your own maps); no backend, no accounts                                                                                                                     |
+| Tests and checks    | Vitest (51 sim tests), ESLint, Prettier, `tsc`, an asset-license check                                                                                                                                        |
+| Hosting             | GitHub Pages, redeployed on every push to `main`                                                                                                                                                              |
 
 Where the engine is heading (WebGPU, instanced animated crowds of 1,000+ units, a physics worker, ragdolls, Tauri + Steam): [docs/PLAN-webgpu-engine.md](docs/PLAN-webgpu-engine.md). Nothing of that is built yet.
 
@@ -119,6 +120,7 @@ Zombie speed and health also grow with each wave.
 ## Architecture
 
 - `src/sim` — the pure simulation (squad, enemies, waves, loot). It imports no Three.js; ESLint and a test enforce that, so it can be unit-tested.
+- `src/sim/physics` — the author's own physics solver for loose bodies and ragdolls (pure TypeScript, deterministic); the reference page and benchmark is `tests/physics-lab-diaz-cano-vs-euler.html` (`npm run bench:physics-html`). Every rule and formula: [docs/PHYSICS.md](docs/PHYSICS.md); the author's techniques and the paper plan: [docs/TECHNIQUES.md](docs/TECHNIQUES.md); the plan to plug it into the game: [docs/PLAN-new-physics.md](docs/PLAN-new-physics.md).
 - `src/render` — Three.js rendering (arena, characters, effects, cameras).
 - `src` — input, HUD, audio and the fixed-timestep game loop (the render interpolates between steps).
 - `data/maps/*.json` — the built-in maps (Map 1); `data/catalog.json` — the editor's unit and asset lists.

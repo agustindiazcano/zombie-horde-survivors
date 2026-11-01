@@ -148,7 +148,7 @@ Plan: [docs/PLAN-new-physics.md](docs/PLAN-new-physics.md); reference page `test
 - [ ] 🟡 Analyse the long prompt of 2026-11-01 point by point (plan section 5, 11 points) before using it as a work order.
 - [ ] 🟡 Fix the out-of-date "Determinism" sentence in PHYSICS section 7 (the ocean already uses `dsin`/`dpow`).
 
-### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
+### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`; direction changed 2026-11-01, see 2s)
 
 Plan: [docs/PLAN-physics-lab.md](docs/PLAN-physics-lab.md). Map 12 now runs Rapier (deterministic build): balls, boxes with rotation, a box pyramid and marine-zombie ragdolls with hinge joints ([worklog](docs/worklog/2026-10-21-rapier-lab.md), [PHYSICS.md section 6](docs/PHYSICS.md)). The own sphere solver is kept for the Rust/WASM port. Measured headless only (`npm run check:rapier`, `bench:physics`, `check:ragdoll`).
 

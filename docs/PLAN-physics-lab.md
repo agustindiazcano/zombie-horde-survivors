@@ -1,6 +1,6 @@
 # Plan: physics lab (Map 12), zombie ragdolls and the road to Rust/WASM
 
-Status: phases 1 to 4 built on `feat/physics-lab` (2026-10-21) with the own solver; the lab then moved to Rapier (Phase B6 first step, [worklog](worklog/2026-10-21-rapier-lab.md)) and the own solver stays as the reference for 6 to 8; 5 (look, tune, shots, ragdoll on death) and 6 to 8 open. The longer write-up with the diagram lives in the user's Claude doc "Plan de implementación: motor de física, Map 12 y ragdolls de zombies"; this file is the short version for the repo. What was built and measured: [worklog](worklog/2026-10-21-physics-lab-map-12.md).
+Status (2026-11-01: the direction changed again, see [PLAN-new-physics.md](PLAN-new-physics.md): the own solver is the intended engine and Rapier is being retired): phases 1 to 4 built on `feat/physics-lab` (2026-10-21) with the own solver; the lab then moved to Rapier (Phase B6 first step, [worklog](worklog/2026-10-21-rapier-lab.md)) and the own solver stays as the reference for 6 to 8; 5 (look, tune, shots, ragdoll on death) and 6 to 8 open. The longer write-up with the diagram lives in the user's Claude doc "Plan de implementación: motor de física, Map 12 y ragdolls de zombies"; this file is the short version for the repo. What was built and measured: [worklog](worklog/2026-10-21-physics-lab-map-12.md).
 
 ## Decision
 

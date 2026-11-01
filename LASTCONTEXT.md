@@ -43,9 +43,13 @@ Known limits: the AI does not use posts, doors or keys; zombies ignore the crew 
 - **Known problems:** the carrier tower's collider is 2 m high but the model is about 25 m (aircraft clip through it); moving the carrier in the editor does not move its deck; the main bundle grew from 714 kB to 1.5 MB because of Map 9's 800 kB JSON (excluded from Prettier).
 - **Waiting on the user:** a look at Maps 7, 8 and 9, the Map 2 nest and tower, the editor's Assets tab, corpses with Drop / Take and the AI dragging the wounded; and an OK before any model download (police, civilians, military, vehicles; CC0 / CC-BY only).
 
+## The author's physics (2026-11-01, branch `docs/physics-diaz-cano`, local, not pushed)
+
+The author's own solver is the intended engine ([PLAN-new-physics.md](docs/PLAN-new-physics.md), PENDING 2s). Decided by him: all gravity is technique 8 (`a_y = -g` on surface maps, wells `sum d_hat G M/(d + 0.25)`); a switch `physics.engine` with `classic` as default (classic code kept); boxes stay on Rapier until boxes made of 8 spheres are tested in the lab. Built: his benchmark page in `tests/` with a headless runner (`npm run bench:physics-html`), dirty buckets, real sleeping, cached hash cells and gravity wells in `world.ts`; the formulas with their sources in PHYSICS.md section 8. **Not built:** the switch, the Map 12 lab on `world.ts`, boxes of 8 spheres, `gravityAt` in the game's sim. Texts and demos behind it: `docs/worklog/2026-11-01-*.md`.
+
 ## Physics lab on Rapier (2026-10-21, branch `feat/physics-lab`, uncommitted, mixed with `feat/helicopter` work)
 
-Map 12 runs `@dimforge/rapier3d-deterministic-compat` (balls, boxes, ragdolls); the own sphere solver stays as the Rust/WASM reference ([worklog](docs/worklog/2026-10-21-rapier-lab.md), PENDING §2o). Never seen in a browser. Decided by the user: Rapier instead of the own solver, ragdoll bones as Rapier joints. **Open:** how the 2D units meet Rapier bodies; then shots as impulses, ragdoll on death, grab and throw, loose limbs. `npm run check:rapier` and `bench:physics` print the determinism hash.
+Map 12 runs `@dimforge/rapier3d-deterministic-compat` (balls, boxes, ragdolls); the own sphere solver stays as the Rust/WASM reference ([worklog](docs/worklog/2026-10-21-rapier-lab.md), PENDING §2o). Never seen in a browser. Decided by the user on 2026-10-21: Rapier instead of the own solver, ragdoll bones as Rapier joints (**reversed in direction on 2026-11-01**: the own solver is the intended engine, see the section above). **Open:** how the 2D units meet Rapier bodies; then shots as impulses, ragdoll on death, grab and throw, loose limbs. `npm run check:rapier` and `bench:physics` print the determinism hash.
 
 ## Ocean and Map 13 (2026-10-23, merged in PR #62)
 
