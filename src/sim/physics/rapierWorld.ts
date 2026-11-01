@@ -2,7 +2,7 @@ import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import type { Arena } from '../config';
 import { OBSTACLE_HEIGHT } from '../constants';
 import { nextFloat, type Rng } from '../rng';
-import { oceanFlowAt, oceanHeight, type OceanParams } from '../ocean';
+import { oceanFlowAt, oceanHeight } from '../ocean';
 import {
   BALL_MASS,
   BALL_RADIUS,
@@ -10,10 +10,18 @@ import {
   BOX_HALF,
   BOX_MASS,
   DEFAULT_RAPIER_PARAMS,
+  FLOAT_OFFSET,
+  GEYSER_CORE,
+  GEYSER_DEPTH,
+  GEYSER_SIDE,
+  GEYSER_SPEED,
   KIND_BALL,
   KIND_BOX,
   KIND_LIMB,
   PERSON_MASS,
+  RAPIER_SLIDERS,
+  type LabWorld,
+  type RapierOcean,
   type RapierParams,
   type RapierRagdoll,
 } from './bodies';
@@ -94,32 +102,19 @@ function rotate(q: Quat, vx: number, vy: number, vz: number): [number, number, n
   ];
 }
 
-/** Water the free bodies float in (the Map 13 ocean): the calm level, the ground under a point and the wave numbers. */
-export interface RapierOcean {
-  params: OceanParams;
-  level: number;
-  groundAt: (x: number, z: number) => number;
-}
-
-/** A body sinks this fraction of its radius before the water starts to lift it. */
-const FLOAT_OFFSET = 0.35;
-
 let ready: Promise<void> | null = null;
 
-/** Whirlpool geyser: sunk deeper than this under the calm level (m), inside this scaled radius of the core. */
-const GEYSER_DEPTH = 5;
-const GEYSER_CORE = 6;
-/** Launch speed (m/s, plus 8 per unit of whirlpool strength) and sideways kick (m/s). */
-const GEYSER_SPEED = 14;
-const GEYSER_SIDE = 4;
-
-export class RapierWorld {
+export class RapierWorld implements LabWorld {
   static async create(): Promise<RapierWorld> {
     ready ??= RAPIER.init();
     await ready;
     return new RapierWorld();
   }
 
+  readonly engine = 'classic' as const;
+  readonly supportsBoxes = true;
+  readonly sliders = RAPIER_SLIDERS;
+  readonly defaults = DEFAULT_RAPIER_PARAMS;
   params: RapierParams = { ...DEFAULT_RAPIER_PARAMS };
   readonly capacity = BODY_CAPACITY;
   /** Position of each body (x, y, z), refreshed by every `step`. */

@@ -1,5 +1,8 @@
 {
   "gravity": 20,
+  "physics": {
+    "engine": "classic"
+  },
   "squad": {
     "count": 4,
     "followDistance": 3,

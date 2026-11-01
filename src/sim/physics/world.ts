@@ -12,7 +12,7 @@ export const KIND_BALL = 0;
 export const KIND_RAGDOLL = 1;
 
 /** Every number the Map 12 panel can turn live. Metres, seconds, kilograms. */
-export interface PhysicsParams {
+export type PhysicsParams = {
   gravity: number;
   /** Share of the impact speed a body gives back (0 = dead stop). */
   restitution: number;
@@ -37,7 +37,7 @@ export interface PhysicsParams {
   boneDamping: number;
   /** Blast strength: impulse = blastPower * (1 - d/R) / (d + SATURATION). */
   blastPower: number;
-}
+};
 
 export const DEFAULT_PARAMS: PhysicsParams = {
   gravity: 24,

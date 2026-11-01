@@ -19,6 +19,7 @@
     "bench:physics-html": "node scripts/bench-physics-html.mjs",
     "check:ragdoll": "node scripts/check-ragdoll.mjs",
     "check:rapier": "node scripts/check-rapier.mjs",
+    "check:lab-engines": "node scripts/check-lab-engines.mjs",
     "check:sim-hash": "node scripts/check-sim-hash.mjs",
     "check:kernels": "node scripts/check-kernels.mjs",
     "check:dmath": "node scripts/check-dmath.mjs",

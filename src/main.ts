@@ -93,6 +93,7 @@ async function main(): Promise<void> {
     enemies: config.enemies,
     difficulty: config.difficulty,
     ocean: config.ocean,
+    physics: config.physics,
   };
   const factories = await new GltfAssetLoader().loadCharacters(parseCharactersConfig(characters));
 
@@ -315,7 +316,7 @@ async function main(): Promise<void> {
   let groundOf: unknown[] = [];
   const loadMap = (map: MapData, unitsKept = false) => {
     Object.assign(config, mapRules(globalRules, map.logic, map.units));
-    lab.setActive(config.physicsLab);
+    lab.setActive(config.physicsLab, config.physics.engine);
     config.players = map.players;
     config.placed = map.units;
     mapEnvironment = map.environment ?? defaultEnvironment();

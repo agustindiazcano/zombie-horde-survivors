@@ -57,6 +57,7 @@ export function testConfig(patch: Patch = {}): GameConfig {
     stance: { ...base.stance },
     swimming: { ...base.swimming },
     ocean: { ...base.ocean },
+    physics: { ...base.physics },
     loot: { ...base.loot },
     progress: { ...base.progress },
     downed: { ...base.downed },

@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 import { NODE_COUNT } from '../sim/physics/ragdoll';
-import { KIND_BALL, KIND_BOX, KIND_LIMB, type RapierRagdoll } from '../sim/physics/bodies';
-import type { RapierWorld } from '../sim/physics/rapierWorld';
+import {
+  KIND_BALL,
+  KIND_BOX,
+  KIND_LIMB,
+  KIND_NODE,
+  type LabWorld,
+  type RapierRagdoll,
+} from '../sim/physics/bodies';
 import type { CharacterView } from './characters';
 import type { RagdollRig } from './ragdollRig';
 
@@ -115,15 +121,18 @@ export class PhysicsLabView {
     this.coloured = 0;
   }
 
-  update(world: RapierWorld): void {
+  update(world: LabWorld): void {
     const d = this.dummy;
     const meshes = [this.balls, this.boxes, this.limbs];
     const next = [0, 0, 0];
     for (let i = 0; i < world.count; i++) {
       const kind = world.kind[i]!;
-      if (kind === KIND_LIMB && !this.debug && this.dressedGroups.has(world.group[i]!)) continue;
-      const mesh = kind === KIND_BALL ? this.balls : kind === KIND_BOX ? this.boxes : this.limbs;
-      const slot = next[kind]!++;
+      const bone = kind === KIND_LIMB || kind === KIND_NODE;
+      if (bone && !this.debug && this.dressedGroups.has(world.group[i]!)) continue;
+      // A joint sphere of the author's solver is drawn with the balls.
+      const shape = kind === KIND_NODE ? KIND_BALL : kind;
+      const mesh = shape === KIND_BALL ? this.balls : shape === KIND_BOX ? this.boxes : this.limbs;
+      const slot = next[shape]!++;
       d.position.set(world.pos[i * 3]!, world.pos[i * 3 + 1]!, world.pos[i * 3 + 2]!);
       this.quat.set(
         world.rot[i * 4]!,
@@ -135,9 +144,9 @@ export class PhysicsLabView {
       const s1 = world.size[i * 3 + 1]!;
       const s2 = world.size[i * 3 + 2]!;
       d.quaternion.copy(this.quat);
-      if (kind === KIND_BALL) {
+      if (shape === KIND_BALL) {
         d.scale.setScalar(s0);
-      } else if (kind === KIND_BOX) {
+      } else if (shape === KIND_BOX) {
         d.scale.set(s0 * 2, s1 * 2, s2 * 2);
       } else {
         // The cylinder lies along the limb's axis inside the body, then follows the body.

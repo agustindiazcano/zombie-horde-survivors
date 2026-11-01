@@ -16,10 +16,11 @@ import {
   BODY_CAPACITY,
   BOX_HALF,
   BOX_MASS,
-  DEFAULT_RAPIER_PARAMS,
-  type RapierParams,
+  type LabSlider,
+  type LabWorld,
+  type PhysicsEngineName,
 } from './sim/physics/bodies';
-import type { RapierWorld } from './sim/physics/rapierWorld';
+import { DiazCanoWorld } from './sim/physics/diazCanoWorld';
 import type { CharacterFactories } from './render/assetLoader';
 import { PhysicsHands } from './physicsHands';
 import { PhysicsLabView } from './render/physicsLabView';
@@ -40,29 +41,10 @@ const MAX_DRESSED = 12;
 const GOLDEN_ANGLE = 2.3999632297;
 /** Spacing of the Vogel spiral the lab drops balls and boxes on (m per square root of the index). */
 const SPIRAL = 1.1;
+const NO_BOXES =
+  'Cajas: todavía no están en el solver propio (opción A, 8 esferas). Usá el motor Rapier.';
 /** Side of the square box pyramid (boxes on the floor): 6 makes 91 boxes. */
 const PYRAMID_BASE = 6;
-
-interface SliderDef {
-  key: keyof RapierParams;
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  /** The slider is on a log10 scale (stiffness spans decades). */
-  log?: boolean;
-  digits: number;
-}
-
-const SLIDERS: SliderDef[] = [
-  { key: 'gravity', label: 'Gravedad', min: 0, max: 40, step: 0.5, digits: 1 },
-  { key: 'restitution', label: 'Rebote', min: 0, max: 1, step: 0.01, digits: 2 },
-  { key: 'friction', label: 'Fricción', min: 0, max: 1.5, step: 0.05, digits: 2 },
-  { key: 'linearDamping', label: 'Amort. lineal', min: 0, max: 2, step: 0.05, digits: 2 },
-  { key: 'angularDamping', label: 'Amort. angular', min: 0, max: 5, step: 0.1, digits: 1 },
-  { key: 'solverIterations', label: 'Iter. solver', min: 1, max: 40, step: 1, digits: 0 },
-  { key: 'blastPower', label: 'Fuerza explosión', min: 0, max: 800, step: 10, digits: 0 },
-];
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -76,13 +58,16 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 /**
- * The physics lab of Map 12: Rapier (`src/sim/physics/rapierWorld.ts`, the deterministic build)
- * stepped alongside the game, drawn into the game's scene, with a panel to drop balls, boxes and
- * ragdolls and turn the numbers live. Rapier and its WASM are loaded the first time Map 12 opens.
+ * The physics lab of Map 12: one of two engines stepped alongside the game, drawn into the game's
+ * scene, with a panel to drop balls, boxes and ragdolls and turn the numbers live. The engine is
+ * `physics.engine` of game.json (a map can override it) and the panel can switch it:
+ * `classic` is Rapier (`rapierWorld.ts`, the deterministic build; it and its WASM load the first
+ * time it is chosen) and `diaz-cano` is the author's own solver (`diazCanoWorld.ts`).
  * The marine zombie ragdolls wear the real model of `data/characters.json`.
  */
 export class PhysicsLab {
-  private world: RapierWorld | null = null;
+  private world: LabWorld | null = null;
+  private engine: PhysicsEngineName = 'classic';
   private loading = false;
   /** The arena the static colliders were built from. */
   private builtFor: Arena | null = null;
@@ -98,7 +83,10 @@ export class PhysicsLab {
   private stepMs = 0;
   private hashAge = 0;
   /** What the sliders hold; written into the world when it loads and on every change. */
-  private readonly params: RapierParams = { ...DEFAULT_RAPIER_PARAMS };
+  private params: Record<string, number> = {};
+  private slidersBox!: HTMLElement;
+  private engineNote!: HTMLElement;
+  private engineButtons: Partial<Record<PhysicsEngineName, HTMLButtonElement>> = {};
 
   constructor(
     scene: THREE.Scene,
@@ -116,7 +104,15 @@ export class PhysicsLab {
     this.panel.id = 'physics-lab';
     this.panel.style.display = 'none';
     el('h2', this.panel, 'Laboratorio de física (Map 12)');
-    el('div', this.panel, 'Rapier. Esc libera el mouse. Todo cae delante del soldado.');
+    this.engineNote = el('div', this.panel, 'Esc libera el mouse. Todo cae delante del soldado.');
+    const engines = el('div', this.panel);
+    engines.className = 'row';
+    this.engineButtons.classic = this.button(engines, 'Motor: Rapier', () =>
+      this.setEngine('classic'),
+    );
+    this.engineButtons['diaz-cano'] = this.button(engines, 'Motor: Diaz-Cano', () =>
+      this.setEngine('diaz-cano'),
+    );
 
     el('h3', this.panel, 'Soltar');
     const drop = el('div', this.panel);
@@ -137,7 +133,7 @@ export class PhysicsLab {
     this.button(fx, '5 zombies + explosión', () => this.pileAndBlast());
 
     el('h3', this.panel, 'Física');
-    for (const def of SLIDERS) this.slider(def);
+    this.slidersBox = el('div', this.panel);
 
     el('h3', this.panel, 'Control');
     const ctl = el('div', this.panel);
@@ -164,35 +160,74 @@ export class PhysicsLab {
     this.stats.className = 'stats';
     this.noteNode = el('div', this.panel);
     this.noteNode.className = 'note';
+    this.updateEngineButtons();
   }
 
-  /** Turns the lab on or off with the map (Map 12 has the `physicsLab` rule). */
-  setActive(on: boolean): void {
-    if (on === this.active) return;
+  /** Turns the lab on or off with the map (Map 12 has the `physicsLab` rule); `engine` is the map's physics engine. */
+  setActive(on: boolean, engine: PhysicsEngineName = this.engine): void {
+    if (on === this.active && (!on || engine === this.engine)) return;
     this.active = on;
     this.panel.style.display = on ? 'block' : 'none';
     this.view.group.visible = on;
+    if (on && engine !== this.engine) {
+      this.setEngine(engine);
+      return;
+    }
     this.reset();
     if (on && !this.world && !this.loading) void this.load();
+  }
+
+  /** Switches the engine: everything dropped is cleared and the new engine is built. */
+  private setEngine(engine: PhysicsEngineName): void {
+    if (engine === this.engine && this.world) return;
+    this.reset();
+    this.world = null;
+    this.builtFor = null;
+    this.engine = engine;
+    this.buildSliders();
+    this.updateEngineButtons();
+    if (this.active && !this.loading) void this.load();
+  }
+
+  private updateEngineButtons(): void {
+    for (const [name, button] of Object.entries(this.engineButtons))
+      button.classList.toggle('on', name === this.engine);
+    this.engineNote.textContent =
+      this.engine === 'classic'
+        ? 'Rapier. Esc libera el mouse. Todo cae delante del soldado.'
+        : 'Solver propio Diaz-Cano (técnicas 7 y 8): esferas, sin cajas todavía. Esc libera el mouse.';
   }
 
   get isActive(): boolean {
     return this.active;
   }
 
-  /** Loads Rapier (a separate chunk with its WASM) the first time the lab opens. */
+  /** Builds the chosen engine; Rapier is a separate chunk with its WASM, loaded the first time. */
   private async load(): Promise<void> {
+    const engine = this.engine;
     this.loading = true;
-    this.note('Cargando Rapier…');
     try {
-      const { RapierWorld } = await import('./sim/physics/rapierWorld');
-      this.world = await RapierWorld.create();
-      Object.assign(this.world.params, this.params);
+      let world: LabWorld;
+      if (engine === 'classic') {
+        this.note('Cargando Rapier…');
+        const { RapierWorld } = await import('./sim/physics/rapierWorld');
+        world = await RapierWorld.create();
+      } else {
+        world = new DiazCanoWorld();
+      }
+      // The engine was switched while this one loaded: drop it, the newer load builds the right one.
+      if (engine !== this.engine) return;
+      this.world = world;
+      this.params = { ...world.defaults };
+      Object.assign(world.params, this.params);
+      this.buildSliders();
       this.note('');
     } catch (e) {
-      this.note(`No se pudo cargar Rapier: ${e instanceof Error ? e.message : String(e)}`);
+      this.note(`No se pudo cargar el motor: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       this.loading = false;
+      // A switch made during the load asked for another engine: build it now.
+      if (this.active && !this.world && engine !== this.engine) void this.load();
     }
   }
 
@@ -205,7 +240,7 @@ export class PhysicsLab {
   }
 
   /** The world, with its fixed scenery built from the current map. */
-  private ready(): RapierWorld | null {
+  private ready(): LabWorld | null {
     const w = this.world;
     if (!w) return null;
     const arena = this.arena();
@@ -300,23 +335,32 @@ export class PhysicsLab {
     return b;
   }
 
-  private slider(def: SliderDef): void {
-    const row = el('label', this.panel);
+  /** Redraws the sliders of the engine in use (each engine has its own numbers). */
+  private buildSliders(): void {
+    this.slidersBox.replaceChildren();
+    for (const def of this.world?.sliders ?? []) this.slider(def);
+  }
+
+  private slider(def: LabSlider): void {
+    const row = el('label', this.slidersBox);
     el('span', row, def.label);
     const input = el('input', row);
     input.type = 'range';
-    input.min = String(def.min);
-    input.max = String(def.max);
+    // A log slider holds log10 of the value.
+    const to = (v: number): number => (def.log ? Math.log10(v) : v);
+    const from = (v: number): number => (def.log ? 10 ** v : v);
+    input.min = String(to(def.min));
+    input.max = String(to(def.max));
     input.step = String(def.step);
     const value = el('span', row);
     value.className = 'value';
     const show = (): void => {
       value.textContent = this.valueOf(def.key).toFixed(def.digits);
     };
-    input.value = String(this.valueOf(def.key));
+    input.value = String(to(this.valueOf(def.key)));
     show();
     input.addEventListener('input', () => {
-      const v = Number(input.value);
+      const v = from(Number(input.value));
       if (def.key === 'gravity') this.gravity.set(v);
       else {
         this.params[def.key] = v;
@@ -327,8 +371,8 @@ export class PhysicsLab {
   }
 
   /** The current value of a slider: gravity comes from the game, the rest from the world. */
-  private valueOf(key: keyof RapierParams): number {
-    return key === 'gravity' ? this.gravity.get() : this.params[key];
+  private valueOf(key: string): number {
+    return key === 'gravity' ? this.gravity.get() : (this.params[key] ?? 0);
   }
 
   /** The spot in front of the soldier where things appear, and the ground height there. */
@@ -373,6 +417,10 @@ export class PhysicsLab {
     const s = this.spot();
     const w = this.ready();
     if (!s || !w) return;
+    if (!w.supportsBoxes) {
+      this.note(NO_BOXES);
+      return;
+    }
     const d = BOX_HALF * 2;
     for (let layer = 0; layer < PYRAMID_BASE; layer++) {
       const side = PYRAMID_BASE - layer;
@@ -401,6 +449,10 @@ export class PhysicsLab {
     const s = this.spot();
     const w = this.ready();
     if (!s || !w) return;
+    if (!w.supportsBoxes) {
+      this.note(NO_BOXES);
+      return;
+    }
     for (let i = 0; i < count; i++) {
       const hx = 0.3 + nextFloat(this.rng) * 0.5;
       const hy = 0.3 + nextFloat(this.rng) * 0.5;

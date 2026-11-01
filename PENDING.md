@@ -142,7 +142,9 @@ Plan: [docs/PLAN-graphics-settings.md](docs/PLAN-graphics-settings.md); rules in
 Plan: [docs/PLAN-new-physics.md](docs/PLAN-new-physics.md); reference page `tests/physics-lab-diaz-cano-vs-euler.html` (`npm run bench:physics-html`); formulas in [docs/PHYSICS.md](docs/PHYSICS.md) sections 5 and 8. Decided: all gravity is the author's technique 8; a switch `physics.engine` (`classic` until the new one is ready, classic code kept); boxes stay on Rapier meanwhile.
 
 - [x] Done 2026-11-01: gravity law confirmed by the author (PHYSICS section 8, rows 11 and 12); dirty buckets and sleep skipping in `world.ts` (pyramid 0.5 cm; 600 balls 8.35 to 4.51 ms).
-- [ ] 🟡 Build the switch `physics.engine` (`classic` default, `diaz-cano` on in Maps 12 and 13), then boxes as 8 spheres joined by rigid constraints (option A) in the lab to retire Rapier; then `gravityAt`, blasts and melee pushes. Plan phases 3 to 5.
+- [x] Done 2026-11-01: the switch `physics.engine` (`classic` default; map override `logic.physicsEngine`; lab panel buttons) and the adapter `DiazCanoWorld` behind the `LabWorld` interface (PHYSICS section 6). Maps 12 and 13 still run `classic` until boxes exist in the own solver.
+- [ ] 🟡 Boxes as 8 spheres joined by rigid constraints (option A) in the lab to retire Rapier, then set `physicsEngine: "diaz-cano"` in Maps 12 and 13; then `gravityAt`, blasts (the own blast has no speed cap: see PHYSICS section 6) and melee pushes. Plan phases 3 to 5.
+- [ ] 🟡 Look at the lab in the browser with the new "Motor: Diaz-Cano" button (balls, zombie ragdoll, blast, ocean in Map 13): nothing of it was seen, only `check:lab-engines`.
 - [x] Done 2026-11-01: gravity law answered by the author: `a = sum d_hat G M/(d + 0.25)` (the demo v2.0's `M/(d² + 100)` is the earlier version). Pasted texts are kept in [docs/worklog/2026-11-01-physics-prompts.md](docs/worklog/2026-11-01-physics-prompts.md).
 - [ ] 🟡 Read the demos not yet read (`ai_studio_code (2)` to `(4)`, the horde sandboxes) and note what changed from version to version.
 - [ ] 🟡 Analyse the long prompt of 2026-11-01 point by point (plan section 5, 11 points) before using it as a work order.

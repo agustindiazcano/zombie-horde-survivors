@@ -218,7 +218,22 @@ On this PC (no GPU, slow CPU) the own solver is faster than Rapier at every size
 
 What this says and does not say: the Hooke solver keeps the structure and the classic one does not (this is the page's main claim, and it reproduces). The page's second claim, that the classic one is much slower because it is O(N²), **does not show at 591 bodies in this scene** (7.3 against 7.6 ms; it would need more bodies). The earlier repo numbers (100 balls 0.14 ms, 1000 balls 2.21 ms for `world.ts`) are from other scenes (`bench:physics`) and must not be compared with this table. Each run is one machine and one pass: repeat before quoting.
 
-## 6. The Map 12 lab on Rapier
+## 6. The Map 12 lab: the engine switch and Rapier
+
+**The switch (built 2026-11-01).** `physics.engine` in `data/game.json` is `"classic"` (Rapier, below) or `"diaz-cano"` (the author's solver of section 5, through `DiazCanoWorld` in `src/sim/physics/diazCanoWorld.ts`). A map overrides it with `logic.physicsEngine`; the lab panel has two buttons ("Motor: Rapier", "Motor: Diaz-Cano") that clear the lab and rebuild it with the other engine, each with its own sliders. Both engines implement one interface, `LabWorld` (`bodies.ts`), which `physicsLab.ts`, `physicsHands.ts` and `physicsLabView.ts` use, so none of them names an engine. Default `classic`: nothing in the sim changes (`check:sim-hash` `02a0a498`, 51 tests). `npm run check:lab-engines` drives both through the interface and prints the hashes (same calls twice, same hash).
+
+What `DiazCanoWorld` does not have, because the solver is made of spheres (measured or read from the code, not guessed):
+
+| Difference            | Detail                                                                                                                                                                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Boxes                 | `supportsBoxes` is false: `addBox` returns -1 and the lab says so. They come with option A (8 spheres) in the plan, phase 3.                                                                                                                                                                                        |
+| Rotation              | Spheres do not turn: `rot` stays the identity (a rolling ball does not show its bands). A ragdoll is eleven joint spheres joined by bones (kind `KIND_NODE`, drawn as balls or replaced by the model), not ten capsules; `ragdollNodes` copies the spheres.                                                         |
+| Sliders               | Its own: gravity, bounce, stiffness k (log scale), friction, air drag, sub-steps, passes, blast power. Rapier's solver iterations and angular damping do not exist in it.                                                                                                                                           |
+| Blast                 | `world.ts` divides the impulse by the mass (a heavy body moves less) and has no speed cap. Measured with `check:lab-engines`: at blast power 380 a joint sphere of 0.9 kg about 2 m from the centre leaves at roughly 150 m/s and rose 650 m. The Rapier lab caps at 60 m/s and is mass-independent. Not tuned yet. |
+| Ocean float           | The same rule as `RapierWorld.floatBodies` (constants moved to `bodies.ts`): a 0.5 m ball dropped at 1.5 m depth settles at y 0.25 (Rapier 0.27).                                                                                                                                                                   |
+| Push on a crate point | `pushAt` ignores the point of the push (no spin).                                                                                                                                                                                                                                                                   |
+
+Below, the rules of the classic engine, Rapier.
 
 Code: `src/sim/physics/rapierWorld.ts` (`RapierWorld`) and `bodies.ts` (shared constants and types, no Rapier import so the main bundle stays light), drawn by `src/render/physicsLabView.ts`, driven by `src/physicsLab.ts`. Package: `@dimforge/rapier3d-deterministic-compat` 0.21.0, loaded as its own chunk (4.4 MB, 1.7 MB gzip) the first time Map 12 opens.
 
