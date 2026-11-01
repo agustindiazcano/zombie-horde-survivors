@@ -1,3 +1,4 @@
+import type { LabHost } from './experimentalLab';
 import './editor.css';
 import { z } from 'zod';
 import catalogData from '../data/catalog.json';
@@ -119,7 +120,7 @@ const logicGroups: Group[] = [
   },
 ];
 
-type TabId = 'units' | 'assets' | 'terrain' | 'logic' | 'sky' | 'players';
+type TabId = 'units' | 'assets' | 'terrain' | 'logic' | 'sky' | 'players' | 'experimental';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'units', label: 'Units' },
@@ -128,6 +129,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'logic', label: 'Game logic' },
   { id: 'sky', label: 'Environment' },
   { id: 'players', label: 'Players' },
+  { id: 'experimental', label: 'Experimental' },
 ];
 
 const SOON = 'Not built yet';
@@ -254,6 +256,7 @@ export class Editor {
   /** The mouse is down on the selection; `dragMoved` once it has actually moved. */
   private dragMoved = false;
   private tab: TabId = 'units';
+  private closeLab: (() => void) | null = null;
   private terrainTool: TerrainTool | null = null;
   private brushSize = 5;
   private brushStrength = 5;
@@ -288,6 +291,8 @@ export class Editor {
       /** The 3D view the map is drawn on, and the ground point under a normalised screen position. */
       canvas: HTMLElement;
       groundAt: (ndcX: number, ndcY: number) => Vec2 | null;
+      /** The game's scene, camera and terrain, for the experimental lab to live in. */
+      lab: () => LabHost;
       /** Shows a ring at the selected item (null hides it). */
       onMarks: (marks: { at: Vec2; radius: number }[]) => void;
       /** Shows the map's enemy spawn points while editing (null hides them). */
@@ -1276,7 +1281,22 @@ export class Editor {
     else if (tab === 'terrain') this.terrain();
     else if (tab === 'logic') this.logic();
     else if (tab === 'sky') this.environmentTab();
+    else if (tab === 'experimental') this.experimental();
     else this.players();
+  }
+
+  /** Our own tests, outside the map: jelly, tentacles and a hand that picks things up. */
+  private experimental(): void {
+    this.note(
+      'Tests of ours, not part of any map. Opens a sandbox with soft jelly, a tentacle monster and a fat zombie, and a hand to grab, shake and throw them.',
+    );
+    const open = el('button', 'editor__btn', this.body, 'Open the lab');
+    open.addEventListener('click', () => {
+      void import('./experimentalLab').then(({ openExperimentalLab }) => {
+        this.closeLab?.();
+        this.closeLab = openExperimentalLab(this.actions.lab(), () => (this.closeLab = null));
+      });
+    });
   }
 
   private note(text: string): void {

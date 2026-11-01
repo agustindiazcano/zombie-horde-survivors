@@ -221,6 +221,12 @@ async function main(): Promise<void> {
   const editor = new Editor(document.body, {
     canvas: renderer.domElement,
     groundAt: renderer.screenToGround,
+    lab: () => ({
+      scene: renderer.scene,
+      camera: renderer.camera,
+      canvas: renderer.domElement,
+      ground: (x, z) => renderer.terrainHeight(x, z),
+    }),
     onMarks: (marks) => renderer.setEditMarkers(marks),
     onSpawnMarks: (points) => renderer.setSpawnMarkers(points),
     onPlay: () => {
