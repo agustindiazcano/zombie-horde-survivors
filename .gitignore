@@ -13,3 +13,9 @@ coverage
 
 # Heavy or unlicensed test models the user tries locally (never committed)
 /public/models/test/
+
+# Models and downloads the user drops in the repo root to try (accepted ones go to public/models/)
+/*.glb
+/*.part
+/policia/
+/police-car-open-interior/
