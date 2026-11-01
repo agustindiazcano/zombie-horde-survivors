@@ -143,6 +143,8 @@ Plan: [docs/PLAN-new-physics.md](docs/PLAN-new-physics.md); reference page `test
 
 - [x] Done 2026-11-01: gravity law confirmed by the author (PHYSICS section 8, rows 11 and 12); dirty buckets and sleep skipping in `world.ts` (pyramid 0.5 cm; 600 balls 8.35 to 4.51 ms).
 - [ ] 🟡 Build the switch `physics.engine` (`classic` default, `diaz-cano` on in Maps 12 and 13), then boxes as 8 spheres joined by rigid constraints (option A) in the lab to retire Rapier; then `gravityAt`, blasts and melee pushes. Plan phases 3 to 5.
+- [ ] 🔴 Gravity wells: the author's demo v2.0 says `M/(d² + 100)`, his message `G M/(d + 0.25)`: ask which ([worklog](docs/worklog/2026-11-01-engine-demos-physics.md) section 4). Texts pasted in the session are kept in [docs/worklog/2026-11-01-physics-prompts.md](docs/worklog/2026-11-01-physics-prompts.md).
+- [ ] 🟡 Read the demos not yet read (`ai_studio_code (2)` to `(4)`, the horde sandboxes) and note what changed from version to version.
 - [ ] 🟡 Analyse the long prompt of 2026-11-01 point by point (plan section 5, 11 points) before using it as a work order.
 - [ ] 🟡 Fix the out-of-date "Determinism" sentence in PHYSICS section 7 (the ocean already uses `dsin`/`dpow`).
 
