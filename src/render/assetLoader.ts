@@ -6,6 +6,7 @@ import { stainTextures } from './bloodTexture';
 import { createPartsControl, splitParts } from './limbSplit';
 import { ArmPose } from './armPose';
 import { createWeaponModel } from './weaponModels';
+import { createGearModel, measure, normalizeGear, registerGear } from './gearModels';
 import type { CharacterSpec, CharactersConfig } from './characterConfig';
 import {
   createPlaceholderDrone,
@@ -83,6 +84,37 @@ function createHoverView(root: THREE.Group, model: THREE.Object3D): CharacterVie
   };
 }
 
+/** A model with no clips: it stands still, hops a little while it moves and falls over when it dies. */
+function createStillView(root: THREE.Group, model: THREE.Object3D, lift: number): CharacterView {
+  let t = 0;
+  let state = '';
+  return {
+    object: root,
+    setState(next) {
+      state = next;
+      model.rotation.x = next === 'death' ? -Math.PI / 2 : 0;
+    },
+    update(dt) {
+      t += dt;
+      const moving = state === 'run' || state === 'walk';
+      model.position.y = lift + (moving ? Math.abs(Math.sin(t * 9)) * 0.06 : 0);
+    },
+  };
+}
+
+/** The scale and the offset that put a model's feet at the origin and make it `height` metres tall. */
+function fitToHeight(scene: THREE.Object3D, height: number, yaw: number) {
+  scene.updateMatrixWorld(true);
+  const box = measure(scene);
+  const size = box.getSize(new THREE.Vector3());
+  const k = height / Math.max(size.y, 1e-6);
+  const c = box.getCenter(new THREE.Vector3());
+  // The model turns about its own origin, so the centre it must cancel turns with it.
+  const cx = c.x * Math.cos(yaw) + c.z * Math.sin(yaw);
+  const cz = -c.x * Math.sin(yaw) + c.z * Math.cos(yaw);
+  return { scale: k, offset: new THREE.Vector3(-cx * k, -box.min.y * k, -cz * k) };
+}
+
 const DEFAULT_BAR_HEIGHT = 2.2;
 const FLASH_COLOR = new THREE.Color(1, 1, 1);
 
@@ -126,11 +158,11 @@ function makeFlasher(
   };
 }
 
-/** Finds the right hand bone of a Mixamo rig (the loader may or may not strip the colon). */
+/** Finds the right hand bone of a Mixamo or Character Creator rig (Sketchfab adds a number to bone names). */
 function findRightHand(model: THREE.Object3D): THREE.Object3D | null {
   let found: THREE.Object3D | null = null;
   model.traverse((o) => {
-    if (!found && /^(mixamorig:?)?RightHand$/.test(o.name)) found = o;
+    if (!found && /^((mixamorig:?)?RightHand|CC_Base_R_Hand)(_\d+)?$/.test(o.name)) found = o;
   });
   return found;
 }
@@ -181,14 +213,47 @@ function createHolder(model: THREE.Object3D, root: THREE.Object3D): Holder | und
   };
 }
 
+/** Finds the head bone of a Mixamo rig. */
+function findHead(model: THREE.Object3D): THREE.Object3D | null {
+  let found: THREE.Object3D | null = null;
+  model.traverse((o) => {
+    if (!found && /^((mixamorig:?)?Head|CC_Base_Head)(_\d+)?$/.test(o.name)) found = o;
+  });
+  return found;
+}
+
+/** Lets a rigged soldier wear a helmet: parented to the head bone, scaled to undo the rig's own scale. */
+function createHeadWear(model: THREE.Object3D): NonNullable<CharacterView['wear']> | undefined {
+  const head = findHead(model);
+  if (!head) return undefined;
+  const holder = new THREE.Group();
+  head.add(holder);
+  let shown: string | null = null;
+  const scale = new THREE.Vector3();
+  return (item) => {
+    if (item === shown) return;
+    shown = item;
+    holder.clear();
+    const helmet = item === null ? null : createGearModel(item);
+    if (!helmet) return;
+    model.updateMatrixWorld(true);
+    head.getWorldScale(scale);
+    holder.scale.setScalar(scale.x > 1e-6 ? 1 / scale.x : 1);
+    holder.add(helmet);
+  };
+}
+
 function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
   const splittable = spec.dismember === true && splitParts(gltf.scene);
   const stained = spec.blood ? stainTextures(gltf.scene, spec.blood) : undefined;
+  const fit = spec.height ? fitToHeight(gltf.scene, spec.height, spec.yawOffset) : null;
+  const scale = fit?.scale ?? spec.scale;
   return (): CharacterView => {
     const root = new THREE.Group();
     // Skinned meshes need SkeletonUtils.clone; a plain clone would share one skeleton.
     const model = clone(gltf.scene);
-    model.scale.setScalar(spec.scale);
+    model.scale.setScalar(scale);
+    if (fit) model.position.copy(fit.offset);
     model.rotation.y = spec.yawOffset;
     model.traverse((o) => {
       if (o instanceof THREE.Mesh) o.castShadow = true;
@@ -199,23 +264,90 @@ function createModelFactory(gltf: GLTF, spec: CharacterSpec): CharacterFactory {
     if (spec.procedural === 'wiggle') {
       return { ...createWiggleView(root, model, spec.scale), setFlash };
     }
+    if (spec.procedural === 'still') {
+      return { ...createStillView(root, model, fit?.offset.y ?? 0), setFlash };
+    }
     if (spec.procedural === 'hover') return { ...createHoverView(root, model), setFlash };
 
     const animation = new AnimationController(model, gltf.animations, spec);
     const holder = createHolder(model, root);
+    const wear = createHeadWear(model);
     const parts = splittable ? createPartsControl(model, root) : undefined;
     return {
       removePart: parts?.removePart,
       restoreParts: parts?.restoreParts,
       hold: holder?.hold,
+      wear,
       aim: holder?.aim,
       object: root,
-      setState: (state) => animation.setState(state),
+      setState: (state) => {
+        animation.setState(state);
+        // A model with no death clip falls over instead.
+        if (!spec.clips.death) {
+          model.rotation.x = state === 'death' ? -Math.PI / 2 : 0;
+          model.position.y = (fit?.offset.y ?? 0) + (state === 'death' ? 0.25 : 0);
+        }
+      },
       update: (dt) => {
         animation.update(dt);
         holder?.pose();
       },
       setFlash,
+    };
+  };
+}
+
+/**
+ * A factory for a heavy model: the first unit starts the download and shows the placeholder, and
+ * the real model takes over when it arrives (what the unit was told meanwhile is passed on).
+ */
+function createLazyFactory(
+  load: () => Promise<CharacterFactory>,
+  placeholder: CharacterFactory,
+): CharacterFactory {
+  let loading: Promise<CharacterFactory> | null = null;
+  return () => {
+    loading ??= load();
+    const root = new THREE.Group();
+    const temp = placeholder();
+    root.add(temp.object);
+    let real: CharacterView | null = null;
+    const told = { state: 'idle', held: null as string | null, head: null as string | null };
+    let aim = 0;
+    let flash = 0;
+    void loading.then((make) => {
+      real = make();
+      root.remove(temp.object);
+      root.add(real.object);
+      real.setState(told.state);
+      real.hold?.(told.held);
+      real.wear?.(told.head);
+      real.aim?.(aim);
+      real.setFlash?.(flash);
+    });
+    return {
+      object: root,
+      setState: (state) => {
+        told.state = state;
+        (real ?? temp).setState(state);
+      },
+      update: (dt) => (real ?? temp).update(dt),
+      setFlash: (amount) => {
+        flash = amount;
+        (real ?? temp).setFlash?.(amount);
+      },
+      hold: (item) => {
+        told.held = item;
+        real?.hold?.(item);
+      },
+      wear: (item) => {
+        told.head = item;
+        real?.wear?.(item);
+      },
+      aim: (amount) => {
+        aim = amount;
+        real?.aim?.(amount);
+      },
     };
   };
 }
@@ -227,6 +359,7 @@ export class GltfAssetLoader implements AssetLoader {
   async loadCharacters(config: CharactersConfig): Promise<CharacterFactories> {
     const enemyIds = Object.keys(config.enemies);
     const animalIds = Object.keys(config.animals);
+    await this.loadGear(config.gear);
     const [soldiers, enemyList, drone, animalList] = await Promise.all([
       Promise.all(config.soldiers.map((spec) => this.load(spec, createPlaceholderSoldier))),
       Promise.all(enemyIds.map((id) => this.load(config.enemies[id]!, createPlaceholderZombie))),
@@ -247,14 +380,47 @@ export class GltfAssetLoader implements AssetLoader {
     return { soldiers, enemies, barHeights, spurts, drone, animals };
   }
 
+  /** Loads the models of the weapons and helmets and registers them by item id. */
+  private async loadGear(gear: CharactersConfig['gear']): Promise<void> {
+    await Promise.all(
+      Object.entries(gear).map(async ([item, spec]) => {
+        try {
+          const gltf = await this.loader.loadAsync(import.meta.env.BASE_URL + spec.model);
+          registerGear(item, normalizeGear(gltf.scene, spec));
+        } catch (err) {
+          console.warn(`Could not load "${spec.model}" for ${item}, using the plain shape`, err);
+        }
+      }),
+    );
+  }
+
   private async load(
+    spec: CharacterSpec,
+    placeholder: CharacterFactory,
+  ): Promise<CharacterFactory> {
+    if (!spec.model) return placeholder;
+    if (spec.lazy) return createLazyFactory(() => this.loadNow(spec, placeholder), placeholder);
+    return this.loadNow(spec, placeholder);
+  }
+
+  private async loadNow(
     spec: CharacterSpec,
     placeholder: CharacterFactory,
   ): Promise<CharacterFactory> {
     if (!spec.model) return placeholder;
     try {
       const gltf = await this.loader.loadAsync(import.meta.env.BASE_URL + spec.model);
-      return createModelFactory(gltf, spec);
+      // Clips that live in other files of the same skeleton join this model's clips.
+      const clips = { ...spec.clips };
+      for (const [state, file] of Object.entries(spec.extraClips ?? {})) {
+        const extra = await this.loader.loadAsync(import.meta.env.BASE_URL + file);
+        const clip = extra.animations[0];
+        if (!clip) continue;
+        clip.name = `extra:${state}`;
+        gltf.animations.push(clip);
+        clips[state] = clip.name;
+      }
+      return createModelFactory(gltf, { ...spec, clips });
     } catch (err) {
       console.warn(`Could not load "${spec.model}", using placeholder`, err);
       return placeholder;

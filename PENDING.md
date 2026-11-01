@@ -137,7 +137,20 @@ Plan: [docs/PLAN-graphics-settings.md](docs/PLAN-graphics-settings.md); rules in
 - [ ] 🟡 The estimated costs (`graphicsOptions.ts`) are guesses: compare them with the measured ones and fix the table.
 - [ ] 🟢 Timer queries (`EXT_disjoint_timer_query_webgl2`) for a true GPU time; a benchmark scene that forces rain, snow and ice so every option measures its real cost; a preview of the scene inside the window; a menu entry to open the settings from the title screen if it is not there yet.
 
-### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`)
+### 2s — 🟡 The author's physics into the game (noted 2026-11-01, nothing built)
+
+Plan: [docs/PLAN-new-physics.md](docs/PLAN-new-physics.md); reference page `tests/physics-lab-diaz-cano-vs-euler.html` (`npm run bench:physics-html`); formulas in [docs/PHYSICS.md](docs/PHYSICS.md) sections 5 and 8. Decided: all gravity is the author's technique 8; a switch `physics.engine` (`classic` until the new one is ready, classic code kept); boxes stay on Rapier meanwhile.
+
+- [x] Done 2026-11-01: gravity law confirmed by the author (PHYSICS section 8, rows 11 and 12); dirty buckets and sleep skipping in `world.ts` (pyramid 0.5 cm; 600 balls 8.35 to 4.51 ms).
+- [x] Done 2026-11-01: the switch `physics.engine` (`classic` default; map override `logic.physicsEngine`; lab panel buttons) and the adapter `DiazCanoWorld` behind the `LabWorld` interface (PHYSICS section 6). Maps 12 and 13 still run `classic` until boxes exist in the own solver.
+- [ ] 🟡 Boxes of 8 spheres (option A) work in `DiazCanoWorld` (PHYSICS section 6): pyramid sinks 1.3 cm at default passes (0.5 cm with 5), 1.8 ms a step. Decide with the author: accept 1.3 cm or raise the default passes, then set `physicsEngine: "diaz-cano"` in Maps 12 and 13 (still `classic`) once he has looked at the Lab. Then `gravityAt`, blasts (the own blast has no speed cap: see PHYSICS section 6) and melee pushes. Plan phases 3 to 5.
+- [ ] 🟡 Look at the lab in the browser with the new "Motor: Diaz-Cano" button (balls, zombie ragdoll, blast, ocean in Map 13): nothing of it was seen, only `check:lab-engines`.
+- [x] Done 2026-11-01: gravity law answered by the author: `a = sum d_hat G M/(d + 0.25)` (the demo v2.0's `M/(d² + 100)` is the earlier version). Pasted texts are kept in [docs/worklog/2026-11-01-physics-prompts.md](docs/worklog/2026-11-01-physics-prompts.md).
+- [ ] 🟡 Read the demos not yet read (`ai_studio_code (2)` to `(4)`, the horde sandboxes) and note what changed from version to version.
+- [ ] 🟡 Analyse the long prompt of 2026-11-01 point by point (plan section 5, 11 points) before using it as a work order.
+- [ ] 🟡 Fix the out-of-date "Determinism" sentence in PHYSICS section 7 (the ocean already uses `dsin`/`dpow`).
+
+### 2o — 🔴 Physics lab, Map 12, Rapier and ragdolls (built 2026-10-21, branch `feat/physics-lab`; direction changed 2026-11-01, see 2s)
 
 Plan: [docs/PLAN-physics-lab.md](docs/PLAN-physics-lab.md). Map 12 now runs Rapier (deterministic build): balls, boxes with rotation, a box pyramid and marine-zombie ragdolls with hinge joints ([worklog](docs/worklog/2026-10-21-rapier-lab.md), [PHYSICS.md section 6](docs/PHYSICS.md)). The own sphere solver is kept for the Rust/WASM port. Measured headless only (`npm run check:rapier`, `bench:physics`, `check:ragdoll`).
 

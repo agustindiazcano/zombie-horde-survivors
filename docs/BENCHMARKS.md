@@ -17,7 +17,7 @@ To run again: `git push origin HEAD:bench/<name>` (the workflow runs on pushes t
 | ----------------------------------------------- | ------------ | -------------- | ----------- | ----- |
 | `check:sim-hash` (whole simulation)             | `02a0a498`   | `02a0a498`     | `02a0a498`  | ✅    |
 | `check:rapier` (Rapier lab)                     | `65505486`   | `65505486`     | `65505486`  | ✅    |
-| `bench:physics` own solver, same run twice      | `131015085`  | `131015085`    | (not run)   | ✅    |
+| `bench:physics` own solver, same run twice      | `131015085`  | `131015085`    | (not run)   | ✅    | <!-- since 2026-11-01 the hash is 2948917439 (sleeping changed the behaviour); the folders under docs/benchmarks keep the old runs --> |
 | `bench:physics` Rapier, same run twice          | `137794019`  | `137794019`    | `137794019` | ✅    |
 | `check:ocean-wasm` largest TS / Rust difference | 2.14e-13 m   | 2.14e-13 m     | 2.14e-13 m  | ✅    |
 
@@ -83,7 +83,7 @@ With 1000 zombies the step takes about 9% (Linux) to 13% (Windows) of a frame. T
 | 600    | 1.07                      | 1.62                        | 0.91                 | 1.34                   | 3.35                 | 4.46                   |
 | 1 000  | 2.21                      | 2.93                        | 1.51                 | 2.05                   | 6.43                 | 8.70                   |
 
-Rapier (already Rust compiled to WASM) beats the own TypeScript solver from about 600 balls up, and is the only one with boxes. Ragdoll: 11 joints, 13 bones, at rest after 1.90 s, worst bone stretch 4.3%, the same on both. The Rapier pyramid of 91 boxes holds (top box moved 0.029 m in 10 s).
+**Update 2026-11-01 (author's PC, no GPU, one run each):** after dirty buckets, real sleeping and cached hash cells the own solver took 0.47 / 2.21 / 4.87 / 5.61 ms at 100 / 300 / 600 / 1000 balls (before: 1.00 / 3.40 / 8.35 / 9.90; Rapier in the run before: 3.04 / 3.75 / 11.08 / 12.53), the 91-ball pyramid moved 0.5 cm (before 2.6 cm), and the own solver's state hash became `2948917439`. Single runs are noisy, so the table below (GitHub runners, before the change) has not been redone; a `bench/*` branch run would replace it. `npm run bench:physics-html` times the author's benchmark page with the same method. On the runners, before the change: Rapier (already Rust compiled to WASM) beats the own TypeScript solver from about 600 balls up, and is the only one with boxes. Ragdoll: 11 joints, 13 bones, at rest after 1.90 s, worst bone stretch 4.3%, the same on both. The Rapier pyramid of 91 boxes holds (top box moved 0.029 m in 10 s).
 
 ## 7. What the numbers say
 

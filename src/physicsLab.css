@@ -103,3 +103,8 @@ body.editing #physics-lab {
   top: 56px;
   max-height: calc(100vh - 64px);
 }
+
+#physics-lab button.on {
+  color: #000;
+  background: #0fc;
+}

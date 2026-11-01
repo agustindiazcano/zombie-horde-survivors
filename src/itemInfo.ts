@@ -72,6 +72,10 @@ export function itemInfo(config: GameConfig, id: string): ItemInfo {
       stats = 'chest armor';
       lines.push('Worn on the chest');
       break;
+    case 'helmet':
+      stats = 'helmet';
+      lines.push('Worn on the head (looks only, no protection yet)');
+      break;
     case 'plate':
       stats = `+${config.player.armorPlate} armor`;
       lines.push('Worn at once from a crate');

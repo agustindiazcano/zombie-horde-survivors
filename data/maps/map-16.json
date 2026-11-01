@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "map-16",
+    "name": "Map 16 - Gear test",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-28",
+    "updated": "2026-10-28",
+    "size": {
+      "width": 60,
+      "depth": 60
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "surfaces": [],
+  "props": [],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
+  "units": [
+    {
+      "type": "marine1",
+      "x": -3,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "equipment": {
+        "rightHand": "pistol"
+      },
+      "backpack": [
+        {
+          "item": "helmet_generic",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "marine2",
+      "x": -1,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "equipment": {
+        "rightHand": "pistol"
+      },
+      "backpack": [
+        {
+          "item": "helmet_esmad",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "marine3",
+      "x": 1,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "equipment": {
+        "rightHand": "pistol"
+      },
+      "backpack": [
+        {
+          "item": "helmet_security",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "marine4",
+      "x": 3,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "equipment": {
+        "rightHand": "smg"
+      },
+      "backpack": [
+        {
+          "item": "helmet_tactical",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "alien_monster",
+      "x": 0,
+      "z": -5,
+      "owner": "p1",
+      "rotation": 0,
+      "name": "Alien monster",
+      "equipment": {
+        "rightHand": null
+      }
+    }
+  ],
+  "logic": {
+    "mode": "waves",
+    "noWaves": true,
+    "boss": {
+      "enabled": false
+    }
+  }
+}

@@ -193,6 +193,7 @@ export class UnitsScreen {
     const unit = state.soldiers.find((s) => s.id === id);
     if (!w || !unit) return;
 
+    w.model.dress(unit.equipment.rightHand ?? unit.equipment.leftHand, unit.equipment.head);
     const info = levelInfo(unit.xp, this.config);
     const maxHp = maxHealthOf(state, this.config, unit);
     w.info.replaceChildren();
@@ -226,12 +227,13 @@ export class UnitsScreen {
     const doll = el('div', 'us__box', w.slots);
     el('div', 'us__label', doll, 'Equipment');
     const worn = el('div', 'us__doll', doll);
-    const { rightHand, leftHand, chest } = unit.equipment;
+    const { rightHand, leftHand, chest, head } = unit.equipment;
     const twoHanded = rightHand !== null && weaponDef(this.config, rightHand).hands === 2;
     const empty = rightHand === null && leftHand === null && unit.kind === 'soldier';
     this.slot(worn, unit, 'rightHand', rightHand, empty ? FISTS : 'Right hand');
     this.slot(worn, unit, 'leftHand', leftHand, twoHanded ? 'Two-handed' : 'Left hand');
     this.slot(worn, unit, 'chest', chest, 'Vest');
+    this.slot(worn, unit, 'head', head, 'Helmet');
     const pack = el('div', 'us__box', w.slots);
     el(
       'div',
@@ -441,7 +443,7 @@ export class UnitsScreen {
       return { label: 'Unequip', run: (st) => unequipSlot(st, this.config, unit.id, slot) };
     }
     const type = itemDef(this.config, item).type;
-    if (type === 'weapon' || type === 'armor') {
+    if (type === 'weapon' || type === 'armor' || type === 'helmet') {
       return { label: 'Equip', run: (st) => equipFromBackpack(st, this.config, unit.id, slot) };
     }
     if (type === 'medical') {

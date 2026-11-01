@@ -218,7 +218,7 @@ export class RagdollRig {
 
   /**
    * The starting positions of the eleven joints for a model standing at (x, z) turned `yaw`, its
-   * lowest joint `lift` metres above `y`. Feed them to `RapierWorld.addRagdoll` as `pose`.
+   * lowest joint `lift` metres above `y`. Feed them to `LabWorld.addRagdoll` as `pose`.
    */
   poseAt(x: number, y: number, z: number, yaw: number, lift = 0): Float32Array {
     const out = new Float32Array(NODE_COUNT * 3);

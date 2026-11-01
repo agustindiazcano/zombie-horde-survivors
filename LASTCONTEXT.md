@@ -10,6 +10,12 @@ Only what is still open: read this first in every session. When an item here is 
 - **Branch `feat/ocean-map-13` (2026-10-23): everything built on it is still untested in the real game** (user's note): the settings window, Measure my machine, antialiasing, the new switches and sliders, per-part resolution and the Map 13 look. Only headless Chrome saw it. The user gave the OK for Rust/WASM the same day: first target the ocean maths ([PLAN-rust-wasm.md](docs/PLAN-rust-wasm.md)), `.wasm` committed.
 - Last verified on `main`: lint, format check, typecheck, the 51 tests, build and the asset check all pass.
 
+## Gear models and Map 16 (2026-10-28, branch `feat/gear-models`, local, not pushed)
+
+Details: [docs/worklog/2026-10-28-gear-models.md](docs/worklog/2026-10-28-gear-models.md). New Beretta pistol and SMG, four helmets (head slot, equip and unequip from the inventory), the playable alien monster and **Map 16 - Gear test** (Development menu or the editor). **License problem to decide:** the two Beretta models (Sketchfab Standard) and the tactical helmet (CC-BY-NC-ND) are not CC0 / CC-BY, so they sit under `[[testing_asset]]` in `assets.toml` and must not ship in a public build (Pages deploys on every push to `main`) until the user replaces them or gets permission. Not seen in first person; placement of guns and helmets is by eye.
+
+Same branch, later: nine more unit models, the drivable police car and **Map 17 - Unit models** ([worklog](docs/worklog/2026-10-28-unit-models-police-car.md)). Their files are in `public/models/test/` (git-ignored). The two nude models in the root (`charlotte_...`, `gloria(1)`) were not added.
+
 ## Merged on 2026-10-20 (PRs #57 to #59, `main` at `54b68c5`)
 
 Everything that was local on 2026-10-20 is now in `main`: the SUV colour texture (#57), AI grenades (#58), and the stack in #59 (W0 soldier pathing, objects block movement, draggable corpses and loose items, door system v2 with Map 7, machine-gun nest and watchtower with turret ammo, structures in the map editor). Worklogs: `w0-soldier-pathing`, `ai-grenades`, `objects-block-movement`, `corpses-and-loose-items`, `doors-v2`, `posts-and-turret-ammo`, `editor-structures` (all 2026-10-20). The old local branches are all merged; do not delete them without asking the user (PENDING §5).
@@ -37,9 +43,13 @@ Known limits: the AI does not use posts, doors or keys; zombies ignore the crew 
 - **Known problems:** the carrier tower's collider is 2 m high but the model is about 25 m (aircraft clip through it); moving the carrier in the editor does not move its deck; the main bundle grew from 714 kB to 1.5 MB because of Map 9's 800 kB JSON (excluded from Prettier).
 - **Waiting on the user:** a look at Maps 7, 8 and 9, the Map 2 nest and tower, the editor's Assets tab, corpses with Drop / Take and the AI dragging the wounded; and an OK before any model download (police, civilians, military, vehicles; CC0 / CC-BY only).
 
+## The author's physics (2026-11-01, branch `docs/physics-diaz-cano`, local, not pushed)
+
+The author's own solver is the intended engine ([PLAN-new-physics.md](docs/PLAN-new-physics.md), PENDING 2s). Decided by him: all gravity is technique 8 (`a_y = -g` on surface maps, wells `sum d_hat G M/(d + 0.25)`); a switch `physics.engine` with `classic` as default (classic code kept); boxes stay on Rapier until boxes made of 8 spheres are tested in the lab. Built: his benchmark page in `tests/` with a headless runner (`npm run bench:physics-html`), dirty buckets, real sleeping, cached hash cells and gravity wells in `world.ts`; the formulas with their sources in PHYSICS.md section 8. Built later the same day: the switch `physics.engine` and the adapter `DiazCanoWorld` (the lab has a "Motor" button for each engine). **Not built:** boxes of 8 spheres (so Maps 12 and 13 stay on `classic`), `gravityAt` in the game's sim. Texts and demos behind it: `docs/worklog/2026-11-01-*.md`.
+
 ## Physics lab on Rapier (2026-10-21, branch `feat/physics-lab`, uncommitted, mixed with `feat/helicopter` work)
 
-Map 12 runs `@dimforge/rapier3d-deterministic-compat` (balls, boxes, ragdolls); the own sphere solver stays as the Rust/WASM reference ([worklog](docs/worklog/2026-10-21-rapier-lab.md), PENDING §2o). Never seen in a browser. Decided by the user: Rapier instead of the own solver, ragdoll bones as Rapier joints. **Open:** how the 2D units meet Rapier bodies; then shots as impulses, ragdoll on death, grab and throw, loose limbs. `npm run check:rapier` and `bench:physics` print the determinism hash.
+Map 12 runs `@dimforge/rapier3d-deterministic-compat` (balls, boxes, ragdolls); the own sphere solver stays as the Rust/WASM reference ([worklog](docs/worklog/2026-10-21-rapier-lab.md), PENDING §2o). Never seen in a browser. Decided by the user on 2026-10-21: Rapier instead of the own solver, ragdoll bones as Rapier joints (**reversed in direction on 2026-11-01**: the own solver is the intended engine, see the section above). **Open:** how the 2D units meet Rapier bodies; then shots as impulses, ragdoll on death, grab and throw, loose limbs. `npm run check:rapier` and `bench:physics` print the determinism hash.
 
 ## Ocean and Map 13 (2026-10-23, merged in PR #62)
 

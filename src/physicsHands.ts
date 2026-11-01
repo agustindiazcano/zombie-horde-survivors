@@ -9,8 +9,7 @@ import {
   type Soldier,
   type Vec2,
 } from './sim';
-import { KIND_BALL, KIND_BOX, PERSON_MASS } from './sim/physics/bodies';
-import type { RapierWorld } from './sim/physics/rapierWorld';
+import { KIND_BALL, KIND_BOX, PERSON_MASS, type LabWorld } from './sim/physics/bodies';
 
 /**
  * The units and the free bodies of the physics lab (Map 12) touching each other. Rapier stays out
@@ -77,7 +76,7 @@ export class PhysicsHands {
   private solids: DynamicSolid[] = [];
   /** The fire button has not been let go since a throw (or while holding). */
   private latch = false;
-  private world: RapierWorld | null = null;
+  private world: LabWorld | null = null;
 
   get isHolding(): boolean {
     return this.held?.mode === 'hold';
@@ -107,7 +106,7 @@ export class PhysicsHands {
    * The E key: drops what is held, else lifts the closest body in reach. Returns whether it did
    * something (so the key does not also use whatever else is near) and a message to show.
    */
-  grab(w: RapierWorld, state: GameState, unitId: number, arena: Arena) {
+  grab(w: LabWorld, state: GameState, unitId: number, arena: Arena) {
     if (this.held?.mode === 'hold') {
       this.held = null;
       return { handled: true, notice: null };
@@ -126,7 +125,7 @@ export class PhysicsHands {
   }
 
   /** The G key: drags the closest body in reach on a rope (or lets go). Returns a message to show. */
-  drag(w: RapierWorld, state: GameState, unitId: number, arena: Arena): string | null {
+  drag(w: LabWorld, state: GameState, unitId: number, arena: Arena): string | null {
     if (this.held) {
       this.held = null;
       return null;
@@ -171,7 +170,7 @@ export class PhysicsHands {
   }
 
   /** Before the world steps: shoves from what the units pressed last tick, grips, thrown hits. */
-  control(w: RapierWorld, state: GameState, config: GameConfig, arena: Arena): void {
+  control(w: LabWorld, state: GameState, config: GameConfig, arena: Arena): void {
     this.world = w;
     for (const s of this.solids) this.shove(w, s);
     this.grip(w, state, config, arena);
@@ -179,7 +178,7 @@ export class PhysicsHands {
   }
 
   /** After the world stepped: the boxes and balls as the solids the sim collides with. */
-  publish(w: RapierWorld, arena: Arena): void {
+  publish(w: LabWorld, arena: Arena): void {
     const list: DynamicSolid[] = [];
     const heights = arena.terrain.heights;
     for (let i = 0; i < w.count; i++) {
@@ -223,7 +222,7 @@ export class PhysicsHands {
    * Fills `solid`'s footprint from box `i` and returns its half height. A box lying flat on one
    * of its faces is a turned rectangle; a tilted one is the box around it.
    */
-  private boxFootprint(w: RapierWorld, i: number, solid: DynamicSolid): number {
+  private boxFootprint(w: LabWorld, i: number, solid: DynamicSolid): number {
     const qx = w.rot[i * 4]!;
     const qy = w.rot[i * 4 + 1]!;
     const qz = w.rot[i * 4 + 2]!;
@@ -256,7 +255,7 @@ export class PhysicsHands {
   }
 
   /** What a walker pressed into this solid last tick, as a push on its body. */
-  private shove(w: RapierWorld, s: DynamicSolid): void {
+  private shove(w: LabWorld, s: DynamicSolid): void {
     const press = Math.hypot(s.pushX, s.pushZ);
     if (press < 1e-4) return;
     const nx = s.pushX / press;
@@ -278,7 +277,7 @@ export class PhysicsHands {
   }
 
   /** The closest box or ball within reach of the unit, or null. */
-  private closest(w: RapierWorld, state: GameState, unitId: number, arena: Arena): number | null {
+  private closest(w: LabWorld, state: GameState, unitId: number, arena: Arena): number | null {
     const me = this.unit(state, unitId);
     if (!me) return null;
     const feet = heightAt(arena.terrain.heights, arena.halfSize, me.pos.x, me.pos.z) + me.y;
@@ -301,7 +300,7 @@ export class PhysicsHands {
   }
 
   /** Steers the held or dragged body; lets go when its holder cannot hold it any more. */
-  private grip(w: RapierWorld, state: GameState, config: GameConfig, arena: Arena): void {
+  private grip(w: LabWorld, state: GameState, config: GameConfig, arena: Arena): void {
     const held = this.held;
     if (!held) return;
     const me = this.unit(state, held.by);
@@ -350,7 +349,7 @@ export class PhysicsHands {
   }
 
   /** A thrown body hurts each enemy it strikes once, and loses speed doing it. */
-  private hits(w: RapierWorld, state: GameState, config: GameConfig, arena: Arena): void {
+  private hits(w: LabWorld, state: GameState, config: GameConfig, arena: Arena): void {
     for (let t = this.thrown.length - 1; t >= 0; t--) {
       const th = this.thrown[t]!;
       th.time -= DT;

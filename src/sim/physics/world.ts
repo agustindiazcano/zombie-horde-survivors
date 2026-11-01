@@ -12,7 +12,7 @@ export const KIND_BALL = 0;
 export const KIND_RAGDOLL = 1;
 
 /** Every number the Map 12 panel can turn live. Metres, seconds, kilograms. */
-export interface PhysicsParams {
+export type PhysicsParams = {
   gravity: number;
   /** Share of the impact speed a body gives back (0 = dead stop). */
   restitution: number;
@@ -37,7 +37,7 @@ export interface PhysicsParams {
   boneDamping: number;
   /** Blast strength: impulse = blastPower * (1 - d/R) / (d + SATURATION). */
   blastPower: number;
-}
+};
 
 export const DEFAULT_PARAMS: PhysicsParams = {
   gravity: 24,
@@ -56,12 +56,22 @@ export const DEFAULT_PARAMS: PhysicsParams = {
 const HASH_SIZE = 16384;
 /** The side of a hash cell. A body must be no wider than this, or its neighbours are missed. */
 const CELL = 2.6;
+/** The finest cell `fitCell` will use (m). */
+const MIN_CELL = 0.5;
 /** A pair closer than the touching distance plus this is kept for the whole sub-step. */
 const PAIR_MARGIN = 0.1;
 /** At most this many contact pairs per body are kept (a sphere touches at most 12 others). */
 const PAIRS_PER_BODY = 8;
 /** Walls and boxes give back this share of the closing speed. */
 const WALL_RESTITUTION = 0.4;
+/** At most this many gravity wells (point attractors) per world. */
+const MAX_SOURCES = 8;
+/** A touching body slower than `sleepSpeed` for this many sub-steps falls asleep (the benchmark page uses 6). */
+const SLEEP_SUBSTEPS = 6;
+/** A box must stay touching and slow this long (s) before it falls asleep. */
+const BOX_SLEEP_TIME = 0.25;
+/** A contact deeper than this wakes a sleeping body that an awake one is pressing on. */
+const WAKE_OVERLAP = 0.008;
 /** Lift added to every blast, scaled by the falloff (m/s per unit of 1/mass). */
 const BLAST_LIFT = 18;
 
@@ -103,6 +113,10 @@ export class PhysicsWorld {
   conCount = 0;
 
   nextGroup = 0;
+  /** Side of a hash cell (m): 2.6 unless `fitCell` shrank it to the smallest body (many small spheres, as boxes make). */
+  cellSize = CELL;
+  private fitted = false;
+  private maxRadius = 0;
   params: PhysicsParams = { ...DEFAULT_PARAMS };
   /** Contacts found by the last step (a number to watch, not a rule). */
   contacts = 0;
@@ -117,7 +131,30 @@ export class PhysicsWorld {
   private readonly bnx: Float32Array;
   private readonly bny: Float32Array;
   private readonly bnz: Float32Array;
-  private readonly head = new Int32Array(HASH_SIZE);
+  /** 1 while a free ball rests: it is not moved and its pairs with other sleepers are skipped. */
+  readonly sleeping: Uint8Array;
+  /** For each sphere of a box, the id of the box's first sphere (the 8 spheres follow it); -1 otherwise. A box sleeps and wakes as one. */
+  private readonly boxStart: Int32Array;
+  private readonly sleepFrames: Uint8Array;
+  private readonly head = new Int32Array(HASH_SIZE).fill(-1);
+  /** The hash slots used in the last sub-step, so only those are cleared (never all 16384). */
+  private readonly dirty: Int32Array;
+  private dirtyCount = 0;
+  private lastGravity = Number.NaN;
+  /** The hash cell of each body, computed once per sub-step (the pair search reuses it). */
+  private readonly cellX: Int32Array;
+  private readonly cellY: Int32Array;
+  private readonly cellZ: Int32Array;
+  /**
+   * Gravity wells (technique 8, inverse Archimedes): each pushes every body towards it with
+   * `strength * max(0, 1 - d/radius) / (d + SATURATION)` (no cutoff when `radius` is 0).
+   */
+  private readonly srcX = new Float32Array(MAX_SOURCES);
+  private readonly srcY = new Float32Array(MAX_SOURCES);
+  private readonly srcZ = new Float32Array(MAX_SOURCES);
+  private readonly srcStrength = new Float32Array(MAX_SOURCES);
+  private readonly srcRadius = new Float32Array(MAX_SOURCES);
+  sourceCount = 0;
   private readonly next: Int32Array;
   private readonly pairA: Int32Array;
   private readonly pairB: Int32Array;
@@ -149,6 +186,13 @@ export class PhysicsWorld {
     this.bny = new Float32Array(capacity);
     this.bnz = new Float32Array(capacity);
     this.next = new Int32Array(capacity);
+    this.dirty = new Int32Array(capacity);
+    this.cellX = new Int32Array(capacity);
+    this.cellY = new Int32Array(capacity);
+    this.cellZ = new Int32Array(capacity);
+    this.sleeping = new Uint8Array(capacity);
+    this.boxStart = new Int32Array(capacity).fill(-1);
+    this.sleepFrames = new Uint8Array(capacity);
     this.pairA = new Int32Array(capacity * PAIRS_PER_BODY);
     this.pairB = new Int32Array(capacity * PAIRS_PER_BODY);
     this.pairE = new Float32Array(capacity * PAIRS_PER_BODY);
@@ -168,6 +212,75 @@ export class PhysicsWorld {
     this.nextGroup = 0;
     this.contacts = 0;
     this.pairCount = 0;
+    this.clearHash();
+    this.sleeping.fill(0);
+    this.sleepFrames.fill(0);
+    this.boxStart.fill(-1);
+    this.sourceCount = 0;
+    this.cellSize = CELL;
+    this.fitted = false;
+    this.maxRadius = 0;
+  }
+
+  /**
+   * From now on the hash cell follows the widest body (`2 * radius + PAIR_MARGIN`, at least 0.5 m
+   * and at most 2.6 m), so a pile of small spheres (the corners of boxes) does not all share a
+   * few 2.6 m cells. Pair order, and so the state hash, differs from the 2.6 m cell.
+   */
+  fitCell(): void {
+    this.fitted = true;
+    this.cellSize = Math.min(CELL, Math.max(MIN_CELL, 2 * this.maxRadius + PAIR_MARGIN));
+  }
+
+  /**
+   * Adds a gravity well and wakes everything (a resting pile must feel it). `strength` is
+   * G * M of the technique-8 law `a = dir * strength / (d + 0.25)`; with `radius > 0` the pull
+   * fades to zero at that distance. Returns its index, or -1 when full.
+   */
+  addGravitySource(x: number, y: number, z: number, strength: number, radius = 0): number {
+    if (this.sourceCount >= MAX_SOURCES) return -1;
+    const k = this.sourceCount++;
+    this.srcX[k] = x;
+    this.srcY[k] = y;
+    this.srcZ[k] = z;
+    this.srcStrength[k] = strength;
+    this.srcRadius[k] = radius;
+    this.wakeAll();
+    return k;
+  }
+
+  clearGravitySources(): void {
+    this.sourceCount = 0;
+    this.wakeAll();
+  }
+
+  /** Wakes body `i` (a push, a blast or a changed rule must not leave it frozen). */
+  wake(i: number): void {
+    const f = this.boxStart[i]!;
+    if (f >= 0) {
+      for (let c = 0; c < 8; c++) {
+        this.sleeping[f + c] = 0;
+        this.sleepFrames[f + c] = 0;
+      }
+      return;
+    }
+    this.sleeping[i] = 0;
+    this.sleepFrames[i] = 0;
+  }
+
+  /** Declares the 8 spheres from `first` one box: they fall asleep and wake together. */
+  markBox(first: number): void {
+    for (let c = 0; c < 8; c++) this.boxStart[first + c] = first;
+  }
+
+  wakeAll(): void {
+    this.sleeping.fill(0);
+    this.sleepFrames.fill(0);
+  }
+
+  private clearHash(): void {
+    for (let k = 0; k < this.dirtyCount; k++) this.head[this.dirty[k]!] = -1;
+    this.dirtyCount = 0;
   }
 
   /** Adds a sphere; returns its id, or -1 when the pool is full or it is too wide for the hash. */
@@ -181,6 +294,10 @@ export class PhysicsWorld {
     group = -1,
   ): number {
     if (this.count >= this.capacity || radius * 2 > CELL || mass <= 0) return -1;
+    if (radius > this.maxRadius) {
+      this.maxRadius = radius;
+      if (this.fitted) this.fitCell();
+    }
     const i = this.count++;
     this.px[i] = x;
     this.py[i] = y;
@@ -192,6 +309,8 @@ export class PhysicsWorld {
     this.invMass[i] = 1 / mass;
     this.kind[i] = kind;
     this.group[i] = group;
+    this.sleeping[i] = 0;
+    this.sleepFrames[i] = 0;
     return i;
   }
 
@@ -208,6 +327,7 @@ export class PhysicsWorld {
   /** Changes a body's speed by `impulse / mass` (a heavy body moves less). */
   impulse(i: number, ix: number, iy: number, iz: number): void {
     const w = this.invMass[i]!;
+    this.wake(i);
     this.vx[i] = this.vx[i]! + ix * w;
     this.vy[i] = this.vy[i]! + iy * w;
     this.vz[i] = this.vz[i]! + iz * w;
@@ -237,6 +357,10 @@ export class PhysicsWorld {
   step(dt: number, arena: Arena): void {
     const n = Math.max(1, Math.round(this.params.substeps));
     this.contacts = 0;
+    if (this.params.gravity !== this.lastGravity) {
+      if (!Number.isNaN(this.lastGravity)) this.wakeAll();
+      this.lastGravity = this.params.gravity;
+    }
     for (let s = 0; s < n; s++) this.substep(dt / n, arena);
   }
 
@@ -262,7 +386,21 @@ export class PhysicsWorld {
       qx[i] = px[i]!;
       qy[i] = py[i]!;
       qz[i] = pz[i]!;
+      if (this.sleeping[i] === 1) continue;
       vy[i] = vy[i]! - p.gravity * h;
+      for (let k = 0; k < this.sourceCount; k++) {
+        const dx = this.srcX[k]! - px[i]!;
+        const dy = this.srcY[k]! - py[i]!;
+        const dz = this.srcZ[k]! - pz[i]!;
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (d < 1e-6) continue;
+        const reach = this.srcRadius[k]!;
+        const fade = reach > 0 ? Math.max(0, 1 - d / reach) : 1;
+        const pull = (this.srcStrength[k]! * fade * h) / ((d + SATURATION) * d);
+        vx[i] = vx[i]! + dx * pull;
+        vy[i] = vy[i]! + dy * pull;
+        vz[i] = vz[i]! + dz * pull;
+      }
       vx[i] = vx[i]! * drag;
       vy[i] = vy[i]! * drag;
       vz[i] = vz[i]! * drag;
@@ -280,12 +418,15 @@ export class PhysicsWorld {
     for (let it = 0; it < p.iterations; it++) {
       this.solveBones();
       this.solvePairs(h);
-      for (let i = 0; i < n; i++) this.collideStatic(i, arena, it === 0, h);
+      for (let i = 0; i < n; i++) {
+        if (this.sleeping[i] === 0) this.collideStatic(i, arena, it === 0, h);
+      }
     }
 
     // 4. The speed is the displacement over the sub-step.
     const inv = 1 / h;
     for (let i = 0; i < n; i++) {
+      if (this.sleeping[i] === 1) continue;
       vx[i] = (px[i]! - qx[i]!) * inv;
       vy[i] = (py[i]! - qy[i]!) * inv;
       vz[i] = (pz[i]! - qz[i]!) * inv;
@@ -294,7 +435,7 @@ export class PhysicsWorld {
     // 5. Bounces, bone damping, and stopping what has all but stopped.
     for (let i = 0; i < n; i++) {
       const b = this.bounce[i]!;
-      if (b <= 0) continue;
+      if (b <= 0 || this.sleeping[i] === 1) continue;
       const nx = this.bnx[i]!;
       const ny = this.bny[i]!;
       const nz = this.bnz[i]!;
@@ -313,11 +454,46 @@ export class PhysicsWorld {
     this.dampBones();
     const sleep2 = p.sleepSpeed * p.sleepSpeed;
     for (let i = 0; i < n; i++) {
-      if (this.touched[i] === 0) continue;
+      if (this.sleeping[i] === 1 || this.boxStart[i]! >= 0) continue;
+      if (this.touched[i] === 0) {
+        this.sleepFrames[i] = 0;
+        continue;
+      }
       if (vx[i]! * vx[i]! + vy[i]! * vy[i]! + vz[i]! * vz[i]! < sleep2) {
         vx[i] = 0;
         vy[i] = 0;
         vz[i] = 0;
+        // Only free balls fall asleep; the bones of a ragdoll stay awake (they are joined).
+        if (this.group[i]! < 0 && ++this.sleepFrames[i]! >= SLEEP_SUBSTEPS) {
+          this.sleeping[i] = 1;
+          this.bounce[i] = 0;
+        }
+      } else {
+        this.sleepFrames[i] = 0;
+      }
+    }
+    // A box counts as one: some sphere touching something and all 8 slower than sleepSpeed.
+    for (let f = 0; f < n; f++) {
+      if (this.boxStart[f] !== f || this.sleeping[f] === 1) continue;
+      let touching = false;
+      let slow = true;
+      for (let c = 0; c < 8; c++) {
+        const k = f + c;
+        if (this.touched[k] === 1) touching = true;
+        if (vx[k]! * vx[k]! + vy[k]! * vy[k]! + vz[k]! * vz[k]! >= sleep2) slow = false;
+      }
+      if (!touching || !slow) {
+        this.sleepFrames[f] = 0;
+        continue;
+      }
+      // Slow for BOX_SLEEP_TIME seconds, not a few sub-steps: a box at the top of a tip is slow too.
+      if (++this.sleepFrames[f]! * h < BOX_SLEEP_TIME) continue;
+      for (let c = 0; c < 8; c++) {
+        this.sleeping[f + c] = 1;
+        this.bounce[f + c] = 0;
+        vx[f + c] = 0;
+        vy[f + c] = 0;
+        vz[f + c] = 0;
       }
     }
   }
@@ -326,28 +502,38 @@ export class PhysicsWorld {
   private findPairs(): void {
     const { px, py, pz, vx, vy, vz, radius } = this;
     const p = this.params;
-    this.head.fill(-1);
+    this.clearHash();
+    const { sleeping } = this;
+    const { cellX, cellY, cellZ } = this;
+    const cell = this.cellSize;
     for (let i = 0; i < this.count; i++) {
-      const slot = hashCell(
-        Math.floor(px[i]! / CELL),
-        Math.floor(py[i]! / CELL),
-        Math.floor(pz[i]! / CELL),
-      );
+      const cx = Math.floor(px[i]! / cell);
+      const cy = Math.floor(py[i]! / cell);
+      const cz = Math.floor(pz[i]! / cell);
+      cellX[i] = cx;
+      cellY[i] = cy;
+      cellZ[i] = cz;
+      const slot = hashCell(cx, cy, cz);
+      if (this.head[slot] === -1) this.dirty[this.dirtyCount++] = slot;
       this.next[i] = this.head[slot]!;
       this.head[slot] = i;
     }
     const max = this.pairA.length;
     this.pairCount = 0;
     for (let i = 0; i < this.count; i++) {
-      const cx = Math.floor(px[i]! / CELL);
-      const cy = Math.floor(py[i]! / CELL);
-      const cz = Math.floor(pz[i]! / CELL);
+      const cx = cellX[i]!;
+      const cy = cellY[i]!;
+      const cz = cellZ[i]!;
       for (let ox = -1; ox <= 1; ox++)
         for (let oy = -1; oy <= 1; oy++)
           for (let oz = -1; oz <= 1; oz++) {
             let j = this.head[hashCell(cx + ox, cy + oy, cz + oz)]!;
             while (j !== -1) {
-              if (j > i && (this.group[i]! < 0 || this.group[i] !== this.group[j])) {
+              if (
+                j > i &&
+                (this.group[i]! < 0 || this.group[i] !== this.group[j]) &&
+                (sleeping[i] === 0 || sleeping[j] === 0)
+              ) {
                 const dx = px[i]! - px[j]!;
                 const dy = py[i]! - py[j]!;
                 const dz = pz[i]! - pz[j]!;
@@ -362,6 +548,11 @@ export class PhysicsWorld {
                   const vn =
                     ((vx[i]! - vx[j]!) * dx + (vy[i]! - vy[j]!) * dy + (vz[i]! - vz[j]!) * dz) / d;
                   this.pairE[k] = vn < -p.restSpeed ? -vn * p.restitution : 0;
+                  // A hit hard enough wakes the sleeper (the benchmark page: closing speed over restSpeed).
+                  if (vn < -p.restSpeed * 0.5) {
+                    this.wake(i);
+                    this.wake(j);
+                  }
                 }
               }
               j = this.next[j]!;
@@ -417,8 +608,13 @@ export class PhysicsWorld {
       const ny = dy / d;
       const nz = dz / d;
       const overlap = min - d;
-      const wa = invMass[i]!;
-      const wb = invMass[j]!;
+      if (overlap > WAKE_OVERLAP) {
+        this.wake(i);
+        this.wake(j);
+      }
+      // A sleeping body is an immovable support (weight 0) for the awake one touching it.
+      const wa = this.sleeping[i] === 1 ? 0 : invMass[i]!;
+      const wb = this.sleeping[j] === 1 ? 0 : invMass[j]!;
       const ws = wa + wb;
       const s = overlap / (ws + alpha);
       px[i] = px[i]! + nx * s * wa;
@@ -572,7 +768,7 @@ export class PhysicsWorld {
       const wa = invMass[a]!;
       const wb = invMass[b]!;
       const ws = wa + wb;
-      if (ws === 0) continue;
+      if (ws === 0 || (this.sleeping[a] === 1 && this.sleeping[b] === 1)) continue;
       const dx = px[b]! - px[a]!;
       const dy = py[b]! - py[a]!;
       const dz = pz[b]! - pz[a]!;
@@ -597,7 +793,7 @@ export class PhysicsWorld {
       const wa = invMass[a]!;
       const wb = invMass[b]!;
       const ws = wa + wb;
-      if (ws === 0) continue;
+      if (ws === 0 || (this.sleeping[a] === 1 && this.sleeping[b] === 1)) continue;
       const dx = px[b]! - px[a]!;
       const dy = py[b]! - py[a]!;
       const dz = pz[b]! - pz[a]!;

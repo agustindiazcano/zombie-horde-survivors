@@ -21,6 +21,42 @@
           "name": "Marine 4"
         },
         {
+          "id": "alien_monster",
+          "name": "Alien monster"
+        },
+        {
+          "id": "police",
+          "name": "Police officer"
+        },
+        {
+          "id": "esquiva",
+          "name": "Esquiva (dodge)"
+        },
+        {
+          "id": "breakdancer",
+          "name": "Breakdance girl"
+        },
+        {
+          "id": "facial_girl",
+          "name": "Facial animation girl"
+        },
+        {
+          "id": "nightgown",
+          "name": "Woman in nightgown"
+        },
+        {
+          "id": "jessica",
+          "name": "Jessica (Until Dawn)"
+        },
+        {
+          "id": "female_base",
+          "name": "Female figure base"
+        },
+        {
+          "id": "flipaclip_guide",
+          "name": "FlipaClip guide"
+        },
+        {
           "id": "civilian",
           "name": "Civilian",
           "mocked": true
@@ -243,7 +279,12 @@
             {
               "id": "civil-land",
               "name": "Land",
-              "items": []
+              "items": [
+                {
+                  "id": "police_car",
+                  "name": "Police car"
+                }
+              ]
             }
           ]
         }

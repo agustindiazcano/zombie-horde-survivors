@@ -115,6 +115,7 @@ function newUnit(
       rightHand: kind === 'soldier' ? config.squad.startWeapon : null,
       leftHand: null,
       chest: null,
+      head: null,
     },
     weaponStates: {},
     backpack: [],

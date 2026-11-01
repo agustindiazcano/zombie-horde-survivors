@@ -45,6 +45,7 @@ const loadoutShape = {
       rightHand: z.string().nullable().optional(),
       leftHand: z.string().nullable().optional(),
       chest: z.string().nullable().optional(),
+      head: z.string().nullable().optional(),
     })
     .strict()
     .optional(),
@@ -75,7 +76,12 @@ export type Loadout = {
   name?: string;
   maxHealth?: number;
   attributes?: Record<string, number>;
-  equipment?: { rightHand?: string | null; leftHand?: string | null; chest?: string | null };
+  equipment?: {
+    rightHand?: string | null;
+    leftHand?: string | null;
+    chest?: string | null;
+    head?: string | null;
+  };
   backpack?: { item: string; count: number }[];
   downed?: boolean;
 };
@@ -226,6 +232,8 @@ const mapLogic = z
     timeControl: z.boolean().optional(),
     /** The physics lab (Map 12): the panel to drop balls and ragdolls and set off blasts, see src/sim/physics. */
     physicsLab: z.boolean().optional(),
+    /** The physics engine of this map's lab; leave out to use `physics.engine` of game.json. */
+    physicsEngine: z.enum(['classic', 'diaz-cano']).optional(),
     /** The water of the map is a wave ocean: animated surface, bodies float on it. Any number of `ocean` in game.json can be overridden here ({} keeps them all). */
     ocean: z.object(oceanFields).partial().strict().optional(),
     /** Runs the sky show of `skyShow` in game.json: blue lights that wander, fly and come down over the houses. */
@@ -734,6 +742,14 @@ const itemDef = z.discriminatedUnion('type', [
       mocked: z.object({ armor: positive, weight: nonNegative }).strict(),
     })
     .strict(),
+  /** A helmet: worn on the head slot; it only changes how the unit looks for now. */
+  z
+    .object({
+      ...itemBase,
+      type: z.literal('helmet'),
+      mocked: z.object({ weight: nonNegative }).strict(),
+    })
+    .strict(),
   /** Armor plate: worn at once from a crate (adds `player.armorPlate` to the armor bar). */
   z.object({ ...itemBase, type: z.literal('plate') }).strict(),
   z
@@ -1084,6 +1100,8 @@ export const GameConfigSchema = z
       .strict(),
     /** The one gravity (m/s²): jumps, falls, grenades and the Map 12 lab. Live value: `GameState.gravity`. */
     gravity: positive,
+    /** Which physics engine the lab maps (12 and 13) run: `classic` (Rapier) or `diaz-cano` (the author's own solver, techniques 7 and 8). A map's `logic.physicsEngine` overrides it. */
+    physics: z.object({ engine: z.enum(['classic', 'diaz-cano']) }).strict(),
     squad: z
       .object({
         /** Soldiers at the start of a game. */
@@ -1876,7 +1894,7 @@ function checkMapRefs(
 
 type GlobalRules = Pick<
   z.infer<typeof GameConfigSchema>,
-  'waves' | 'boss' | 'enemies' | 'difficulty' | 'ocean'
+  'waves' | 'boss' | 'enemies' | 'difficulty' | 'ocean' | 'physics'
 >;
 type MapRules = Pick<
   GameConfig,
@@ -1896,6 +1914,7 @@ type MapRules = Pick<
   | 'swim'
   | 'timeControl'
   | 'physicsLab'
+  | 'physics'
   | 'oceanOn'
   | 'startOrbs'
   | 'skyShowOn'
@@ -1957,6 +1976,7 @@ export function mapRules(
     swim: logic.swim ?? false,
     timeControl: logic.timeControl ?? false,
     physicsLab: logic.physicsLab ?? false,
+    physics: { ...global.physics, engine: logic.physicsEngine ?? global.physics.engine },
     oceanOn: logic.ocean !== undefined,
     startOrbs: logic.orbs ?? [],
     skyShowOn: logic.skyShow ?? false,

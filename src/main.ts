@@ -93,6 +93,7 @@ async function main(): Promise<void> {
     enemies: config.enemies,
     difficulty: config.difficulty,
     ocean: config.ocean,
+    physics: config.physics,
   };
   const factories = await new GltfAssetLoader().loadCharacters(parseCharactersConfig(characters));
 
@@ -192,14 +193,16 @@ async function main(): Promise<void> {
     (unit) =>
       unit.kind === 'drone'
         ? factories.drone
-        : factories.soldiers[(unit.id - 1) % factories.soldiers.length]!,
+        : factories.soldiers[
+            (config.units.units[unit.unitType]?.model ?? 0) % factories.soldiers.length
+          ]!,
     () => localPlayer(state).controlledId ?? [...rts.selected][0] ?? null,
   );
   const perks = new PerkPicker(document.body, config, () => state);
   const shop = new Shop(document.body, config, () => state);
   /** Any full-screen menu: the game is frozen and keyboard shortcuts are off. */
-  // A random soldier floats next to the title, a different one on each visit.
-  const preview = factories.soldiers[Math.floor(Math.random() * factories.soldiers.length)];
+  // A marine floats next to the title.
+  const preview = factories.soldiers[0];
   // Map 1 is the only map the sim is built for so far; the picked map is ignored until phase 4.
   const menu = new MainMenu(
     document.body,
@@ -313,7 +316,7 @@ async function main(): Promise<void> {
   let groundOf: unknown[] = [];
   const loadMap = (map: MapData, unitsKept = false) => {
     Object.assign(config, mapRules(globalRules, map.logic, map.units));
-    lab.setActive(config.physicsLab);
+    lab.setActive(config.physicsLab, config.physics.engine);
     config.players = map.players;
     config.placed = map.units;
     mapEnvironment = map.environment ?? defaultEnvironment();
@@ -326,6 +329,7 @@ async function main(): Promise<void> {
       config.arena = arenaOf(map);
       renderer.setArena(config.arena);
     }
+    if (map.units.some((u) => u.type === 'police_car')) renderer.ensurePoliceCar();
     renderer.setFireMarkers(config.fires);
     renderer.setGoalMarkers(
       config.objectives.flatMap((o) =>

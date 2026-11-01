@@ -151,6 +151,7 @@ export class InventoryUi {
       ['rightHand', 'Right hand'],
       ['leftHand', 'Left hand'],
       ['chest', 'Vest'],
+      ['head', 'Helmet'],
     ] as const) {
       const equipped = el('div', 'inv__item inv__item--equipped', panel);
       el('div', 'inv__item-stats', equipped, caption);
@@ -177,7 +178,7 @@ export class InventoryUi {
       this.itemLabel(stack.item, row, stack.count);
       const actions = el('div', 'inv__actions', row);
       const type = itemDef(this.config, stack.item).type;
-      if (type === 'weapon' || type === 'armor') {
+      if (type === 'weapon' || type === 'armor' || type === 'helmet') {
         this.button(actions, 'Equip', () => equipFromBackpack(state, this.config, unit.id, i));
       } else if (type === 'medical') {
         this.button(actions, 'Use', () => useItem(state, this.config, unit.id, i));

@@ -31,7 +31,15 @@ import { Sirens } from './sirens';
 import { GroundItemViews } from './groundItems';
 import { PickupMeshes } from './pickups';
 import { createShip } from './ships';
-import { createAircraft, createGroundShadow, createJeep, type HelicopterParts } from './vehicles';
+import {
+  createAircraft,
+  createGroundShadow,
+  createJeep,
+  createPoliceCar,
+  loadPoliceCar,
+  type HelicopterParts,
+  type PoliceCarModel,
+} from './vehicles';
 import { GrenadeEffects, type GrenadePreview } from './grenades';
 import { SelectionMarkers } from './markers';
 import { ViewModel } from './viewModel';
@@ -174,6 +182,10 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 interface VehicleView {
   object: THREE.Group;
   wheels: THREE.Object3D[];
+  /** The axis the wheels spin about (the police car's pivots turn about z). */
+  wheelAxis?: 'x' | 'z';
+  /** Flashes a light bar (the police car). */
+  flash?: (time: number) => void;
   heli?: HelicopterParts;
   shadow?: THREE.Mesh;
   pitch?: number;
@@ -369,6 +381,8 @@ export class GameRenderer {
   private goalMarkers: THREE.Group | null = null;
   private fireMarkers: THREE.Group | null = null;
   private vehicleModel: THREE.Object3D | null = null;
+  private policeCar: PoliceCarModel | null = null;
+  private policeLoad: 'idle' | 'loading' | 'done' = 'idle';
   private readonly animals = new Map<number, CharacterView>();
 
   /** Terrain height under a point of the loaded map. */
@@ -832,7 +846,7 @@ export class GameRenderer {
   /** The model of a soldier: the one its unit type names (marine1...), else one by id. */
   private soldierFactory(s: GameState['soldiers'][number]): CharacterFactory {
     const list = this.factories.soldiers;
-    const slot = this.config.units.units[s.unitType]?.model ?? s.id - 1;
+    const slot = this.config.units.units[s.unitType]?.model ?? 0;
     return list[slot % list.length]!;
   }
 
@@ -944,7 +958,11 @@ export class GameRenderer {
           };
           this.scene.add(entry.shadow!);
         } else if (def.ship) entry = { object: createShip(v.type, def.ship), wheels: [] };
-        else entry = createJeep(this.vehicleModel);
+        else if (v.type === 'police_car' && this.policeLoad === 'loading') continue;
+        else if (v.type === 'police_car' && this.policeCar) {
+          const car = createPoliceCar(this.policeCar);
+          entry = { object: car.object, wheels: car.wheels, wheelAxis: 'z', flash: car.flash };
+        } else entry = createJeep(this.vehicleModel);
         this.vehicles.set(v.id, entry);
         this.scene.add(entry.object);
       }
@@ -964,7 +982,8 @@ export class GameRenderer {
       entry.object.rotation.y = yaw;
       if (this.ocean && def.water && !v.air)
         this.rideWaves(entry.object, def, x, z, yaw, state.time);
-      for (const wheel of entry.wheels) wheel.rotation.x += v.speed * 0.02;
+      for (const wheel of entry.wheels) wheel.rotation[entry.wheelAxis ?? 'x'] += v.speed * 0.02;
+      entry.flash?.(state.time);
       if (v.air && entry.heli) {
         // Nose down with speed, banked into the turn; both ease so the machine does not snap.
         // A tiltrotor flies level: its pods do the leaning.
@@ -1057,6 +1076,7 @@ export class GameRenderer {
       const held =
         s.dead || s.downed || drone ? null : (s.equipment.rightHand ?? s.equipment.leftHand);
       view.hold?.(held);
+      view.wear?.(drone ? null : s.equipment.head);
       // Arms come up to the gun while it fires or aims, and drop back to the clip afterwards.
       const raised = Math.max(this.shotLeft.get(s.id) ?? 0, s.aiming ? 1 : 0);
       this.shotLeft.set(s.id, Math.max((this.shotLeft.get(s.id) ?? 0) - dt, 0));
@@ -1512,6 +1532,16 @@ export class GameRenderer {
   /** The loaded vehicle model (null keeps the box jeep). Applies to vehicles drawn from now on. */
   setVehicleModel(model: THREE.Object3D | null): void {
     this.vehicleModel = model;
+  }
+
+  /** Starts loading the police car the first time a map places one (it is a big file). */
+  ensurePoliceCar(): void {
+    if (this.policeLoad !== 'idle') return;
+    this.policeLoad = 'loading';
+    void loadPoliceCar().then((model) => {
+      this.policeCar = model;
+      this.policeLoad = 'done';
+    });
   }
 
   setEnvironment(env: Environment): void {

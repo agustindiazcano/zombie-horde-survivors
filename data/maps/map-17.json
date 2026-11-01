@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "map-17",
+    "name": "Map 17 - Unit models",
+    "author": "Zombie Horde Survivors",
+    "created": "2026-10-28",
+    "updated": "2026-10-28",
+    "size": {
+      "width": 80,
+      "depth": 80
+    }
+  },
+  "terrain": {
+    "heights": null,
+    "water": null,
+    "paint": null
+  },
+  "surfaces": [],
+  "props": [],
+  "players": [
+    {
+      "id": "p1",
+      "name": "Player 1",
+      "kind": "human",
+      "team": 0,
+      "color": "#4aa3ff"
+    },
+    {
+      "id": "horde",
+      "name": "The horde",
+      "kind": "ai",
+      "team": 1,
+      "color": "#d94b3d"
+    }
+  ],
+  "units": [
+    {
+      "type": "marine1",
+      "x": -13.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0
+    },
+    {
+      "type": "alien_monster",
+      "x": -10.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "hold": true,
+      "equipment": {
+        "rightHand": null
+      }
+    },
+    {
+      "type": "police",
+      "x": -7.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "hold": true
+    },
+    {
+      "type": "esquiva",
+      "x": -4.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "hold": true
+    },
+    {
+      "type": "breakdancer",
+      "x": -1.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "hold": true
+    },
+    {
+      "type": "facial_girl",
+      "x": 1.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "hold": true
+    },
+    {
+      "type": "nightgown",
+      "x": 4.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "hold": true,
+      "equipment": {
+        "rightHand": null
+      }
+    },
+    {
+      "type": "jessica",
+      "x": 7.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "hold": true,
+      "equipment": {
+        "rightHand": null
+      }
+    },
+    {
+      "type": "female_base",
+      "x": 10.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "hold": true,
+      "equipment": {
+        "rightHand": null
+      }
+    },
+    {
+      "type": "flipaclip_guide",
+      "x": 13.5,
+      "z": 0,
+      "owner": "p1",
+      "rotation": 0,
+      "hold": true,
+      "equipment": {
+        "rightHand": null
+      }
+    },
+    {
+      "type": "police_car",
+      "x": 0,
+      "z": 7,
+      "owner": "p1",
+      "rotation": 0
+    }
+  ],
+  "logic": {
+    "mode": "waves",
+    "noWaves": true,
+    "boss": {
+      "enabled": false
+    }
+  }
+}

@@ -8,3 +8,6 @@ data/maps/map-12.json
 data/maps/map-13.json
 src/wasm/sim-core
 crates/*/target
+
+# the author's benchmark page, kept as he wrote it
+tests/physics-lab-diaz-cano-vs-euler.html

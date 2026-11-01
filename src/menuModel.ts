@@ -62,6 +62,12 @@ export class MenuModel {
     this.frame = requestAnimationFrame(this.tick);
   }
 
+  /** Shows the weapon in hand and the helmet the unit carries (null for none). */
+  dress(held: string | null, head: string | null): void {
+    this.view.hold?.(held);
+    this.view.wear?.(head);
+  }
+
   /** Stops drawing and frees the WebGL context. */
   stop(): void {
     this.running = false;

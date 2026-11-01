@@ -14,6 +14,8 @@ export interface CharacterView {
   setFlash?(amount: number): void;
   /** Puts the item (an id of data/items.json) in the character's hand, or empties it with null. Optional. */
   hold?(item: string | null): void;
+  /** Puts a helmet (an id of data/items.json) on the character's head, or takes it off with null. Optional. */
+  wear?(item: string | null): void;
   /** Raises the arms onto the held gun, 0 (the clip's pose) to 1 (aimed). Optional. */
   aim?(amount: number): void;
   /**

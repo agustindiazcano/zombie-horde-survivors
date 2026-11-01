@@ -68,6 +68,8 @@ export interface Equipment {
   rightHand: string | null;
   leftHand: string | null;
   chest: string | null;
+  /** A helmet (cosmetic for now: no rule reads it). */
+  head: string | null;
 }
 
 /** Which multiplier a hit got: a head hit, a critical hit, or a plain body hit. */

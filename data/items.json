@@ -41,7 +41,7 @@
     },
     "pistol": {
       "type": "weapon",
-      "name": "Pistol",
+      "name": "Beretta APX",
       "icon": "🔫",
       "stack": 1,
       "class": "pistol",
@@ -95,6 +95,35 @@
         "recovery": 0.1,
         "sideBias": 0.3,
         "cameraKick": 0.03
+      }
+    },
+    "smg": {
+      "type": "weapon",
+      "name": "Beretta PMX",
+      "icon": "🔫",
+      "stack": 1,
+      "class": "rifle",
+      "hands": 2,
+      "damageType": "physical",
+      "fireRate": 11,
+      "damage": 14,
+      "range": 28,
+      "spread": 0.05,
+      "fireMode": "auto",
+      "magazine": 30,
+      "reloadTime": 1.8,
+      "noise": 7,
+      "accessorySlots": ["optic", "barrel", "magazine", "grip"],
+      "mocked": {
+        "weight": 2.9
+      },
+      "infiniteSpare": true,
+      "recoil": {
+        "kick": 0.02,
+        "maxKick": 0.09,
+        "recovery": 0.12,
+        "sideBias": 0.3,
+        "cameraKick": 0.025
       }
     },
     "heavy_mg": {
@@ -161,6 +190,42 @@
       "mocked": {
         "armor": 25,
         "weight": 3
+      }
+    },
+    "helmet_generic": {
+      "type": "helmet",
+      "name": "Combat helmet",
+      "icon": "🪖",
+      "stack": 1,
+      "mocked": {
+        "weight": 1.2
+      }
+    },
+    "helmet_esmad": {
+      "type": "helmet",
+      "name": "ESMAD riot helmet",
+      "icon": "🪖",
+      "stack": 1,
+      "mocked": {
+        "weight": 1.5
+      }
+    },
+    "helmet_security": {
+      "type": "helmet",
+      "name": "Security guard helmet",
+      "icon": "🪖",
+      "stack": 1,
+      "mocked": {
+        "weight": 0.8
+      }
+    },
+    "helmet_tactical": {
+      "type": "helmet",
+      "name": "Tactical helmet",
+      "icon": "🪖",
+      "stack": 1,
+      "mocked": {
+        "weight": 1.4
       }
     },
     "medkit_s": {
