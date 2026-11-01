@@ -1,6 +1,6 @@
 # Physics
 
-The single place that explains how things move, collide and fall in the game. The floating, contact and wave formulas are the author's own techniques: see [TECHNIQUES.md](TECHNIQUES.md) for their names and the standard technique next to each; the visual side is in [GRAPHICS.md](GRAPHICS.md). There is **no physics engine in the game itself**: everything is hand-written kinematics inside `src/sim` (pure code, no Three.js, no DOM). The one exception is the Map 12 lab, which runs Rapier (section 6) as a separate module that nothing else uses yet; the user's own sphere solver (section 5) is kept as the reference for a later Rust/WASM port. Keep this file in sync whenever a physics rule changes, and put new formulas here before or together with the code.
+The single place that explains how things move, collide and fall in the game. The floating, contact and wave formulas are the author's own techniques: see [TECHNIQUES.md](TECHNIQUES.md) for their names and the standard technique next to each; the visual side is in [GRAPHICS.md](GRAPHICS.md). There is **no physics engine in the game itself**: everything is hand-written kinematics inside `src/sim` (pure code, no Three.js, no DOM). The one exception is the Map 12 lab, which runs Rapier (section 6) as a separate module that nothing else uses yet. **The author's own solver (techniques 7 and 8, section 5) is the intended engine**: its reference is the benchmark page `tests/physics-lab-diaz-cano-vs-euler.html`, every formula is listed in section 8, and the plan to build it into the game and unplug (not delete) the classic code is [PLAN-new-physics.md](PLAN-new-physics.md). Keep this file in sync whenever a physics rule changes, and put new formulas here before or together with the code.
 
 ## 1. Ground rules
 
@@ -54,36 +54,150 @@ The single place that explains how things move, collide and fall in the game. Th
 
 ## 4. Open ideas
 
-Waiting for the user's formulas. Put each one here with its source, then decide where it lands (a new `src/sim` module and a new section in `game.json`).
+Formulas the author sends go in section 8 with their source first, then land in code. What is open now is in section 9 and in [PLAN-new-physics.md](PLAN-new-physics.md).
 
-| Priority | Idea       | Status  |
-| -------- | ---------- | ------- |
-| ⚪       | (none yet) | backlog |
+| Priority | Idea                                                                                   | Status  |
+| -------- | -------------------------------------------------------------------------------------- | ------- |
+| 🟡       | Plug the author's solver into soldiers, zombies, melee, grenades (PLAN-new-physics.md) | planned |
 
-## 5. The own sphere solver (reference; the Map 12 lab no longer uses it)
+## 5. The author's solver: Hooke contacts and saturation 0.25 (techniques 7 and 8)
 
-Source: `game-engine/ai_studio_code (1).html` (the user's prototype). Code: `src/sim/physics/world.ts`, `ragdoll.ts`, `scenarios.ts` (pure, deterministic; still measured by `npm run bench:physics`; kept for the Rust/WASM port, phases 6 to 8 of the plan). Plan and results: [PLAN-physics-lab.md](PLAN-physics-lab.md), [worklog](worklog/2026-10-21-physics-lab-map-12.md).
+**Source of truth: [`tests/physics-lab-diaz-cano-vs-euler.html`](../tests/physics-lab-diaz-cano-vs-euler.html)** (the author's single-file benchmark, "Wylan Studios // Physics Lab Benchmark", added 2026-11-01). It runs his solver ("Diaz-Cano") against a classic explicit-Euler impulse solver on the same scenes. Every number and formula in this section was read from that file. `npm run bench:physics-html` runs its physics headless and prints the numbers (section 5.9). The earlier prototype was `game-engine/ai_studio_code (1).html` (not in git).
 
-Each fixed step (1/60 s) runs `substeps` (3) sub-steps of length `h`:
+Code in the repo: `src/sim/physics/world.ts` (+ `ragdoll.ts`, `scenarios.ts`), a TypeScript port of the older prototype. **It is not the same thing as the benchmark page** (section 5.8 lists the differences) and nothing in the game runs it today (Map 12 runs Rapier, section 6). The plan to make the benchmark page the reference and plug the solver in is [PLAN-new-physics.md](PLAN-new-physics.md); the classic code stays in the repo, unplugged, not deleted.
 
-1. **Predict:** `v += g*h` (gravity 24 m/s²), `v *= 1 - airDrag*h`, `x += v*h`; the old position is kept.
-2. **Pairs:** a spatial hash (cell 2.6 m, 16384 buckets, 27 neighbours) lists the spheres within touching range; a pair that closes faster than `restSpeed` (1.5 m/s) owes a bounce of `restitution * closing speed`, with `restitution = 1 - 0.273` (the silk viscosity).
-3. **`iterations` (2) passes of:** bone constraints (mass weighted, `stiffness` per bone); sphere contacts, pushed apart by `overlap / (w_a + w_b + 1/(k*h²))` where `w = 1/mass` and `k = kHooke` (100 000 N/m: Hooke's `F = k * overlap` as the compliance of the constraint); Coulomb friction on the displacement since the sub-step began (it cancels at most `friction * push`, `friction` 0.8); the same for the ground (with its slope from the height grid), boxes (props with a collider) and the arena walls.
-4. **Speed:** `v = (x - x_old) / h`; then the owed bounces, a damping of the speed along each bone (`boneDamping` 0.3), and bodies that touched something and move under `sleepSpeed` (0.3 m/s) are stopped.
+> **Honest note on "no Euler".** The solver does _not_ avoid Euler everywhere: step 1 is a semi-implicit (symplectic) Euler prediction, `v += a*h; x += v*h`. What it avoids is _resolving contacts with velocity impulses_: contacts are solved on positions and the velocity is derived from the position change. Saying "zero Euler" in public text would be wrong.
 
-Blast: `impulse = blastPower * (1 - d/R) / (d + 0.25)`, away from the centre with a lift of 18 m/s times the falloff; the velocity change is `impulse / mass`. The 0.25 (the saturation) keeps it finite at `d = 0`. `explosion` events of the sim (grenades) trigger it in the lab.
+### 5.1 Constants (`DC_PARAMS` and the top of the file)
 
-| What the prototype did                                          | What the lab does                                                                                   | Why                                                                                                                        |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `Math.random`, variable `dt` (up to 0.05)                       | seeded RNG, fixed step                                                                              | `src/sim` must be deterministic; same run, same hash                                                                       |
-| All masses equal in contacts (`* 0.5`)                          | mass-weighted separation and impulses                                                               | a heavy body must move a light one more than the reverse                                                                   |
-| Separation by position plus a velocity impulse and a Hooke push | everything in position (small steps), Hooke as the contact compliance, friction on the displacement | measured: the velocity version let a 91-ball pyramid slide apart (top ball fell 2.7 m in 10 s); this one holds it (2.6 cm) |
-| Hooke push only on approach (`vn < 0`)                          | the contact constraint acts whenever they overlap                                                   | a resting pile needs support force at rest                                                                                 |
-| Position correction and a spring force on the same bone         | position correction only, plus damping along the bone                                               | both together on one stretch oscillate                                                                                     |
-| One hash cell for every size                                    | `addBody` refuses a sphere wider than the cell                                                      | a wider body is missed by the 27-cell search without any warning                                                           |
-| "Boxes" were spheres drawn as cubes with a fake spin            | boxes are not simulated                                                                             | a sphere cannot stack like a box; oriented boxes need Rapier (Phase B6)                                                    |
+| Name                         | Value                  | Meaning                                                               |
+| ---------------------------- | ---------------------- | --------------------------------------------------------------------- |
+| `FIXED_DT`                   | 1/60 s                 | Step of the game                                                      |
+| `SUBSTEPS`                   | 3                      | Sub-steps per step                                                    |
+| `h`                          | `FIXED_DT / 3` = 1/180 | Sub-step length                                                       |
+| `gravity`                    | 24 m/s² (lab slider)   | The game uses 20 (`data/game.json`)                                   |
+| `airDrag`                    | 0.02 /s                | `v *= max(0, 1 - airDrag*h)` per sub-step                             |
+| `restSpeed`                  | 1.5 m/s                | Closing speed above which a bounce is owed                            |
+| `silkViscosity`              | 0.273                  | "Viscosidad de seda"                                                  |
+| `restitution`                | `1 - 0.273` = 0.727    | Bounce factor                                                         |
+| `kHooke`                     | 100 000 N/m            | Contact stiffness; its inverse is the compliance                      |
+| `friction` (μ)               | 0.8                    | Coulomb friction on displacement                                      |
+| `sleepSpeed`                 | 0.3 m/s                | A body in contact under this speed is stopped                         |
+| `iterations`                 | 2                      | Constraint passes per sub-step                                        |
+| `cellSize` / `hashBuckets`   | 2.6 m / 16384          | Spatial hash (mask `16383`); a body is at most `0.49 * cellSize` wide |
+| `skinMargin`                 | 0.08 m                 | Extra reach so a pair stays in the cache for both passes              |
+| `blastPower` / `blastRadius` | 320 / 15 m             | Explosion                                                             |
+| `saturation`                 | 0.25                   | The "saturation" of the blast denominator                             |
+| Arena                        | half side 18 m         | Flat floor at `y = 0`, four hard walls                                |
+| `MAX_BODIES` / `MAX_PAIRS`   | 2000 / 24000           | Flat arrays                                                           |
+| Sleep counter                | 6 sub-steps            | A touching body slower than `sleepSpeed` for 6 sub-steps falls asleep |
+| Wake overlap                 | 0.008 m                | A contact deeper than this wakes both bodies                          |
 
-The ragdoll (`ragdoll.ts`, 11 joints, 13 bones) is driven onto the marine zombie model (Mixamo) by `src/render/ragdollRig.ts`: see the worklog. The plain Quaternius zombie ragdoll was dropped on 2026-10-21 (deprecated by the user): only marine zombies have one. Numbers to retune live in the Map 12 panel before they are copied anywhere.
+Data layout: structure of arrays (`Float32Array` for position, old position, velocity, radius, mass, inverse mass; `Int32Array` cell and hash lists; `Uint8Array` shape, touched, sleeping), nothing allocated while stepping.
+
+### 5.2 Step 1: predict and insert in the hash
+
+Per body, per sub-step (`x_old = x` first):
+
+```
+v_y  -= g * h
+v    *= (1 - airDrag * h)          (all three axes)
+x    += v * h
+```
+
+A sleeping body is not integrated (but is still inserted in the hash so awake bodies can hit it). The hash cell is `floor(x / 2.6)` per axis and the bucket `(ix*73856093 ^ iy*19349663 ^ iz*83492791) & 16383`. Only the buckets used in the previous sub-step are cleared (`dirtyBuckets`), never all 16384.
+
+### 5.3 Step 2: pair cache and owed bounces (once per sub-step)
+
+For each body `i`, the 27 neighbour cells, each `j > i` (a pair where both sleep is skipped): if `dist² < (r_i + r_j + 0.08)²` the pair goes into `pairA/pairB`. With the unit vector `n = (x_j - x_i)/dist`:
+
+```
+v_close = (v_i - v_j) . n
+if v_close > restSpeed:   owed = v_close * restitution   (and both bodies wake up)
+else:                     owed = 0
+```
+
+The two Hooke passes of step 3 walk this cached list; the hash is not searched again.
+
+### 5.4 Step 3: Hooke contact on positions (`iterations` = 2 passes)
+
+For every cached pair with `overlap = (r_i + r_j) - dist > 0`, with `w = 1/m` (a sleeping body counts as `w = 0`):
+
+```
+push = overlap / ( w_a + w_b + 1/(k * h²) )          k = kHooke
+x_a -= n * (w_a * push)
+x_b += n * (w_b * push)
+```
+
+`1/(k h²)` is the compliance of the contact: Hooke's `F = k * overlap` written as a position constraint. With the numbers above it is 0.324 per kg, small next to `w` for light bodies and the reason a stack gives a little and stays.
+
+**Coulomb friction on displacement.** Relative displacement since the sub-step began, `d = (x_i - x_old_i) - (x_j - x_old_j)`; tangential part `t = d - (d . n) n`. It is cancelled up to `friction * push`:
+
+```
+cancel = min(|t|, mu * push) / |t|
+x_i -= t * cancel * w_a/(w_a + w_b)
+x_j += t * cancel * w_b/(w_a + w_b)
+```
+
+**Ground** (`y < r`): `push = overlap / (w + 1/(k h²))`, `y += w * push`; the horizontal slip since `x_old` is cancelled up to `mu * push * w`. **Walls:** hard clamp of `x` and `z` to `±(18 - r)`. A body that touches anything this sub-step has `touched = 1`.
+
+### 5.5 Step 4: velocity from position, owed bounces, sleep
+
+```
+v = (x - x_old) / h                                   (all bodies not asleep)
+ground bounce: if y <= r + 0.002 and v_y < -restSpeed:  v_y = -v_y * restitution
+```
+
+Owed pair bounces: for each pair with `owed > 0`, with the _current_ `n` and `closing = (v_a - v_b) . n`: if `closing + owed > 0` then `imp = (closing + owed) / (w_a + w_b)`, `v_a -= n * imp * w_a`, `v_b += n * imp * w_b`. This is the one place a velocity impulse is used, and only for fast impacts.
+
+Sleep: a body with `touched = 1` and `|v|² < sleepSpeed²` gets `v = 0` and its counter goes up; at 6 it sleeps. Otherwise the counter and the sleeping flag reset. (The older port also damps the speed along each bone by `boneDamping` = 0.3; the benchmark page has no bones.)
+
+### 5.6 Blast (technique 8's saturation, `triggerSaturationBlast`)
+
+For each body with `d < R` (`R` = 15), `d` the distance to the centre, `falloff = 1 - d/R`:
+
+```
+impulse = blastPower * falloff / (d + 0.25)
+dv      = impulse * (1/m)
+v      += dv * (x - c)/d                      (away from the centre; 0 if d is tiny)
+v_y    += 18 * falloff                        (extra lift)
+```
+
+and the body wakes. The `0.25` keeps `impulse` finite at `d = 0` (max `blastPower/0.25`). Note the lift is **added after** `dv`, and `dv` already has the vertical part of the direction.
+
+### 5.7 The classic solver in the same page (the baseline, `stepClassicEulerSolver`)
+
+Kept only for the comparison; **it is not what the game should use**. Per sub-step (3 by default, 1 as an option): `v_y -= g*dt; x += v*dt`; every pair tested (O(N²)); if overlapping, an equal position split `overlap * 0.5` (no masses); if `v_n < 0` an impulse `j = -(1 + 0.65) v_n / (w_a + w_b)`, and a velocity friction `v_t * 0.15`; ground: `y = r`, `v_y = -v_y * 0.45`, horizontal speed `* 0.95`; walls: `v *= -0.5`. Result in the benchmark: the pyramid falls apart.
+
+### 5.8 Page versus `src/sim/physics/world.ts` (checked 2026-11-01)
+
+| Point               | Benchmark page (the author's)                                                                | `world.ts` today                                                                  | Gap                       |
+| ------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------- |
+| Pair search         | Once per sub-step into `pairA/pairB`, margin 0.08                                            | Also once per sub-step (`findPairs`), same margin (`PAIR_MARGIN`)                 | None                      |
+| Hash clearing       | Only the used buckets (`dirtyBuckets`)                                                       | `head.fill(-1)` on all buckets every sub-step                                     | World.ts is slower here   |
+| Sleep               | Real: sleeping bodies are not integrated and their pairs are skipped (counter 6, wake rules) | Only zeroes the speed of touching slow bodies; keeps integrating and testing them | Biggest saving missing    |
+| Ground and walls    | Flat floor, hard wall clamp                                                                  | Ground with slope from the height grid, boxes (props), walls                      | World.ts is richer        |
+| Bones, ragdoll      | None                                                                                         | Bone constraints, `boneDamping`                                                   | World.ts is richer        |
+| Pair mass weighting | Yes (`w = 1/m`), sleeping bodies count as `w = 0`                                            | Yes                                                                               | None                      |
+| Owed bounce         | Applied as a velocity impulse along the current normal                                       | `bouncePair`, same idea                                                           | Check numbers when ported |
+| Speed derivation    | `v = (x - x_old)/h`                                                                          | Same                                                                              | None                      |
+
+Two claims from outside notes are **not true of the repo** and must not be copied: that `world.ts` searches the 27 cells inside the iteration loop (it does not) and that it has no pair cache (it has one).
+
+### 5.9 Measured with the page's own code (`npm run bench:physics-html`, Node 24, this PC, 2026-11-01)
+
+| Scene (steps of 1/60 s)             | ms per step                       | Apex drop of the 91-ball pyramid | Reading                                                       |
+| ----------------------------------- | --------------------------------- | -------------------------------- | ------------------------------------------------------------- |
+| Hooke solver, pyramid 91, 10 s      | 0.76                              | 0.5 cm                           | Holds the pyramid (the page's sleep on)                       |
+| Hooke solver, pyramid 91, sleep off | 1.09                              | 6.1 cm                           | Sleep saves about 30 % here and keeps it still                |
+| Classic Euler, 3 sub-steps          | 0.36                              | 367.7 cm (all the way down)      | The pyramid collapses; cheaper per step at 91 bodies          |
+| Classic Euler, 1 sub-step           | 0.07                              | 367.7 cm                         | Fast and wrong                                                |
+| Hooke solver, 91 + 100 dropped      | 7.3 (mean of the first 300 steps) | 0.5 cm                           | The dropped bodies start overlapping; this is a settling cost |
+| Classic Euler, 91 + 100 dropped     | 3.1                               | 367.7 cm                         |                                                               |
+| Hooke solver, 91 + 500 dropped      | 7.3                               | 0.2 cm                           |                                                               |
+| Classic Euler, 91 + 500 dropped     | 7.6                               | 367.7 cm                         | About equal at 591 bodies in this scene                       |
+
+What this says and does not say: the Hooke solver keeps the structure and the classic one does not (this is the page's main claim, and it reproduces). The page's second claim, that the classic one is much slower because it is O(N²), **does not show at 591 bodies in this scene** (7.3 against 7.6 ms; it would need more bodies). The earlier repo numbers (100 balls 0.14 ms, 1000 balls 2.21 ms for `world.ts`) are from other scenes (`bench:physics`) and must not be compared with this table. Each run is one machine and one pass: repeat before quoting.
 
 ## 6. The Map 12 lab on Rapier
 
@@ -121,3 +235,41 @@ Code: `src/sim/ocean.ts` (pure, no Three.js) for the surface, `floatBodies` in `
 | Geyser      | `geyser` (0 off to 2): a free body deeper than 5 m under the calm level (the funnel's core leaves the floor bare) and within `rn < 6` of a whirlpool's centre gets `vy = (14 + 8 strength) * geyser` and a sideways `4 * geyser` m/s away from the centre, instead of the buoyancy of that step. The demo used -8 m; the game's sea floors are shallower                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Frozen      | `frozen` (0 to 1) scales the surface (waves and whirlpools) and the flow (current and whirlpools) by `1 - frozen`; the shader draws the ice (GRAPHICS.md section 11). Bodies still float on the flat sea                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Not done    | Units on foot ignore the waves (they only follow them in the render); the water does not react to what falls in it; the screen-space reflection is not ported                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+
+## 8. Register of the author's formulas (all of them, with where each one is written down)
+
+One line per formula so none gets lost. "Source" says where the exact text was read: **HTML** = `tests/physics-lab-diaz-cano-vs-euler.html`; **code** = a file in `src` that runs today; **note** = something the author or an outside note said that is **not written in any source file of the repo** (treat as a request to confirm, not as a fact). Symbols: `h` sub-step, `w = 1/m`, `n` unit normal, `φ` golden ratio, `R` radius, `d` distance.
+
+| #   | Technique (TECHNIQUES.md)         | Formula                                                                                                                                         | Source                                          |
+| --- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| 1   | 7 Hooke contact (position)        | `push = overlap / (w_a + w_b + 1/(k h²))`; `x_a -= w_a push n`; `x_b += w_b push n`; `k` = 100 000                                              | HTML                                            |
+| 2   | 7 Prediction                      | `v_y -= g h`; `v *= 1 - airDrag h`; `x += v h` (semi-implicit Euler, kept)                                                                      | HTML                                            |
+| 3   | 7 Velocity from position          | `v = (x - x_old) / h`                                                                                                                           | HTML                                            |
+| 4   | 7 Coulomb friction (displacement) | cancel `min(                                                                                                                                    | Δx_t                                            | , μ push)`of the tangential displacement since`x_old`, split by `w_a/(w_a+w_b)`; `μ` = 0.8              | HTML                                                                         |
+| 5   | 7 Silk viscosity                  | `e = 1 - 0.273 = 0.727`; if `v_close > 1.5` then `owed = e v_close`, applied after the speed is derived                                         | HTML                                            |
+| 6   | 7 Ground                          | `push = overlap/(w + 1/(k h²))`, `y += w push`; slip cancelled up to `μ push w`; bounce `v_y = -e v_y` if `v_y < -1.5`                          | HTML                                            |
+| 7   | 7 Sleep                           | touching and `                                                                                                                                  | v                                               | < 0.3`→`v = 0`; 6 sub-steps in a row → asleep; wake when `overlap > 0.008`or`v_close > 1.5` or a blast  | HTML                                                                         |
+| 8   | 7 Pair search                     | cell 2.6, 16384 buckets, hash `ix 73856093 ^ iy 19349663 ^ iz 83492791`, 27 cells, margin 0.08, `j > i`                                         | HTML                                            |
+| 9   | 8 Blast with saturation           | `I = blastPower (1 - d/R) / (d + 0.25)`; `Δv = I/m * (x - c)/d + 18 (1 - d/R) ŷ`                                                                | HTML; the Rapier lab uses a variant (section 6) |
+| 10  | 8 Gravity by push, flat           | `v_y -= g h` (plain), `g` = 24 in the page, 20 in the game                                                                                      | HTML                                            |
+| 11  | 8 Gravity field, radial           | `a = G M d / (                                                                                                                                  | d                                               | ² + ε²)^(3/2)`, `ε`= 0.25 (a softened, Plummer-shaped law); leapfrog`v += ½a dt; x += v dt; v += ½a dt` | note; TECHNIQUES 7.3 writes it that way; **not in any file of the author's** |
+| 12  | 8 Gravity field, "push" variants  | `a = dir (G M)/(d² + 0.25)` or `a = dir g (1 - min(d/R, 1))/(d + 0.25)`                                                                         | note only; **unconfirmed**                      |
+| 13  | 4 Hooke crest                     | `w = (1 - hooke)(s + silk 0.8 cos 2p) + hooke ((1 -                                                                                             | s                                               | )^pressure - 0.45) 2.15`, `s = sin p`                                                                   | code (`ocean.ts`), section 7                                                 |
+| 14  | 6 Archimedes + Hooke buoyancy     | below `surface + 0.35 r`: `v_y = (v_y + g lift min(sunk/2r, 1.6) dt)(1 - damping dt)`, `lift` = 2.35; horizontal speed to the flow by `drag dt` | code (`rapierWorld.ts`), section 7              |
+| 15  | 9 Whirlpool funnel                | `y_funnel = -20 s / (1 + (r/R)^1.65 + 0.25)`                                                                                                    | code (`ocean.ts`)                               |
+| 16  | 9 Whirlpool flow ("Law 3")        | `rn = 14.5 r/R`; for `rn < 95`: `v_tan = 28 s / sqrt(sqrt(rn² + 32))`; `v_in = v_tan K_SPIRAL 1.35`; `K_SPIRAL = 2 ln(φ)/π`                     | code (`ocean.ts`)                               |
+| 17  | 9 Whirlpool spiral wave           | `sin(3θ + rn K_SPIRAL 0.85 - 3.4 t) 1.2 s exp(-0.025 rn) smoothstep(2, 14, rn)`                                                                 | code (`ocean.ts`)                               |
+| 18  | 9 Geyser                          | deeper than 5 m and `rn < 6`: `v_y = (14 + 8 s) geyser`, outward `4 geyser`, replacing the buoyancy of that step                                | code (`rapierWorld.ts`)                         |
+| 19  | 11 Vogel spawn                    | angle `n · 2.399963229728653`, radius `0.48 sqrt(n mod 160)`, height `8.5 + 0.045 n`                                                            | HTML                                            |
+| 20  | 5 Golden-ratio waves              | see section 7 (patterns)                                                                                                                        | code (`ocean.ts`)                               |
+| 21  | Baseline (not his)                | classic impulse `j = -(1 + e) v_n/(w_a + w_b)`, `e` = 0.65; equal split `overlap/2`; velocity friction 0.15                                     | HTML                                            |
+
+Rules for this register: a formula goes in the table in the same commit that writes or changes it in code; rows 11 and 12 stay marked "note" until the author confirms them; and never replace one of the author's rows by the standard technique's name (put that name in TECHNIQUES.md next to it).
+
+## 9. Open decisions (the author's)
+
+| Priority | Question                                                                                                                                                                    | Why it matters                                                                                    |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 🔴 1     | Technique 8 for gravity: which law is the author's? The HTML only has the flat `v_y -= g h` and the `0.25` in the blast. Rows 11 and 12 of section 8 are not in any file    | Without it, a `gravityAt(pos)` would be invented by an assistant, which is what went wrong before |
+| 🟡 2     | Is the benchmark page now the reference for the port (pair cache, dirty buckets, sleep), with `world.ts` brought up to it? See [PLAN-new-physics.md](PLAN-new-physics.md)   | Decides what gets built first                                                                     |
+| 🟡 3     | The page's own sliders block is cut off in the file (the HTML ends the controls panel early, so the gravity, shot speed and mass sliders do not exist). Send the full file? | The benchmark runs, but its live sliders and `updateSliders()` have no elements                   |

@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "bench:sim": "node scripts/bench-sim.mjs",
     "bench:physics": "node scripts/bench-physics.mjs",
+    "bench:physics-html": "node scripts/bench-physics-html.mjs",
     "check:ragdoll": "node scripts/check-ragdoll.mjs",
     "check:rapier": "node scripts/check-rapier.mjs",
     "check:sim-hash": "node scripts/check-sim-hash.mjs",

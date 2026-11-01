@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benchmark Físico: Solver Diaz-Cano (Hooke O(1) + Saturación 0.25) vs Euler Clásico</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #090d16;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            color: #e2e8f0;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+        }
+        .glass-panel {
+            background: rgba(13, 19, 33, 0.82);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+        }
+        .solver-active-dc {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.45));
+            border-color: #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+        .solver-active-euler {
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.25), rgba(225, 29, 72, 0.45));
+            border-color: #f43f5e;
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.3);
+        }
+        input[type="range"] {
+            accent-color: #10b981;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+
+    <!-- 3D Viewport Canvas Container -->
+    <div id="canvas-container" class="w-full h-full"></div>
+
+    <!-- Top Header & Solver Switcher -->
+    <div class="fixed top-4 left-4 right-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pointer-events-none z-20">
+        <!-- Brand / Title -->
+        <div class="glass-panel rounded-xl px-4 py-3 pointer-events-auto flex items-center gap-4">
+            <div class="w-3 h-10 rounded-full bg-emerald-500" id="status-indicator"></div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-sm md:text-base font-bold tracking-tight text-white uppercase">Wylan Studios // Physics Lab Benchmark</h1>
+                    <span id="badge-determinism" class="text-[10px] mono uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+                        60Hz Determinista (Substeps: 3)
+                    </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Click Izquierdo: <strong class="text-amber-400">Disparar Lanzapelotas</strong> | Click Derecho + Arrastrar: <strong class="text-sky-400">Rotar Cámara</strong> | Rueda: <strong class="text-sky-400">Zoom</strong>
+                </p>
+            </div>
+        </div>
+
+        <!-- Solver Comparison Toggle Buttons -->
+        <div class="glass-panel rounded-xl p-1.5 pointer-events-auto flex flex-wrap sm:flex-nowrap gap-2 w-full lg:w-auto">
+            <button id="btn-solver-dc" onclick="setSolverMode('diaz-cano')" class="solver-active-dc flex-1 sm:flex-initial px-4 py-2.5 rounded-lg border text-left transition-all duration-150">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-300">Método 1 (Activo)</span>
+                    <span class="text-[10px] mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700">SoA + Pair Cache O(1)</span>
+                </div>
+                <div class="text-sm font-semibold text-white mt-0.5">Diaz-Cano: Hooke + Saturación 0.25</div>
+                <div class="text-[11px] text-slate-300">Dirty Buckets, Caché de Pares, Viscosidad 0.273, Sleep Skip</div>
+            </button>
+
+            <button id="btn-solver-euler" onclick="setSolverMode('euler')" class="flex-1 sm:flex-initial px-4 py-2.5 rounded-lg border border-slate-700/80 bg-slate-900/50 hover:bg-slate-800/60 text-left transition-all duration-150">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-rose-400" id="label-euler-state">Método 2 (Comparar)</span>
+                    <span class="text-[10px] mono px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700">O(N²) Impulsos</span>
+                </div>
+                <div class="text-sm font-semibold text-white mt-0.5">Clásico: Euler Explícito + Impulsos</div>
+                <div class="text-[11px] text-slate-400">Velocidad v += (F/m)dt, Colapso estructural de pirámides</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Left Telemetry & Live Benchmark Panel -->
+    <div class="fixed top-28 left-4 w-80 md:w-96 glass-panel rounded-xl p-4 pointer-events-auto z-20 flex flex-col gap-3 max-h-[calc(100vh-8rem)] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Telemetría CPU / SoA</span>
+            <span id="hash-readout" class="text-[11px] mono text-slate-400">Hash: 0x8F4A2C01</span>
+        </div>
+
+        <!-- Primary Metrics Grid -->
+        <div class="grid grid-cols-2 gap-2">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-lg p-2.5">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] uppercase text-slate-400 font-semibold">Física CPU</span>
+                    <span id="metric-fps" class="text-[10px] mono text-emerald-400 font-bold">60 FPS</span>
+                </div>
+                <div id="metric-ms" class="text-xl font-bold mono text-sky-400 mt-0.5">0.04 ms</div>
+                <div id="metric-peak-ms" class="text-[10px] mono text-slate-500">Pico: 0.08 ms</div>
+            </div>
+            <div class="bg-slate-900/80 border border-slate-800 rounded-lg p-2.5">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] uppercase text-slate-400 font-semibold">Cuerpos</span>
+                    <span id="metric-pairs" class="text-[10px] mono text-amber-300">Pares: 0</span>
+                </div>
+                <div id="metric-bodies" class="text-xl font-bold mono text-amber-400 mt-0.5">91</div>
+                <div id="metric-sleep" class="text-[10px] mono text-emerald-400">Activos: 91 | Dormidos: 0</div>
+            </div>
+        </div>
+
+        <!-- Optimization Controls: Pair Cache + Sleep Skipping & Fair Substeps -->
+        <div class="bg-slate-900/95 border border-emerald-500/30 rounded-lg p-2.5 space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-emerald-300 uppercase">Optimizaciones de Motor</span>
+                <span class="text-[10px] mono text-slate-400">En Vivo</span>
+            </div>
+            <button id="btn-toggle-opt" onclick="toggleOptimizationMode()" class="w-full px-2.5 py-1.5 rounded bg-emerald-600/30 hover:bg-emerald-600/45 border border-emerald-500/50 text-emerald-200 text-xs font-semibold flex items-center justify-between transition">
+                <span>Caché Pares O(1) + Sleep Skip:</span>
+                <span id="label-opt-status" class="mono font-bold text-emerald-300">ACTIVO</span>
+            </button>
+            <button id="btn-toggle-euler-sub" onclick="toggleEulerSubsteps()" class="w-full px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium flex items-center justify-between transition">
+                <span>Sub-pasos de Euler Clásico:</span>
+                <span id="label-euler-sub" class="mono font-bold text-rose-300">3 Substeps (Comparación Justa)</span>
+            </button>
+        </div>
+
+        <!-- Pyramid Stability Test Box (91-Ball Pyramid Test from Doc) -->
+        <div class="bg-slate-900/90 border border-slate-700/70 rounded-lg p-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white">Prueba de Pirámide (91 Esferas)</span>
+                <span id="pyramid-badge" class="text-[10px] mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ESTABLE</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">
+                Mide cuánto cae la esfera dorada superior desde su altura inicial ($Y_0$). Diaz-Cano mantiene la forma geométrica; Euler se desmorona solo.
+            </p>
+            <div class="mt-2 flex items-baseline justify-between bg-black/40 px-3 py-2 rounded border border-slate-800">
+                <span class="text-xs text-slate-300">Caída de cúspide ($\Delta Y$):</span>
+                <span id="metric-apex-drop" class="text-base font-bold mono text-emerald-400">0.0 cm</span>
+            </div>
+        </div>
+
+        <!-- CPU Step Time Comparison Bar Chart -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-lg p-3 space-y-2">
+            <div class="text-xs font-semibold text-slate-300 flex justify-between">
+                <span>Comparativa Costo CPU (ms/step)</span>
+                <span class="text-[10px] mono text-slate-400">Menor es más rápido</span>
+            </div>
+            <!-- Diaz-Cano Bar -->
+            <div>
+                <div class="flex justify-between text-[11px] mono mb-1">
+                    <span class="text-emerald-300">1. Diaz-Cano O(1) SoA</span>
+                    <span id="bar-label-dc" class="text-emerald-400 font-bold">-- ms</span>
+                </div>
+                <div class="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                    <div id="bar-fill-dc" class="h-full bg-emerald-500 transition-all duration-150" style="width: 8%"></div>
+                </div>
+            </div>
+            <!-- Classic Euler Bar -->
+            <div>
+                <div class="flex justify-between text-[11px] mono mb-1">
+                    <span class="text-rose-300">2. Euler Explícito O(N²)</span>
+                    <span id="bar-label-euler" class="text-rose-400 font-bold">-- ms</span>
+                </div>
+                <div class="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                    <div id="bar-fill-euler" class="h-full bg-rose-500 transition-all duration-150" style="width: 25%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Equations Breakdown -->
+        <div class="bg-slate-950/90 border border-slate-800/90 rounded-lg p-3 text-[11px] mono text-slate-300 space-y-1.5">
+            <div class="text-xs font-bold text-emerald-400 uppercase mb-1" id="formula-title">Fórmulas Activas: Diaz-Cano SoA</div>
+            <div id="formula-line-1">1. Broadphase: 1 pase Hash -> Caché Pares Activos</div>
+            <div id="formula-line-2">2. Push (x2): Δx = overlap / (w_a + w_b + 1/(k·h²))</div>
+            <div id="formula-line-3">3. Fricción: min(|Δx_t|, 0.8·push) + Seda 0.727</div>
+            <div id="formula-line-4">4. Vel: v = (x - x_old)/h | Blast: 1/(d + 0.25)</div>
+        </div>
+    </div>
+
+    <!-- Right / Bottom Controls: Scenes, Spawners & Ball Launcher -->
+    <div class="fixed bottom-4 right-4 left-4 lg:left-auto lg:w-[620px] glass-panel rounded-xl p-4 pointer-events-auto z-20 flex flex-col gap-3">
+        <!-- Preset Scene Buttons -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <button onclick="setupPyramidScene()" class="px-2.5 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/35 border border-emerald-500/40 text-emerald-200 text-xs font-semibold transition flex flex-col items-center justify-center text-center">
+                <span>Pirámide 91</span>
+                <span class="text-[10px] text-emerald-400/80 font-normal">Base Triangular</span>
+            </button>
+            <button onclick="setupBoxesAndBallsScene()" class="px-2.5 py-2 rounded-lg bg-sky-600/20 hover:bg-sky-600/35 border border-sky-500/40 text-sky-200 text-xs font-semibold transition flex flex-col items-center justify-center text-center">
+                <span>Torre 125</span>
+                <span class="text-[10px] text-sky-400/80 font-normal">Cajas + Pelotas</span>
+            </button>
+            <button onclick="spawnBatch(100)" class="px-2.5 py-2 rounded-lg bg-indigo-600/25 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-200 text-xs font-semibold transition flex flex-col items-center justify-center text-center">
+                <span>+100 Cuerpos</span>
+                <span class="text-[10px] text-indigo-300/80 font-normal">Espiral Vogel</span>
+            </button>
+            <button onclick="spawnBatch(500)" class="px-2.5 py-2 rounded-lg bg-purple-600/25 hover:bg-purple-600/40 border border-purple-500/40 text-purple-200 text-xs font-semibold transition flex flex-col items-center justify-center text-center">
+                <span>+500 Stress</span>
+                <span class="text-[10px] text-purple-300/80 font-normal">Prueba Escala O(1)</span>
+            </button>
+            <button onclick="triggerSaturationBlast()" class="col-span-2 sm:col-span-1 px-2.5 py-2 rounded-lg bg-amber-600/25 hover:bg-amber-600/45 border border-amber-500/50 text-amber-200 text-xs font-semibold transition flex flex-col items-center justify-center text-center">
+                <span>Explosión 0.25</span>
+                <span class="text-[10px] text-amber-300/80 font-normal">Onda (d + 0.25)</span>
+            </button>
+        </div>
+
+        <!-- Launcher & Gravity Sliders -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800">
+            <div class="bg-slate-900/70 rounded-lg p-2.5 border border-slate-800">
+                <div class="flex justify-between text-xs">
+            <span class="mono text-[11px] hidden sm:inline">Max Capacidad: 2000 Cuerpos SoA</span>
+        </div>
+    </div>
+
+    <script>
+        /**************************************************************************
+         * 1. SEEDED DETERMINISTIC RNG (mulberry32, integer math as in src/sim/rng.ts)
+         **************************************************************************/
+        let rngState = 0xDEADBEEF;
+        function seedRng(seed) {
+            rngState = seed >>> 0;
+        }
+        function nextRng() {
+            let t = (rngState += 0x6D2B79F5);
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        }
+
+        /**************************************************************************
+         * 2. PHYSICS CONSTANTS & CONFIGURATION (From PHYSICS.md Section 5)
+         **************************************************************************/
+        const FIXED_DT = 1 / 60;
+        const SUBSTEPS = 3;
+        const H_STEP = FIXED_DT / SUBSTEPS; // Sub-step length h = 1/180 s
+        const MAX_BODIES = 2000;
+        const ARENA_HALF = 18.0;
+        const GOLDEN_ANGLE = 2.399963229728653; // Exact Vogel golden angle in radians
+
+        // Diaz-Cano Technique 7 & 8 Parameters
+        const DC_PARAMS = {
+            gravity: 24.0,            // Default lab gravity (24 m/s^2)
+            airDrag: 0.02,            // Medium drag per second
+            restSpeed: 1.5,           // Closing speed threshold for bounce (1.5 m/s)
+            silkViscosity: 0.273,     // Silk viscosity constant -> restitution = 0.727
+            restitution: 1.0 - 0.273, // 0.727
+            kHooke: 100000.0,         // Hooke contact compliance stiffness (100,000 N/m)
+            friction: 0.8,            // Coulomb friction on displacement
+            sleepSpeed: 0.3,          // Stop bodies in contact moving under 0.3 m/s
+            iterations: 2,            // 2 constraint passes per substep over cached pairs
+            cellSize: 2.6,            // Spatial hash cell 2.6 m
+            hashBuckets: 16384,       // 16384 buckets
+            blastPower: 320.0,        // Blast impulse multiplier
+            blastRadius: 15.0,        // Blast radius R
+            saturation: 0.25          // Saturation constant 0.25
+        };
+
+        // Launcher & Benchmark Toggles
+        let launcherSpeed = 38.0;
+        let launcherMass = 25.0;
+        let currentSolver = 'diaz-cano';
+        let useFastPairCacheAndSleep = true; // Toggles O(1) pair cache + sleep skipping
+        let eulerSubsteps = 3;               // 3 substeps for fair CPU comparison (or 1 step)
+
+        // Telemetry & Pyramid Tracking
+        let trackedApexIndex = -1;
+        let initialApexY = 0;
+        let lastStepMs = 0.04;
+        let peakStepMs = 0.08;
+        let recordedMsDC = 0.05;
+        let recordedMsEuler = 0.45;
+        let lastActivePairsCount = 0;
+
+        /**************************************************************************
+         * 3. FLAT STRUCTURE-OF-ARRAYS (Float32Array / Int32Array) - ZERO GC
+         **************************************************************************/
+        let bodyCount = 0;
+        const posX = new Float32Array(MAX_BODIES);
+        const posY = new Float32Array(MAX_BODIES);
+        const posZ = new Float32Array(MAX_BODIES);
+
+        const oldX = new Float32Array(MAX_BODIES);
+        const oldY = new Float32Array(MAX_BODIES);
+        const oldZ = new Float32Array(MAX_BODIES);
+
+        const velX = new Float32Array(MAX_BODIES);
+        const velY = new Float32Array(MAX_BODIES);
+        const velZ = new Float32Array(MAX_BODIES);
+
+        const radiusArr = new Float32Array(MAX_BODIES);
+        const massArr = new Float32Array(MAX_BODIES);
+        const invMassArr = new Float32Array(MAX_BODIES);
+
+        // Cached grid coordinates per body to avoid redundant Math.floor calls
+        const cellXArr = new Int32Array(MAX_BODIES);
+        const cellYArr = new Int32Array(MAX_BODIES);
+        const cellZArr = new Int32Array(MAX_BODIES);
+
+        const shapeType = new Uint8Array(MAX_BODIES);    // 0 = sphere, 1 = box, 2 = cannonball
+        const touchedFlag = new Uint8Array(MAX_BODIES);  // 1 if touched floor/wall/body this substep
+        const sleepingFlag = new Uint8Array(MAX_BODIES); // 1 if body is resting in sleep island
+        const sleepCounter = new Uint16Array(MAX_BODIES);// Consecutive low-velocity frames
+
+        // Visual roll orientation
+        const rotX = new Float32Array(MAX_BODIES);
+        const rotY = new Float32Array(MAX_BODIES);
+        const rotZ = new Float32Array(MAX_BODIES);
+
+        // Intrusive O(1) Spatial Hash with Dirty Bucket Tracking (Zero-allocation)
+        const HASH_SIZE = 16384;
+        const HASH_MASK = HASH_SIZE - 1;
+        const headBucket = new Int32Array(HASH_SIZE);
+        headBucket.fill(-1);
+        const nextBody = new Int32Array(MAX_BODIES);
+        const dirtyBuckets = new Int32Array(MAX_BODIES);
+        let dirtyBucketCount = 0;
+
+        // Cached Contact Pairs Buffer (Populated once in Step 2, solved in Step 3 & Step 4)
+        const MAX_PAIRS = 24000;
+        let pairCount = 0;
+        const pairA = new Int32Array(MAX_PAIRS);
+        const pairB = new Int32Array(MAX_PAIRS);
+        const pairOwedBounce = new Float32Array(MAX_PAIRS); // > 0 if closingSpeed > restSpeed
+
+        function spatialHash(ix, iy, iz) {
+            return (Math.imul(ix, 73856093) ^ Math.imul(iy, 19349663) ^ Math.imul(iz, 83492791)) & HASH_MASK;
+        }
+
+        function wakeAllBodies() {
+            for (let i = 0; i < bodyCount; i++) {
+                sleepingFlag[i] = 0;
+                sleepCounter[i] = 0;
+            }
+        }
+
+        function addBody(x, y, z, vx, vy, vz, r, mass, type) {
+            if (bodyCount >= MAX_BODIES) return -1;
+            const safeRadius = Math.min(r, DC_PARAMS.cellSize * 0.49);
+            const idx = bodyCount++;
+            posX[idx] = x; posY[idx] = y; posZ[idx] = z;
+            oldX[idx] = x; oldY[idx] = y; oldZ[idx] = z;
+            velX[idx] = vx; velY[idx] = vy; velZ[idx] = vz;
+            radiusArr[idx] = safeRadius;
+            massArr[idx] = mass;
+            invMassArr[idx] = mass > 0 ? 1.0 / mass : 0.0;
+            shapeType[idx] = type;
+            touchedFlag[idx] = 0;
+            sleepingFlag[idx] = 0;
+            sleepCounter[idx] = 0;
+            rotX[idx] = 0; rotY[idx] = 0; rotZ[idx] = 0;
+            return idx;
+        }
+
+        /**************************************************************************
+         * 4. SOLVER A: DIAZ-CANO UNIFIED HOOKE + INVERSE ARCHIMEDES (ULTRA-OPTIMIZED SoA)
+         *    - Dirty bucket clearing (never clears 16384 cells)
+         *    - Single broadphase pass caches candidate contact pairs
+         *    - Iterations = 2 loops ONLY over cached pairs (no 27-cell re-scanning!)
+         *    - True Sleep Skipping for resting pyramids & piles
+         **************************************************************************/
+        function stepDiazCanoSolver() {
+            const h = H_STEP;
+            const invH = 1.0 / h;
+            const g = DC_PARAMS.gravity;
+            const dragFactor = Math.max(0.0, 1.0 - DC_PARAMS.airDrag * h);
+            const complianceTerm = 1.0 / (DC_PARAMS.kHooke * h * h); // 1 / (k * h^2)
+            const friction = DC_PARAMS.friction;
+            const invCell = 1.0 / DC_PARAMS.cellSize;
+            const restSpeed = DC_PARAMS.restSpeed;
+            const restitution = DC_PARAMS.restitution;
+            const sleepSq = DC_PARAMS.sleepSpeed * DC_PARAMS.sleepSpeed;
+            const fastMode = useFastPairCacheAndSleep;
+
+            for (let sub = 0; sub < SUBSTEPS; sub++) {
+                // ----------------------------------------------------------------
+                // STEP 1. PREDICT & INSERT INTO SPATIAL HASH (Only dirty buckets!)
+                // ----------------------------------------------------------------
+                for (let d = 0; d < dirtyBucketCount; d++) {
+                    headBucket[dirtyBuckets[d]] = -1;
+                }
+                dirtyBucketCount = 0;
+
+                for (let i = 0; i < bodyCount; i++) {
+                    oldX[i] = posX[i];
+                    oldY[i] = posY[i];
+                    oldZ[i] = posZ[i];
+
+                    if (!fastMode || sleepingFlag[i] === 0) {
+                        touchedFlag[i] = 0;
+                        // Inverse Archimedes vertical push + subtle radial well with 0.25 saturation
+                        velY[i] -= g * h;
+                        velX[i] *= dragFactor;
+                        velY[i] *= dragFactor;
+                        velZ[i] *= dragFactor;
+
+                        posX[i] += velX[i] * h;
+                        posY[i] += velY[i] * h;
+                        posZ[i] += velZ[i] * h;
+                    }
+
+                    // Hash insertion (both active and sleeping bodies sit in the grid so active ones can hit them)
+                    const cx = Math.floor(posX[i] * invCell);
+                    const cy = Math.floor(posY[i] * invCell);
+                    const cz = Math.floor(posZ[i] * invCell);
+                    cellXArr[i] = cx;
+                    cellYArr[i] = cy;
+                    cellZArr[i] = cz;
+
+                    const b = spatialHash(cx, cy, cz);
+                    if (headBucket[b] === -1) {
+                        dirtyBuckets[dirtyBucketCount++] = b;
+                    }
+                    nextBody[i] = headBucket[b];
+                    headBucket[b] = i;
+                }
+
+                // ----------------------------------------------------------------
+                // STEP 2. BROADPHASE PAIR CACHE & SILK VISCOSITY OWED BOUNCES
+                //         Scans 27 neighbors ONCE per substep and caches overlapping
+                //         or near-touching pairs into pairA / pairB.
+                // ----------------------------------------------------------------
+                pairCount = 0;
+                const skinMargin = 0.08; // Small margin so pairs stay cached across both Hooke iterations
+
+                for (let i = 0; i < bodyCount; i++) {
+                    const sleepA = fastMode && sleepingFlag[i] === 1;
+                    const xi = posX[i], yi = posY[i], zi = posZ[i];
+                    const ri = radiusArr[i] + skinMargin;
+                    const cx = cellXArr[i], cy = cellYArr[i], cz = cellZArr[i];
+
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const ncx = cx + dx;
+                        for (let dy = -1; dy <= 1; dy++) {
+                            const ncy = cy + dy;
+                            for (let dz = -1; dz <= 1; dz++) {
+                                let j = headBucket[spatialHash(ncx, ncy, cz + dz)];
+                                while (j !== -1) {
+                                    if (j > i) {
+                                        // Skip if BOTH bodies are sleeping!
+                                        if (!(sleepA && sleepingFlag[j] === 1)) {
+                                            const rx = posX[j] - xi;
+                                            const ry = posY[j] - yi;
+                                            const rz = posZ[j] - zi;
+                                            const rTouch = ri + radiusArr[j];
+                                            const distSq = rx * rx + ry * ry + rz * rz;
+
+                                            if (distSq < rTouch * rTouch && pairCount < MAX_PAIRS) {
+                                                const pIdx = pairCount++;
+                                                pairA[pIdx] = i;
+                                                pairB[pIdx] = j;
+
+                                                // Check closing velocity for silk viscosity bounce (e = 1 - 0.273)
+                                                const dist = Math.sqrt(Math.max(distSq, 1e-10));
+                                                const invDist = 1.0 / dist;
+                                                const nx = rx * invDist;
+                                                const ny = ry * invDist;
+                                                const nz = rz * invDist;
+                                                const closingSpeed = (velX[i] - velX[j]) * nx +
+                                                                     (velY[i] - velY[j]) * ny +
+                                                                     (velZ[i] - velZ[j]) * nz;
+
+                                                if (closingSpeed > restSpeed) {
+                                                    pairOwedBounce[pIdx] = closingSpeed * restitution;
+                                                    // Wake up sleeping body on high-speed impact
+                                                    sleepingFlag[i] = 0; sleepCounter[i] = 0;
+                                                    sleepingFlag[j] = 0; sleepCounter[j] = 0;
+                                                } else {
+                                                    pairOwedBounce[pIdx] = 0.0;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    j = nextBody[j];
+                                }
+                            }
+                        }
+                    }
+                }
+                lastActivePairsCount = pairCount;
+
+                // ----------------------------------------------------------------
+                // STEP 3. HOOKE POSITION COMPLIANCE & COULOMB DISPLACEMENT FRICTION
+                //         Runs 2 passes ONLY over the cached pairA/pairB array!
+                // ----------------------------------------------------------------
+                for (let iter = 0; iter < DC_PARAMS.iterations; iter++) {
+                    // 3a. Cached Sphere-Sphere Contacts (O(P) flat loop - super fast!)
+                    for (let p = 0; p < pairCount; p++) {
+                        const i = pairA[p];
+                        const j = pairB[p];
+
+                        const rx = posX[j] - posX[i];
+                        const ry = posY[j] - posY[i];
+                        const rz = posZ[j] - posZ[i];
+                        const rSum = radiusArr[i] + radiusArr[j];
+                        const distSq = rx * rx + ry * ry + rz * rz;
+
+                        if (distSq < rSum * rSum) {
+                            const dist = Math.sqrt(Math.max(distSq, 1e-10));
+                            const overlap = rSum - dist;
+                            const invDist = 1.0 / dist;
+                            const nx = rx * invDist;
+                            const ny = ry * invDist;
+                            const nz = rz * invDist;
+
+                            // Wake partner if overlap is significant
+                            if (overlap > 0.008) {
+                                sleepingFlag[i] = 0;
+                                sleepingFlag[j] = 0;
+                            }
+
+                            const wa = sleepingFlag[i] === 1 ? 0.0 : invMassArr[i];
+                            const wb = sleepingFlag[j] === 1 ? 0.0 : invMassArr[j];
+                            const wSum = wa + wb;
+                            if (wSum <= 0.0) continue;
+
+                            // Author's Hooke Compliance Push: overlap / (w_a + w_b + 1/(k*h^2))
+                            const push = overlap / (wSum + complianceTerm);
+
+                            posX[i] -= nx * (wa * push);
+                            posY[i] -= ny * (wa * push);
+                            posZ[i] -= nz * (wa * push);
+
+                            posX[j] += nx * (wb * push);
+                            posY[j] += ny * (wb * push);
+                            posZ[j] += nz * (wb * push);
+
+                            touchedFlag[i] = 1;
+                            touchedFlag[j] = 1;
+
+                            // Coulomb friction on relative displacement since substep began
+                            const relDx = (posX[i] - oldX[i]) - (posX[j] - oldX[j]);
+                            const relDy = (posY[i] - oldY[i]) - (posY[j] - oldY[j]);
+                            const relDz = (posZ[i] - oldZ[i]) - (posZ[j] - oldZ[j]);
+
+                            const normalProj = relDx * nx + relDy * ny + relDz * nz;
+                            const tx = relDx - normalProj * nx;
+                            const ty = relDy - normalProj * ny;
+                            const tz = relDz - normalProj * nz;
+                            const tLenSq = tx * tx + ty * ty + tz * tz;
+
+                            if (tLenSq > 1e-12) {
+                                const tLen = Math.sqrt(tLenSq);
+                                const cancelMag = Math.min(tLen, friction * push) / tLen;
+                                const invWSum = 1.0 / wSum;
+                                const weightA = wa * invWSum;
+                                const weightB = wb * invWSum;
+
+                                posX[i] -= tx * cancelMag * weightA;
+                                posY[i] -= ty * cancelMag * weightA;
+                                posZ[i] -= tz * cancelMag * weightA;
+
+                                posX[j] += tx * cancelMag * weightB;
+                                posY[j] += ty * cancelMag * weightB;
+                                posZ[j] += tz * cancelMag * weightB;
+                            }
+                        }
+                    }
+
+                    // 3b. Ground & Arena Walls with Hooke compliance + displacement friction
+                    for (let i = 0; i < bodyCount; i++) {
+                        if (fastMode && sleepingFlag[i] === 1) continue;
+
+                        const r = radiusArr[i];
+                        const wi = invMassArr[i];
+
+                        if (posY[i] < r) {
+                            const overlap = r - posY[i];
+                            const push = overlap / (wi + complianceTerm);
+                            posY[i] += wi * push;
+                            touchedFlag[i] = 1;
+
+                            const dx = posX[i] - oldX[i];
+                            const dz = posZ[i] - oldZ[i];
+                            const slipSq = dx * dx + dz * dz;
+                            if (slipSq > 1e-12) {
+                                const slipLen = Math.sqrt(slipSq);
+                                const cancel = Math.min(slipLen, friction * push * wi) / slipLen;
+                                posX[i] -= dx * cancel;
+                                posZ[i] -= dz * cancel;
+                            }
+                        }
+
+                        const limit = ARENA_HALF - r;
+                        if (posX[i] > limit) { posX[i] = limit; touchedFlag[i] = 1; }
+                        else if (posX[i] < -limit) { posX[i] = -limit; touchedFlag[i] = 1; }
+                        if (posZ[i] > limit) { posZ[i] = limit; touchedFlag[i] = 1; }
+                        else if (posZ[i] < -limit) { posZ[i] = -limit; touchedFlag[i] = 1; }
+                    }
+                }
+
+                // ----------------------------------------------------------------
+                // STEP 4. SPEED DERIVATION: v = (x - x_old) / h + OWED BOUNCES + SLEEP
+                // ----------------------------------------------------------------
+                for (let i = 0; i < bodyCount; i++) {
+                    if (fastMode && sleepingFlag[i] === 1) continue;
+
+                    velX[i] = (posX[i] - oldX[i]) * invH;
+                    velY[i] = (posY[i] - oldY[i]) * invH;
+                    velZ[i] = (posZ[i] - oldZ[i]) * invH;
+
+                    if (posY[i] <= radiusArr[i] + 0.002 && velY[i] < -restSpeed) {
+                        velY[i] = -velY[i] * restitution;
+                    }
+                }
+
+                // Apply owed pair bounces (Silk viscosity restitution)
+                for (let p = 0; p < pairCount; p++) {
+                    const targetRebound = pairOwedBounce[p];
+                    if (targetRebound > 0.0) {
+                        const a = pairA[p];
+                        const b = pairB[p];
+                        const rx = posX[b] - posX[a];
+                        const ry = posY[b] - posY[a];
+                        const rz = posZ[b] - posZ[a];
+                        const dist = Math.sqrt(Math.max(rx * rx + ry * ry + rz * rz, 1e-10));
+                        const invD = 1.0 / dist;
+                        const nx = rx * invD, ny = ry * invD, nz = rz * invD;
+
+                        const curClosing = (velX[a] - velX[b]) * nx + (velY[a] - velY[b]) * ny + (velZ[a] - velZ[b]) * nz;
+                        if (curClosing + targetRebound > 0.0) {
+                            const wa = invMassArr[a];
+                            const wb = invMassArr[b];
+                            const wSum = wa + wb;
+                            if (wSum > 0.0) {
+                                const imp = (curClosing + targetRebound) / wSum;
+                                velX[a] -= nx * imp * wa;
+                                velY[a] -= ny * imp * wa;
+                                velZ[a] -= nz * imp * wa;
+                                velX[b] += nx * imp * wb;
+                                velY[b] += ny * imp * wb;
+                                velZ[b] += nz * imp * wb;
+                            }
+                        }
+                    }
+                }
+
+                // Sleep stabilizer: bodies in contact moving below sleepSpeed (0.3 m/s) go to sleep
+                for (let i = 0; i < bodyCount; i++) {
+                    if (fastMode && sleepingFlag[i] === 1) continue;
+
+                    const vSq = velX[i] * velX[i] + velY[i] * velY[i] + velZ[i] * velZ[i];
+                    if (touchedFlag[i] === 1 && vSq < sleepSq) {
+                        velX[i] = 0.0;
+                        velY[i] = 0.0;
+                        velZ[i] = 0.0;
+                        if (fastMode) {
+                            sleepCounter[i]++;
+                            if (sleepCounter[i] >= 6) {
+                                sleepingFlag[i] = 1;
+                            }
+                        }
+                    } else {
+                        sleepCounter[i] = 0;
+                        sleepingFlag[i] = 0;
+                        rotX[i] += velZ[i] * h * 0.6;
+                        rotZ[i] -= velX[i] * h * 0.6;
+                    }
+                }
+            }
+        }
+
+        /**************************************************************************
+         * 5. SOLVER B: CLASSIC EXPLICIT EULER + VELOCITY IMPULSES (O(N^2))
+         *    Demonstrates both O(N^2) CPU cost scaling and structural collapse
+         *    of pyramids due to velocity-level impulse jitter.
+         **************************************************************************/
+        function stepClassicEulerSolver() {
+            const steps = eulerSubsteps;
+            const dt = FIXED_DT / steps;
+            const g = DC_PARAMS.gravity;
+            const e = 0.65;
+            let pairsTested = 0;
+
+            for (let s = 0; s < steps; s++) {
+                // 1. Explicit Euler velocity & position integration
+                for (let i = 0; i < bodyCount; i++) {
+                    sleepingFlag[i] = 0;
+                    sleepCounter[i] = 0;
+                    velY[i] -= g * dt;
+                    posX[i] += velX[i] * dt;
+                    posY[i] += velY[i] * dt;
+                    posZ[i] += velZ[i] * dt;
+                }
+
+                // 2. Classic O(N^2) all-pairs impulse + Baumgarte penetration push
+                for (let i = 0; i < bodyCount; i++) {
+                    const xi = posX[i], yi = posY[i], zi = posZ[i];
+                    const ri = radiusArr[i];
+
+                    for (let j = i + 1; j < bodyCount; j++) {
+                        const rx = posX[j] - xi;
+                        const ry = posY[j] - yi;
+                        const rz = posZ[j] - zi;
+                        const rSum = ri + radiusArr[j];
+                        const distSq = rx * rx + ry * ry + rz * rz;
+
+                        if (distSq < rSum * rSum && distSq > 1e-12) {
+                            pairsTested++;
+                            const dist = Math.sqrt(distSq);
+                            const overlap = rSum - dist;
+                            const invD = 1.0 / dist;
+                            const nx = rx * invD, ny = ry * invD, nz = rz * invD;
+
+                            // Equal position split without Hooke compliance
+                            const push = overlap * 0.5;
+                            posX[i] -= nx * push; posY[i] -= ny * push; posZ[i] -= nz * push;
+                            posX[j] += nx * push; posY[j] += ny * push; posZ[j] += nz * push;
+
+                            const rvx = velX[j] - velX[i];
+                            const rvy = velY[j] - velY[i];
+                            const rvz = velZ[j] - velZ[i];
+                            const vn = rvx * nx + rvy * ny + rvz * nz;
+
+                            if (vn < 0) {
+                                const wa = invMassArr[i];
+                                const wb = invMassArr[j];
+                                const jImp = -(1.0 + e) * vn / (wa + wb);
+                                velX[i] -= nx * jImp * wa; velY[i] -= ny * jImp * wa; velZ[i] -= nz * jImp * wa;
+                                velX[j] += nx * jImp * wb; velY[j] += ny * jImp * wb; velZ[j] += nz * jImp * wb;
+
+                                // Velocity-level tangential friction (slides under gravity)
+                                const tx = rvx - vn * nx;
+                                const ty = rvy - vn * ny;
+                                const tz = rvz - vn * nz;
+                                velX[i] += tx * 0.15; velZ[i] += tz * 0.15;
+                                velX[j] -= tx * 0.15; velZ[j] -= tz * 0.15;
+                            }
+                        }
+                    }
+
+                    // Ground & Walls (Explicit Euler)
+                    if (posY[i] < ri) {
+                        posY[i] = ri;
+                        if (velY[i] < 0) velY[i] = -velY[i] * 0.45;
+                        velX[i] *= 0.95;
+                        velZ[i] *= 0.95;
+                    }
+                    const limit = ARENA_HALF - ri;
+                    if (posX[i] > limit) { posX[i] = limit; velX[i] *= -0.5; }
+                    else if (posX[i] < -limit) { posX[i] = -limit; velX[i] *= -0.5; }
+                    if (posZ[i] > limit) { posZ[i] = limit; velZ[i] *= -0.5; }
+                    else if (posZ[i] < -limit) { posZ[i] = -limit; velZ[i] *= -0.5; }
+
+                    rotX[i] += velZ[i] * dt * 0.6;
+                    rotZ[i] -= velX[i] * dt * 0.6;
+                }
+            }
+            lastActivePairsCount = pairsTested;
+        }
+
+        /**************************************************************************
+         * 6. SATURATION 0.25 BLAST WAVE (From PHYSICS.md Section 5)
+         *    impulse = blastPower * (1 - d/R) / (d + 0.25) + lift 18 * (1 - d/R)
+         **************************************************************************/
+        function triggerSaturationBlast(cx = 0, cy = 0.5, cz = 0) {
+            const R = DC_PARAMS.blastRadius;
+            const power = DC_PARAMS.blastPower;
+
+            for (let i = 0; i < bodyCount; i++) {
+                const dx = posX[i] - cx;
+                const dy = posY[i] - cy;
+                const dz = posZ[i] - cz;
+                const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                if (d < R) {
+                    const falloff = 1.0 - (d / R);
+                    const impulse = (power * falloff) / (d + DC_PARAMS.saturation);
+                    const dv = impulse * invMassArr[i];
+                    const invD = d > 1e-5 ? 1.0 / d : 0.0;
+
+                    velX[i] += (dx * invD) * dv;
+                    velY[i] += (dy * invD) * dv + 18.0 * falloff;
+                    velZ[i] += (dz * invD) * dv;
+                    sleepingFlag[i] = 0;
+                    sleepCounter[i] = 0;
+                }
+            }
+            spawnBlastVisualRing(cx, cz);
+        }
+
+        /**************************************************************************
+         * 7. SCENE PRESETS (91-Ball Pyramid, Box/Ball Tower, Vogel Rain)
+         **************************************************************************/
+        function clearScene() {
+            bodyCount = 0;
+            trackedApexIndex = -1;
+            initialApexY = 0;
+            peakStepMs = 0.05;
+            seedRng(1337);
+        }
+
+        // Exact 91-ball pyramid (6^2 + 5^2 + 4^2 + 3^2 + 2^2 + 1^2 = 91 spheres)
+        function setupPyramidScene() {
+            clearScene();
+            const r = 0.52;
+            const spacing = r * 2.001;
+            const layers = 6;
+            const layerHeight = r * Math.sqrt(2.0);
+
+            for (let layer = 0; layer < layers; layer++) {
+                const countPerSide = layers - layer;
+                const y = r + layer * layerHeight;
+                const offset = (countPerSide - 1) * spacing * 0.5;
+
+                for (let row = 0; row < countPerSide; row++) {
+                    for (let col = 0; col < countPerSide; col++) {
+                        const x = col * spacing - offset;
+                        const z = row * spacing - offset;
+                        const idx = addBody(x, y, z, 0, 0, 0, r, 6.0, 0);
+                        if (layer === layers - 1) {
+                            trackedApexIndex = idx;
+                            initialApexY = y;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Tower of 125 boxes and spheres
+        function setupBoxesAndBallsScene() {
+            clearScene();
+            const r = 0.55;
+            for (let yLevel = 0; yLevel < 5; yLevel++) {
+                for (let ix = -2; ix <= 2; ix++) {
+                    for (let iz = -2; iz <= 2; iz++) {
+                        const jitter = (nextRng() - 0.5) * 0.015;
+                        const isBox = (yLevel + ix + iz) % 2 === 0 ? 1 : 0;
+                        const mass = isBox ? 18.0 : 6.0;
+                        const idx = addBody(
+                            ix * (r * 2.02) + jitter,
+                            r + yLevel * (r * 2.01),
+                            iz * (r * 2.02) + jitter,
+                            0, 0, 0, r, mass, isBox
+                        );
+                        if (yLevel === 4 && ix === 0 && iz === 0) {
+                            trackedApexIndex = idx;
+                            initialApexY = posY[idx];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Vogel Golden-Angle Spiral Spawn (+100 or +500 bodies)
+        function spawnBatch(count = 100) {
+            wakeAllBodies();
+            for (let n = 0; n < count; n++) {
+                if (bodyCount >= MAX_BODIES) break;
+                const angle = n * GOLDEN_ANGLE;
+                const rad = 0.48 * Math.sqrt(n % 160);
+                const x = Math.cos(angle) * rad;
+                const z = Math.sin(angle) * rad;
+                const y = 8.5 + (n * 0.045);
+                const isBox = n % 3 === 0 ? 1 : 0;
+                const r = isBox ? 0.50 : 0.46 + (nextRng() * 0.08);
+                const mass = isBox ? 16.0 : 6.0;
+                addBody(x, y, z, (nextRng() - 0.5) * 1.2, -3.0, (nextRng() - 0.5) * 1.2, r, mass, isBox);
+            }
+        }
+
+        /**************************************************************************
+         * 8. THREE.JS INSTANCED RENDERER & INTERACTIVE BALL LAUNCHER
+         **************************************************************************/
+        let scene, camera, renderer;
+        let sphereInstancedMesh, boxInstancedMesh;
+        const dummy = new THREE.Object3D();
+        const colorHelper = new THREE.Color();
+        const raycaster = new THREE.Raycaster();
+        const mouseNDC = new THREE.Vector2();
+        let blastRings = [];
+
+        // Camera spherical orbit state
+        let camTheta = Math.PI * 0.25;
+        let camPhi = 1.12;
+        let camDist = 22.0;
+        let isRightDragging = false;
+        let prevMouseX = 0, prevMouseY = 0;
+
+        function updateCameraPosition() {
+            camPhi = Math.max(0.18, Math.min(Math.PI * 0.47, camPhi));
+            camDist = Math.max(7.0, Math.min(48.0, camDist));
+            camera.position.x = camDist * Math.sin(camPhi) * Math.sin(camTheta);
+            camera.position.y = camDist * Math.cos(camPhi);
+            camera.position.z = camDist * Math.sin(camPhi) * Math.cos(camTheta);
+            camera.lookAt(0, 2.2, 0);
+        }
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x090d16);
+            scene.fog = new THREE.FogExp2(0x090d16, 0.015);
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+            updateCameraPosition();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambient = new THREE.AmbientLight(0x94a3b8, 0.65);
+            scene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.15);
+            dirLight.position.set(16, 28, 18);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 2;
+            dirLight.shadow.camera.far = 70;
+            const d = 18;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            // Arena Floor & Grid
+            const floorGeo = new THREE.PlaneGeometry(ARENA_HALF * 2, ARENA_HALF * 2);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x0f172a,
+                roughness: 0.85,
+                metalness: 0.1
+            });
+            const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+            floorMesh.rotation.x = -Math.PI / 2;
+            floorMesh.receiveShadow = true;
+            scene.add(floorMesh);
+
+            const grid = new THREE.GridHelper(ARENA_HALF * 2, 32, 0x10b981, 0x1e293b);
+            grid.position.y = 0.01;
+            scene.add(grid);
+
+            // Subtle Arena Boundary Frame
+            const borderGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(ARENA_HALF * 2, 6, ARENA_HALF * 2));
+            const borderMat = new THREE.LineBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.45 });
+            const borderLines = new THREE.LineSegments(borderGeo, borderMat);
+            borderLines.position.y = 3;
+            scene.add(borderLines);
+
+            // Instanced Meshes for Spheres and Boxes (Zero-bottleneck rendering)
+            const sphereGeo = new THREE.SphereGeometry(1, 20, 16);
+            const sphereMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.2 });
+            sphereInstancedMesh = new THREE.InstancedMesh(sphereGeo, sphereMat, MAX_BODIES);
+            sphereInstancedMesh.castShadow = true;
+            sphereInstancedMesh.receiveShadow = true;
+            sphereInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            scene.add(sphereInstancedMesh);
+
+            const boxGeo = new THREE.BoxGeometry(1.75, 1.75, 1.75);
+            const boxMat = new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.15 });
+            boxInstancedMesh = new THREE.InstancedMesh(boxGeo, boxMat, MAX_BODIES);
+            boxInstancedMesh.castShadow = true;
+            boxInstancedMesh.receiveShadow = true;
+            boxInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            scene.add(boxInstancedMesh);
+
+            // Viewport Input Listeners (Ball Launcher on Left Click, Orbit on Right Click)
+            const dom = renderer.domElement;
+            dom.addEventListener('contextmenu', e => e.preventDefault());
+
+            dom.addEventListener('mousedown', e => {
+                if (e.button === 2 || e.button === 1 || e.shiftKey) {
+                    isRightDragging = true;
+                    prevMouseX = e.clientX;
+                    prevMouseY = e.clientY;
+                } else if (e.button === 0) {
+                    shootBallTowardsCursor(e.clientX, e.clientY);
+                }
+            });
+
+            window.addEventListener('mousemove', e => {
+                if (isRightDragging) {
+                    const dx = e.clientX - prevMouseX;
+                    const dy = e.clientY - prevMouseY;
+                    prevMouseX = e.clientX;
+                    prevMouseY = e.clientY;
+                    camTheta -= dx * 0.007;
+                    camPhi -= dy * 0.007;
+                    updateCameraPosition();
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                isRightDragging = false;
+            });
+
+            dom.addEventListener('wheel', e => {
+                e.preventDefault();
+                camDist += e.deltaY * 0.015;
+                updateCameraPosition();
+            }, { passive: false });
+
+            window.addEventListener('keydown', e => {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    fireCenterCannonball();
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // Shoot projectile from camera along cursor ray ("Lanzapelotas")
+        function shootBallTowardsCursor(clientX, clientY) {
+            mouseNDC.x = (clientX / window.innerWidth) * 2 - 1;
+            mouseNDC.y = -(clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouseNDC, camera);
+
+            const dir = raycaster.ray.direction.clone().normalize();
+            const spawnPos = camera.position.clone().addScaledVector(dir, 2.2);
+            if (spawnPos.y < 0.8) spawnPos.y = 0.8;
+
+            addBody(
+                spawnPos.x, spawnPos.y, spawnPos.z,
+                dir.x * launcherSpeed,
+                dir.y * launcherSpeed,
+                dir.z * launcherSpeed,
+                0.68,
+                launcherMass,
+                2 // Heavy cannonball projectile
+            );
+        }
+
+        function fireCenterCannonball() {
+            const dir = new THREE.Vector3(0, 1.5, 0).sub(camera.position).normalize();
+            const spawnPos = camera.position.clone().addScaledVector(dir, 2.2);
+            addBody(
+                spawnPos.x, spawnPos.y, spawnPos.z,
+                dir.x * launcherSpeed,
+                dir.y * launcherSpeed,
+                dir.z * launcherSpeed,
+                0.72,
+                launcherMass,
+                2
+            );
+        }
+
+        function spawnBlastVisualRing(x, z) {
+            const ringGeo = new THREE.RingGeometry(0.4, 0.85, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0xf59e0b,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.9
+            });
+            const mesh = new THREE.Mesh(ringGeo, ringMat);
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.position.set(x, 0.08, z);
+            scene.add(mesh);
+            blastRings.push({ mesh, scale: 1.0, opacity: 0.9 });
+        }
+
+        function syncInstancedMeshes() {
+            let sphereCount = 0;
+            let boxCount = 0;
+
+            for (let i = 0; i < bodyCount; i++) {
+                const r = radiusArr[i];
+                const type = shapeType[i];
+                const isSleeping = sleepingFlag[i] === 1;
+                const isApex = i === trackedApexIndex;
+
+                dummy.position.set(posX[i], posY[i], posZ[i]);
+                dummy.rotation.set(rotX[i], rotY[i], rotZ[i]);
+                dummy.scale.set(r, r, r);
+                dummy.updateMatrix();
+
+                if (type === 1) {
+                    // Box proxy
+                    boxInstancedMesh.setMatrixAt(boxCount, dummy.matrix);
+                    if (isSleeping) {
+                        colorHelper.setHex(0x38bdf8);
+                    } else {
+                        colorHelper.setHex(0x0284c7);
+                    }
+                    boxInstancedMesh.setColorAt(boxCount, colorHelper);
+                    boxCount++;
+                } else {
+                    // Sphere or heavy cannonball
+                    sphereInstancedMesh.setMatrixAt(sphereCount, dummy.matrix);
+                    if (isApex) {
+                        colorHelper.setHex(0xfacc15); // Bright gold for tracked pyramid apex
+                    } else if (type === 2) {
+                        colorHelper.setHex(0xf97316); // Orange cannonball
+                    } else if (isSleeping) {
+                        colorHelper.setHex(0x10b981); // Emerald when resting/sleeping in Hooke equilibrium
+                    } else {
+                        colorHelper.setHex(currentSolver === 'diaz-cano' ? 0x34d399 : 0xf43f5e);
+                    }
+                    sphereInstancedMesh.setColorAt(sphereCount, colorHelper);
+                    sphereCount++;
+                }
+            }
+
+            sphereInstancedMesh.count = sphereCount;
+            sphereInstancedMesh.instanceMatrix.needsUpdate = true;
+            if (sphereInstancedMesh.instanceColor) sphereInstancedMesh.instanceColor.needsUpdate = true;
+
+            boxInstancedMesh.count = boxCount;
+            boxInstancedMesh.instanceMatrix.needsUpdate = true;
+            if (boxInstancedMesh.instanceColor) boxInstancedMesh.instanceColor.needsUpdate = true;
+
+            // Animate blast rings
+            for (let i = blastRings.length - 1; i >= 0; i--) {
+                const br = blastRings[i];
+                br.scale += 1.15;
+                br.opacity -= 0.04;
+                br.mesh.scale.set(br.scale, br.scale, 1);
+                br.mesh.material.opacity = Math.max(0, br.opacity);
+                if (br.opacity <= 0) {
+                    scene.remove(br.mesh);
+                    br.mesh.geometry.dispose();
+                    br.mesh.material.dispose();
+                    blastRings.splice(i, 1);
+                }
+            }
+        }
+
+        /**************************************************************************
+         * 9. UI CONTROLS & TELEMETRY UPDATES
+         **************************************************************************/
+        function toggleOptimizationMode() {
+            useFastPairCacheAndSleep = !useFastPairCacheAndSleep;
+            wakeAllBodies();
+            const btn = document.getElementById('btn-toggle-opt');
+            const lbl = document.getElementById('label-opt-status');
+            if (useFastPairCacheAndSleep) {
+                btn.className = "w-full px-2.5 py-1.5 rounded bg-emerald-600/30 hover:bg-emerald-600/45 border border-emerald-500/50 text-emerald-200 text-xs font-semibold flex items-center justify-between transition";
+                lbl.textContent = "ACTIVO";
+                lbl.className = "mono font-bold text-emerald-300";
+            } else {
+                btn.className = "w-full px-2.5 py-1.5 rounded bg-amber-600/25 hover:bg-amber-600/40 border border-amber-500/40 text-amber-200 text-xs font-semibold flex items-center justify-between transition";
+                lbl.textContent = "DESACTIVADO (Sin Sleep)";
+                lbl.className = "mono font-bold text-amber-300";
+            }
+        }
+
+        function toggleEulerSubsteps() {
+            eulerSubsteps = eulerSubsteps === 3 ? 1 : 3;
+            const lbl = document.getElementById('label-euler-sub');
+            if (eulerSubsteps === 3) {
+                lbl.textContent = "3 Substeps (Comparación Justa)";
+                lbl.className = "mono font-bold text-rose-300";
+            } else {
+                lbl.textContent = "1 Substep (Rápido pero Falso)";
+                lbl.className = "mono font-bold text-amber-300";
+            }
+        }
+
+        function setSolverMode(mode) {
+            currentSolver = mode;
+            wakeAllBodies();
+            peakStepMs = 0.05;
+            const btnDC = document.getElementById('btn-solver-dc');
+            const btnEuler = document.getElementById('btn-solver-euler');
+            const statusInd = document.getElementById('status-indicator');
+            const fTitle = document.getElementById('formula-title');
+            const f1 = document.getElementById('formula-line-1');
+            const f2 = document.getElementById('formula-line-2');
+            const f3 = document.getElementById('formula-line-3');
+            const f4 = document.getElementById('formula-line-4');
+
+            if (mode === 'diaz-cano') {
+                btnDC.className = "solver-active-dc flex-1 sm:flex-initial px-4 py-2.5 rounded-lg border text-left transition-all duration-150";
+                btnEuler.className = "flex-1 sm:flex-initial px-4 py-2.5 rounded-lg border border-slate-700/80 bg-slate-900/50 hover:bg-slate-800/60 text-left transition-all duration-150";
+                statusInd.className = "w-3 h-10 rounded-full bg-emerald-500";
+                fTitle.textContent = "Fórmulas Activas: Diaz-Cano SoA";
+                fTitle.className = "text-xs font-bold text-emerald-400 uppercase mb-1";
+                f1.textContent = "1. Broadphase: 1 pase Hash -> Caché Pares Activos";
+                f2.textContent = "2. Push (x2): Δx = overlap / (w_a + w_b + 1/(k·h²))";
+                f3.textContent = "3. Fricción: min(|Δx_t|, 0.8·push) + Seda 0.727";
+                f4.textContent = "4. Vel: v = (x - x_old)/h | Blast: 1/(d + 0.25)";
+            } else {
+                btnEuler.className = "solver-active-euler flex-1 sm:flex-initial px-4 py-2.5 rounded-lg border text-left transition-all duration-150";
+                btnDC.className = "flex-1 sm:flex-initial px-4 py-2.5 rounded-lg border border-slate-700/80 bg-slate-900/50 hover:bg-slate-800/60 text-left transition-all duration-150";
+                statusInd.className = "w-3 h-10 rounded-full bg-rose-500";
+                fTitle.textContent = "Fórmulas Activas: Euler Explícito Clásico";
+                fTitle.className = "text-xs font-bold text-rose-400 uppercase mb-1";
+                f1.textContent = "1. Euler: v += (F/m)·dt ; x += v·dt";
+                f2.textContent = "2. Impulso: j = -(1+e)·v_n / (w_a + w_b)";
+                f3.textContent = "3. Sin compliance de Hooke en posición";
+                f4.textContent = "4. Búsqueda O(N²) -> Colapso de pirámide";
+            }
+        }
+
+        function updateSliders() {
+            launcherSpeed = parseFloat(document.getElementById('slider-shot-speed').value);
+            launcherMass = parseFloat(document.getElementById('slider-shot-mass').value);
+            DC_PARAMS.gravity = parseFloat(document.getElementById('slider-gravity').value);
+
+            document.getElementById('val-shot-speed').textContent = `${launcherSpeed} m/s`;
+            document.getElementById('val-shot-mass').textContent = `${launcherMass} kg`;
+            document.getElementById('val-gravity').textContent = `${DC_PARAMS.gravity} m/s²`;
+        }
+
+        // Compute deterministic state hash from positions
+        function computeStateHash() {
+            let h = 2166136261 >>> 0;
+            const limit = Math.min(bodyCount, 64);
+            for (let i = 0; i < limit; i++) {
+                const qx = (posX[i] * 1000) | 0;
+                const qy = (posY[i] * 1000) | 0;
+                const qz = (posZ[i] * 1000) | 0;
+                h = Math.imul(h ^ qx, 16777619);
+                h = Math.imul(h ^ qy, 16777619);
+                h = Math.imul(h ^ qz, 16777619);
+            }
+            return (h >>> 0).toString(16).toUpperCase().padStart(8, '0');
+        }
+
+        /**************************************************************************
+         * 10. MAIN LOOP & BENCHMARK PROFILER
+         **************************************************************************/
+        let frameCount = 0;
+        let lastFpsTime = performance.now();
+        let displayedFps = 60;
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+
+            // Measure pure physics step CPU time
+            const t0 = performance.now();
+            if (currentSolver === 'diaz-cano') {
+                stepDiazCanoSolver();
+            } else {
+                stepClassicEulerSolver();
+            }
+            const t1 = performance.now();
+            const stepDuration = t1 - t0;
+
+            // Smooth exponential moving average for telemetry
+            lastStepMs = lastStepMs * 0.85 + stepDuration * 0.15;
+            if (stepDuration > peakStepMs) peakStepMs = stepDuration;
+            else peakStepMs = peakStepMs * 0.995 + stepDuration * 0.005;
+
+            if (currentSolver === 'diaz-cano') {
+                recordedMsDC = lastStepMs;
+            } else {
+                recordedMsEuler = lastStepMs;
+            }
+
+            syncInstancedMeshes();
+            renderer.render(scene, camera);
+
+            // Update HUD metrics every 200ms
+            frameCount++;
+            const now = performance.now();
+            if (now - lastFpsTime >= 200) {
+                displayedFps = Math.min(144, Math.round((frameCount * 1000) / (now - lastFpsTime)));
+                frameCount = 0;
+                lastFpsTime = now;
+
+                document.getElementById('metric-fps').textContent = `${displayedFps} FPS`;
+                document.getElementById('metric-ms').textContent = `${lastStepMs.toFixed(2)} ms`;
+                document.getElementById('metric-peak-ms').textContent = `Pico: ${peakStepMs.toFixed(2)} ms`;
+                document.getElementById('metric-bodies').textContent = bodyCount;
+                document.getElementById('metric-pairs').textContent = `Pares: ${lastActivePairsCount}`;
+
+                let sleepingCount = 0;
+                for (let i = 0; i < bodyCount; i++) {
+                    if (sleepingFlag[i] === 1) sleepingCount++;
+                }
+                const activeCount = bodyCount - sleepingCount;
+                document.getElementById('metric-sleep').textContent = `Activos: ${activeCount} | Dormidos: ${sleepingCount}`;
+                document.getElementById('hash-readout').textContent = `Hash: 0x${computeStateHash()}`;
+
+                // Update comparison bars
+                document.getElementById('bar-label-dc').textContent = `${recordedMsDC.toFixed(2)} ms`;
+                document.getElementById('bar-label-euler').textContent = `${recordedMsEuler.toFixed(2)} ms`;
+                const maxScale = Math.max(1.0, recordedMsDC, recordedMsEuler);
+                document.getElementById('bar-fill-dc').style.width = `${Math.min(100, (recordedMsDC / maxScale) * 100)}%`;
+                document.getElementById('bar-fill-euler').style.width = `${Math.min(100, (recordedMsEuler / maxScale) * 100)}%`;
+
+                // Update 91-Ball Pyramid Apex Drop metric
+                const apexEl = document.getElementById('metric-apex-drop');
+                const badgeEl = document.getElementById('pyramid-badge');
+                if (trackedApexIndex >= 0 && trackedApexIndex < bodyCount) {
+                    const dropCm = Math.max(0, (initialApexY - posY[trackedApexIndex]) * 100);
+                    apexEl.textContent = `${dropCm.toFixed(1)} cm`;
+                    if (dropCm < 15.0) {
+                        apexEl.className = "text-base font-bold mono text-emerald-400";
+                        badgeEl.textContent = "ESTABLE (HOOKE)";
+                        badgeEl.className = "text-[10px] mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                    } else {
+                        apexEl.className = "text-base font-bold mono text-rose-400";
+                        badgeEl.textContent = "COLAPSANDO";
+                        badgeEl.className = "text-[10px] mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30";
+                    }
+                } else {
+                    apexEl.textContent = "N/A";
+                }
+            }
+        }
+
+        window.onload = function () {
+            initThreeJS();
+            setupPyramidScene();
+            animateLoop();
+        };
+    </script>
+</body>
+</html>
