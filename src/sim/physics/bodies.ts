@@ -11,6 +11,8 @@ export const KIND_BOX = 1;
 export const KIND_LIMB = 2;
 /** A joint sphere of a ragdoll in the author's solver (Rapier draws a capsule limb instead). */
 export const KIND_NODE = 3;
+/** One of the 8 corner spheres of a box in the author's solver, other than the first (which stands for the box). Not drawn, not grabbed. */
+export const KIND_PART = 4;
 
 /** Every number the lab panel can turn live. Metres, seconds, kilograms. */
 export type RapierParams = {

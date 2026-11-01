@@ -1,6 +1,7 @@
 import type { Arena } from '../config';
 import { oceanFlowAt, oceanHeight } from '../ocean';
-import { hypot } from '../vec';
+import { dcos, dsin } from '../dmath';
+import { hypot, hypot3 } from '../vec';
 import {
   BALL_MASS,
   BALL_RADIUS,
@@ -10,8 +11,12 @@ import {
   GEYSER_DEPTH,
   GEYSER_SIDE,
   GEYSER_SPEED,
+  BOX_HALF,
+  BOX_MASS,
   KIND_BALL,
+  KIND_BOX,
   KIND_NODE,
+  KIND_PART,
   type LabSlider,
   type LabWorld,
   type RapierOcean,
@@ -20,6 +25,11 @@ import {
 import { NODE_COUNT, spawnRagdoll } from './ragdoll';
 import { DEFAULT_PARAMS, KIND_RAGDOLL, PhysicsWorld } from './world';
 import type { Rng } from '../rng';
+
+/** The corner spheres of a box have this share of its smallest half side as radius. */
+const CORNER_SHARE = 0.5;
+/** Stiffness of the box's rigid distances (share of the error fixed per pass). */
+const BOX_STIFFNESS = 1;
 
 /** Fixed step of the lab (s): the game steps at 60 Hz. */
 const DT = 1 / 60;
@@ -55,11 +65,11 @@ export const DIAZ_CANO_SLIDERS: readonly LabSlider[] = [
  */
 export class DiazCanoWorld implements LabWorld {
   readonly engine = 'diaz-cano' as const;
-  readonly supportsBoxes = false;
+  readonly supportsBoxes = true;
   readonly sliders = DIAZ_CANO_SLIDERS;
   readonly defaults = DEFAULT_PARAMS;
   readonly capacity = BODY_CAPACITY;
-  readonly solver = new PhysicsWorld(BODY_CAPACITY, 4096);
+  readonly solver = new PhysicsWorld(BODY_CAPACITY, BODY_CAPACITY * 2);
   readonly pos = new Float32Array(BODY_CAPACITY * 3);
   readonly rot = new Float32Array(BODY_CAPACITY * 4);
   readonly size = new Float32Array(BODY_CAPACITY * 3);
@@ -71,6 +81,8 @@ export class DiazCanoWorld implements LabWorld {
   sleeping = 0;
 
   private arena: Arena | null = null;
+  /** For every sphere of a box, the id of the box's first sphere (the box's id in the lab); -1 for the rest. */
+  private readonly boxOf = new Int32Array(BODY_CAPACITY).fill(-1);
 
   get count(): number {
     return this.solver.count;
@@ -90,6 +102,7 @@ export class DiazCanoWorld implements LabWorld {
 
   clear(): void {
     this.solver.clear();
+    this.boxOf.fill(-1);
     this.sleeping = 0;
   }
 
@@ -97,6 +110,11 @@ export class DiazCanoWorld implements LabWorld {
   private refresh(from: number, fresh: boolean): void {
     const s = this.solver;
     for (let i = from; i < s.count; i++) {
+      if (this.boxOf[i]! >= 0) {
+        if (this.boxOf[i] === i) this.refreshBox(i);
+        else if (fresh) this.kind[i] = KIND_PART;
+        continue;
+      }
       this.pos[i * 3] = s.px[i]!;
       this.pos[i * 3 + 1] = s.py[i]!;
       this.pos[i * 3 + 2] = s.pz[i]!;
@@ -132,9 +150,151 @@ export class DiazCanoWorld implements LabWorld {
     return id;
   }
 
-  /** Not built yet: boxes of 8 spheres are option A of the plan. */
-  addBox(): number {
-    return -1;
+  /**
+   * A box is 8 spheres at its corners (option A of the plan), joined by the 28 rigid distances
+   * between them (12 edges, 12 face diagonals, 4 body diagonals) like the bones of a ragdoll, and
+   * all in one group so they never push each other. The corner spheres have `CORNER_SHARE` of the
+   * smallest half side as radius. The box's id is the id of its first sphere; its centre, rotation
+   * and half sides are read back from the 8 spheres every step.
+   */
+  addBox(
+    x: number,
+    y: number,
+    z: number,
+    hx = BOX_HALF,
+    hy = BOX_HALF,
+    hz = BOX_HALF,
+    yaw = 0,
+    mass = BOX_MASS,
+  ): number {
+    const s = this.solver;
+    if (s.count + 8 > s.capacity || s.conCount + 28 > s.conCapacity) return -1;
+    const rs = Math.min(hx, hy, hz) * CORNER_SHARE;
+    const ax = hx - rs;
+    const ay = hy - rs;
+    const az = hz - rs;
+    const cos = dcos(yaw);
+    const sin = dsin(yaw);
+    const group = s.nextGroup++;
+    const first = s.count;
+    const at: number[] = [];
+    for (let c = 0; c < 8; c++) {
+      const lx = c & 1 ? ax : -ax;
+      const ly = c & 2 ? ay : -ay;
+      const lz = c & 4 ? az : -az;
+      at.push(lx * cos + lz * sin, ly, -lx * sin + lz * cos);
+      const id = s.addBody(
+        x + at[c * 3]!,
+        y + at[c * 3 + 1]!,
+        z + at[c * 3 + 2]!,
+        rs,
+        mass / 8,
+        KIND_BALL,
+        group,
+      );
+      if (id < 0) return -1;
+      this.boxOf[id] = first;
+    }
+    for (let a = 0; a < 8; a++)
+      for (let b = a + 1; b < 8; b++) {
+        const d = hypot3(
+          at[b * 3]! - at[a * 3]!,
+          at[b * 3 + 1]! - at[a * 3 + 1]!,
+          at[b * 3 + 2]! - at[a * 3 + 2]!,
+        );
+        s.addConstraint(first + a, first + b, d, BOX_STIFFNESS);
+      }
+    s.fitCell();
+    this.refresh(first, true);
+    this.size[first * 3] = hx;
+    this.size[first * 3 + 1] = hy;
+    this.size[first * 3 + 2] = hz;
+    this.kind[first] = KIND_BOX;
+    return first;
+  }
+
+  /** Centre and rotation of the box whose first sphere is `f`, from where its 8 spheres are now. */
+  private refreshBox(f: number): void {
+    const s = this.solver;
+    let cx = 0;
+    let cy = 0;
+    let cz = 0;
+    let ux = 0;
+    let uy = 0;
+    let uz = 0;
+    let vx = 0;
+    let vy = 0;
+    let vz = 0;
+    for (let c = 0; c < 8; c++) {
+      const px = s.px[f + c]!;
+      const py = s.py[f + c]!;
+      const pz = s.pz[f + c]!;
+      cx += px;
+      cy += py;
+      cz += pz;
+      const sx = c & 1 ? 1 : -1;
+      const sy = c & 2 ? 1 : -1;
+      ux += sx * px;
+      uy += sx * py;
+      uz += sx * pz;
+      vx += sy * px;
+      vy += sy * py;
+      vz += sy * pz;
+    }
+    this.pos[f * 3] = cx / 8;
+    this.pos[f * 3 + 1] = cy / 8;
+    this.pos[f * 3 + 2] = cz / 8;
+    // Gram-Schmidt on the x and y edges, z = x cross y: a proper rotation even while the bones flex.
+    let l = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1;
+    ux /= l;
+    uy /= l;
+    uz /= l;
+    const dot = vx * ux + vy * uy + vz * uz;
+    vx -= dot * ux;
+    vy -= dot * uy;
+    vz -= dot * uz;
+    l = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1;
+    vx /= l;
+    vy /= l;
+    vz /= l;
+    const wx = uy * vz - uz * vy;
+    const wy = uz * vx - ux * vz;
+    const wz = ux * vy - uy * vx;
+    // The rotation matrix with columns u, v, w, as a quaternion.
+    const tr = ux + vy + wz;
+    let qx: number;
+    let qy: number;
+    let qz: number;
+    let qw: number;
+    if (tr > 0) {
+      const k = Math.sqrt(tr + 1) * 2;
+      qw = 0.25 * k;
+      qx = (vz - wy) / k;
+      qy = (wx - uz) / k;
+      qz = (uy - vx) / k;
+    } else if (ux > vy && ux > wz) {
+      const k = Math.sqrt(1 + ux - vy - wz) * 2;
+      qw = (vz - wy) / k;
+      qx = 0.25 * k;
+      qy = (vx + uy) / k;
+      qz = (wx + uz) / k;
+    } else if (vy > wz) {
+      const k = Math.sqrt(1 + vy - ux - wz) * 2;
+      qw = (wx - uz) / k;
+      qx = (vx + uy) / k;
+      qy = 0.25 * k;
+      qz = (wy + vz) / k;
+    } else {
+      const k = Math.sqrt(1 + wz - ux - vy) * 2;
+      qw = (uy - vx) / k;
+      qx = (wx + uz) / k;
+      qy = (wy + vz) / k;
+      qz = 0.25 * k;
+    }
+    this.rot[f * 4] = qx;
+    this.rot[f * 4 + 1] = qy;
+    this.rot[f * 4 + 2] = qz;
+    this.rot[f * 4 + 3] = qw;
   }
 
   addRagdoll(
@@ -175,25 +335,58 @@ export class DiazCanoWorld implements LabWorld {
   }
 
   massOf(id: number): number {
-    return 1 / this.solver.invMass[id]!;
+    return (this.boxOf[id]! >= 0 ? 8 : 1) / this.solver.invMass[id]!;
   }
 
   velocityOf(id: number): { x: number; y: number; z: number } {
     const s = this.solver;
-    return { x: s.vx[id]!, y: s.vy[id]!, z: s.vz[id]! };
+    if (this.boxOf[id]! < 0) return { x: s.vx[id]!, y: s.vy[id]!, z: s.vz[id]! };
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    for (let c = 0; c < 8; c++) {
+      x += s.vx[id + c]!;
+      y += s.vy[id + c]!;
+      z += s.vz[id + c]!;
+    }
+    return { x: x / 8, y: y / 8, z: z / 8 };
   }
 
   setVelocity(id: number, x: number, y: number, z: number): void {
     const s = this.solver;
-    s.wake(id);
-    s.vx[id] = x;
-    s.vy[id] = y;
-    s.vz[id] = z;
+    const n = this.boxOf[id]! >= 0 ? 8 : 1;
+    for (let c = 0; c < n; c++) {
+      s.wake(id + c);
+      s.vx[id + c] = x;
+      s.vy[id + c] = y;
+      s.vz[id + c] = z;
+    }
   }
 
-  /** Spheres do not turn, so the point of the push does not matter. */
-  pushAt(id: number, ix: number, iy: number, iz: number): void {
-    this.solver.impulse(id, ix, iy, iz);
+  /**
+   * A ball takes the impulse whole (it does not turn). A box shares it among its 8 spheres by how
+   * near each is to the point, so the whole box gets `impulse / mass` and an off-centre push spins it.
+   */
+  pushAt(id: number, ix: number, iy: number, iz: number, px = 0, py = 0, pz = 0): void {
+    const s = this.solver;
+    if (this.boxOf[id]! < 0) {
+      s.impulse(id, ix, iy, iz);
+      return;
+    }
+    const w: number[] = [];
+    let sum = 0;
+    for (let c = 0; c < 8; c++) {
+      const dx = s.px[id + c]! - px;
+      const dy = s.py[id + c]! - py;
+      const dz = s.pz[id + c]! - pz;
+      const k = 1 / (dx * dx + dy * dy + dz * dz + 0.05);
+      w.push(k);
+      sum += k;
+    }
+    for (let c = 0; c < 8; c++) {
+      const k = w[c]! / sum;
+      s.impulse(id + c, ix * k, iy * k, iz * k);
+    }
   }
 
   /**

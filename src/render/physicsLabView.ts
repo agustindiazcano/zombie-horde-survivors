@@ -5,6 +5,7 @@ import {
   KIND_BOX,
   KIND_LIMB,
   KIND_NODE,
+  KIND_PART,
   type LabWorld,
   type RapierRagdoll,
 } from '../sim/physics/bodies';
@@ -127,6 +128,7 @@ export class PhysicsLabView {
     const next = [0, 0, 0];
     for (let i = 0; i < world.count; i++) {
       const kind = world.kind[i]!;
+      if (kind === KIND_PART) continue;
       const bone = kind === KIND_LIMB || kind === KIND_NODE;
       if (bone && !this.debug && this.dressedGroups.has(world.group[i]!)) continue;
       // A joint sphere of the author's solver is drawn with the balls.

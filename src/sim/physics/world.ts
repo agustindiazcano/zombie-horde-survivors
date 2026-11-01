@@ -56,6 +56,8 @@ export const DEFAULT_PARAMS: PhysicsParams = {
 const HASH_SIZE = 16384;
 /** The side of a hash cell. A body must be no wider than this, or its neighbours are missed. */
 const CELL = 2.6;
+/** The finest cell `fitCell` will use (m). */
+const MIN_CELL = 0.5;
 /** A pair closer than the touching distance plus this is kept for the whole sub-step. */
 const PAIR_MARGIN = 0.1;
 /** At most this many contact pairs per body are kept (a sphere touches at most 12 others). */
@@ -109,6 +111,10 @@ export class PhysicsWorld {
   conCount = 0;
 
   nextGroup = 0;
+  /** Side of a hash cell (m): 2.6 unless `fitCell` shrank it to the smallest body (many small spheres, as boxes make). */
+  cellSize = CELL;
+  private fitted = false;
+  private maxRadius = 0;
   params: PhysicsParams = { ...DEFAULT_PARAMS };
   /** Contacts found by the last step (a number to watch, not a rule). */
   contacts = 0;
@@ -205,6 +211,19 @@ export class PhysicsWorld {
     this.sleeping.fill(0);
     this.sleepFrames.fill(0);
     this.sourceCount = 0;
+    this.cellSize = CELL;
+    this.fitted = false;
+    this.maxRadius = 0;
+  }
+
+  /**
+   * From now on the hash cell follows the widest body (`2 * radius + PAIR_MARGIN`, at least 0.5 m
+   * and at most 2.6 m), so a pile of small spheres (the corners of boxes) does not all share a
+   * few 2.6 m cells. Pair order, and so the state hash, differs from the 2.6 m cell.
+   */
+  fitCell(): void {
+    this.fitted = true;
+    this.cellSize = Math.min(CELL, Math.max(MIN_CELL, 2 * this.maxRadius + PAIR_MARGIN));
   }
 
   /**
@@ -256,6 +275,10 @@ export class PhysicsWorld {
     group = -1,
   ): number {
     if (this.count >= this.capacity || radius * 2 > CELL || mass <= 0) return -1;
+    if (radius > this.maxRadius) {
+      this.maxRadius = radius;
+      if (this.fitted) this.fitCell();
+    }
     const i = this.count++;
     this.px[i] = x;
     this.py[i] = y;
@@ -439,10 +462,11 @@ export class PhysicsWorld {
     this.clearHash();
     const { sleeping } = this;
     const { cellX, cellY, cellZ } = this;
+    const cell = this.cellSize;
     for (let i = 0; i < this.count; i++) {
-      const cx = Math.floor(px[i]! / CELL);
-      const cy = Math.floor(py[i]! / CELL);
-      const cz = Math.floor(pz[i]! / CELL);
+      const cx = Math.floor(px[i]! / cell);
+      const cy = Math.floor(py[i]! / cell);
+      const cz = Math.floor(pz[i]! / cell);
       cellX[i] = cx;
       cellY[i] = cy;
       cellZ[i] = cz;
