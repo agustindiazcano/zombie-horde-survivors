@@ -78,7 +78,7 @@ data = {
     ],
     "units": units,
     "environment": {"sky": True, "timeOfDay": 13, "sun": True, "moon": False, "clouds": 0.15, "fog": 0},
-    "logic": {"mode": "waves", "noWaves": True, "physicsLab": True, "startGold": 0,
+    "logic": {"mode": "waves", "noWaves": True, "physicsLab": True, "physicsEngine": "diaz-cano", "startGold": 0,
               "boss": {"enabled": False}},
 }
 json.dump(data, open(root + "/data/maps/map-12.json", "w"), separators=(",", ":"))
