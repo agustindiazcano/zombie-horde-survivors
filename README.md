@@ -137,7 +137,7 @@ Every third-party asset is listed in `assets.toml` (name, author, source, licens
 ## Autor
 
 Agustin Diaz-Cano
-MS Candidate, Systems Engineering
+MS Candidate, Systems Engineering (UTN FRBA, Argentina)
 
 ## Credits
 
