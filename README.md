@@ -134,6 +134,11 @@ Copyright © 2026 Agustin Diaz Cano / Wylan Studios. All rights reserved. The ga
 
 Every third-party asset is listed in `assets.toml` (name, author, source, license, path). Allowed licenses: CC0-1.0, CC-BY-3.0, CC-BY-4.0. `npm run check:assets` enforces this and CI runs it. Run `npm run credits` to regenerate the section below.
 
+## Autor
+
+Agustin Diaz-Cano
+MS Candidate, Systems Engineering
+
 ## Credits
 
 <!-- credits:start -->
