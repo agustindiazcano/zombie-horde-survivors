@@ -87,7 +87,7 @@ data = {
     "units": units,
     "environment": {"sky": True, "timeOfDay": 17.7, "sun": True, "moon": True, "clouds": 0.35,
                     "water": {"neonOrbs": 4}},
-    "logic": {"mode": "waves", "noWaves": True, "swim": True, "physicsLab": True, "timeControl": True,
+    "logic": {"mode": "waves", "noWaves": True, "swim": True, "physicsLab": True, "physicsEngine": "diaz-cano", "timeControl": True,
               "ocean": {}, "startGold": 0, "boss": {"enabled": False}},
 }
 json.dump(data, open(root + "/data/maps/map-13.json", "w"), separators=(",", ":"))

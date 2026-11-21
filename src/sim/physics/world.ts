@@ -2,6 +2,7 @@ import type { Arena } from '../config';
 import { OBSTACLE_HEIGHT } from '../constants';
 import { obstaclesNear } from '../grid';
 import { heightAt } from '../terrain';
+import { hypot3 } from '../vec';
 
 /** The saturation of the vacuum (rho_max): the epsilon that keeps every 1/d blast and pull finite. */
 export const SATURATION = 0.25;
@@ -46,7 +47,7 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   friction: 0.8,
   airDrag: 0.08,
   substeps: 3,
-  iterations: 2,
+  iterations: 5,
   restSpeed: 1.5,
   sleepSpeed: 0.3,
   boneDamping: 0.3,
@@ -74,6 +75,8 @@ const BOX_SLEEP_TIME = 0.25;
 const WAKE_OVERLAP = 0.008;
 /** Lift added to every blast, scaled by the falloff (m/s per unit of 1/mass). */
 const BLAST_LIFT = 18;
+/** The most a blast can change a body's speed (m/s); Rapier's lab uses the same 60. */
+const BLAST_MAX_SPEED = 60;
 
 const hashCell = (cx: number, cy: number, cz: number): number =>
   (Math.imul(cx, 73856093) ^ Math.imul(cy, 19349663) ^ Math.imul(cz, 83492791)) & (HASH_SIZE - 1);
@@ -349,7 +352,19 @@ export class PhysicsWorld {
       const fall = 1 - d / radius;
       const imp = (power * fall) / (d + SATURATION);
       const inv = 1 / (d + 0.01);
-      this.impulse(i, dx * inv * imp, Math.abs(dy * inv) * imp + BLAST_LIFT * fall, dz * inv * imp);
+      let ix = dx * inv * imp;
+      let iy = Math.abs(dy * inv) * imp + BLAST_LIFT * fall;
+      let iz = dz * inv * imp;
+      // Speed cap (the author's call, same 60 m/s as Rapier): the formula is untouched, only the
+      // resulting speed change is clamped, keeping the direction.
+      const dv = hypot3(ix, iy, iz) * this.invMass[i]!;
+      if (dv > BLAST_MAX_SPEED) {
+        const k = BLAST_MAX_SPEED / dv;
+        ix *= k;
+        iy *= k;
+        iz *= k;
+      }
+      this.impulse(i, ix, iy, iz);
     }
   }
 
